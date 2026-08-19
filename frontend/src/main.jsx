@@ -1,0 +1,21 @@
+import React,{useEffect,useState} from "react";
+import {createRoot} from "react-dom/client";
+import {BarChart,Bar,XAxis,YAxis,Tooltip,ResponsiveContainer} from "recharts";
+import "./styles.css";
+const API=import.meta.env.VITE_API_URL||"http://localhost:8000/api";
+async function get(p){const r=await fetch(API+p); if(!r.ok) throw Error(await r.text()); return r.json()}
+function App(){
+ const [tab,setTab]=useState("dashboard"),[dash,setDash]=useState(null),[parts,setParts]=useState([]),[suppliers,setSuppliers]=useState([]),[prs,setPrs]=useState([]);
+ useEffect(()=>{get("/dashboard/").then(setDash).catch(()=>{});get("/parts/").then(setParts).catch(()=>{});get("/suppliers/").then(setSuppliers).catch(()=>{});get("/purchase-requests/").then(setPrs).catch(()=>{})},[]);
+ const nav=[["dashboard","Dashboard"],["parts","อะไหล่"],["stock","Stock Movement"],["pr","Purchase Request"],["rfq","RFQ / Quotation"],["po","Purchase Order"],["suppliers","Supplier"],["machines","Machine / BOM"]];
+ return <div className="app"><aside><div className="brand">⚙ PartsFlow</div><div className="muted">Spare Parts Management</div>{nav.map(x=><button className={tab===x[0]?"active":""} onClick={()=>setTab(x[0])} key={x[0]}>{x[1]}</button>)}</aside><main><header><div><h1>{nav.find(x=>x[0]===tab)?.[1]}</h1><span>จัดการอะไหล่ • จัดซื้อ • คลัง</span></div><div className="user">Admin</div></header>{tab==="dashboard"&&<Dashboard d={dash}/>}
+ {tab==="parts"&&<Parts data={parts}/>}
+ {tab==="suppliers"&&<Table title="Supplier" cols={["Code","Name","Contact","Lead time"]} rows={suppliers.map(s=>[s.code,s.name,s.contact,s.lead_time_days+" วัน"])}/>}
+ {tab==="pr"&&<Table title="Purchase Requests" cols={["Number","Status","Reason","Created"]} rows={prs.map(p=>[p.number,p.status,p.reason,p.created_at?.slice(0,10)])}/>}
+ {["stock","rfq","po","machines"].includes(tab)&&<Coming title={nav.find(x=>x[0]===tab)?.[1]}/>}</main></div>
+}
+function Dashboard({d}){if(!d)return <div className="empty">กำลังโหลดข้อมูล...</div>;const cards=[["อะไหล่ทั้งหมด",d.parts],["Stock ต่ำ",d.low_stock],["Critical ต่ำ",d.critical_low],["มูลค่า Stock","฿"+d.stock_value.toLocaleString()],["PR รออนุมัติ",d.pending_pr],["PO เปิดอยู่",d.open_po]];return <><section className="cards">{cards.map(c=><div className="card"><small>{c[0]}</small><strong>{c[1]}</strong></div>)}</section><section className="grid2"><div className="panel"><h2>Procurement Pipeline</h2><ResponsiveContainer width="100%" height={260}><BarChart data={[{n:"Low Stock",v:d.low_stock},{n:"Pending PR",v:d.pending_pr},{n:"Open PO",v:d.open_po},{n:"Critical",v:d.critical_low}]}><XAxis dataKey="n"/><YAxis/><Tooltip/><Bar dataKey="v"/></BarChart></ResponsiveContainer></div><div className="panel"><h2>Action Required</h2><div className="action">🔴 {d.critical_low} รายการ Critical Spare ต่ำกว่า Min Stock</div><div className="action">🟠 {d.low_stock} รายการต้องพิจารณาสั่งซื้อ</div><div className="action">🟡 {d.pending_pr} PR รอการอนุมัติ</div><div className="action">🔵 {d.open_po} PO อยู่ระหว่างสั่งซื้อ</div></div></section></>}
+function Parts({data}){return <div className="panel"><div className="panelhead"><h2>Spare Parts Master</h2><button className="primary">+ เพิ่มอะไหล่</button></div><table><thead><tr><th>SKU</th><th>อะไหล่</th><th>Machine</th><th>Stock</th><th>Min</th><th>สถานะ</th><th>Cost</th></tr></thead><tbody>{data.map(p=><tr><td><b>{p.sku}</b></td><td>{p.name}</td><td>{p.machine||"-"}</td><td>{p.stock} {p.unit}</td><td>{p.min_stock}</td><td><span className={p.stock<p.min_stock?"badge danger":"badge ok"}>{p.stock<p.min_stock?"LOW":"OK"}</span></td><td>฿{Number(p.unit_cost).toLocaleString()}</td></tr>)}</tbody></table></div>}
+function Table({title,cols,rows}){return <div className="panel"><div className="panelhead"><h2>{title}</h2><button className="primary">+ เพิ่ม</button></div><table><thead><tr>{cols.map(c=><th>{c}</th>)}</tr></thead><tbody>{rows.map(r=><tr>{r.map(x=><td>{x}</td>)}</tr>)}</tbody></table></div>}
+function Coming({title}){return <div className="panel"><h2>{title}</h2><div className="empty">Module พร้อมต่อยอดกับ API แล้ว — ใช้เมนูนี้สำหรับ workflow เต็มรูปแบบ</div></div>}
+createRoot(document.getElementById("root")).render(<App/>);
