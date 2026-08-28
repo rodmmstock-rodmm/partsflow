@@ -1,0 +1,3 @@
+const API_BASE=(import.meta.env.VITE_API_BASE_URL||"/api").replace(/\/$/,"");
+export async function apiRequest(path,options={}){const r=await fetch(`${API_BASE}${path}`,{credentials:"include",...options,headers:{...(options.body?{"Content-Type":"application/json"}:{}),...(options.headers||{})}});const t=r.headers.get("content-type")||"";const p=t.includes("application/json")?await r.json():await r.text();if(!r.ok){const e=new Error(typeof p==="object"&&p?.detail?p.detail:(p||`HTTP ${r.status}`));e.status=r.status;throw e}return p}
+export const apiGet=p=>apiRequest(p);export const apiPost=(p,b={})=>apiRequest(p,{method:"POST",body:JSON.stringify(b)});export const apiPatch=(p,b={})=>apiRequest(p,{method:"PATCH",body:JSON.stringify(b)});

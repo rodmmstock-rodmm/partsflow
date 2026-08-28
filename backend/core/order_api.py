@@ -1,0 +1,1728 @@
+from decimal import Decimal, InvalidOperation
+
+from django.db import IntegrityError, transaction
+from django.db.models import Max, Q, Sum
+from django.utils import timezone
+from django.utils.dateparse import parse_date
+from django.views.decorators.csrf import csrf_exempt
+from rest_framework.decorators import api_view, permission_classes
+from rest_framework.permissions import AllowAny
+from rest_framework.response import Response
+
+from .audit_utils import audit
+from .auth_api import require_permission
+from .models import (
+    Employee,
+    Inventory,
+    Machine,
+    OrderProject,
+    OrderRecord,
+    OrderStep,
+    Part,
+    StockTransaction,
+    Supplier,
+)
+
+URGENT_OPTIONS = [
+    "งานด่วนเครื่องหยุด",
+    "งานด่วนเครื่องไม่หยุด",
+    "งานด่วน + ค้าง DATA",
+]
+
+
+def as_date(value, label, required=False):
+    if value in (None, ""):
+        if required:
+            raise ValueError(f"{label} จำเป็นต้องใส่")
+        return None
+    if hasattr(value, "year") and not isinstance(value, str):
+        return value
+    result = parse_date(str(value))
+    if not result:
+        raise ValueError(f"{label} ไม่ถูกต้อง")
+    return result
+
+
+def as_decimal(value, label, default="0"):
+    try:
+        return Decimal(str(value if value not in (None, "") else default))
+    except (InvalidOperation, TypeError, ValueError):
+        raise ValueError(f"{label} ไม่ถูกต้อง")
+
+
+def employee_or_none(pk):
+    return Employee.objects.filter(pk=pk, active=True).first() if pk else None
+
+
+def machine_or_none(pk):
+    return Machine.objects.filter(pk=pk, active=True).first() if pk else None
+
+
+def supplier_or_none(pk):
+    return Supplier.objects.filter(pk=pk, active=True).first() if pk else None
+
+
+def part_or_none(pk):
+    return Part.objects.select_related("maker", "unit", "location").filter(pk=pk, active=True).first() if pk else None
+
+
+def generate_order_number(prefix="ORD"):
+    return f"{prefix}-{timezone.localtime().strftime('%Y%m%d-%H%M%S-%f')}"
+
+
+def group_order_for(order):
+    if not (order.urgent_status or order.pending_data_date) or not order.machine:
+        return ""
+    return f"{order.machine.code}_{order.order_date.strftime('%d%m%Y')}"
+
+
+def compute_status(order, validate=True):
+    """Return the data-derived purchase workflow status.
+
+    Lifecycle is stored separately:
+      ACTIVE / WAIT_CONFIRM / CANCELLED / COMPLETED
+
+    Workflow:
+      New Order
+        -> Quotation
+      Wait Quotation
+        -> Vendor Order
+      Wait Issue P/R
+        -> PO Number + Issue PR Date + Due Date
+      Wait for Item
+        -> Receive
+      Complete Order
+    """
+    quotation_ready = bool((order.quotation or "").strip())
+    vendor_ready = bool(order.vendor_id)
+    po_group = [
+        bool((order.po_number or "").strip()),
+        bool(order.issue_pr_date),
+        bool(order.due_date),
+    ]
+
+    if validate and any(po_group) and not all(po_group):
+        raise ValueError(
+            "PO Number, ISSUE PR DATE และ DUE DATE ต้องใส่พร้อมกันทั้ง 3 ช่อง"
+        )
+
+    if (
+        order.received_at
+        or order.lifecycle_status == OrderRecord.LIFECYCLE_COMPLETED
+    ):
+        return OrderRecord.STATUS_COMPLETE
+
+    if all(po_group) and quotation_ready and vendor_ready:
+        return OrderRecord.STATUS_ITEM
+
+    if quotation_ready and vendor_ready:
+        return OrderRecord.STATUS_ISSUE_PR
+
+    if quotation_ready:
+        return OrderRecord.STATUS_QUOTE
+
+    return OrderRecord.STATUS_NEW
+
+
+def sync_system_fields(order, validate=True):
+    if order.urgent_status == "งานด่วน + ค้าง DATA" and not order.pending_data_date:
+        raise ValueError("เมื่อเลือก 'งานด่วน + ค้าง DATA' กรุณาระบุวันที่งานค้าง")
+    order.group_order = group_order_for(order)
+    order.price_total = Decimal(str(order.amount or 0)) * Decimal(str(order.price_per_unit or 0))
+    order.status = compute_status(order, validate=validate)
+
+    if order.source_type == "NORMAL" and order.pending_data_date and order.edit_workflow_enabled:
+        if not order.edit_data_status:
+            order.edit_data_status = OrderRecord.EDIT_WAIT_QUOTE
+    elif not order.pending_data_date and order.edit_data_status != OrderRecord.EDIT_DONE:
+        order.edit_data_status = ""
+
+
+def order_json(order):
+    return {
+        "id": str(order.id),
+        "order_number": order.order_number,
+        "date": order.order_date.isoformat(),
+        "factory": order.factory,
+        "group_order": order.group_order,
+        "machine_id": str(order.machine_id) if order.machine_id else "",
+        "machine_code": order.machine.code if order.machine else "",
+        "machine_name": order.machine.name if order.machine else "",
+        "job": order.job,
+        "urgent_status": order.urgent_status,
+        "pending_data_date": order.pending_data_date.isoformat() if order.pending_data_date else "",
+        "remark": order.remark,
+        "quotation": order.quotation,
+        "part_id": str(order.part_id) if order.part_id else "",
+        "item_id": order.part.sku if order.part else "",
+        "part_name": order.part_name,
+        "part_detail": order.part_detail,
+        "maker": order.maker_text,
+        "amount": order.amount,
+        "unit": order.unit_text,
+        "po_number": order.po_number,
+        "price_per_unit": float(order.price_per_unit or 0),
+        "price_total": float(order.price_total or 0),
+        "vendor_id": str(order.vendor_id) if order.vendor_id else "",
+        "vendor_code": order.vendor.code if order.vendor else "",
+        "vendor_name": order.vendor.name if order.vendor else "",
+        "lead_time_days": order.lead_time_days,
+        "ordered_by_id": str(order.ordered_by_id) if order.ordered_by_id else "",
+        "ordered_by": order.ordered_by.name if order.ordered_by else "",
+        "issue_pr_date": order.issue_pr_date.isoformat() if order.issue_pr_date else "",
+        "due_date": order.due_date.isoformat() if order.due_date else "",
+        "vendor_confirm_date": order.vendor_confirm_date.isoformat() if order.vendor_confirm_date else "",
+        "received_at": timezone.localtime(order.received_at).isoformat() if order.received_at else "",
+        "person_in_charge_id": str(order.person_in_charge_id) if order.person_in_charge_id else "",
+        "person_in_charge": order.person_in_charge.name if order.person_in_charge else "",
+        "recorded_by_id": str(order.recorded_by_id) if order.recorded_by_id else "",
+        "recorded_by": order.recorded_by.name if order.recorded_by else "",
+        "status": order.status,
+        "display_status": (
+            OrderRecord.STATUS_CONFIRM
+            if order.lifecycle_status == OrderRecord.LIFECYCLE_WAIT_CONFIRM
+            else order.status
+        ),
+        "wait_confirm": order.wait_confirm,
+        "lifecycle_status": order.lifecycle_status,
+        "cancel_status": order.cancel_status,
+        "cancelled_at": (
+            timezone.localtime(order.cancelled_at).isoformat()
+            if order.cancelled_at else ""
+        ),
+        "cancelled_by": (
+            order.cancelled_by_employee.name
+            if order.cancelled_by_employee else ""
+        ),
+        "cancel_reason": order.cancel_reason,
+        "completed_at": (
+            timezone.localtime(order.completed_at).isoformat()
+            if order.completed_at else ""
+        ),
+        "completed_by": (
+            order.completed_by_employee.name
+            if order.completed_by_employee else ""
+        ),
+        "completion_note": order.completion_note,
+        "edit_data_status": order.edit_data_status,
+        "source_type": order.source_type,
+        "project_id": str(order.project_id) if order.project_id else "",
+        "project_name": order.project.name if order.project else "",
+        "step_id": str(order.step_id) if order.step_id else "",
+        "step_no": order.step.step_no if order.step else None,
+        "usage_status": order.usage_status,
+        "stock_received": order.stock_received,
+        "is_deleted": order.is_deleted,
+        "created_at": timezone.localtime(order.created_at).isoformat(),
+        "updated_at": timezone.localtime(order.updated_at).isoformat(),
+    }
+
+
+def apply_order_info(order, data, *, creating=False):
+    if creating:
+        order.order_date = timezone.localdate()
+    # DATE cannot be edited after creation.
+    if "factory" in data or creating:
+        factory = str(data.get("factory") or "").strip()
+        if factory not in {"MM-4", "MM-11"}:
+            raise ValueError("FACTORY ต้องเป็น Phase4 หรือ Phase11")
+        order.factory = factory
+
+    if "machine_id" in data or creating:
+        order.machine = machine_or_none(data.get("machine_id"))
+        if not order.machine:
+            raise ValueError("MACHINE NAME จำเป็นต้องใส่")
+
+    if order.source_type == "PROJECT" and order.project_id:
+        # Project Order rules:
+        # - JOB is locked to the Project department.
+        # - urgent status is not used.
+        # - pending-data date belongs to the Project, not each row/import file.
+        order.job = order.project.department
+        order.urgent_status = ""
+        order.pending_data_date = order.project.pending_data_date
+    else:
+        if "job" in data or creating:
+            order.job = str(data.get("job") or "").strip().upper()
+            if not order.job:
+                raise ValueError("JOB จำเป็นต้องใส่")
+
+        if "urgent_status" in data or creating:
+            urgent = str(data.get("urgent_status") or "").strip()
+            if urgent and urgent not in URGENT_OPTIONS:
+                raise ValueError("สถานะงานด่วนไม่ถูกต้อง")
+            order.urgent_status = urgent
+
+        if "pending_data_date" in data or creating:
+            order.pending_data_date = as_date(
+                data.get("pending_data_date"),
+                "วันที่งานค้าง",
+            )
+
+    if "part_id" in data or creating:
+        order.part = part_or_none(data.get("part_id"))
+
+    if order.part:
+        order.part_name = order.part.name
+        order.part_detail = order.part.description or ""
+        order.maker_text = order.part.maker.name if order.part.maker else ""
+        order.unit_text = order.part.unit.code if order.part.unit else ""
+    else:
+        if "part_name" in data or creating:
+            order.part_name = str(data.get("part_name") or "").strip()
+        if "part_detail" in data or creating:
+            order.part_detail = str(data.get("part_detail") or "").strip()
+        if "maker" in data or creating:
+            order.maker_text = str(data.get("maker") or "").strip()
+        if "unit" in data or creating:
+            order.unit_text = str(data.get("unit") or "").strip()
+
+    if not order.part_name:
+        raise ValueError("Part Name จำเป็นต้องใส่")
+    if not order.part_detail:
+        raise ValueError("Part Detail จำเป็นต้องใส่")
+    if not order.maker_text:
+        raise ValueError("MAKER จำเป็นต้องใส่")
+    if not order.unit_text:
+        raise ValueError("Unit จำเป็นต้องใส่")
+
+    if "amount" in data or creating:
+        try:
+            amount = int(data.get("amount") or 0)
+        except (TypeError, ValueError):
+            raise ValueError("AMOUNT ต้องเป็นจำนวนเต็ม")
+        if amount <= 0:
+            raise ValueError("AMOUNT ต้องมากกว่า 0")
+        order.amount = amount
+
+    if "remark" in data or creating:
+        order.remark = str(data.get("remark") or "").strip()
+
+    if "ordered_by_id" in data or creating:
+        order.ordered_by = employee_or_none(data.get("ordered_by_id"))
+        if not order.ordered_by:
+            raise ValueError("ชื่อผู้สั่งจำเป็นต้องใส่")
+
+    sync_system_fields(order)
+
+
+def apply_purchase_info(order, data):
+    if "quotation" in data:
+        order.quotation = str(data.get("quotation") or "").strip()
+    if "po_number" in data:
+        order.po_number = str(data.get("po_number") or "").strip()
+    if "price_per_unit" in data:
+        price = as_decimal(data.get("price_per_unit"), "PRICE PER UNIT")
+        if price < 0:
+            raise ValueError("PRICE PER UNIT ต้องไม่น้อยกว่า 0")
+        order.price_per_unit = price
+    if "vendor_id" in data:
+        order.vendor = supplier_or_none(data.get("vendor_id"))
+    if "lead_time_days" in data:
+        raw = data.get("lead_time_days")
+        order.lead_time_days = None if raw in (None, "") else max(0, int(raw))
+    if "issue_pr_date" in data:
+        order.issue_pr_date = as_date(data.get("issue_pr_date"), "ISSUE PR DATE")
+    if "due_date" in data:
+        order.due_date = as_date(data.get("due_date"), "DUE DATE")
+    if "vendor_confirm_date" in data:
+        order.vendor_confirm_date = as_date(data.get("vendor_confirm_date"), "VENDOR CONFIRM DATE")
+    if "person_in_charge_id" in data:
+        order.person_in_charge = employee_or_none(data.get("person_in_charge_id"))
+
+    quotation_ready = bool((order.quotation or "").strip())
+    vendor_ready = bool(order.vendor_id)
+    po_group = [
+        bool((order.po_number or "").strip()),
+        bool(order.issue_pr_date),
+        bool(order.due_date),
+    ]
+
+    if vendor_ready and not quotation_ready:
+        raise ValueError("กรุณาใส่ Quotation ก่อนเลือก Vendor Order")
+
+    if any(po_group) and not all(po_group):
+        raise ValueError(
+            "PO Number, ISSUE PR DATE และ DUE DATE ต้องใส่พร้อมกันทั้ง 3 ช่อง"
+        )
+
+    if all(po_group) and not (quotation_ready and vendor_ready):
+        raise ValueError(
+            "ก่อนบันทึกชุด PO ต้องมี Quotation และ Vendor Order ก่อน"
+        )
+
+    sync_system_fields(order)
+
+
+def order_queryset():
+    return OrderRecord.objects.select_related(
+        "machine",
+        "part",
+        "vendor",
+        "ordered_by",
+        "person_in_charge",
+        "recorded_by",
+        "cancelled_by_employee",
+        "completed_by_employee",
+        "project",
+        "step",
+    )
+
+
+def urgency_class(order):
+    urgent = bool(order.urgent_status)
+    pending = bool(order.pending_data_date)
+    if urgent and pending:
+        return "urgent_pending"
+    if urgent:
+        return "urgent"
+    if pending:
+        return "pending"
+    return "normal"
+
+
+@csrf_exempt
+@api_view(["GET", "POST"])
+@permission_classes([AllowAny])
+def orders(request):
+    permission = "can_view_orders" if request.method == "GET" else "can_add_order"
+    actor, err = require_permission(request, permission)
+    if err:
+        return err
+
+    if request.method == "POST":
+        try:
+            with transaction.atomic():
+                order = OrderRecord(
+                    order_number=generate_order_number(),
+                    order_date=timezone.localdate(),
+                    recorded_by=actor,
+                    source_type="NORMAL",
+                    edit_workflow_enabled=True,
+                )
+                apply_order_info(order, request.data, creating=True)
+                order.save()
+                audit(actor, "CREATE", "OrderRecord", order.id, order_json(order_queryset().get(pk=order.pk)))
+            return Response(order_json(order_queryset().get(pk=order.pk)), status=201)
+        except (ValueError, IntegrityError) as exc:
+            return Response({"detail": str(exc)}, status=400)
+
+    view = str(request.GET.get("view", "normal")).strip().lower()
+    q = str(request.GET.get("q", "")).strip()
+    urgency = str(request.GET.get("urgency", "all")).strip().lower()
+    job = str(request.GET.get("job", "")).strip().upper()
+    status = str(request.GET.get("status", "")).strip()
+
+    qs = order_queryset().filter(is_deleted=False)
+    if view == "completed":
+        qs = qs.filter(
+            lifecycle_status=OrderRecord.LIFECYCLE_COMPLETED
+        )
+    elif view == "confirm":
+        qs = qs.filter(
+            lifecycle_status=OrderRecord.LIFECYCLE_WAIT_CONFIRM,
+        )
+    elif view == "cancelled":
+        qs = qs.filter(
+            lifecycle_status=OrderRecord.LIFECYCLE_CANCELLED
+        )
+    elif view == "updates":
+        qs = qs.filter(
+            lifecycle_status=OrderRecord.LIFECYCLE_ACTIVE,
+            pending_data_date__isnull=False,
+            edit_workflow_enabled=True,
+        )
+        qs = qs.filter(
+            Q(edit_data_status=OrderRecord.EDIT_WAIT_QUOTE, status=OrderRecord.STATUS_QUOTE)
+            | Q(edit_data_status=OrderRecord.EDIT_WAIT_ITEM, status=OrderRecord.STATUS_ITEM)
+            | Q(edit_data_status=OrderRecord.EDIT_WAIT_COMPLETE, status=OrderRecord.STATUS_COMPLETE)
+        )
+    else:
+        qs = qs.filter(
+            lifecycle_status=OrderRecord.LIFECYCLE_ACTIVE,
+        ).exclude(status=OrderRecord.STATUS_COMPLETE)
+
+    if q:
+        qs = qs.filter(
+            Q(order_number__icontains=q)
+            | Q(part__sku__icontains=q)
+            | Q(part_name__icontains=q)
+            | Q(part_detail__icontains=q)
+            | Q(maker_text__icontains=q)
+            | Q(machine__code__icontains=q)
+            | Q(machine__name__icontains=q)
+            | Q(ordered_by__name__icontains=q)
+        )
+    if job:
+        qs = qs.filter(job=job)
+    if status:
+        qs = qs.filter(status=status)
+
+    rows = list(qs.order_by("-order_date", "-created_at")[:5000])
+    if urgency in {"normal", "urgent", "pending", "urgent_pending"}:
+        rows = [row for row in rows if urgency_class(row) == urgency]
+
+    active_qs = order_queryset().filter(
+        is_deleted=False,
+        lifecycle_status__in=[
+            OrderRecord.LIFECYCLE_ACTIVE,
+            OrderRecord.LIFECYCLE_WAIT_CONFIRM,
+        ],
+    )
+    active_rows = list(active_qs)
+    job_core = {"REPAIR", "MODIFY", "AUTOMATION", "PM"}
+    kpi = {
+        "total": len(active_rows),
+        "urgent": sum(1 for x in active_rows if urgency_class(x) == "urgent"),
+        "urgent_pending": sum(1 for x in active_rows if urgency_class(x) == "urgent_pending"),
+        "pending": sum(1 for x in active_rows if urgency_class(x) == "pending"),
+        "repair": sum(1 for x in active_rows if x.job == "REPAIR"),
+        "modify": sum(1 for x in active_rows if x.job == "MODIFY"),
+        "automation": sum(1 for x in active_rows if x.job == "AUTOMATION"),
+        "pm": sum(1 for x in active_rows if x.job == "PM"),
+        "general": sum(1 for x in active_rows if x.job not in job_core),
+    }
+    return Response({"count": len(rows), "kpi": kpi, "results": [order_json(x) for x in rows]})
+
+
+@api_view(["GET"])
+@permission_classes([AllowAny])
+def order_detail(request, pk):
+    _, err = require_permission(request, "can_view_orders")
+    if err:
+        return err
+    order = order_queryset().filter(pk=pk, is_deleted=False).first()
+    if not order:
+        return Response({"detail": "ไม่พบ Order"}, status=404)
+    return Response(order_json(order))
+
+
+@csrf_exempt
+@api_view(["PATCH"])
+@permission_classes([AllowAny])
+def update_order_info(request, pk):
+    actor, err = require_permission(request, "can_edit_order_info")
+    if err:
+        return err
+    order = order_queryset().filter(pk=pk, is_deleted=False).first()
+    if not order:
+        return Response({"detail": "ไม่พบ Order"}, status=404)
+    if order.received_at and order.stock_received:
+        incoming_part = str(request.data.get("part_id", order.part_id or ""))
+        current_part = str(order.part_id or "")
+        incoming_job = str(request.data.get("job", order.job) or "").strip().upper()
+        try:
+            incoming_amount = int(request.data.get("amount", order.amount) or 0)
+        except (TypeError, ValueError):
+            incoming_amount = order.amount
+        if incoming_part != current_part or incoming_job != (order.job or "").upper() or incoming_amount != order.amount:
+            return Response({"detail": "Order นี้รับเข้า Stock แล้ว จึงไม่อนุญาตให้เปลี่ยน Item ID, JOB หรือ AMOUNT เพื่อป้องกัน Stock ไม่ตรง"}, status=400)
+    before = order_json(order)
+    try:
+        with transaction.atomic():
+            apply_order_info(order, request.data)
+            order.save()
+            after = order_json(order_queryset().get(pk=pk))
+            audit(actor, "UPDATE_ORDER_INFO", "OrderRecord", order.id, {"before": before, "after": after})
+        return Response(after)
+    except ValueError as exc:
+        return Response({"detail": str(exc)}, status=400)
+
+
+@csrf_exempt
+@api_view(["PATCH"])
+@permission_classes([AllowAny])
+def update_purchase_info(request, pk):
+    actor, err = require_permission(request, "can_edit_purchase_info")
+    if err:
+        return err
+    order = order_queryset().filter(pk=pk, is_deleted=False).first()
+    if not order:
+        return Response({"detail": "ไม่พบ Order"}, status=404)
+    before = order_json(order)
+    try:
+        with transaction.atomic():
+            apply_purchase_info(order, request.data)
+            order.save()
+            after = order_json(order_queryset().get(pk=pk))
+            audit(actor, "UPDATE_PURCHASE_INFO", "OrderRecord", order.id, {"before": before, "after": after})
+        return Response(after)
+    except (ValueError, TypeError) as exc:
+        return Response({"detail": str(exc)}, status=400)
+
+
+def locked_inventory(part):
+    """Lock every inventory row for this Part and return the receiving row.
+
+    We deliberately do not use select_related() together with select_for_update()
+    here. PostgreSQL can reject FOR UPDATE when nullable outer joins are present.
+    """
+    rows = list(
+        Inventory.objects.select_for_update()
+        .filter(part_id=part.pk)
+        .order_by("pk")
+    )
+
+    target = next(
+        (row for row in rows if row.location_id == part.location_id),
+        None,
+    )
+
+    if target is None:
+        target = Inventory.objects.create(
+            part=part,
+            location_id=part.location_id,
+            quantity=Decimal("0"),
+            legacy_source="ORDER",
+            legacy_id=f"ORDER:{part.sku}",
+        )
+        rows.append(target)
+
+    return rows, target
+
+
+def stock_total(rows):
+    return sum(
+        (Decimal(str(row.quantity or 0)) for row in rows),
+        Decimal("0"),
+    )
+
+
+def tx_no():
+    return f"ORD-RCV-{timezone.now().strftime('%Y%m%d%H%M%S%f')}"
+
+
+@csrf_exempt
+@api_view(["POST"])
+@permission_classes([AllowAny])
+def receive_order(request, pk):
+    actor, err = require_permission(request, "can_receive_order")
+    if err:
+        return err
+
+    order = order_queryset().filter(pk=pk, is_deleted=False).first()
+    if not order:
+        return Response({"detail": "ไม่พบ Order"}, status=404)
+
+    if (
+        order.lifecycle_status == OrderRecord.LIFECYCLE_CANCELLED
+        or order.cancel_status
+    ):
+        return Response({"detail": "Order ถูกยกเลิกแล้ว"}, status=400)
+
+    if order.received_at or order.lifecycle_status == OrderRecord.LIFECYCLE_COMPLETED:
+        return Response({"detail": "รายการนี้รับของแล้ว"}, status=400)
+
+    try:
+        with transaction.atomic():
+            # IMPORTANT: lock only the OrderRecord table. Do not start from
+            # order_queryset(), because it select_related()s nullable FKs and
+            # PostgreSQL may reject FOR UPDATE on nullable outer joins.
+            order = OrderRecord.objects.select_for_update().get(
+                pk=pk,
+                is_deleted=False,
+            )
+
+            if (
+                order.received_at
+                or order.lifecycle_status == OrderRecord.LIFECYCLE_COMPLETED
+            ):
+                raise ValueError("รายการนี้รับของแล้ว")
+
+            if (
+                order.lifecycle_status == OrderRecord.LIFECYCLE_CANCELLED
+                or order.cancel_status
+            ):
+                raise ValueError("Order ถูกยกเลิกแล้ว")
+
+            stock_before = None
+            stock_after = None
+            tx = None
+
+            # New business rule:
+            # Any Order that has an Item ID / linked Part increases stock.
+            # JOB no longer has to be SPARE.
+            if order.part_id:
+                part = Part.objects.select_for_update().get(pk=order.part_id)
+                rows, target = locked_inventory(part)
+                stock_before = stock_total(rows)
+
+                amount = Decimal(str(order.amount or 0))
+                if amount <= 0:
+                    raise ValueError("AMOUNT ต้องมากกว่า 0")
+
+                target.quantity = Decimal(str(target.quantity or 0)) + amount
+                target.save(update_fields=["quantity", "updated_at"])
+
+                stock_after = stock_before + amount
+
+                tx = StockTransaction.objects.create(
+                    legacy_source="ORDER",
+                    legacy_id=str(order.id),
+                    transaction_no=tx_no(),
+                    part=part,
+                    location_id=part.location_id,
+                    transaction_type="RECEIVE",
+                    quantity=amount,
+                    recorded_by_employee=actor,
+                    reference_type="ORDER",
+                    reference_id=str(order.id),
+                    transaction_date=timezone.now(),
+                    remark=f"รับเข้าจาก Order {order.order_number}",
+                    created_by=None,
+                )
+
+                order.stock_received = True
+                order.stock_transaction = tx
+
+            now = timezone.now()
+            order.received_at = now
+            order.completed_at = now
+            order.completed_by_employee = actor
+            order.completion_note = str(
+                request.data.get("completion_note") or ""
+            ).strip()
+            order.lifecycle_status = OrderRecord.LIFECYCLE_COMPLETED
+            order.cancel_status = False
+            order.wait_confirm = False
+            sync_system_fields(order, validate=False)
+            order.save()
+
+            audit(
+                actor,
+                "RECEIVE_ORDER",
+                "OrderRecord",
+                order.id,
+                {
+                    "order_number": order.order_number,
+                    "received_at": order.received_at.isoformat(),
+                    "lifecycle_status": order.lifecycle_status,
+                    "stock_added": bool(tx),
+                    "stock_before": (
+                        str(stock_before)
+                        if stock_before is not None else None
+                    ),
+                    "stock_after": (
+                        str(stock_after)
+                        if stock_after is not None else None
+                    ),
+                    "stock_transaction_id": (
+                        str(tx.id) if tx else None
+                    ),
+                },
+            )
+
+        return Response(order_json(order_queryset().get(pk=pk)))
+
+    except ValueError as exc:
+        return Response({"detail": str(exc)}, status=400)
+    except IntegrityError:
+        return Response(
+            {
+                "detail":
+                "รับของไม่สำเร็จเนื่องจากข้อมูล Stock ซ้ำหรือไม่สมบูรณ์ "
+                "กรุณาลองใหม่อีกครั้ง"
+            },
+            status=409,
+        )
+
+
+@csrf_exempt
+@api_view(["POST"])
+@permission_classes([AllowAny])
+def wait_confirm_order(request, pk):
+    actor, err = require_permission(request, "can_edit_purchase_info")
+    if err:
+        return err
+
+    try:
+        with transaction.atomic():
+            order = OrderRecord.objects.select_for_update().filter(
+                pk=pk,
+                is_deleted=False,
+            ).first()
+            if not order:
+                return Response({"detail": "ไม่พบ Order"}, status=404)
+
+            if order.lifecycle_status == OrderRecord.LIFECYCLE_CANCELLED:
+                return Response(
+                    {"detail": "Order ที่ยกเลิกแล้วไม่สามารถเปลี่ยน Wait Confirm ได้"},
+                    status=400,
+                )
+
+            if (
+                order.received_at
+                or order.lifecycle_status == OrderRecord.LIFECYCLE_COMPLETED
+            ):
+                return Response(
+                    {"detail": "Order ที่รับของแล้วไม่สามารถเปลี่ยน Wait Confirm ได้"},
+                    status=400,
+                )
+
+            target = bool(request.data.get("wait_confirm", True))
+            before = {
+                "wait_confirm": order.wait_confirm,
+                "lifecycle_status": order.lifecycle_status,
+                "status": order.status,
+            }
+
+            order.wait_confirm = target
+            order.lifecycle_status = (
+                OrderRecord.LIFECYCLE_WAIT_CONFIRM
+                if target
+                else OrderRecord.LIFECYCLE_ACTIVE
+            )
+            # STATUS is always recalculated from real Order/Purchase data.
+            sync_system_fields(order, validate=False)
+            order.save(update_fields=[
+                "wait_confirm",
+                "lifecycle_status",
+                "status",
+                "group_order",
+                "price_total",
+                "edit_data_status",
+                "updated_at",
+            ])
+
+            audit(
+                actor,
+                "WAIT_CONFIRM_ORDER" if target else "CANCEL_WAIT_CONFIRM",
+                "OrderRecord",
+                order.id,
+                {
+                    "before": before,
+                    "after": {
+                        "wait_confirm": order.wait_confirm,
+                        "lifecycle_status": order.lifecycle_status,
+                        "status": order.status,
+                    },
+                },
+            )
+
+        return Response(order_json(order_queryset().get(pk=pk)))
+
+    except ValueError as exc:
+        return Response({"detail": str(exc)}, status=400)
+
+
+@csrf_exempt
+@api_view(["POST"])
+@permission_classes([AllowAny])
+def cancel_order(request, pk):
+    actor, err = require_permission(request, "can_cancel_order")
+    if err:
+        return err
+
+    try:
+        with transaction.atomic():
+            order = OrderRecord.objects.select_for_update().filter(
+                pk=pk,
+                is_deleted=False,
+            ).first()
+            if not order:
+                return Response({"detail": "ไม่พบ Order"}, status=404)
+
+            target = bool(request.data.get("cancel", True))
+
+            if target and (
+                order.received_at
+                or order.lifecycle_status == OrderRecord.LIFECYCLE_COMPLETED
+            ):
+                return Response(
+                    {"detail": "Order ที่รับของแล้วไม่สามารถยกเลิกได้"},
+                    status=400,
+                )
+
+            before = {
+                "cancel_status": order.cancel_status,
+                "lifecycle_status": order.lifecycle_status,
+                "cancelled_at": (
+                    order.cancelled_at.isoformat()
+                    if order.cancelled_at else None
+                ),
+                "cancel_reason": order.cancel_reason,
+            }
+
+            if target:
+                order.cancel_status = True
+                order.lifecycle_status = OrderRecord.LIFECYCLE_CANCELLED
+                order.cancelled_at = timezone.now()
+                order.cancelled_by_employee = actor
+                order.cancel_reason = str(
+                    request.data.get("reason") or ""
+                ).strip()
+                order.wait_confirm = False
+            else:
+                order.cancel_status = False
+                order.lifecycle_status = OrderRecord.LIFECYCLE_ACTIVE
+                order.wait_confirm = False
+                order.cancelled_at = None
+                order.cancelled_by_employee = None
+                order.cancel_reason = ""
+                sync_system_fields(order, validate=False)
+
+            order.save()
+
+            audit(
+                actor,
+                "CANCEL_ORDER" if target else "RESTORE_ORDER",
+                "OrderRecord",
+                order.id,
+                {
+                    "before": before,
+                    "after": {
+                        "cancel_status": order.cancel_status,
+                        "lifecycle_status": order.lifecycle_status,
+                        "cancelled_at": (
+                            order.cancelled_at.isoformat()
+                            if order.cancelled_at else None
+                        ),
+                        "cancel_reason": order.cancel_reason,
+                    },
+                },
+            )
+
+        return Response(order_json(order_queryset().get(pk=pk)))
+
+    except ValueError as exc:
+        return Response({"detail": str(exc)}, status=400)
+
+
+@csrf_exempt
+@api_view(["DELETE"])
+@permission_classes([AllowAny])
+def delete_order(request, pk):
+    actor, err = require_permission(request, "can_delete_order")
+    if err:
+        return err
+    order = order_queryset().filter(pk=pk, is_deleted=False).first()
+    if not order:
+        return Response({"detail": "ไม่พบ Order"}, status=404)
+    before = order_json(order)
+    order.is_deleted = True
+    order.deleted_at = timezone.now()
+    order.deleted_by_employee = actor
+    order.save(update_fields=["is_deleted", "deleted_at", "deleted_by_employee", "updated_at"])
+    audit(actor, "SOFT_DELETE", "OrderRecord", order.id, before)
+    return Response({"success": True})
+
+
+@csrf_exempt
+@api_view(["POST"])
+@permission_classes([AllowAny])
+def update_edit_data(request, pk):
+    actor, err = require_permission(request, "can_update_edit_data")
+    if err:
+        return err
+    order = order_queryset().filter(pk=pk, is_deleted=False, cancel_status=False).first()
+    if not order:
+        return Response({"detail": "ไม่พบ Order"}, status=404)
+    if not order.pending_data_date or not order.edit_workflow_enabled:
+        return Response({"detail": "รายการนี้ไม่อยู่ใน Workflow แก้ไข Data"}, status=400)
+
+    mapping = {
+        OrderRecord.EDIT_WAIT_QUOTE: (OrderRecord.STATUS_QUOTE, OrderRecord.EDIT_WAIT_ITEM),
+        OrderRecord.EDIT_WAIT_ITEM: (OrderRecord.STATUS_ITEM, OrderRecord.EDIT_WAIT_COMPLETE),
+        OrderRecord.EDIT_WAIT_COMPLETE: (OrderRecord.STATUS_COMPLETE, OrderRecord.EDIT_DONE),
+    }
+    current = order.edit_data_status or OrderRecord.EDIT_WAIT_QUOTE
+    if current not in mapping:
+        return Response({"detail": "รายการนี้อัพเดตครบแล้ว"}, status=400)
+    required_status, next_state = mapping[current]
+    if order.status != required_status:
+        return Response({"detail": f"Order ต้องอยู่สถานะ {required_status} ก่อนจึงจะกดอัพเดตได้"}, status=400)
+    order.edit_data_status = next_state
+    order.save(update_fields=["edit_data_status", "updated_at"])
+    audit(actor, "UPDATE_EDIT_DATA", "OrderRecord", order.id, {"old": current, "new": next_state, "order_status": order.status})
+    return Response(order_json(order_queryset().get(pk=pk)))
+
+
+def project_json(project):
+    orders = list(
+        project.orders.filter(is_deleted=False)
+        .select_related("step")
+    )
+
+    # "ราคาอะไหล่ทั้งหมดที่สั่ง":
+    # Cancelled is excluded, but WAIT_CONFIRM is still included.
+    total_orders = [
+        x for x in orders
+        if x.lifecycle_status != OrderRecord.LIFECYCLE_CANCELLED
+    ]
+
+    # "ราคาอะไหล่ที่ใช้":
+    # ACTIVE + COMPLETED only.
+    # WAIT_CONFIRM and CANCELLED are excluded.
+    used_orders = [
+        x for x in orders
+        if x.lifecycle_status in {
+            OrderRecord.LIFECYCLE_ACTIVE,
+            OrderRecord.LIFECYCLE_COMPLETED,
+        }
+    ]
+
+    return {
+        "id": str(project.id),
+        "name": project.name,
+        "department": project.department,
+        "description": project.description or "",
+        "owner_id": (
+            str(project.owner_employee_id)
+            if project.owner_employee_id else ""
+        ),
+        "owner_name": (
+            project.owner_employee.name
+            if project.owner_employee else ""
+        ),
+        "pending_data_date": (
+            project.pending_data_date.isoformat()
+            if project.pending_data_date else ""
+        ),
+        "created_by": (
+            project.created_by_employee.name
+            if project.created_by_employee else ""
+        ),
+        "active": project.active,
+        "step_count": project.steps.count(),
+        "total_items": len(orders),
+        "used_items": len(used_orders),
+        "wait_confirm_items": sum(
+            1
+            for x in orders
+            if x.lifecycle_status == OrderRecord.LIFECYCLE_WAIT_CONFIRM
+        ),
+        "cancelled_items": sum(
+            1
+            for x in orders
+            if x.lifecycle_status == OrderRecord.LIFECYCLE_CANCELLED
+        ),
+        "total_order_value": float(
+            sum(
+                (
+                    Decimal(str(x.price_total or 0))
+                    for x in total_orders
+                ),
+                Decimal("0"),
+            )
+        ),
+        "used_value": float(
+            sum(
+                (
+                    Decimal(str(x.price_total or 0))
+                    for x in used_orders
+                ),
+                Decimal("0"),
+            )
+        ),
+    }
+
+
+@csrf_exempt
+@api_view(["GET", "POST"])
+@permission_classes([AllowAny])
+def projects(request):
+    permission = (
+        "can_view_orders"
+        if request.method == "GET"
+        else "can_manage_order_projects"
+    )
+    actor, err = require_permission(request, permission)
+    if err:
+        return err
+
+    if request.method == "GET":
+        department = str(
+            request.GET.get("department", "")
+        ).strip().upper()
+        q = str(request.GET.get("q", "")).strip()
+
+        qs = (
+            OrderProject.objects
+            .filter(active=True)
+            .select_related(
+                "owner_employee",
+                "created_by_employee",
+            )
+        )
+
+        if department in {"MODIFY", "AUTOMATION"}:
+            qs = qs.filter(department=department)
+
+        if q:
+            qs = qs.filter(
+                Q(name__icontains=q)
+                | Q(owner_employee__name__icontains=q)
+                | Q(owner_employee__employee_code__icontains=q)
+            )
+
+        return Response(
+            {
+                "results": [
+                    project_json(p)
+                    for p in qs.order_by("-created_at")
+                ]
+            }
+        )
+
+    name = str(request.data.get("name", "")).strip()
+    if not name:
+        return Response(
+            {"detail": "กรุณาระบุชื่อ Project"},
+            status=400,
+        )
+
+    department = str(
+        request.data.get("department", "MODIFY")
+    ).strip().upper()
+    if department not in {"MODIFY", "AUTOMATION"}:
+        return Response(
+            {"detail": "แผนกต้องเป็น MODIFY หรือ AUTOMATION"},
+            status=400,
+        )
+
+    owner = employee_or_none(request.data.get("owner_id"))
+    if not owner:
+        owner = actor
+
+    try:
+        project = OrderProject.objects.create(
+            name=name,
+            department=department,
+            description=str(
+                request.data.get("description", "")
+            ).strip(),
+            owner_employee=owner,
+            pending_data_date=as_date(
+                request.data.get("pending_data_date"),
+                "วันที่งานค้าง",
+            ),
+            created_by_employee=actor,
+        )
+    except IntegrityError:
+        return Response(
+            {"detail": "ชื่อ Project นี้มีอยู่แล้ว"},
+            status=400,
+        )
+    except ValueError as exc:
+        return Response({"detail": str(exc)}, status=400)
+
+    audit(
+        actor,
+        "CREATE",
+        "OrderProject",
+        project.id,
+        project_json(project),
+    )
+    return Response(project_json(project), status=201)
+
+
+@csrf_exempt
+@api_view(["GET", "DELETE"])
+@permission_classes([AllowAny])
+def project_detail(request, pk):
+    permission = (
+        "can_view_orders"
+        if request.method == "GET"
+        else "can_manage_order_projects"
+    )
+    actor, err = require_permission(request, permission)
+    if err:
+        return err
+
+    project = (
+        OrderProject.objects
+        .select_related(
+            "owner_employee",
+            "created_by_employee",
+        )
+        .filter(pk=pk, active=True)
+        .first()
+    )
+    if not project:
+        return Response({"detail": "ไม่พบ Project"}, status=404)
+
+    if request.method == "DELETE":
+        with transaction.atomic():
+            project = OrderProject.objects.select_for_update().get(
+                pk=project.pk
+            )
+            project.active = False
+            project.save(update_fields=["active", "updated_at"])
+
+            now = timezone.now()
+            project.orders.filter(
+                is_deleted=False
+            ).update(
+                is_deleted=True,
+                deleted_at=now,
+                deleted_by_employee=actor,
+            )
+
+            audit(
+                actor,
+                "DELETE_PROJECT",
+                "OrderProject",
+                project.id,
+                {
+                    "name": project.name,
+                    "department": project.department,
+                },
+            )
+
+        return Response({"ok": True})
+
+    steps = []
+    for step in project.steps.order_by("step_no"):
+        step_orders = list(
+            order_queryset()
+            .filter(step=step, is_deleted=False)
+            .order_by("created_at")
+        )
+        steps.append(
+            {
+                "id": str(step.id),
+                "step_no": step.step_no,
+                "import_filename": step.import_filename,
+                "created_at": (
+                    timezone.localtime(step.created_at).isoformat()
+                ),
+                "orders": [order_json(x) for x in step_orders],
+            }
+        )
+
+    return Response(
+        {
+            "project": project_json(project),
+            "steps": steps,
+        }
+    )
+
+
+@csrf_exempt
+@api_view(["POST"])
+@permission_classes([AllowAny])
+def create_project_step(request, pk):
+    """Create an empty Step inside a Project.
+
+    Step creation is explicit. Adding an Order or importing Excel no longer
+    creates a new Step automatically.
+    """
+    actor, err = require_permission(request, "can_manage_order_projects")
+    if err:
+        return err
+
+    try:
+        with transaction.atomic():
+            project = OrderProject.objects.select_for_update().filter(
+                pk=pk,
+                active=True,
+            ).first()
+            if not project:
+                return Response({"detail": "ไม่พบ Project"}, status=404)
+
+            current = (
+                project.steps.aggregate(max_no=Max("step_no"))["max_no"] or 0
+            )
+            step = OrderStep.objects.create(
+                project=project,
+                step_no=current + 1,
+                import_filename="",
+                imported_by_employee=actor,
+            )
+
+            audit(
+                actor,
+                "CREATE_PROJECT_STEP",
+                "OrderStep",
+                step.id,
+                {
+                    "project_id": str(project.id),
+                    "project_name": project.name,
+                    "step_no": step.step_no,
+                },
+            )
+
+        return Response(
+            {
+                "id": str(step.id),
+                "step_no": step.step_no,
+                "import_filename": step.import_filename,
+                "orders": [],
+                "project": project_json(project),
+            },
+            status=201,
+        )
+    except IntegrityError as exc:
+        return Response({"detail": str(exc)}, status=400)
+
+
+@csrf_exempt
+@api_view(["DELETE"])
+@permission_classes([AllowAny])
+def delete_project_step(request, pk, step_pk):
+    """Delete an empty Step and renumber the remaining Steps.
+
+    A Step that still contains non-deleted Orders is intentionally protected
+    from deletion so Orders cannot disappear by accident.
+    """
+    actor, err = require_permission(request, "can_manage_order_projects")
+    if err:
+        return err
+
+    try:
+        with transaction.atomic():
+            project = OrderProject.objects.select_for_update().filter(
+                pk=pk,
+                active=True,
+            ).first()
+            if not project:
+                return Response({"detail": "ไม่พบ Project"}, status=404)
+
+            step = OrderStep.objects.select_for_update().filter(
+                pk=step_pk,
+                project=project,
+            ).first()
+            if not step:
+                return Response({"detail": "ไม่พบ Step"}, status=404)
+
+            active_orders = OrderRecord.objects.filter(
+                step=step,
+                is_deleted=False,
+            ).count()
+            if active_orders:
+                return Response(
+                    {
+                        "detail":
+                        f"ไม่สามารถลบ Step {step.step_no} ได้ เพราะยังมี "
+                        f"{active_orders} Order อยู่ใน Step นี้ "
+                        "กรุณาลบ Order ใน Step ให้หมดก่อน"
+                    },
+                    status=400,
+                )
+
+            deleted_no = step.step_no
+            step_id = step.id
+            step.delete()
+
+            # Keep Step numbering contiguous after deletion.
+            later_steps = list(
+                project.steps.select_for_update()
+                .filter(step_no__gt=deleted_no)
+                .order_by("step_no")
+            )
+            for item in later_steps:
+                old_no = item.step_no
+                item.step_no = old_no - 1
+                item.save(update_fields=["step_no", "updated_at"])
+
+            audit(
+                actor,
+                "DELETE_PROJECT_STEP",
+                "OrderStep",
+                step_id,
+                {
+                    "project_id": str(project.id),
+                    "project_name": project.name,
+                    "deleted_step_no": deleted_no,
+                    "renumbered": len(later_steps),
+                },
+            )
+
+        return Response({"ok": True, "deleted_step_no": deleted_no})
+
+    except IntegrityError as exc:
+        return Response({"detail": str(exc)}, status=400)
+
+
+@csrf_exempt
+@api_view(["POST"])
+@permission_classes([AllowAny])
+def create_project_order(request, pk, step_pk=None):
+    """Create one Project Order inside an existing selected Step."""
+    actor, err = require_permission(request, "can_add_order")
+    if err:
+        return err
+
+    if not step_pk:
+        return Response(
+            {"detail": "กรุณาเลือก Step ก่อนเพิ่ม Order"},
+            status=400,
+        )
+
+    try:
+        with transaction.atomic():
+            project = OrderProject.objects.select_for_update().filter(
+                pk=pk,
+                active=True,
+            ).first()
+            if not project:
+                return Response({"detail": "ไม่พบ Project"}, status=404)
+
+            step = OrderStep.objects.select_for_update().filter(
+                pk=step_pk,
+                project=project,
+            ).first()
+            if not step:
+                return Response(
+                    {"detail": "ไม่พบ Step ที่เลือกใน Project นี้"},
+                    status=404,
+                )
+
+            order = OrderRecord(
+                order_number=generate_order_number("PRJ"),
+                order_date=timezone.localdate(),
+                recorded_by=actor,
+                source_type="PROJECT",
+                project=project,
+                step=step,
+                edit_workflow_enabled=False,
+                usage_status="USED",
+            )
+            apply_order_info(order, request.data, creating=True)
+            order.save()
+
+            audit(
+                actor,
+                "CREATE_PROJECT_ORDER",
+                "OrderRecord",
+                order.id,
+                {
+                    "project_id": str(project.id),
+                    "project_name": project.name,
+                    "step_no": step.step_no,
+                    "order_number": order.order_number,
+                },
+            )
+
+        return Response(
+            {
+                "order": order_json(order_queryset().get(pk=order.pk)),
+                "step_no": step.step_no,
+                "project": project_json(project),
+            },
+            status=201,
+        )
+    except (ValueError, IntegrityError) as exc:
+        return Response({"detail": str(exc)}, status=400)
+
+
+def clean_lookup(value):
+    return " ".join(str(value or "").strip().split())
+
+
+def lookup_tokens(value):
+    text = clean_lookup(value)
+    if not text:
+        return []
+    tokens = [text]
+    if "·" in text:
+        left, right = text.split("·", 1)
+        tokens.extend([clean_lookup(left), clean_lookup(right)])
+    return [x for x in dict.fromkeys(tokens) if x]
+
+
+def resolve_machine_from_row(row):
+    machine_id = row.get("machine_id")
+    if machine_id:
+        return machine_or_none(machine_id)
+
+    text = clean_lookup(
+        row.get("machine")
+        or row.get("machine_code")
+        or row.get("machine_name")
+    )
+    if not text:
+        return None
+
+    query = Q()
+    for token in lookup_tokens(text):
+        query |= Q(code__iexact=token) | Q(name__iexact=token)
+    return Machine.objects.filter(query, active=True).first()
+
+
+def resolve_employee_from_row(row, key="ordered_by"):
+    pk = row.get(f"{key}_id")
+    if pk:
+        return employee_or_none(pk)
+
+    text = clean_lookup(row.get(key))
+    if not text:
+        return None
+
+    query = Q()
+    for token in lookup_tokens(text):
+        query |= Q(employee_code__iexact=token) | Q(name__iexact=token)
+    return Employee.objects.filter(query, active=True).first()
+
+
+def resolve_part_from_row(row):
+    pk = row.get("part_id")
+    if pk:
+        return part_or_none(pk)
+
+    sku = clean_lookup(row.get("item_id"))
+    if not sku:
+        return None
+
+    query = Q()
+    for token in lookup_tokens(sku):
+        query |= Q(sku__iexact=token)
+    return (
+        Part.objects.select_related("maker", "unit", "location")
+        .filter(query, active=True)
+        .first()
+    )
+
+
+def resolve_supplier_from_row(row):
+    pk = row.get("vendor_id")
+    if pk:
+        return supplier_or_none(pk)
+
+    text = clean_lookup(
+        row.get("vendor")
+        or row.get("vendor_order")
+        or row.get("vendor_name")
+    )
+    if not text:
+        return None
+
+    query = Q()
+    for token in lookup_tokens(text):
+        query |= Q(code__iexact=token) | Q(name__iexact=token)
+    return Supplier.objects.filter(query, active=True).first()
+
+
+def normalize_import_factory(value):
+    raw = clean_lookup(value).upper()
+    if raw in {"MM-11", "PHASE11", "PHASE 11"} or "11" in raw:
+        return "MM-11"
+    return "MM-4"
+
+
+@csrf_exempt
+@api_view(["POST"])
+@permission_classes([AllowAny])
+def import_project_step(request, pk, step_pk=None):
+    actor, err = require_permission(request, "can_manage_order_projects")
+    if err:
+        return err
+
+    rows = request.data.get("rows") or []
+    if not isinstance(rows, list) or not rows:
+        return Response({"detail": "ไม่พบรายการในไฟล์ Import"}, status=400)
+
+    if not step_pk:
+        return Response(
+            {"detail": "กรุณาเลือก Step ที่ต้องการ Import"},
+            status=400,
+        )
+
+    try:
+        with transaction.atomic():
+            project = OrderProject.objects.select_for_update().filter(
+                pk=pk,
+                active=True,
+            ).first()
+            if not project:
+                return Response({"detail": "ไม่พบ Project"}, status=404)
+
+            step = OrderStep.objects.select_for_update().filter(
+                pk=step_pk,
+                project=project,
+            ).first()
+            if not step:
+                return Response(
+                    {"detail": "ไม่พบ Step ที่เลือกใน Project นี้"},
+                    status=404,
+                )
+
+            filename = str(
+                request.data.get("filename") or "Excel Import"
+            )[:255]
+            if not step.import_filename:
+                step.import_filename = filename
+                step.imported_by_employee = actor
+                step.save(
+                    update_fields=[
+                        "import_filename",
+                        "imported_by_employee",
+                        "updated_at",
+                    ]
+                )
+
+            created = []
+            errors = []
+
+            for idx, raw_row in enumerate(rows, start=2):
+                if not isinstance(raw_row, dict):
+                    errors.append(
+                        {"row": idx, "error": "รูปแบบข้อมูลแถวไม่ถูกต้อง"}
+                    )
+                    continue
+
+                # A nested atomic block keeps one bad DB row from marking the
+                # entire import transaction as broken.
+                try:
+                    with transaction.atomic():
+                        row = {
+                            str(k).strip().lower(): v
+                            for k, v in raw_row.items()
+                        }
+
+                        machine = resolve_machine_from_row(row)
+                        if not machine:
+                            raise ValueError(
+                                "ไม่พบ MACHINE NAME ในระบบ"
+                            )
+
+                        ordered_by = (
+                            resolve_employee_from_row(row, "ordered_by")
+                            or actor
+                        )
+                        part = resolve_part_from_row(row)
+
+                        item_id = clean_lookup(row.get("item_id"))
+                        if item_id and not part:
+                            raise ValueError(
+                                f"ไม่พบ ITEM ID '{item_id}' ใน Part Master"
+                            )
+
+                        data = {
+                            "factory": normalize_import_factory(
+                                row.get("factory")
+                            ),
+                            "machine_id": str(machine.id),
+                            # JOB / urgent / pending date are Project-level
+                            # rules and are enforced by apply_order_info().
+                            "part_id": str(part.id) if part else "",
+                            "part_name": row.get("part_name") or "",
+                            "part_detail": row.get("part_detail") or "",
+                            "maker": row.get("maker") or "",
+                            "amount": row.get("amount") or 0,
+                            "unit": row.get("unit") or "",
+                            "remark": row.get("remark") or "",
+                            "ordered_by_id": str(ordered_by.id),
+                        }
+
+                        order = OrderRecord(
+                            order_number=generate_order_number("PRJ"),
+                            order_date=timezone.localdate(),
+                            recorded_by=actor,
+                            source_type="PROJECT",
+                            project=project,
+                            step=step,
+                            edit_workflow_enabled=False,
+                            usage_status="USED",
+                        )
+                        apply_order_info(order, data, creating=True)
+                        imported_date = as_date(row.get("date"), "DATE")
+                        if imported_date:
+                            order.order_date = imported_date
+                            sync_system_fields(order, validate=False)
+
+                        supplier = resolve_supplier_from_row(row)
+                        person = resolve_employee_from_row(
+                            row, "person_in_charge"
+                        )
+
+                        purchase = {}
+                        for key in [
+                            "quotation",
+                            "po_number",
+                            "price_per_unit",
+                            "lead_time_days",
+                            "issue_pr_date",
+                            "due_date",
+                            "vendor_confirm_date",
+                        ]:
+                            if row.get(key) not in (None, ""):
+                                purchase[key] = row.get(key)
+
+                        if row.get("vendor_id") or row.get("vendor") or row.get("vendor_order"):
+                            if not supplier:
+                                raise ValueError(
+                                    "ไม่พบ VENDOR ORDER ใน Vendor Master"
+                                )
+                            purchase["vendor_id"] = str(supplier.id)
+
+                        if row.get("person_in_charge_id") or row.get("person_in_charge"):
+                            if not person:
+                                raise ValueError(
+                                    "ไม่พบ PERSON IN CHARGE OF ORDER"
+                                )
+                            purchase["person_in_charge_id"] = str(person.id)
+
+                        if purchase:
+                            apply_purchase_info(order, purchase)
+
+                        order.save()
+                        created.append(order)
+
+                except Exception as exc:
+                    errors.append({"row": idx, "error": str(exc)})
+
+            if not created:
+                raise ValueError(
+                    "ไม่มีรายการที่ Import สำเร็จ กรุณาตรวจสอบรายละเอียดแถวที่ผิด"
+                )
+
+            audit(
+                actor,
+                "IMPORT_TO_PROJECT_STEP",
+                "OrderStep",
+                step.id,
+                {
+                    "project_id": str(project.id),
+                    "step_no": step.step_no,
+                    "filename": filename,
+                    "created": len(created),
+                    "errors": errors,
+                },
+            )
+
+        return Response(
+            {
+                "step_no": step.step_no,
+                "created": len(created),
+                "errors": errors,
+                "project": project_json(project),
+            }
+        )
+
+    except ValueError as exc:
+        import_errors = locals().get("errors", [])
+        detail = str(exc)
+        if import_errors:
+            preview = " | ".join(
+                f"แถว {x.get('row')}: {x.get('error')}"
+                for x in import_errors[:5]
+            )
+            detail = f"{detail} · {preview}"
+        return Response(
+            {
+                "detail": detail,
+                "errors": import_errors,
+            },
+            status=400,
+        )
+
+
+@csrf_exempt
+@api_view(["PATCH"])
+@permission_classes([AllowAny])
+def update_usage(request, pk):
+    actor, err = require_permission(request, "can_manage_order_projects")
+    if err:
+        return err
+    order = order_queryset().filter(pk=pk, source_type="PROJECT", is_deleted=False).first()
+    if not order:
+        return Response({"detail": "ไม่พบรายการ Project"}, status=404)
+    status = str(request.data.get("usage_status") or "").strip().upper()
+    if status not in {"USED", "NOT_USED"}:
+        return Response({"detail": "สถานะต้องเป็น USED หรือ NOT_USED"}, status=400)
+    before = order.usage_status
+    order.usage_status = status
+    order.save(update_fields=["usage_status", "updated_at"])
+    audit(actor, "UPDATE_USAGE", "OrderRecord", order.id, {"old": before, "new": status})
+    return Response(order_json(order_queryset().get(pk=pk)))

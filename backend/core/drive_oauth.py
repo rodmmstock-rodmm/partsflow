@@ -1,0 +1,205 @@
+"""One-time Google Drive OAuth setup endpoints for PartsFlow."""
+
+
+from html import escape
+
+from django.http import HttpResponse
+from django.shortcuts import redirect
+from rest_framework.decorators import api_view, permission_classes
+from rest_framework.permissions import AllowAny
+from rest_framework.response import Response
+
+from .auth_api import require_permission
+from .drive_images import (
+    DRIVE_SCOPE,
+    DriveImageConfigError,
+    drive_service,
+    oauth_client_file,
+    oauth_connected,
+    oauth_redirect_uri,
+    oauth_token_file,
+    save_oauth_token_json,
+)
+
+SESSION_STATE_KEY = "partsflow_google_drive_oauth_state"
+SESSION_CODE_VERIFIER_KEY = "partsflow_google_drive_oauth_code_verifier"
+
+
+def _flow(
+    *,
+    state=None,
+    code_verifier=None,
+    autogenerate_code_verifier=False,
+):
+    try:
+        from google_auth_oauthlib.flow import Flow
+    except ImportError as exc:
+        raise DriveImageConfigError(
+            "ยังไม่ได้ติดตั้ง google-auth-oauthlib"
+        ) from exc
+
+    flow = Flow.from_client_secrets_file(
+        str(oauth_client_file()),
+        scopes=[DRIVE_SCOPE],
+        state=state,
+        code_verifier=code_verifier,
+        autogenerate_code_verifier=autogenerate_code_verifier,
+    )
+
+    flow.redirect_uri = oauth_redirect_uri()
+    return flow
+
+
+@api_view(["GET"])
+@permission_classes([AllowAny])
+def oauth_status(request):
+    actor, err = require_permission(request, "can_manage_roles")
+    if err:
+        return err
+
+    try:
+        client_ok = oauth_client_file().exists()
+        redirect_uri = oauth_redirect_uri()
+        token_path = oauth_token_file()
+    except DriveImageConfigError as exc:
+        return Response(
+            {
+                "connected": False,
+                "configured": False,
+                "detail": str(exc),
+            },
+            status=200,
+        )
+
+    return Response(
+        {
+            "connected": oauth_connected(),
+            "configured": client_ok and bool(redirect_uri),
+            "redirect_uri": redirect_uri,
+            "token_file": token_path.name,
+            "employee": actor.name,
+        }
+    )
+
+
+@api_view(["GET"])
+@permission_classes([AllowAny])
+def oauth_start(request):
+    actor, err = require_permission(request, "can_manage_roles")
+    if err:
+        return err
+
+    try:
+        # PKCE:
+        # Generate a new verifier for this authorization attempt.
+        flow = _flow(autogenerate_code_verifier=True)
+
+        authorization_url, state = flow.authorization_url(
+            access_type="offline",
+            include_granted_scopes="true",
+            prompt="consent",
+        )
+
+        code_verifier = flow.code_verifier
+
+        if not code_verifier:
+            raise DriveImageConfigError(
+                "ไม่สามารถสร้าง OAuth PKCE code verifier ได้"
+            )
+
+    except DriveImageConfigError as exc:
+        return Response({"detail": str(exc)}, status=500)
+
+    # Keep BOTH state and PKCE verifier until Google redirects back.
+    request.session[SESSION_STATE_KEY] = state
+    request.session[SESSION_CODE_VERIFIER_KEY] = code_verifier
+    request.session.modified = True
+
+    return redirect(authorization_url)
+
+
+@api_view(["GET"])
+@permission_classes([AllowAny])
+def oauth_callback(request):
+    actor, err = require_permission(request, "can_manage_roles")
+    if err:
+        return err
+
+    expected_state = request.session.pop(SESSION_STATE_KEY, "")
+    code_verifier = request.session.pop(
+        SESSION_CODE_VERIFIER_KEY,
+        "",
+    )
+    request.session.modified = True
+
+    returned_state = str(request.GET.get("state", ""))
+
+    if not expected_state or returned_state != expected_state:
+        return HttpResponse(
+            "<h2>PartsFlow Google Drive</h2>"
+            "<p>OAuth state ไม่ถูกต้อง "
+            "กรุณาเริ่มเชื่อมใหม่จาก /api/drive/oauth/start/</p>",
+            status=400,
+            content_type="text/html; charset=utf-8",
+        )
+
+    if not code_verifier:
+        return HttpResponse(
+            "<h2>PartsFlow Google Drive</h2>"
+            "<p>ไม่พบ OAuth PKCE code verifier "
+            "กรุณาเริ่มเชื่อม Google Drive ใหม่อีกครั้ง</p>",
+            status=400,
+            content_type="text/html; charset=utf-8",
+        )
+
+    if request.GET.get("error"):
+        error = escape(str(request.GET.get("error")))
+        return HttpResponse(
+            "<h2>PartsFlow Google Drive</h2>"
+            f"<p>Google OAuth ยกเลิก/ล้มเหลว: {error}</p>",
+            status=400,
+            content_type="text/html; charset=utf-8",
+        )
+
+    try:
+        # Recreate Flow with BOTH the original state
+        # and the original PKCE code verifier.
+        flow = _flow(
+            state=expected_state,
+            code_verifier=code_verifier,
+        )
+
+        query = request.META.get("QUERY_STRING", "")
+        authorization_response = oauth_redirect_uri()
+
+        if query:
+            authorization_response += "?" + query
+
+        flow.fetch_token(
+            authorization_response=authorization_response
+        )
+
+        save_oauth_token_json(flow.credentials.to_json())
+        drive_service.cache_clear()
+
+    except Exception as exc:
+        return HttpResponse(
+            "<h2>PartsFlow Google Drive</h2>"
+            f"<p>เชื่อม OAuth ไม่สำเร็จ: {escape(str(exc))}</p>",
+            status=500,
+            content_type="text/html; charset=utf-8",
+        )
+
+    return HttpResponse(
+        "<div style='font-family:Arial,sans-serif;"
+        "max-width:680px;margin:60px auto;padding:28px;"
+        "border:1px solid #e2e8f0;border-radius:18px'>"
+        "<h2 style='margin-top:0'>✓ เชื่อม Google Drive สำเร็จ</h2>"
+        "<p>PartsFlow ได้รับสิทธิ์แบบ Read-only "
+        "โดยบัญชีที่อนุญาตไว้แล้ว</p>"
+        f"<p>ผู้ตั้งค่า PartsFlow: "
+        f"<strong>{escape(actor.name)}</strong></p>"
+        "<p>ปิดแท็บนี้ได้ แล้วกลับไป Refresh หน้า Dashboard Stock</p>"
+        "</div>",
+        content_type="text/html; charset=utf-8",
+    )

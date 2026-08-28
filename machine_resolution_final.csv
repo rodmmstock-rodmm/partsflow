@@ -1,0 +1,397 @@
+﻿reference_code,category,suggested_action,decision,target_current_code,result_code_type,note
+ALLRODEND,OTHER,REVIEW,,,REFERENCE,Found in STOCK Machine Name; not yet mapped to Machine Master.
+APC-01,STRICT,NEW_MACHINE,NEW_MACHINE,,CURRENT,Proposed physical machine from strict machine-code pattern
+APC-03,STRICT,NEW_MACHINE,NEW_MACHINE,,CURRENT,Proposed physical machine from strict machine-code pattern
+APC-04,STRICT,NEW_MACHINE,NEW_MACHINE,,CURRENT,Proposed physical machine from strict machine-code pattern
+BALL-LINE,LINE,LINE,LINE,,REFERENCE,Production line / group; not a physical machine
+BEN-01,STRICT,NEW_MACHINE,NEW_MACHINE,,CURRENT,Proposed physical machine from strict machine-code pattern
+BFD,OTHER,REVIEW,,,REFERENCE,Found in STOCK Machine Name; not yet mapped to Machine Master.
+BFD-09,STRICT,NEW_MACHINE,NEW_MACHINE,,CURRENT,Proposed physical machine from strict machine-code pattern
+BFD-10,STRICT,NEW_MACHINE,NEW_MACHINE,,CURRENT,Proposed physical machine from strict machine-code pattern
+BFD-11,STRICT,NEW_MACHINE,NEW_MACHINE,,CURRENT,Proposed physical machine from strict machine-code pattern
+BFD-12,STRICT,NEW_MACHINE,NEW_MACHINE,,CURRENT,Proposed physical machine from strict machine-code pattern
+BFD-127,STRICT,NEW_MACHINE,NEW_MACHINE,,CURRENT,Proposed physical machine from strict machine-code pattern
+BFD-1516,STRICT,NEW_MACHINE,NEW_MACHINE,,CURRENT,Proposed physical machine from strict machine-code pattern
+BFD-16,STRICT,NEW_MACHINE,NEW_MACHINE,,CURRENT,Proposed physical machine from strict machine-code pattern
+BFD-20,STRICT,NEW_MACHINE,NEW_MACHINE,,CURRENT,Proposed physical machine from strict machine-code pattern
+BFD-21,STRICT,NEW_MACHINE,NEW_MACHINE,,CURRENT,Proposed physical machine from strict machine-code pattern
+BFD-22,STRICT,NEW_MACHINE,NEW_MACHINE,,CURRENT,Proposed physical machine from strict machine-code pattern
+BFD-23,STRICT,NEW_MACHINE,NEW_MACHINE,,CURRENT,Proposed physical machine from strict machine-code pattern
+BFD-24,STRICT,NEW_MACHINE,NEW_MACHINE,,CURRENT,Proposed physical machine from strict machine-code pattern
+BFD-25,STRICT,NEW_MACHINE,NEW_MACHINE,,CURRENT,Proposed physical machine from strict machine-code pattern
+BFD-26,STRICT,NEW_MACHINE,NEW_MACHINE,,CURRENT,Proposed physical machine from strict machine-code pattern
+BFD-28,STRICT,NEW_MACHINE,NEW_MACHINE,,CURRENT,Proposed physical machine from strict machine-code pattern
+BFD-29,STRICT,NEW_MACHINE,NEW_MACHINE,,CURRENT,Proposed physical machine from strict machine-code pattern
+BFD-31,STRICT,NEW_MACHINE,NEW_MACHINE,,CURRENT,Proposed physical machine from strict machine-code pattern
+BFD-32,STRICT,NEW_MACHINE,NEW_MACHINE,,CURRENT,Proposed physical machine from strict machine-code pattern
+BFD-34,STRICT,NEW_MACHINE,NEW_MACHINE,,CURRENT,Proposed physical machine from strict machine-code pattern
+BFD-35,STRICT,NEW_MACHINE,NEW_MACHINE,,CURRENT,Proposed physical machine from strict machine-code pattern
+BFD-9,STRICT,NEW_MACHINE,NEW_MACHINE,,CURRENT,Proposed physical machine from strict machine-code pattern
+BFD-BUFF,IRREGULAR,REVIEW,,,REFERENCE,Found in STOCK Machine Name; not yet mapped to Machine Master.
+BFG-01,STRICT,NEW_MACHINE,NEW_MACHINE,,CURRENT,Proposed physical machine from strict machine-code pattern
+BFG-04,STRICT,NEW_MACHINE,NEW_MACHINE,,CURRENT,Proposed physical machine from strict machine-code pattern
+BFG-LINE,LINE,LINE,LINE,,REFERENCE,Production line / group; not a physical machine
+BFG-NEW,IRREGULAR,REVIEW,,,REFERENCE,Found in STOCK Machine Name; not yet mapped to Machine Master.
+BLK-01,STRICT,NEW_MACHINE,NEW_MACHINE,,CURRENT,Proposed physical machine from strict machine-code pattern
+BLK-02,STRICT,NEW_MACHINE,NEW_MACHINE,,CURRENT,Proposed physical machine from strict machine-code pattern
+BLK-04,STRICT,NEW_MACHINE,NEW_MACHINE,,CURRENT,Proposed physical machine from strict machine-code pattern
+BLK-05,STRICT,NEW_MACHINE,NEW_MACHINE,,CURRENT,Proposed physical machine from strict machine-code pattern
+BLK-06,STRICT,NEW_MACHINE,NEW_MACHINE,,CURRENT,Proposed physical machine from strict machine-code pattern
+BLK-07,STRICT,NEW_MACHINE,NEW_MACHINE,,CURRENT,Proposed physical machine from strict machine-code pattern
+BLK-09,STRICT,NEW_MACHINE,NEW_MACHINE,,CURRENT,Proposed physical machine from strict machine-code pattern
+BLK-10,STRICT,NEW_MACHINE,NEW_MACHINE,,CURRENT,Proposed physical machine from strict machine-code pattern
+BLK-11,STRICT,NEW_MACHINE,NEW_MACHINE,,CURRENT,Proposed physical machine from strict machine-code pattern
+BLK-12,STRICT,NEW_MACHINE,NEW_MACHINE,,CURRENT,Proposed physical machine from strict machine-code pattern
+BLK-LINE,LINE,LINE,LINE,,REFERENCE,Production line / group; not a physical machine
+BODY-LINE,LINE,LINE,LINE,,REFERENCE,Production line / group; not a physical machine
+BRL,OTHER,REVIEW,,,REFERENCE,Found in STOCK Machine Name; not yet mapped to Machine Master.
+BRL-02,STRICT,NEW_MACHINE,NEW_MACHINE,,CURRENT,Proposed physical machine from strict machine-code pattern
+BRL-03,STRICT,NEW_MACHINE,NEW_MACHINE,,CURRENT,Proposed physical machine from strict machine-code pattern
+BRL-05,STRICT,NEW_MACHINE,NEW_MACHINE,,CURRENT,Proposed physical machine from strict machine-code pattern
+BRL-06,STRICT,NEW_MACHINE,NEW_MACHINE,,CURRENT,Proposed physical machine from strict machine-code pattern
+BRL-08,STRICT,NEW_MACHINE,NEW_MACHINE,,CURRENT,Proposed physical machine from strict machine-code pattern
+BRL-09,STRICT,NEW_MACHINE,NEW_MACHINE,,CURRENT,Proposed physical machine from strict machine-code pattern
+BRL-1,STRICT,NEW_MACHINE,NEW_MACHINE,,CURRENT,Proposed physical machine from strict machine-code pattern
+BRL-10,STRICT,NEW_MACHINE,NEW_MACHINE,,CURRENT,Proposed physical machine from strict machine-code pattern
+BRL-11,STRICT,NEW_MACHINE,NEW_MACHINE,,CURRENT,Proposed physical machine from strict machine-code pattern
+BRL-12,STRICT,NEW_MACHINE,NEW_MACHINE,,CURRENT,Proposed physical machine from strict machine-code pattern
+BRL-13,STRICT,NEW_MACHINE,NEW_MACHINE,,CURRENT,Proposed physical machine from strict machine-code pattern
+BRL-14,STRICT,NEW_MACHINE,NEW_MACHINE,,CURRENT,Proposed physical machine from strict machine-code pattern
+BRL-15,STRICT,NEW_MACHINE,NEW_MACHINE,,CURRENT,Proposed physical machine from strict machine-code pattern
+BRL-16,STRICT,NEW_MACHINE,NEW_MACHINE,,CURRENT,Proposed physical machine from strict machine-code pattern
+BRL-17,STRICT,NEW_MACHINE,NEW_MACHINE,,CURRENT,Proposed physical machine from strict machine-code pattern
+BRL-LINE,LINE,LINE,LINE,,REFERENCE,Production line / group; not a physical machine
+BRL-NEW,IRREGULAR,REVIEW,,,REFERENCE,Found in STOCK Machine Name; not yet mapped to Machine Master.
+BRM-01,STRICT,NEW_MACHINE,NEW_MACHINE,,CURRENT,Proposed physical machine from strict machine-code pattern
+BSM-01,STRICT,NEW_MACHINE,NEW_MACHINE,,CURRENT,Proposed physical machine from strict machine-code pattern
+BSM-02,STRICT,NEW_MACHINE,NEW_MACHINE,,CURRENT,Proposed physical machine from strict machine-code pattern
+BSM-04,STRICT,NEW_MACHINE,NEW_MACHINE,,CURRENT,Proposed physical machine from strict machine-code pattern
+BSM-05,STRICT,NEW_MACHINE,NEW_MACHINE,,CURRENT,Proposed physical machine from strict machine-code pattern
+BSM-07,STRICT,NEW_MACHINE,NEW_MACHINE,,CURRENT,Proposed physical machine from strict machine-code pattern
+BSM-08,STRICT,NEW_MACHINE,NEW_MACHINE,,CURRENT,Proposed physical machine from strict machine-code pattern
+BSM-09,STRICT,NEW_MACHINE,NEW_MACHINE,,CURRENT,Proposed physical machine from strict machine-code pattern
+BSM-10,STRICT,NEW_MACHINE,NEW_MACHINE,,CURRENT,Proposed physical machine from strict machine-code pattern
+BSM-11,STRICT,NEW_MACHINE,NEW_MACHINE,,CURRENT,Proposed physical machine from strict machine-code pattern
+BSM-12,STRICT,NEW_MACHINE,NEW_MACHINE,,CURRENT,Proposed physical machine from strict machine-code pattern
+BSM-25,STRICT,NEW_MACHINE,NEW_MACHINE,,CURRENT,Proposed physical machine from strict machine-code pattern
+BSM-LINE,LINE,LINE,LINE,,REFERENCE,Production line / group; not a physical machine
+BSM11B,OTHER,REVIEW,,,REFERENCE,Found in STOCK Machine Name; not yet mapped to Machine Master.
+BSM12B,OTHER,REVIEW,,,REFERENCE,Found in STOCK Machine Name; not yet mapped to Machine Master.
+BTM-02,STRICT,NEW_MACHINE,NEW_MACHINE,,CURRENT,Proposed physical machine from strict machine-code pattern
+CGM-02,STRICT,NEW_MACHINE,NEW_MACHINE,,CURRENT,Proposed physical machine from strict machine-code pattern
+CGM-03,STRICT,NEW_MACHINE,NEW_MACHINE,,CURRENT,Proposed physical machine from strict machine-code pattern
+CGM-04,STRICT,NEW_MACHINE,NEW_MACHINE,,CURRENT,Proposed physical machine from strict machine-code pattern
+CGM-05,STRICT,NEW_MACHINE,NEW_MACHINE,,CURRENT,Proposed physical machine from strict machine-code pattern
+CGM-06,STRICT,NEW_MACHINE,NEW_MACHINE,,CURRENT,Proposed physical machine from strict machine-code pattern
+CGM-08,STRICT,NEW_MACHINE,NEW_MACHINE,,CURRENT,Proposed physical machine from strict machine-code pattern
+CGM-09,STRICT,NEW_MACHINE,NEW_MACHINE,,CURRENT,Proposed physical machine from strict machine-code pattern
+CGM-10,STRICT,NEW_MACHINE,NEW_MACHINE,,CURRENT,Proposed physical machine from strict machine-code pattern
+CGM-11,STRICT,NEW_MACHINE,NEW_MACHINE,,CURRENT,Proposed physical machine from strict machine-code pattern
+CGM-12,STRICT,NEW_MACHINE,NEW_MACHINE,,CURRENT,Proposed physical machine from strict machine-code pattern
+CGM-13,STRICT,NEW_MACHINE,NEW_MACHINE,,CURRENT,Proposed physical machine from strict machine-code pattern
+CGM-14,STRICT,NEW_MACHINE,NEW_MACHINE,,CURRENT,Proposed physical machine from strict machine-code pattern
+CGM-LINE,LINE,LINE,LINE,,REFERENCE,Production line / group; not a physical machine
+CHK-01,STRICT,NEW_MACHINE,NEW_MACHINE,,CURRENT,Proposed physical machine from strict machine-code pattern
+CHK-02,STRICT,NEW_MACHINE,NEW_MACHINE,,CURRENT,Proposed physical machine from strict machine-code pattern
+CHK-03,STRICT,NEW_MACHINE,NEW_MACHINE,,CURRENT,Proposed physical machine from strict machine-code pattern
+CHK-04,STRICT,NEW_MACHINE,NEW_MACHINE,,CURRENT,Proposed physical machine from strict machine-code pattern
+CHK-05,STRICT,NEW_MACHINE,NEW_MACHINE,,CURRENT,Proposed physical machine from strict machine-code pattern
+CHK-06,STRICT,NEW_MACHINE,NEW_MACHINE,,CURRENT,Proposed physical machine from strict machine-code pattern
+CHK-07,STRICT,NEW_MACHINE,NEW_MACHINE,,CURRENT,Proposed physical machine from strict machine-code pattern
+CHK-10,STRICT,NEW_MACHINE,NEW_MACHINE,,CURRENT,Proposed physical machine from strict machine-code pattern
+CHK-11,STRICT,NEW_MACHINE,NEW_MACHINE,,CURRENT,Proposed physical machine from strict machine-code pattern
+CHK-12,STRICT,NEW_MACHINE,NEW_MACHINE,,CURRENT,Proposed physical machine from strict machine-code pattern
+CHK-13,STRICT,NEW_MACHINE,NEW_MACHINE,,CURRENT,Proposed physical machine from strict machine-code pattern
+CHK-14,STRICT,NEW_MACHINE,NEW_MACHINE,,CURRENT,Proposed physical machine from strict machine-code pattern
+CHK-LINE,LINE,LINE,LINE,,REFERENCE,Production line / group; not a physical machine
+CNT-02,STRICT,NEW_MACHINE,NEW_MACHINE,,CURRENT,Proposed physical machine from strict machine-code pattern
+CPT-01,STRICT,NEW_MACHINE,NEW_MACHINE,,CURRENT,Proposed physical machine from strict machine-code pattern
+CPT-02,STRICT,NEW_MACHINE,NEW_MACHINE,,CURRENT,Proposed physical machine from strict machine-code pattern
+CPT-04,STRICT,NEW_MACHINE,NEW_MACHINE,,CURRENT,Proposed physical machine from strict machine-code pattern
+CPT-LINE,LINE,LINE,LINE,,REFERENCE,Production line / group; not a physical machine
+CPT-NEW,IRREGULAR,REVIEW,,,REFERENCE,Found in STOCK Machine Name; not yet mapped to Machine Master.
+CTG-01,STRICT,NEW_MACHINE,NEW_MACHINE,,CURRENT,Proposed physical machine from strict machine-code pattern
+CTG-02,STRICT,NEW_MACHINE,NEW_MACHINE,,CURRENT,Proposed physical machine from strict machine-code pattern
+CTG-03,STRICT,NEW_MACHINE,NEW_MACHINE,,CURRENT,Proposed physical machine from strict machine-code pattern
+CTG-04,STRICT,NEW_MACHINE,NEW_MACHINE,,CURRENT,Proposed physical machine from strict machine-code pattern
+CTG-07,STRICT,NEW_MACHINE,NEW_MACHINE,,CURRENT,Proposed physical machine from strict machine-code pattern
+CTG-08,STRICT,NEW_MACHINE,NEW_MACHINE,,CURRENT,Proposed physical machine from strict machine-code pattern
+CUR-01,STRICT,NEW_MACHINE,NEW_MACHINE,,CURRENT,Proposed physical machine from strict machine-code pattern
+CWM-01,STRICT,NEW_MACHINE,NEW_MACHINE,,CURRENT,Proposed physical machine from strict machine-code pattern
+CWM-02,STRICT,NEW_MACHINE,NEW_MACHINE,,CURRENT,Proposed physical machine from strict machine-code pattern
+CWM-03,STRICT,NEW_MACHINE,NEW_MACHINE,,CURRENT,Proposed physical machine from strict machine-code pattern
+CWM-04,STRICT,NEW_MACHINE,NEW_MACHINE,,CURRENT,Proposed physical machine from strict machine-code pattern
+CWM-06,STRICT,NEW_MACHINE,NEW_MACHINE,,CURRENT,Proposed physical machine from strict machine-code pattern
+CWM-08,STRICT,NEW_MACHINE,NEW_MACHINE,,CURRENT,Proposed physical machine from strict machine-code pattern
+DFB-01,STRICT,NEW_MACHINE,NEW_MACHINE,,CURRENT,Proposed physical machine from strict machine-code pattern
+DFB-02,STRICT,NEW_MACHINE,NEW_MACHINE,,CURRENT,Proposed physical machine from strict machine-code pattern
+DFB-03,STRICT,NEW_MACHINE,NEW_MACHINE,,CURRENT,Proposed physical machine from strict machine-code pattern
+DMG-04,STRICT,NEW_MACHINE,NEW_MACHINE,,CURRENT,Proposed physical machine from strict machine-code pattern
+DMG-05,STRICT,NEW_MACHINE,NEW_MACHINE,,CURRENT,Proposed physical machine from strict machine-code pattern
+EGM-01,STRICT,NEW_MACHINE,NEW_MACHINE,,CURRENT,Proposed physical machine from strict machine-code pattern
+EGM-03,STRICT,NEW_MACHINE,NEW_MACHINE,,CURRENT,Proposed physical machine from strict machine-code pattern
+EGM-04,STRICT,NEW_MACHINE,NEW_MACHINE,,CURRENT,Proposed physical machine from strict machine-code pattern
+EGM-06,STRICT,NEW_MACHINE,NEW_MACHINE,,CURRENT,Proposed physical machine from strict machine-code pattern
+EGM-1,STRICT,NEW_MACHINE,NEW_MACHINE,,CURRENT,Proposed physical machine from strict machine-code pattern
+EGM-LINE,LINE,LINE,LINE,,REFERENCE,Production line / group; not a physical machine
+FJT-01,STRICT,NEW_MACHINE,NEW_MACHINE,,CURRENT,Proposed physical machine from strict machine-code pattern
+FOC-01,STRICT,NEW_MACHINE,NEW_MACHINE,,CURRENT,Proposed physical machine from strict machine-code pattern
+FPI-01,STRICT,NEW_MACHINE,NEW_MACHINE,,CURRENT,Proposed physical machine from strict machine-code pattern
+FRL-01,STRICT,NEW_MACHINE,NEW_MACHINE,,CURRENT,Proposed physical machine from strict machine-code pattern
+FRL-02,STRICT,NEW_MACHINE,NEW_MACHINE,,CURRENT,Proposed physical machine from strict machine-code pattern
+HSG-01,STRICT,NEW_MACHINE,NEW_MACHINE,,CURRENT,Proposed physical machine from strict machine-code pattern
+HTM-06,STRICT,NEW_MACHINE,NEW_MACHINE,,CURRENT,Proposed physical machine from strict machine-code pattern
+HTM-07,STRICT,NEW_MACHINE,NEW_MACHINE,,CURRENT,Proposed physical machine from strict machine-code pattern
+HTM-LINE,LINE,LINE,LINE,,REFERENCE,Production line / group; not a physical machine
+HTN-07,STRICT,NEW_MACHINE,NEW_MACHINE,,CURRENT,Proposed physical machine from strict machine-code pattern
+IDG-01,STRICT,NEW_MACHINE,NEW_MACHINE,,CURRENT,Proposed physical machine from strict machine-code pattern
+IDG-02,STRICT,NEW_MACHINE,NEW_MACHINE,,CURRENT,Proposed physical machine from strict machine-code pattern
+IDG-03,STRICT,NEW_MACHINE,NEW_MACHINE,,CURRENT,Proposed physical machine from strict machine-code pattern
+IDG-04,STRICT,NEW_MACHINE,NEW_MACHINE,,CURRENT,Proposed physical machine from strict machine-code pattern
+IDG-05,STRICT,NEW_MACHINE,NEW_MACHINE,,CURRENT,Proposed physical machine from strict machine-code pattern
+IDG-06,STRICT,NEW_MACHINE,NEW_MACHINE,,CURRENT,Proposed physical machine from strict machine-code pattern
+IDG-07,STRICT,NEW_MACHINE,NEW_MACHINE,,CURRENT,Proposed physical machine from strict machine-code pattern
+IDG-08,STRICT,NEW_MACHINE,NEW_MACHINE,,CURRENT,Proposed physical machine from strict machine-code pattern
+IDG-09,STRICT,NEW_MACHINE,NEW_MACHINE,,CURRENT,Proposed physical machine from strict machine-code pattern
+IDG-10,STRICT,NEW_MACHINE,NEW_MACHINE,,CURRENT,Proposed physical machine from strict machine-code pattern
+IDG-11,STRICT,NEW_MACHINE,NEW_MACHINE,,CURRENT,Proposed physical machine from strict machine-code pattern
+IDG-12,STRICT,NEW_MACHINE,NEW_MACHINE,,CURRENT,Proposed physical machine from strict machine-code pattern
+IDG-LINE,LINE,LINE,LINE,,REFERENCE,Production line / group; not a physical machine
+IDT-01,STRICT,NEW_MACHINE,NEW_MACHINE,,CURRENT,Proposed physical machine from strict machine-code pattern
+IDT-02,STRICT,NEW_MACHINE,NEW_MACHINE,,CURRENT,Proposed physical machine from strict machine-code pattern
+IDT-04,STRICT,NEW_MACHINE,NEW_MACHINE,,CURRENT,Proposed physical machine from strict machine-code pattern
+IDT-05,STRICT,NEW_MACHINE,NEW_MACHINE,,CURRENT,Proposed physical machine from strict machine-code pattern
+IDT-LINE,LINE,LINE,LINE,,REFERENCE,Production line / group; not a physical machine
+IDT02B,OTHER,REVIEW,,,REFERENCE,Found in STOCK Machine Name; not yet mapped to Machine Master.
+IDT04B,OTHER,REVIEW,,,REFERENCE,Found in STOCK Machine Name; not yet mapped to Machine Master.
+IFT-01,STRICT,NEW_MACHINE,NEW_MACHINE,,CURRENT,Proposed physical machine from strict machine-code pattern
+IGM-01,STRICT,NEW_MACHINE,NEW_MACHINE,,CURRENT,Proposed physical machine from strict machine-code pattern
+IGM-02,STRICT,NEW_MACHINE,NEW_MACHINE,,CURRENT,Proposed physical machine from strict machine-code pattern
+IGM-03,STRICT,NEW_MACHINE,NEW_MACHINE,,CURRENT,Proposed physical machine from strict machine-code pattern
+IGM-04,STRICT,NEW_MACHINE,NEW_MACHINE,,CURRENT,Proposed physical machine from strict machine-code pattern
+IGM-LINE,LINE,LINE,LINE,,REFERENCE,Production line / group; not a physical machine
+KWY-01,STRICT,NEW_MACHINE,NEW_MACHINE,,CURRENT,Proposed physical machine from strict machine-code pattern
+KWY-02,STRICT,NEW_MACHINE,NEW_MACHINE,,CURRENT,Proposed physical machine from strict machine-code pattern
+MDM,OTHER,REVIEW,,,REFERENCE,Found in STOCK Machine Name; not yet mapped to Machine Master.
+MKM-01,STRICT,NEW_MACHINE,NEW_MACHINE,,CURRENT,Proposed physical machine from strict machine-code pattern
+MKM-04,STRICT,NEW_MACHINE,NEW_MACHINE,,CURRENT,Proposed physical machine from strict machine-code pattern
+MKM-LINE,LINE,LINE,LINE,,REFERENCE,Production line / group; not a physical machine
+MLG-03,STRICT,NEW_MACHINE,NEW_MACHINE,,CURRENT,Proposed physical machine from strict machine-code pattern
+MLG-05,STRICT,NEW_MACHINE,NEW_MACHINE,,CURRENT,Proposed physical machine from strict machine-code pattern
+MLG-06,STRICT,NEW_MACHINE,NEW_MACHINE,,CURRENT,Proposed physical machine from strict machine-code pattern
+MLG-LINE,LINE,LINE,LINE,,REFERENCE,Production line / group; not a physical machine
+MPA,OTHER,REVIEW,,,REFERENCE,Found in STOCK Machine Name; not yet mapped to Machine Master.
+MPA-01,STRICT,NEW_MACHINE,NEW_MACHINE,,CURRENT,Proposed physical machine from strict machine-code pattern
+MPA-02,STRICT,NEW_MACHINE,NEW_MACHINE,,CURRENT,Proposed physical machine from strict machine-code pattern
+MPA-03,STRICT,NEW_MACHINE,NEW_MACHINE,,CURRENT,Proposed physical machine from strict machine-code pattern
+MPA-06,STRICT,NEW_MACHINE,NEW_MACHINE,,CURRENT,Proposed physical machine from strict machine-code pattern
+MPA-07,STRICT,NEW_MACHINE,NEW_MACHINE,,CURRENT,Proposed physical machine from strict machine-code pattern
+MPA-08,STRICT,NEW_MACHINE,NEW_MACHINE,,CURRENT,Proposed physical machine from strict machine-code pattern
+MPA-09,STRICT,NEW_MACHINE,NEW_MACHINE,,CURRENT,Proposed physical machine from strict machine-code pattern
+MPA-10,STRICT,NEW_MACHINE,NEW_MACHINE,,CURRENT,Proposed physical machine from strict machine-code pattern
+MPA-13,STRICT,NEW_MACHINE,NEW_MACHINE,,CURRENT,Proposed physical machine from strict machine-code pattern
+MPA-14,STRICT,NEW_MACHINE,NEW_MACHINE,,CURRENT,Proposed physical machine from strict machine-code pattern
+MPA-15,STRICT,NEW_MACHINE,NEW_MACHINE,,CURRENT,Proposed physical machine from strict machine-code pattern
+MPA-16,STRICT,NEW_MACHINE,NEW_MACHINE,,CURRENT,Proposed physical machine from strict machine-code pattern
+MPA-17,STRICT,NEW_MACHINE,NEW_MACHINE,,CURRENT,Proposed physical machine from strict machine-code pattern
+MPA-18,STRICT,NEW_MACHINE,NEW_MACHINE,,CURRENT,Proposed physical machine from strict machine-code pattern
+MPA-19,STRICT,NEW_MACHINE,NEW_MACHINE,,CURRENT,Proposed physical machine from strict machine-code pattern
+MPA-20,STRICT,NEW_MACHINE,NEW_MACHINE,,CURRENT,Proposed physical machine from strict machine-code pattern
+MPA-22,STRICT,NEW_MACHINE,NEW_MACHINE,,CURRENT,Proposed physical machine from strict machine-code pattern
+MPA-25,STRICT,NEW_MACHINE,NEW_MACHINE,,CURRENT,Proposed physical machine from strict machine-code pattern
+MPA-LINE,LINE,LINE,LINE,,REFERENCE,Production line / group; not a physical machine
+MPI-01,STRICT,NEW_MACHINE,NEW_MACHINE,,CURRENT,Proposed physical machine from strict machine-code pattern
+OGM-01,STRICT,NEW_MACHINE,NEW_MACHINE,,CURRENT,Proposed physical machine from strict machine-code pattern
+OGM-02,STRICT,NEW_MACHINE,NEW_MACHINE,,CURRENT,Proposed physical machine from strict machine-code pattern
+OGM-03,STRICT,NEW_MACHINE,NEW_MACHINE,,CURRENT,Proposed physical machine from strict machine-code pattern
+OGM-04,STRICT,NEW_MACHINE,NEW_MACHINE,,CURRENT,Proposed physical machine from strict machine-code pattern
+OGM-05,STRICT,NEW_MACHINE,NEW_MACHINE,,CURRENT,Proposed physical machine from strict machine-code pattern
+OGM-06,STRICT,NEW_MACHINE,NEW_MACHINE,,CURRENT,Proposed physical machine from strict machine-code pattern
+OGM-08,STRICT,NEW_MACHINE,NEW_MACHINE,,CURRENT,Proposed physical machine from strict machine-code pattern
+OGM-LINE,LINE,LINE,LINE,,REFERENCE,Production line / group; not a physical machine
+OVN-02,STRICT,NEW_MACHINE,NEW_MACHINE,,CURRENT,Proposed physical machine from strict machine-code pattern
+OVN-04,STRICT,NEW_MACHINE,NEW_MACHINE,,CURRENT,Proposed physical machine from strict machine-code pattern
+OVN-06,STRICT,NEW_MACHINE,NEW_MACHINE,,CURRENT,Proposed physical machine from strict machine-code pattern
+OVN-07,STRICT,NEW_MACHINE,NEW_MACHINE,,CURRENT,Proposed physical machine from strict machine-code pattern
+OVN-08,STRICT,NEW_MACHINE,NEW_MACHINE,,CURRENT,Proposed physical machine from strict machine-code pattern
+OVN-09,STRICT,NEW_MACHINE,NEW_MACHINE,,CURRENT,Proposed physical machine from strict machine-code pattern
+OVN-10,STRICT,NEW_MACHINE,NEW_MACHINE,,CURRENT,Proposed physical machine from strict machine-code pattern
+OVN-11,STRICT,NEW_MACHINE,NEW_MACHINE,,CURRENT,Proposed physical machine from strict machine-code pattern
+OVN-LINE,LINE,LINE,LINE,,REFERENCE,Production line / group; not a physical machine
+PAK-01,STRICT,NEW_MACHINE,NEW_MACHINE,,CURRENT,Proposed physical machine from strict machine-code pattern
+PJT-02,STRICT,NEW_MACHINE,NEW_MACHINE,,CURRENT,Proposed physical machine from strict machine-code pattern
+PJT-03,STRICT,NEW_MACHINE,NEW_MACHINE,,CURRENT,Proposed physical machine from strict machine-code pattern
+PJT-04,STRICT,NEW_MACHINE,NEW_MACHINE,,CURRENT,Proposed physical machine from strict machine-code pattern
+PJT-05,STRICT,NEW_MACHINE,NEW_MACHINE,,CURRENT,Proposed physical machine from strict machine-code pattern
+PRS-01,STRICT,NEW_MACHINE,NEW_MACHINE,,CURRENT,Proposed physical machine from strict machine-code pattern
+PRS-02,STRICT,NEW_MACHINE,NEW_MACHINE,,CURRENT,Proposed physical machine from strict machine-code pattern
+PRS-03,STRICT,NEW_MACHINE,NEW_MACHINE,,CURRENT,Proposed physical machine from strict machine-code pattern
+PRS-05,STRICT,NEW_MACHINE,NEW_MACHINE,,CURRENT,Proposed physical machine from strict machine-code pattern
+PST-01,STRICT,NEW_MACHINE,NEW_MACHINE,,CURRENT,Proposed physical machine from strict machine-code pattern
+PVD,OTHER,REVIEW,,,REFERENCE,Found in STOCK Machine Name; not yet mapped to Machine Master.
+PVD-01,STRICT,NEW_MACHINE,NEW_MACHINE,,CURRENT,Proposed physical machine from strict machine-code pattern
+PVD-02,STRICT,NEW_MACHINE,NEW_MACHINE,,CURRENT,Proposed physical machine from strict machine-code pattern
+PVD-LINE,LINE,LINE,LINE,,REFERENCE,Production line / group; not a physical machine
+RLP-01,STRICT,NEW_MACHINE,NEW_MACHINE,,CURRENT,Proposed physical machine from strict machine-code pattern
+RLP-02,STRICT,NEW_MACHINE,NEW_MACHINE,,CURRENT,Proposed physical machine from strict machine-code pattern
+RLP-03,STRICT,NEW_MACHINE,NEW_MACHINE,,CURRENT,Proposed physical machine from strict machine-code pattern
+RLP-04,STRICT,NEW_MACHINE,NEW_MACHINE,,CURRENT,Proposed physical machine from strict machine-code pattern
+RLP-05,STRICT,NEW_MACHINE,NEW_MACHINE,,CURRENT,Proposed physical machine from strict machine-code pattern
+RLP-06,STRICT,NEW_MACHINE,NEW_MACHINE,,CURRENT,Proposed physical machine from strict machine-code pattern
+RLP-07,STRICT,NEW_MACHINE,NEW_MACHINE,,CURRENT,Proposed physical machine from strict machine-code pattern
+RLP-08,STRICT,NEW_MACHINE,NEW_MACHINE,,CURRENT,Proposed physical machine from strict machine-code pattern
+RLP-09,STRICT,NEW_MACHINE,NEW_MACHINE,,CURRENT,Proposed physical machine from strict machine-code pattern
+RLP-10,STRICT,NEW_MACHINE,NEW_MACHINE,,CURRENT,Proposed physical machine from strict machine-code pattern
+RLP-11,STRICT,NEW_MACHINE,NEW_MACHINE,,CURRENT,Proposed physical machine from strict machine-code pattern
+RLP-12,STRICT,NEW_MACHINE,NEW_MACHINE,,CURRENT,Proposed physical machine from strict machine-code pattern
+RLP-13,STRICT,NEW_MACHINE,NEW_MACHINE,,CURRENT,Proposed physical machine from strict machine-code pattern
+RLP-16,STRICT,NEW_MACHINE,NEW_MACHINE,,CURRENT,Proposed physical machine from strict machine-code pattern
+RLP-17,STRICT,NEW_MACHINE,NEW_MACHINE,,CURRENT,Proposed physical machine from strict machine-code pattern
+RLP-LINE,LINE,LINE,LINE,,REFERENCE,Production line / group; not a physical machine
+RLP03B,OTHER,REVIEW,,,REFERENCE,Found in STOCK Machine Name; not yet mapped to Machine Master.
+RLS,OTHER,REVIEW,,,REFERENCE,Found in STOCK Machine Name; not yet mapped to Machine Master.
+RLS-02,STRICT,NEW_MACHINE,NEW_MACHINE,,CURRENT,Proposed physical machine from strict machine-code pattern
+RLS-03,STRICT,NEW_MACHINE,NEW_MACHINE,,CURRENT,Proposed physical machine from strict machine-code pattern
+RLS-05,STRICT,NEW_MACHINE,NEW_MACHINE,,CURRENT,Proposed physical machine from strict machine-code pattern
+RLS-06,STRICT,NEW_MACHINE,NEW_MACHINE,,CURRENT,Proposed physical machine from strict machine-code pattern
+RLS-LINE,LINE,LINE,LINE,,REFERENCE,Production line / group; not a physical machine
+RLS-NEW,IRREGULAR,REVIEW,,,REFERENCE,Found in STOCK Machine Name; not yet mapped to Machine Master.
+RMH-01,STRICT,NEW_MACHINE,NEW_MACHINE,,CURRENT,Proposed physical machine from strict machine-code pattern
+RMH-02,STRICT,NEW_MACHINE,NEW_MACHINE,,CURRENT,Proposed physical machine from strict machine-code pattern
+RMH-03,STRICT,NEW_MACHINE,NEW_MACHINE,,CURRENT,Proposed physical machine from strict machine-code pattern
+RMH-07,STRICT,NEW_MACHINE,NEW_MACHINE,,CURRENT,Proposed physical machine from strict machine-code pattern
+RMH-08,STRICT,NEW_MACHINE,NEW_MACHINE,,CURRENT,Proposed physical machine from strict machine-code pattern
+RMH-09,STRICT,NEW_MACHINE,NEW_MACHINE,,CURRENT,Proposed physical machine from strict machine-code pattern
+RMH-10,STRICT,NEW_MACHINE,NEW_MACHINE,,CURRENT,Proposed physical machine from strict machine-code pattern
+RMH-11,STRICT,NEW_MACHINE,NEW_MACHINE,,CURRENT,Proposed physical machine from strict machine-code pattern
+RMH-12,STRICT,NEW_MACHINE,NEW_MACHINE,,CURRENT,Proposed physical machine from strict machine-code pattern
+RMH-13,STRICT,NEW_MACHINE,NEW_MACHINE,,CURRENT,Proposed physical machine from strict machine-code pattern
+RMH-15,STRICT,NEW_MACHINE,NEW_MACHINE,,CURRENT,Proposed physical machine from strict machine-code pattern
+RMH-16,STRICT,NEW_MACHINE,NEW_MACHINE,,CURRENT,Proposed physical machine from strict machine-code pattern
+RNM-02,STRICT,NEW_MACHINE,NEW_MACHINE,,CURRENT,Proposed physical machine from strict machine-code pattern
+RPC-01,STRICT,NEW_MACHINE,NEW_MACHINE,,CURRENT,Proposed physical machine from strict machine-code pattern
+RPC-02,STRICT,NEW_MACHINE,NEW_MACHINE,,CURRENT,Proposed physical machine from strict machine-code pattern
+RPC-06,STRICT,NEW_MACHINE,NEW_MACHINE,,CURRENT,Proposed physical machine from strict machine-code pattern
+RSM-01,STRICT,NEW_MACHINE,NEW_MACHINE,,CURRENT,Proposed physical machine from strict machine-code pattern
+SBM-01,STRICT,NEW_MACHINE,NEW_MACHINE,,CURRENT,Proposed physical machine from strict machine-code pattern
+SBM-02,STRICT,NEW_MACHINE,NEW_MACHINE,,CURRENT,Proposed physical machine from strict machine-code pattern
+SBM-04,STRICT,NEW_MACHINE,NEW_MACHINE,,CURRENT,Proposed physical machine from strict machine-code pattern
+SBM-07,STRICT,NEW_MACHINE,NEW_MACHINE,,CURRENT,Proposed physical machine from strict machine-code pattern
+SBM-LINE,LINE,LINE,LINE,,REFERENCE,Production line / group; not a physical machine
+SBT-01,STRICT,NEW_MACHINE,NEW_MACHINE,,CURRENT,Proposed physical machine from strict machine-code pattern
+SBT-03,STRICT,NEW_MACHINE,NEW_MACHINE,,CURRENT,Proposed physical machine from strict machine-code pattern
+SBT-04,STRICT,NEW_MACHINE,NEW_MACHINE,,CURRENT,Proposed physical machine from strict machine-code pattern
+SBT-05,STRICT,NEW_MACHINE,NEW_MACHINE,,CURRENT,Proposed physical machine from strict machine-code pattern
+SBT-06,STRICT,NEW_MACHINE,NEW_MACHINE,,CURRENT,Proposed physical machine from strict machine-code pattern
+SBT-07,STRICT,NEW_MACHINE,NEW_MACHINE,,CURRENT,Proposed physical machine from strict machine-code pattern
+SBT-08,STRICT,NEW_MACHINE,NEW_MACHINE,,CURRENT,Proposed physical machine from strict machine-code pattern
+SBT-10,STRICT,NEW_MACHINE,NEW_MACHINE,,CURRENT,Proposed physical machine from strict machine-code pattern
+SBT-11,STRICT,NEW_MACHINE,NEW_MACHINE,,CURRENT,Proposed physical machine from strict machine-code pattern
+SBT-13,STRICT,NEW_MACHINE,NEW_MACHINE,,CURRENT,Proposed physical machine from strict machine-code pattern
+SBT-14,STRICT,NEW_MACHINE,NEW_MACHINE,,CURRENT,Proposed physical machine from strict machine-code pattern
+SBT-16,STRICT,NEW_MACHINE,NEW_MACHINE,,CURRENT,Proposed physical machine from strict machine-code pattern
+SBT-17,STRICT,NEW_MACHINE,NEW_MACHINE,,CURRENT,Proposed physical machine from strict machine-code pattern
+SBT-18,STRICT,NEW_MACHINE,NEW_MACHINE,,CURRENT,Proposed physical machine from strict machine-code pattern
+SBT-20,STRICT,NEW_MACHINE,NEW_MACHINE,,CURRENT,Proposed physical machine from strict machine-code pattern
+SGM-01,STRICT,NEW_MACHINE,NEW_MACHINE,,CURRENT,Proposed physical machine from strict machine-code pattern
+SGM-02,STRICT,NEW_MACHINE,NEW_MACHINE,,CURRENT,Proposed physical machine from strict machine-code pattern
+SGM-03,STRICT,NEW_MACHINE,NEW_MACHINE,,CURRENT,Proposed physical machine from strict machine-code pattern
+SGM-04,STRICT,NEW_MACHINE,NEW_MACHINE,,CURRENT,Proposed physical machine from strict machine-code pattern
+SGM-05,STRICT,NEW_MACHINE,NEW_MACHINE,,CURRENT,Proposed physical machine from strict machine-code pattern
+SGM-LINE,LINE,LINE,LINE,,REFERENCE,Production line / group; not a physical machine
+SPF-01,STRICT,NEW_MACHINE,NEW_MACHINE,,CURRENT,Proposed physical machine from strict machine-code pattern
+SPF-02,STRICT,NEW_MACHINE,NEW_MACHINE,,CURRENT,Proposed physical machine from strict machine-code pattern
+SPF-03,STRICT,NEW_MACHINE,NEW_MACHINE,,CURRENT,Proposed physical machine from strict machine-code pattern
+SPG,OTHER,REVIEW,,,REFERENCE,Found in STOCK Machine Name; not yet mapped to Machine Master.
+SPG-02,STRICT,NEW_MACHINE,NEW_MACHINE,,CURRENT,Proposed physical machine from strict machine-code pattern
+SPG-03,STRICT,NEW_MACHINE,NEW_MACHINE,,CURRENT,Proposed physical machine from strict machine-code pattern
+SPG-04,STRICT,NEW_MACHINE,NEW_MACHINE,,CURRENT,Proposed physical machine from strict machine-code pattern
+SPG-05,STRICT,NEW_MACHINE,NEW_MACHINE,,CURRENT,Proposed physical machine from strict machine-code pattern
+SPG-06,STRICT,NEW_MACHINE,NEW_MACHINE,,CURRENT,Proposed physical machine from strict machine-code pattern
+SPG-07,STRICT,NEW_MACHINE,NEW_MACHINE,,CURRENT,Proposed physical machine from strict machine-code pattern
+SPG-08,STRICT,NEW_MACHINE,NEW_MACHINE,,CURRENT,Proposed physical machine from strict machine-code pattern
+SPG-10,STRICT,NEW_MACHINE,NEW_MACHINE,,CURRENT,Proposed physical machine from strict machine-code pattern
+SPG-11,STRICT,NEW_MACHINE,NEW_MACHINE,,CURRENT,Proposed physical machine from strict machine-code pattern
+SPG-14,STRICT,NEW_MACHINE,NEW_MACHINE,,CURRENT,Proposed physical machine from strict machine-code pattern
+SPG-16,STRICT,NEW_MACHINE,NEW_MACHINE,,CURRENT,Proposed physical machine from strict machine-code pattern
+SPG-18,STRICT,NEW_MACHINE,NEW_MACHINE,,CURRENT,Proposed physical machine from strict machine-code pattern
+SPG-LINE,LINE,LINE,LINE,,REFERENCE,Production line / group; not a physical machine
+STE,OTHER,REVIEW,,,REFERENCE,Found in STOCK Machine Name; not yet mapped to Machine Master.
+STN-01,STRICT,NEW_MACHINE,NEW_MACHINE,,CURRENT,Proposed physical machine from strict machine-code pattern
+STN-02,STRICT,NEW_MACHINE,NEW_MACHINE,,CURRENT,Proposed physical machine from strict machine-code pattern
+STN-04,STRICT,NEW_MACHINE,NEW_MACHINE,,CURRENT,Proposed physical machine from strict machine-code pattern
+STN-05,STRICT,NEW_MACHINE,NEW_MACHINE,,CURRENT,Proposed physical machine from strict machine-code pattern
+STN-06,STRICT,NEW_MACHINE,NEW_MACHINE,,CURRENT,Proposed physical machine from strict machine-code pattern
+SWG-01,STRICT,NEW_MACHINE,NEW_MACHINE,,CURRENT,Proposed physical machine from strict machine-code pattern
+SWG-02,STRICT,NEW_MACHINE,NEW_MACHINE,,CURRENT,Proposed physical machine from strict machine-code pattern
+SWG-03,STRICT,NEW_MACHINE,NEW_MACHINE,,CURRENT,Proposed physical machine from strict machine-code pattern
+SWG-04,STRICT,NEW_MACHINE,NEW_MACHINE,,CURRENT,Proposed physical machine from strict machine-code pattern
+SWG-05,STRICT,NEW_MACHINE,NEW_MACHINE,,CURRENT,Proposed physical machine from strict machine-code pattern
+SWG-06,STRICT,NEW_MACHINE,NEW_MACHINE,,CURRENT,Proposed physical machine from strict machine-code pattern
+SWG-07,STRICT,NEW_MACHINE,NEW_MACHINE,,CURRENT,Proposed physical machine from strict machine-code pattern
+T/N,OTHER,REVIEW,,,REFERENCE,Found in STOCK Machine Name; not yet mapped to Machine Master.
+TDR-01,STRICT,NEW_MACHINE,NEW_MACHINE,,CURRENT,Proposed physical machine from strict machine-code pattern
+TDR-02,STRICT,NEW_MACHINE,NEW_MACHINE,,CURRENT,Proposed physical machine from strict machine-code pattern
+TDR-03,STRICT,NEW_MACHINE,NEW_MACHINE,,CURRENT,Proposed physical machine from strict machine-code pattern
+TDR-04,STRICT,NEW_MACHINE,NEW_MACHINE,,CURRENT,Proposed physical machine from strict machine-code pattern
+TDR-05,STRICT,NEW_MACHINE,NEW_MACHINE,,CURRENT,Proposed physical machine from strict machine-code pattern
+TEF-01,STRICT,NEW_MACHINE,NEW_MACHINE,,CURRENT,Proposed physical machine from strict machine-code pattern
+TEF-LINE,LINE,LINE,LINE,,REFERENCE,Production line / group; not a physical machine
+THB-03,STRICT,NEW_MACHINE,NEW_MACHINE,,CURRENT,Proposed physical machine from strict machine-code pattern
+THB-04,STRICT,NEW_MACHINE,NEW_MACHINE,,CURRENT,Proposed physical machine from strict machine-code pattern
+THB-05,STRICT,NEW_MACHINE,NEW_MACHINE,,CURRENT,Proposed physical machine from strict machine-code pattern
+THB-06,STRICT,NEW_MACHINE,NEW_MACHINE,,CURRENT,Proposed physical machine from strict machine-code pattern
+THB-07,STRICT,NEW_MACHINE,NEW_MACHINE,,CURRENT,Proposed physical machine from strict machine-code pattern
+THB-08,STRICT,NEW_MACHINE,NEW_MACHINE,,CURRENT,Proposed physical machine from strict machine-code pattern
+THB-09,STRICT,NEW_MACHINE,NEW_MACHINE,,CURRENT,Proposed physical machine from strict machine-code pattern
+THB-10,STRICT,NEW_MACHINE,NEW_MACHINE,,CURRENT,Proposed physical machine from strict machine-code pattern
+THB-12,STRICT,NEW_MACHINE,NEW_MACHINE,,CURRENT,Proposed physical machine from strict machine-code pattern
+THB-16,STRICT,NEW_MACHINE,NEW_MACHINE,,CURRENT,Proposed physical machine from strict machine-code pattern
+THB-LINE,LINE,LINE,LINE,,REFERENCE,Production line / group; not a physical machine
+THG-09,STRICT,NEW_MACHINE,NEW_MACHINE,,CURRENT,Proposed physical machine from strict machine-code pattern
+THM-07,STRICT,NEW_MACHINE,NEW_MACHINE,,CURRENT,Proposed physical machine from strict machine-code pattern
+TNG-01,STRICT,NEW_MACHINE,NEW_MACHINE,,CURRENT,Proposed physical machine from strict machine-code pattern
+TNG-03,STRICT,NEW_MACHINE,NEW_MACHINE,,CURRENT,Proposed physical machine from strict machine-code pattern
+TNG-04,STRICT,NEW_MACHINE,NEW_MACHINE,,CURRENT,Proposed physical machine from strict machine-code pattern
+TNG-05,STRICT,NEW_MACHINE,NEW_MACHINE,,CURRENT,Proposed physical machine from strict machine-code pattern
+TNG-06,STRICT,NEW_MACHINE,NEW_MACHINE,,CURRENT,Proposed physical machine from strict machine-code pattern
+TNG-07,STRICT,NEW_MACHINE,NEW_MACHINE,,CURRENT,Proposed physical machine from strict machine-code pattern
+TNG-08,STRICT,NEW_MACHINE,NEW_MACHINE,,CURRENT,Proposed physical machine from strict machine-code pattern
+TNG-09,STRICT,NEW_MACHINE,NEW_MACHINE,,CURRENT,Proposed physical machine from strict machine-code pattern
+TNG-11,STRICT,NEW_MACHINE,NEW_MACHINE,,CURRENT,Proposed physical machine from strict machine-code pattern
+TNG-11L,STRICT,NEW_MACHINE,NEW_MACHINE,,CURRENT,Proposed physical machine from strict machine-code pattern
+TNG-12,STRICT,NEW_MACHINE,NEW_MACHINE,,CURRENT,Proposed physical machine from strict machine-code pattern
+TNG-16,STRICT,NEW_MACHINE,NEW_MACHINE,,CURRENT,Proposed physical machine from strict machine-code pattern
+TNG-17,STRICT,NEW_MACHINE,NEW_MACHINE,,CURRENT,Proposed physical machine from strict machine-code pattern
+TNG-3,STRICT,NEW_MACHINE,NEW_MACHINE,,CURRENT,Proposed physical machine from strict machine-code pattern
+TOOLING,OTHER,REVIEW,,,REFERENCE,Found in STOCK Machine Name; not yet mapped to Machine Master.
+TPG-03,STRICT,NEW_MACHINE,NEW_MACHINE,,CURRENT,Proposed physical machine from strict machine-code pattern
+TRM-01,STRICT,NEW_MACHINE,NEW_MACHINE,,CURRENT,Proposed physical machine from strict machine-code pattern
+TRM-02,STRICT,NEW_MACHINE,NEW_MACHINE,,CURRENT,Proposed physical machine from strict machine-code pattern
+TRM-03,STRICT,NEW_MACHINE,NEW_MACHINE,,CURRENT,Proposed physical machine from strict machine-code pattern
+TRM-04,STRICT,NEW_MACHINE,NEW_MACHINE,,CURRENT,Proposed physical machine from strict machine-code pattern
+TRM-05,STRICT,NEW_MACHINE,NEW_MACHINE,,CURRENT,Proposed physical machine from strict machine-code pattern
+TRM-06,STRICT,NEW_MACHINE,NEW_MACHINE,,CURRENT,Proposed physical machine from strict machine-code pattern
+TRM-07,STRICT,NEW_MACHINE,NEW_MACHINE,,CURRENT,Proposed physical machine from strict machine-code pattern
+TRM-08,STRICT,NEW_MACHINE,NEW_MACHINE,,CURRENT,Proposed physical machine from strict machine-code pattern
+TRM-09,STRICT,NEW_MACHINE,NEW_MACHINE,,CURRENT,Proposed physical machine from strict machine-code pattern
+TRM-10,STRICT,NEW_MACHINE,NEW_MACHINE,,CURRENT,Proposed physical machine from strict machine-code pattern
+TRM-LINE,LINE,LINE,LINE,,REFERENCE,Production line / group; not a physical machine
+TRM-NEW,IRREGULAR,REVIEW,,,REFERENCE,Found in STOCK Machine Name; not yet mapped to Machine Master.
+TRQ-01,STRICT,NEW_MACHINE,NEW_MACHINE,,CURRENT,Proposed physical machine from strict machine-code pattern
+TRQ-02,STRICT,NEW_MACHINE,NEW_MACHINE,,CURRENT,Proposed physical machine from strict machine-code pattern
+TRQ-03,STRICT,NEW_MACHINE,NEW_MACHINE,,CURRENT,Proposed physical machine from strict machine-code pattern
+TRQ-04,STRICT,NEW_MACHINE,NEW_MACHINE,,CURRENT,Proposed physical machine from strict machine-code pattern
+TRQ-LINE,LINE,LINE,LINE,,REFERENCE,Production line / group; not a physical machine
+TTM-01,STRICT,NEW_MACHINE,NEW_MACHINE,,CURRENT,Proposed physical machine from strict machine-code pattern
+UGM-01,STRICT,NEW_MACHINE,NEW_MACHINE,,CURRENT,Proposed physical machine from strict machine-code pattern
+VCM-01,STRICT,NEW_MACHINE,NEW_MACHINE,,CURRENT,Proposed physical machine from strict machine-code pattern
+VMS-01,STRICT,NEW_MACHINE,NEW_MACHINE,,CURRENT,Proposed physical machine from strict machine-code pattern
+VSG-01,STRICT,NEW_MACHINE,NEW_MACHINE,,CURRENT,Proposed physical machine from strict machine-code pattern
+VSG-02,STRICT,NEW_MACHINE,NEW_MACHINE,,CURRENT,Proposed physical machine from strict machine-code pattern
+VSG-03,STRICT,NEW_MACHINE,NEW_MACHINE,,CURRENT,Proposed physical machine from strict machine-code pattern
+VSG-LINE,LINE,LINE,LINE,,REFERENCE,Production line / group; not a physical machine
+VSM-01,STRICT,NEW_MACHINE,NEW_MACHINE,,CURRENT,Proposed physical machine from strict machine-code pattern
+WCM-01,STRICT,NEW_MACHINE,NEW_MACHINE,,CURRENT,Proposed physical machine from strict machine-code pattern
+WSM-01,STRICT,NEW_MACHINE,NEW_MACHINE,,CURRENT,Proposed physical machine from strict machine-code pattern
+WSM-02,STRICT,NEW_MACHINE,NEW_MACHINE,,CURRENT,Proposed physical machine from strict machine-code pattern

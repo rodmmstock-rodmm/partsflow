@@ -1,0 +1,50 @@
+import { createContext, useContext, useEffect, useMemo, useState } from "react";
+import { apiGet, apiPost } from "./api";
+
+const AuthContext = createContext(null);
+
+export function AuthProvider({ children }) {
+  const [employee, setEmployee] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  async function refresh() {
+    const data = await apiGet("/auth/me/");
+    setEmployee(data.employee);
+    return data.employee;
+  }
+
+  useEffect(() => {
+    refresh().catch(() => setEmployee(null)).finally(() => setLoading(false));
+  }, []);
+
+  async function login(code) {
+    const data = await apiPost("/auth/login/", { employee_code: code });
+    setEmployee(data.employee);
+    return data.employee;
+  }
+
+  async function logout() {
+    try {
+      await apiPost("/auth/logout/");
+    } finally {
+      setEmployee(null);
+    }
+  }
+
+  const value = useMemo(
+    () => ({
+      employee,
+      loading,
+      authenticated: !!employee,
+      login,
+      logout,
+      refresh,
+      can: (key) => !!employee?.permissions?.[key],
+    }),
+    [employee, loading]
+  );
+
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
+}
+
+export const useAuth = () => useContext(AuthContext);

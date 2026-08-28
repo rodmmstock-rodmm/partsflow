@@ -1,0 +1,15 @@
+import { useEffect, useMemo, useState } from "react";
+import * as XLSX from "xlsx";
+import { apiGet } from "../api";
+import { Alert, PageHeader, fmt } from "../components/Common";
+
+export default function SafetyStock(){
+  const [rows,setRows]=useState([]); const [selected,setSelected]=useState(new Set()); const [q,setQ]=useState(""); const [error,setError]=useState(""); const [loading,setLoading]=useState(true);
+  async function load(){setLoading(true);setError("");try{const d=await apiGet("/safety-stock/");setRows(d.results||[]);setSelected(new Set())}catch(err){setError(err.message)}finally{setLoading(false)}}
+  useEffect(()=>{load()},[]);
+  const shown=useMemo(()=>rows.filter(x=>!q||`${x.sku} ${x.name} ${x.description} ${x.maker_name} ${x.last_machine}`.toLowerCase().includes(q.toLowerCase())),[rows,q]);
+  function toggle(id){setSelected(s=>{const n=new Set(s);n.has(id)?n.delete(id):n.add(id);return n})}
+  function toggleAll(){setSelected(s=>s.size===shown.length?new Set():new Set(shown.map(x=>x.id)))}
+  function exportExcel(){const data=rows.filter(x=>selected.has(x.id));if(!data.length){setError("กรุณาเลือกรายการที่ต้องการ Export อย่างน้อย 1 รายการ");return}const out=data.map(x=>({"เครื่องจักรล่าสุดที่เบิก":x.last_machine||"","Item ID":x.sku,"Part Name":x.name,"Part Detail":x.description||"","Maker":x.maker_name||"","จำนวนที่ต้องสั่ง":x.order_qty,"Unit":x.unit_code||""}));const ws=XLSX.utils.json_to_sheet(out);const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,"Safety Stock");const d=new Date();const p=n=>String(n).padStart(2,"0");XLSX.writeFile(wb,`safety_stock_${d.getFullYear()}${p(d.getMonth()+1)}${p(d.getDate())}.xlsx`)}
+  return <><PageHeader title="Safety Stock" subtitle="รายการต่ำกว่า Min ที่ยังไม่มี Active Order" actions={<button className="btn primary" onClick={exportExcel}>Export Excel ({selected.size})</button>}/><Alert>{error}</Alert><div className="kpi-grid one"><div className="kpi-card danger"><span>รายการที่ต้องสั่ง</span><strong>{fmt(rows.length)}</strong></div></div><section className="panel"><div className="toolbar"><input className="search-input" value={q} onChange={e=>setQ(e.target.value)} placeholder="ค้นหา Item ID / Part / Maker / Machine..."/><button className="btn ghost" onClick={load}>รีเฟรช</button></div>{loading?<div className="empty">กำลังโหลด...</div>:<div className="table-wrap"><table><thead><tr><th><input type="checkbox" checked={shown.length>0&&selected.size===shown.length} onChange={toggleAll}/></th><th>Item ID</th><th>Part Name</th><th>Part Detail</th><th>Maker</th><th>เครื่องจักรล่าสุดที่เบิก</th><th>จำนวนคงเหลือ</th><th>จำนวน Min</th><th>จำนวนที่ Order</th><th>Unit</th></tr></thead><tbody>{shown.map(x=><tr key={x.id}><td><input type="checkbox" checked={selected.has(x.id)} onChange={()=>toggle(x.id)}/></td><td><b>{x.sku}</b></td><td>{x.name}</td><td className="detail-cell">{x.description||"-"}</td><td>{x.maker_name||"-"}</td><td>{x.last_machine||"-"}</td><td className="text-danger"><b>{fmt(x.stock_qty)}</b></td><td>{fmt(x.min_stock)}</td><td><b>{fmt(x.order_qty)}</b></td><td>{x.unit_code}</td></tr>)}</tbody></table></div>}</section></>
+}

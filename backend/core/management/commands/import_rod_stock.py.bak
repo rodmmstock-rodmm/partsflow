@@ -1,0 +1,934 @@
+import re
+from decimal import Decimal, InvalidOperation
+
+from django.core.management.base import BaseCommand, CommandError
+from django.db import transaction
+from openpyxl import load_workbook
+
+from core.models import *
+
+
+def s(value):
+    return "" if value is None else str(value).strip()
+
+
+def d(value):
+    if value is None or value == "":
+        return Decimal("0")
+
+    try:
+        return Decimal(str(value).replace(",", "").strip())
+    except (InvalidOperation, ValueError, TypeError):
+        return Decimal("0")
+
+
+def rows(workbook, sheet_name):
+    if sheet_name not in workbook.sheetnames:
+        raise CommandError(
+            f"ไม่พบ Sheet '{sheet_name}' "
+            f"(พบ: {', '.join(workbook.sheetnames)})"
+        )
+
+    ws = workbook[sheet_name]
+    values = list(ws.values)
+
+    if not values:
+        return []
+
+    headers = [s(x) for x in values[0]]
+
+    result = []
+
+    for row_number, row in enumerate(values[1:], start=2):
+        if not any(x is not None for x in row):
+            continue
+
+        data = dict(zip(headers, row))
+        data["_excel_row"] = row_number
+        result.append(data)
+
+    return result
+
+
+def machine_candidates(raw_text, machine_codes):
+    """
+    Convert Excel machine text into possible machine codes.
+
+    Examples:
+        BFD-13,15,17
+        -> BFD-13, BFD-15, BFD-17
+
+        BFD-19 = 5/7/24
+        -> BFD-19
+
+        BFD-15,21=4/3/2025
+        -> BFD-15, BFD-21
+    """
+
+    raw = s(raw_text)
+
+    if not raw:
+        return []
+
+    # Remove common line breaks.
+    raw = raw.replace("\n", ",").replace("\r", ",")
+
+    # Split by comma / semicolon.
+    pieces = [
+        x.strip()
+        for x in re.split(r"[,;]", raw)
+        if x.strip()
+    ]
+
+    result = []
+    previous_code = None
+
+    # Exact codes sorted longest-first.
+    known_codes = sorted(
+        {s(x) for x in machine_codes if s(x)},
+        key=len,
+        reverse=True,
+    )
+
+    for piece in pieces:
+
+        # Remove annotations such as:
+        # BFD-19 = 5/7/24
+        # BFD-15 = 4/3/2025
+        clean = re.split(r"\s*=\s*", piece, maxsplit=1)[0].strip()
+
+        if not clean:
+            continue
+
+        # Remove surrounding brackets.
+        clean = clean.strip("()[]{} ")
+
+        # ---------------------------------------------------------
+        # Exact match
+        # ---------------------------------------------------------
+
+        if clean in known_codes:
+            code = clean
+
+            if code not in result:
+                result.append(code)
+
+            previous_code = code
+            continue
+
+        # ---------------------------------------------------------
+        # Numeric continuation
+        #
+        # BFD-13,15,17
+        # first piece = BFD-13
+        # next piece = 15
+        # -> BFD-15
+        # ---------------------------------------------------------
+
+        if re.fullmatch(r"\d+", clean) and previous_code:
+
+            match = re.match(r"^(.*?)(\d+)$", previous_code)
+
+            if match:
+                prefix = match.group(1)
+                candidate = prefix + clean
+
+                if candidate in known_codes:
+                    if candidate not in result:
+                        result.append(candidate)
+
+                    previous_code = candidate
+                    continue
+
+        # ---------------------------------------------------------
+        # Sometimes Excel text contains several machine codes
+        # without clean delimiters.
+        # Try finding known codes inside the string.
+        # ---------------------------------------------------------
+
+        found = []
+
+        for code in known_codes:
+
+            pattern = re.escape(code)
+
+            if re.search(
+                rf"(?<![A-Za-z0-9]){pattern}(?![A-Za-z0-9])",
+                clean,
+                flags=re.IGNORECASE,
+            ):
+                found.append(code)
+
+        if found:
+
+            for code in found:
+                if code not in result:
+                    result.append(code)
+
+            previous_code = found[-1]
+            continue
+
+        # Keep the unmatched value for warning.
+        previous_code = clean
+
+    return result
+
+
+class Command(BaseCommand):
+
+    help = "Import ROD MM STOCK master data."
+
+    def add_arguments(self, parser):
+
+        parser.add_argument(
+            "xlsx",
+            help="Path to ROD MM STOCK.xlsx",
+        )
+
+        parser.add_argument(
+            "--dry-run",
+            action="store_true",
+            help="Validate and simulate import without saving.",
+        )
+
+    @transaction.atomic
+    def handle(self, *args, **options):
+
+        xlsx = options["xlsx"]
+        dry_run = options["dry_run"]
+
+        self.stdout.write("")
+        self.stdout.write(
+            self.style.MIGRATE_HEADING(
+                "========================================"
+            )
+        )
+        self.stdout.write(
+            self.style.MIGRATE_HEADING(
+                " PartsFlow - ROD MM STOCK Import V2"
+            )
+        )
+        self.stdout.write(
+            self.style.MIGRATE_HEADING(
+                "========================================"
+            )
+        )
+
+        self.stdout.write(f"Excel: {xlsx}")
+        self.stdout.write("")
+
+        # =========================================================
+        # LOAD EXCEL
+        # =========================================================
+
+        try:
+            workbook = load_workbook(
+                xlsx,
+                data_only=True,
+            )
+        except Exception as exc:
+            raise CommandError(
+                f"ไม่สามารถเปิด Excel ได้: {exc}"
+            )
+
+        self.stdout.write(
+            f"Sheets: {', '.join(workbook.sheetnames)}"
+        )
+        self.stdout.write("")
+
+        # =========================================================
+        # STATISTICS
+        # =========================================================
+
+        stats = {
+            "employees": 0,
+            "machines": 0,
+            "parts": 0,
+            "inventory": 0,
+            "part_machines": 0,
+            "units": 0,
+            "makers": 0,
+            "suppliers": 0,
+            "locations": 0,
+        }
+
+        warnings = []
+        errors = []
+
+        # =========================================================
+        # EMPLOYEES
+        # =========================================================
+
+        employee_rows = rows(workbook, "NAME")
+
+        self.stdout.write(
+            f"Reading NAME: {len(employee_rows)} rows"
+        )
+
+        for row in employee_rows:
+
+            code = (
+                s(row.get("EMPLOYEE ID"))
+                or s(row.get("NAME"))
+            )
+
+            if not code:
+
+                warnings.append(
+                    f"NAME row {row['_excel_row']}: "
+                    f"ไม่มี Employee ID / NAME"
+                )
+
+                continue
+
+            try:
+
+                Employee.objects.update_or_create(
+                    employee_code=code,
+                    defaults={
+                        "name": s(row.get("NAME")),
+                        "role": s(row.get("ROLE")),
+                        "legacy_source": "NAME",
+                        "legacy_id": code,
+                    },
+                )
+
+                stats["employees"] += 1
+
+            except Exception as exc:
+
+                errors.append(
+                    f"NAME row {row['_excel_row']}: {exc}"
+                )
+
+        # =========================================================
+        # MACHINES
+        # =========================================================
+
+        machine_rows = rows(workbook, "MC NAME")
+
+        self.stdout.write(
+            f"Reading MC NAME: {len(machine_rows)} rows"
+        )
+
+        machine_codes = []
+
+        for row in machine_rows:
+
+            # IMPORTANT:
+            # Real Excel header is MACHINE NAME.
+            code = (
+                s(row.get("MACHINE NAME"))
+                or s(row.get("MC"))
+                or s(row.get("MACHINE"))
+                or s(row.get("MC NAME"))
+            )
+
+            name = (
+                s(row.get("NAME"))
+                or s(row.get("MACHINE NAME"))
+                or code
+            )
+
+            if not code:
+
+                warnings.append(
+                    f"MC NAME row {row['_excel_row']}: "
+                    f"ไม่มี Machine Code"
+                )
+
+                continue
+
+            if code in machine_codes:
+
+                warnings.append(
+                    f"MC NAME row {row['_excel_row']}: "
+                    f"Machine Code ซ้ำ: {code}"
+                )
+
+            machine_codes.append(code)
+
+            try:
+
+                Machine.objects.update_or_create(
+                    code=code,
+                    defaults={
+                        "name": name,
+                        "legacy_source": "MC NAME",
+                        "legacy_id": code,
+                    },
+                )
+
+                stats["machines"] += 1
+
+            except Exception as exc:
+
+                errors.append(
+                    f"MC NAME row {row['_excel_row']}: "
+                    f"{code}: {exc}"
+                )
+
+        # =========================================================
+        # STOCK
+        # =========================================================
+
+        stock_rows = rows(workbook, "STOCK")
+
+        self.stdout.write(
+            f"Reading STOCK: {len(stock_rows)} rows"
+        )
+        self.stdout.write("")
+
+        seen_skus = set()
+        seen_part_machine = set()
+
+        for row in stock_rows:
+
+            excel_row = row["_excel_row"]
+
+            sku = s(row.get("ITEM ID"))
+
+            if not sku:
+
+                warnings.append(
+                    f"STOCK row {excel_row}: "
+                    f"ไม่มี ITEM ID"
+                )
+
+                continue
+
+            if sku in seen_skus:
+
+                warnings.append(
+                    f"STOCK row {excel_row}: "
+                    f"SKU ซ้ำใน Excel: {sku}"
+                )
+
+            seen_skus.add(sku)
+
+            # =====================================================
+            # UNIT
+            # =====================================================
+
+            unit_code = s(row.get("UNIT")) or "EA"
+
+            try:
+
+                unit, unit_created = Unit.objects.get_or_create(
+                    code=unit_code,
+                    defaults={
+                        "name": unit_code
+                    },
+                )
+
+                if unit_created:
+                    stats["units"] += 1
+
+            except Exception as exc:
+
+                errors.append(
+                    f"STOCK row {excel_row}: "
+                    f"Unit {unit_code}: {exc}"
+                )
+
+                continue
+
+            # =====================================================
+            # MAKER
+            # =====================================================
+
+            maker_name = s(row.get("MAKER"))
+            maker = None
+
+            if maker_name:
+
+                try:
+
+                    maker, maker_created = Maker.objects.get_or_create(
+                        name=maker_name
+                    )
+
+                    if maker_created:
+                        stats["makers"] += 1
+
+                except Exception as exc:
+
+                    errors.append(
+                        f"STOCK row {excel_row}: "
+                        f"Maker {maker_name}: {exc}"
+                    )
+
+            # =====================================================
+            # SUPPLIER
+            # =====================================================
+
+            vendor_name = s(row.get("Vendor"))
+            supplier = None
+
+            if vendor_name:
+
+                supplier_code = (
+                    "V-"
+                    + re.sub(
+                        r"[^A-Za-z0-9]+",
+                        "-",
+                        vendor_name,
+                    ).strip("-")[:55]
+                )
+
+                try:
+
+                    supplier = Supplier.objects.filter(
+                        code=supplier_code
+                    ).first()
+
+                    if supplier:
+
+                        # Same code but different supplier name.
+                        if (
+                            s(supplier.name).lower()
+                            != vendor_name.lower()
+                        ):
+
+                            supplier_code = (
+                                supplier_code
+                                + "-"
+                                + str(
+                                    abs(hash(vendor_name))
+                                )[-6:]
+                            )
+
+                            supplier = None
+
+                    if supplier is None:
+
+                        supplier, supplier_created = (
+                            Supplier.objects.get_or_create(
+                                code=supplier_code,
+                                defaults={
+                                    "name": vendor_name
+                                },
+                            )
+                        )
+
+                        if supplier_created:
+                            stats["suppliers"] += 1
+
+                except Exception as exc:
+
+                    errors.append(
+                        f"STOCK row {excel_row}: "
+                        f"Supplier {vendor_name}: {exc}"
+                    )
+
+            # =====================================================
+            # LOCATION
+            # =====================================================
+
+            location_code = s(row.get("ADDRESS"))
+            location = None
+
+            if location_code:
+
+                try:
+
+                    location, location_created = (
+                        Location.objects.get_or_create(
+                            code=location_code,
+                            defaults={
+                                "name": location_code,
+                                "legacy_source": "STOCK",
+                                "legacy_id": location_code,
+                            },
+                        )
+                    )
+
+                    if location_created:
+                        stats["locations"] += 1
+
+                except Exception as exc:
+
+                    errors.append(
+                        f"STOCK row {excel_row}: "
+                        f"Location {location_code}: {exc}"
+                    )
+
+            # =====================================================
+            # PART
+            # =====================================================
+
+            try:
+
+                part, part_created = (
+                    Part.objects.update_or_create(
+                        sku=sku,
+                        defaults={
+                            "name":
+                                s(row.get("PART NAME"))
+                                or sku,
+
+                            "description":
+                                s(row.get("PART DETAIL")),
+
+                            "maker":
+                                maker,
+
+                            "unit":
+                                unit,
+
+                            "default_supplier":
+                                supplier,
+
+                            "location":
+                                location,
+
+                            "min_stock":
+                                d(row.get("MIN STOCK")),
+
+                            "reorder_qty":
+                                d(row.get("TO Order")),
+
+                            "vendor_lead_time_days":
+                                int(
+                                    d(
+                                        row.get(
+                                            "Lead Time V/D"
+                                        )
+                                    )
+                                ),
+
+                            "purchasing_lead_time_days":
+                                int(
+                                    d(
+                                        row.get(
+                                            "Lead Time Purchasing"
+                                        )
+                                    )
+                                ),
+
+                            "total_lead_time_days":
+                                int(
+                                    d(
+                                        row.get(
+                                            "Lead Time Total"
+                                        )
+                                    )
+                                ),
+
+                            "last_purchase_price":
+                                d(row.get("Price")),
+
+                            "remark":
+                                s(row.get("Remark")),
+
+                            "image_path":
+                                s(row.get("PIC")),
+
+                            "legacy_source":
+                                "STOCK",
+
+                            "legacy_id":
+                                sku,
+                        },
+                    )
+                )
+
+                stats["parts"] += 1
+
+            except Exception as exc:
+
+                errors.append(
+                    f"STOCK row {excel_row}: "
+                    f"Part {sku}: {exc}"
+                )
+
+                continue
+
+            # =====================================================
+            # PART <-> MACHINE
+            # =====================================================
+
+            raw_machine = s(
+                row.get("Machine Name")
+            )
+
+            if raw_machine:
+
+                candidates = machine_candidates(
+                    raw_machine,
+                    machine_codes,
+                )
+
+                if not candidates:
+
+                    warnings.append(
+                        f"STOCK row {excel_row}: "
+                        f"ไม่สามารถ map Machine Name "
+                        f"'{raw_machine}' "
+                        f"สำหรับ Part {sku}"
+                    )
+
+                for machine_code in candidates:
+
+                    machine = Machine.objects.filter(
+                        code=machine_code
+                    ).first()
+
+                    if not machine:
+
+                        warnings.append(
+                            f"STOCK row {excel_row}: "
+                            f"ไม่พบ Machine "
+                            f"'{machine_code}' "
+                            f"สำหรับ Part {sku}"
+                        )
+
+                        continue
+
+                    key = (
+                        str(part.pk),
+                        str(machine.pk),
+                    )
+
+                    if key in seen_part_machine:
+                        continue
+
+                    seen_part_machine.add(key)
+
+                    try:
+
+                        PartMachine.objects.get_or_create(
+                            part=part,
+                            machine=machine,
+                        )
+
+                        stats["part_machines"] += 1
+
+                    except Exception as exc:
+
+                        errors.append(
+                            f"STOCK row {excel_row}: "
+                            f"PartMachine "
+                            f"{sku} -> "
+                            f"{machine_code}: "
+                            f"{exc}"
+                        )
+
+            # =====================================================
+            # INVENTORY
+            # =====================================================
+
+            try:
+
+                quantity = d(
+                    row.get("REMAINING STOCK")
+                )
+
+                inventory, inventory_created = (
+                    Inventory.objects.get_or_create(
+                        part=part,
+                        location=location,
+                        defaults={
+                            "quantity": quantity
+                        },
+                    )
+                )
+
+                if not inventory_created:
+
+                    inventory.quantity = quantity
+                    inventory.save()
+
+                stats["inventory"] += 1
+
+            except Exception as exc:
+
+                errors.append(
+                    f"STOCK row {excel_row}: "
+                    f"Inventory {sku}: {exc}"
+                )
+
+        # =========================================================
+        # REPORT
+        # =========================================================
+
+        self.stdout.write("")
+        self.stdout.write(
+            self.style.MIGRATE_HEADING(
+                "========================================"
+            )
+        )
+        self.stdout.write(
+            self.style.MIGRATE_HEADING(
+                " IMPORT PREVIEW V2"
+            )
+        )
+        self.stdout.write(
+            self.style.MIGRATE_HEADING(
+                "========================================"
+            )
+        )
+
+        self.stdout.write(
+            f"Employees processed : {stats['employees']}"
+        )
+
+        self.stdout.write(
+            f"Machines processed  : {stats['machines']}"
+        )
+
+        self.stdout.write(
+            f"Parts processed     : {stats['parts']}"
+        )
+
+        self.stdout.write(
+            f"Inventory records   : {stats['inventory']}"
+        )
+
+        self.stdout.write(
+            f"Part ↔ Machine      : {stats['part_machines']}"
+        )
+
+        self.stdout.write(
+            f"New Units           : {stats['units']}"
+        )
+
+        self.stdout.write(
+            f"New Makers          : {stats['makers']}"
+        )
+
+        self.stdout.write(
+            f"New Suppliers       : {stats['suppliers']}"
+        )
+
+        self.stdout.write(
+            f"New Locations       : {stats['locations']}"
+        )
+
+        self.stdout.write(
+            f"Warnings            : {len(warnings)}"
+        )
+
+        self.stdout.write(
+            f"Errors              : {len(errors)}"
+        )
+
+        # =========================================================
+        # WARNINGS
+        # =========================================================
+
+        if warnings:
+
+            self.stdout.write("")
+            self.stdout.write(
+                self.style.WARNING(
+                    "WARNINGS:"
+                )
+            )
+
+            for warning in warnings[:100]:
+
+                self.stdout.write(
+                    f"  - {warning}"
+                )
+
+            if len(warnings) > 100:
+
+                self.stdout.write(
+                    f"  ... และอีก "
+                    f"{len(warnings) - 100} รายการ"
+                )
+
+        # =========================================================
+        # ERRORS
+        # =========================================================
+
+        if errors:
+
+            self.stdout.write("")
+            self.stdout.write(
+                self.style.ERROR(
+                    "ERRORS:"
+                )
+            )
+
+            for error in errors[:100]:
+
+                self.stdout.write(
+                    f"  - {error}"
+                )
+
+            if len(errors) > 100:
+
+                self.stdout.write(
+                    f"  ... และอีก "
+                    f"{len(errors) - 100} รายการ"
+                )
+
+            raise CommandError(
+                f"Import มี {len(errors)} errors"
+            )
+
+        # =========================================================
+        # DRY RUN
+        # =========================================================
+
+        if dry_run:
+
+            transaction.set_rollback(True)
+
+            self.stdout.write("")
+            self.stdout.write(
+                self.style.WARNING(
+                    "========================================"
+                )
+            )
+
+            self.stdout.write(
+                self.style.WARNING(
+                    "DRY RUN COMPLETE"
+                )
+            )
+
+            self.stdout.write(
+                self.style.WARNING(
+                    "NO DATA WAS WRITTEN TO DATABASE"
+                )
+            )
+
+            self.stdout.write(
+                self.style.WARNING(
+                    "========================================"
+                )
+            )
+
+            return
+
+        # =========================================================
+        # REAL IMPORT
+        # =========================================================
+
+        self.stdout.write("")
+        self.stdout.write(
+            self.style.SUCCESS(
+                "========================================"
+            )
+        )
+
+        self.stdout.write(
+            self.style.SUCCESS(
+                "IMPORT COMPLETE"
+            )
+        )
+
+        self.stdout.write(
+            self.style.SUCCESS(
+                "Data has been saved to Supabase."
+            )
+        )
+
+        self.stdout.write(
+            self.style.SUCCESS(
+                "========================================"
+            )
+        )

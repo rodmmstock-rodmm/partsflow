@@ -1,0 +1,49 @@
+from django.urls import path
+
+from . import auth_api, dashboard_api, order_api, role_api, stock_api, web_api
+
+urlpatterns = [
+    path("auth/login/", auth_api.login_view),
+    path("auth/me/", auth_api.me_view),
+    path("auth/logout/", auth_api.logout_view),
+
+    path("dashboard/", dashboard_api.dashboard, name="web-dashboard"),
+
+    path("parts/", web_api.parts_list, name="web-parts-list"),
+    path("parts/<uuid:pk>/", web_api.part_detail, name="web-part-detail"),
+    path("parts/<uuid:pk>/image/", web_api.part_image, name="web-part-image"),
+    path("inventory/", web_api.inventory_list, name="web-inventory-list"),
+    path("safety-stock/", web_api.safety_stock, name="web-safety-stock"),
+    path("options/", web_api.options, name="web-options"),
+
+    path("stock/issue/", stock_api.issue_stock, name="web-stock-issue"),
+    path("stock/receive/", stock_api.receive_stock, name="web-stock-receive"),
+    path("stock/adjust/", stock_api.adjust_stock, name="web-stock-adjust"),
+    path("history/", stock_api.history_list, name="web-history"),
+    path("history/<uuid:pk>/", stock_api.history_update, name="web-history-update"),
+    path("history/<uuid:pk>/delete/", stock_api.history_delete, name="web-history-delete"),
+
+    path("suppliers/", web_api.suppliers_list, name="web-suppliers-list"),
+    path("suppliers/<uuid:pk>/", web_api.supplier_detail, name="web-supplier-detail"),
+    path("machines/", web_api.machines_list, name="web-machines-list"),
+    path("machines/<uuid:pk>/", web_api.machine_detail, name="web-machine-detail"),
+
+    path("orders/", order_api.orders, name="web-orders"),
+    path("orders/<uuid:pk>/", order_api.order_detail, name="web-order-detail"),
+    path("orders/<uuid:pk>/info/", order_api.update_order_info, name="web-order-info"),
+    path("orders/<uuid:pk>/purchase/", order_api.update_purchase_info, name="web-order-purchase"),
+    path("orders/<uuid:pk>/receive/", order_api.receive_order, name="web-order-receive"),
+    path("orders/<uuid:pk>/cancel/", order_api.cancel_order, name="web-order-cancel"),
+    path("orders/<uuid:pk>/delete/", order_api.delete_order, name="web-order-delete"),
+    path("orders/<uuid:pk>/update-data/", order_api.update_edit_data, name="web-order-update-data"),
+    path("orders/<uuid:pk>/usage/", order_api.update_usage, name="web-order-usage"),
+    path("order-projects/", order_api.projects, name="web-order-projects"),
+    path("order-projects/<uuid:pk>/", order_api.project_detail, name="web-order-project-detail"),
+    path("order-projects/<uuid:pk>/import-step/", order_api.import_project_step, name="web-order-project-import"),
+
+    path("roles/", role_api.roles, name="web-roles"),
+    path("roles/<uuid:pk>/", role_api.update_role, name="web-role-update"),
+    path("employees/", role_api.employees, name="web-employees"),
+    path("employees/<uuid:pk>/", role_api.update_employee, name="web-employee-update"),
+    path("audit-logs/", role_api.audit_logs, name="web-audit-logs"),
+]

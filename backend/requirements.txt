@@ -5,3 +5,9 @@ dj-database-url>=2.3
 psycopg[binary]>=3.2
 gunicorn>=23
 PyJWT>=2.10
+dj-database-url
+openpyxl>=3.1
+google-api-python-client>=2.170
+google-auth>=2.40
+google-api-python-client>=2.170
+google-auth-oauthlib>=1.2

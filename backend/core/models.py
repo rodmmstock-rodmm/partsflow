@@ -1,72 +1,660 @@
-from django.db import models
-from django.contrib.auth.models import User
-
 from uuid import uuid4
+
+from django.contrib.auth.models import User
+from django.db import models
+from django.db.models.functions import Lower
+
 
 class UUIDMixin(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid4, editable=False)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
+
     class Meta:
         abstract = True
 
+
 class LegacyMixin(UUIDMixin):
-    legacy_source=models.CharField(max_length=80,blank=True)
-    legacy_id=models.CharField(max_length=120,blank=True)
-    class Meta: abstract=True
+    legacy_source = models.CharField(max_length=80, blank=True)
+    legacy_id = models.CharField(max_length=120, blank=True)
+
+    class Meta:
+        abstract = True
+
 
 class Unit(LegacyMixin):
-    code=models.CharField(max_length=30,unique=True); name=models.CharField(max_length=100); active=models.BooleanField(default=True)
+    code = models.CharField(max_length=30, unique=True)
+    name = models.CharField(max_length=100)
+    active = models.BooleanField(default=True)
+
+    def __str__(self):
+        return self.code
+
+
 class Category(LegacyMixin):
-    name=models.CharField(max_length=120,unique=True); active=models.BooleanField(default=True)
+    name = models.CharField(max_length=120, unique=True)
+    active = models.BooleanField(default=True)
+
+    def __str__(self):
+        return self.name
+
+
 class Maker(LegacyMixin):
-    name=models.CharField(max_length=200,unique=True); active=models.BooleanField(default=True)
+    name = models.CharField(max_length=200, unique=True)
+    active = models.BooleanField(default=True)
+
+    def __str__(self):
+        return self.name
+
+
 class Location(LegacyMixin):
-    code=models.CharField(max_length=100,unique=True); name=models.CharField(max_length=200,blank=True); warehouse=models.CharField(max_length=100,blank=True); zone=models.CharField(max_length=100,blank=True); rack=models.CharField(max_length=100,blank=True); shelf=models.CharField(max_length=100,blank=True); bin=models.CharField(max_length=100,blank=True); active=models.BooleanField(default=True)
+    code = models.CharField(max_length=100, unique=True)
+    name = models.CharField(max_length=200, blank=True)
+    warehouse = models.CharField(max_length=100, blank=True)
+    zone = models.CharField(max_length=100, blank=True)
+    rack = models.CharField(max_length=100, blank=True)
+    shelf = models.CharField(max_length=100, blank=True)
+    bin = models.CharField(max_length=100, blank=True)
+    active = models.BooleanField(default=True)
+
+    def __str__(self):
+        return self.code
+
+
 class Employee(LegacyMixin):
-    employee_code=models.CharField(max_length=80,unique=True); name=models.CharField(max_length=200); role=models.CharField(max_length=120,blank=True); department=models.CharField(max_length=120,blank=True); active=models.BooleanField(default=True)
+    employee_code = models.CharField(max_length=80, unique=True)
+    name = models.CharField(max_length=200)
+    role = models.CharField(max_length=120, blank=True)
+    department = models.CharField(max_length=120, blank=True)
+    active = models.BooleanField(default=True)
+
+    def __str__(self):
+        return f"{self.employee_code} - {self.name}"
+
+
 class Machine(LegacyMixin):
-    code=models.CharField(max_length=100,unique=True); name=models.CharField(max_length=250); location=models.CharField(max_length=200,blank=True); machine_type=models.CharField(max_length=120,blank=True); active=models.BooleanField(default=True); remark=models.TextField(blank=True)
+    code = models.CharField(max_length=100, unique=True)
+    name = models.CharField(max_length=250)
+    location = models.CharField(max_length=200, blank=True)
+    machine_type = models.CharField(max_length=120, blank=True)
+    dept_code = models.CharField(max_length=100, blank=True)
+    work_code = models.CharField(max_length=100, blank=True)
+    active = models.BooleanField(default=True)
+    remark = models.TextField(blank=True)
+
+    def __str__(self):
+        return f"{self.code} - {self.name}"
+
+
+class MachineCode(LegacyMixin):
+    code = models.CharField(max_length=100, unique=True)
+    machine = models.ForeignKey(
+        Machine,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="codes",
+    )
+    code_type = models.CharField(max_length=30, blank=True)
+    note = models.TextField(blank=True)
+    active = models.BooleanField(default=True)
+
+    def __str__(self):
+        return self.code
+
+
 class Supplier(LegacyMixin):
-    code=models.CharField(max_length=80,unique=True); name=models.CharField(max_length=250); contact=models.CharField(max_length=200,blank=True); phone=models.CharField(max_length=80,blank=True); email=models.EmailField(blank=True); lead_time_days=models.PositiveIntegerField(default=0); active=models.BooleanField(default=True); remark=models.TextField(blank=True)
+    code = models.CharField(max_length=80, unique=True)
+    name = models.CharField(max_length=250)
+    contact = models.CharField(max_length=200, blank=True)
+    phone = models.CharField(max_length=80, blank=True)
+    email = models.EmailField(blank=True)
+    lead_time_days = models.PositiveIntegerField(default=0)
+    active = models.BooleanField(default=True)
+    remark = models.TextField(blank=True)
+
+    def __str__(self):
+        return f"{self.code} - {self.name}"
+
+
 class Part(LegacyMixin):
-    sku=models.CharField(max_length=100,unique=True); name=models.CharField(max_length=300); description=models.TextField(blank=True); maker=models.ForeignKey(Maker,null=True,blank=True,on_delete=models.SET_NULL); category=models.ForeignKey(Category,null=True,blank=True,on_delete=models.SET_NULL); unit=models.ForeignKey(Unit,null=True,blank=True,on_delete=models.SET_NULL); default_supplier=models.ForeignKey(Supplier,null=True,blank=True,on_delete=models.SET_NULL); location=models.ForeignKey(Location,null=True,blank=True,on_delete=models.SET_NULL); image_path=models.CharField(max_length=500,blank=True); min_stock=models.DecimalField(max_digits=14,decimal_places=2,default=0); max_stock=models.DecimalField(max_digits=14,decimal_places=2,default=0); reorder_qty=models.DecimalField(max_digits=14,decimal_places=2,default=0); vendor_lead_time_days=models.PositiveIntegerField(default=0); purchasing_lead_time_days=models.PositiveIntegerField(default=0); total_lead_time_days=models.PositiveIntegerField(default=0); last_purchase_price=models.DecimalField(max_digits=16,decimal_places=4,default=0); critical=models.BooleanField(default=False); active=models.BooleanField(default=True); remark=models.TextField(blank=True); updated_at=models.DateTimeField(auto_now=True)
+    sku = models.CharField(max_length=100, unique=True)
+    name = models.CharField(max_length=300)
+    description = models.TextField(blank=True)
+    maker = models.ForeignKey(Maker, null=True, blank=True, on_delete=models.SET_NULL)
+    category = models.ForeignKey(Category, null=True, blank=True, on_delete=models.SET_NULL)
+    unit = models.ForeignKey(Unit, null=True, blank=True, on_delete=models.SET_NULL)
+    default_supplier = models.ForeignKey(Supplier, null=True, blank=True, on_delete=models.SET_NULL)
+    location = models.ForeignKey(Location, null=True, blank=True, on_delete=models.SET_NULL)
+    image_path = models.CharField(max_length=500, blank=True)
+    min_stock = models.DecimalField(max_digits=14, decimal_places=2, default=0)
+    max_stock = models.DecimalField(max_digits=14, decimal_places=2, default=0)
+    reorder_qty = models.DecimalField(max_digits=14, decimal_places=2, default=0)
+    vendor_lead_time_days = models.PositiveIntegerField(default=0)
+    purchasing_lead_time_days = models.PositiveIntegerField(default=0)
+    total_lead_time_days = models.PositiveIntegerField(default=0)
+    last_purchase_price = models.DecimalField(max_digits=16, decimal_places=4, default=0)
+    critical = models.BooleanField(default=False)
+    active = models.BooleanField(default=True)
+    remark = models.TextField(blank=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return f"{self.sku} - {self.name}"
+
+
 class PartSupplier(LegacyMixin):
-    part=models.ForeignKey(Part,on_delete=models.CASCADE,related_name='suppliers'); supplier=models.ForeignKey(Supplier,on_delete=models.PROTECT,related_name='parts'); supplier_part_no=models.CharField(max_length=150,blank=True); unit_price=models.DecimalField(max_digits=16,decimal_places=4,default=0); currency=models.CharField(max_length=10,default='THB'); lead_time_days=models.PositiveIntegerField(default=0); minimum_order_qty=models.DecimalField(max_digits=14,decimal_places=2,default=1); is_preferred=models.BooleanField(default=False); last_quoted_at=models.DateField(null=True,blank=True)
-    class Meta: constraints=[models.UniqueConstraint(fields=['part','supplier'],name='uniq_part_supplier')]
+    part = models.ForeignKey(Part, on_delete=models.CASCADE, related_name="suppliers")
+    supplier = models.ForeignKey(Supplier, on_delete=models.PROTECT, related_name="parts")
+    supplier_part_no = models.CharField(max_length=150, blank=True)
+    unit_price = models.DecimalField(max_digits=16, decimal_places=4, default=0)
+    currency = models.CharField(max_length=10, default="THB")
+    lead_time_days = models.PositiveIntegerField(default=0)
+    minimum_order_qty = models.DecimalField(max_digits=14, decimal_places=2, default=1)
+    is_preferred = models.BooleanField(default=False)
+    last_quoted_at = models.DateField(null=True, blank=True)
+
+    class Meta:
+        constraints = [models.UniqueConstraint(fields=["part", "supplier"], name="uniq_part_supplier")]
+
+
 class PartMachine(LegacyMixin):
-    part=models.ForeignKey(Part,on_delete=models.CASCADE,related_name='machine_links'); machine=models.ForeignKey(Machine,on_delete=models.PROTECT,related_name='part_links'); quantity_per_machine=models.DecimalField(max_digits=14,decimal_places=2,default=1); is_critical=models.BooleanField(default=False); position=models.CharField(max_length=150,blank=True); remark=models.TextField(blank=True)
-    class Meta: constraints=[models.UniqueConstraint(fields=['part','machine'],name='uniq_part_machine')]
+    part = models.ForeignKey(Part, on_delete=models.CASCADE, related_name="machine_links")
+    machine = models.ForeignKey(Machine, on_delete=models.PROTECT, related_name="part_links")
+    quantity_per_machine = models.DecimalField(max_digits=14, decimal_places=2, default=1)
+    is_critical = models.BooleanField(default=False)
+    position = models.CharField(max_length=150, blank=True)
+    remark = models.TextField(blank=True)
+
+    class Meta:
+        constraints = [models.UniqueConstraint(fields=["part", "machine"], name="uniq_part_machine")]
+
+
 class Inventory(LegacyMixin):
-    part=models.ForeignKey(Part,on_delete=models.PROTECT,related_name='inventory'); location=models.ForeignKey(Location,null=True,blank=True,on_delete=models.PROTECT); quantity=models.DecimalField(max_digits=14,decimal_places=2,default=0); updated_at=models.DateTimeField(auto_now=True)
-    class Meta: constraints=[models.UniqueConstraint(fields=['part','location'],name='uniq_part_location')]
+    part = models.ForeignKey(Part, on_delete=models.PROTECT, related_name="inventory")
+    location = models.ForeignKey(Location, null=True, blank=True, on_delete=models.PROTECT)
+    quantity = models.DecimalField(max_digits=14, decimal_places=2, default=0)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        constraints = [models.UniqueConstraint(fields=["part", "location"], name="uniq_part_location")]
+
+
 class StockTransaction(LegacyMixin):
-    TYPES=[('RECEIVE','Receive'),('ISSUE','Issue'),('ADJUSTMENT','Adjustment'),('RETURN','Return'),('TRANSFER_IN','Transfer In'),('TRANSFER_OUT','Transfer Out')]
-    transaction_no=models.CharField(max_length=80,unique=True); part=models.ForeignKey(Part,on_delete=models.PROTECT,related_name='transactions'); location=models.ForeignKey(Location,null=True,blank=True,on_delete=models.PROTECT); transaction_type=models.CharField(max_length=20,choices=TYPES); quantity=models.DecimalField(max_digits=14,decimal_places=2); machine=models.ForeignKey(Machine,null=True,blank=True,on_delete=models.SET_NULL); employee=models.ForeignKey(Employee,null=True,blank=True,on_delete=models.SET_NULL); reference_type=models.CharField(max_length=50,blank=True); reference_id=models.CharField(max_length=100,blank=True); transaction_date=models.DateTimeField(); remark=models.TextField(blank=True); created_by=models.ForeignKey(User,null=True,blank=True,on_delete=models.SET_NULL)
+    TYPES = [
+        ("RECEIVE", "Receive"),
+        ("ISSUE", "Issue"),
+        ("ADJUSTMENT", "Adjustment"),
+        ("RETURN", "Return"),
+        ("TRANSFER_IN", "Transfer In"),
+        ("TRANSFER_OUT", "Transfer Out"),
+        ("IN", "Legacy In"),
+        ("OUT", "Legacy Out"),
+    ]
+    transaction_no = models.CharField(max_length=80, unique=True)
+    part = models.ForeignKey(Part, on_delete=models.PROTECT, related_name="transactions")
+    location = models.ForeignKey(Location, null=True, blank=True, on_delete=models.PROTECT)
+    transaction_type = models.CharField(max_length=20, choices=TYPES)
+    quantity = models.DecimalField(max_digits=14, decimal_places=2)
+    machine = models.ForeignKey(Machine, null=True, blank=True, on_delete=models.SET_NULL)
+    employee = models.ForeignKey(Employee, null=True, blank=True, on_delete=models.SET_NULL)
+    recorded_by_employee = models.ForeignKey(
+        Employee,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="recorded_stock_transactions",
+    )
+    reference_type = models.CharField(max_length=50, blank=True)
+    reference_id = models.CharField(max_length=100, blank=True)
+    transaction_date = models.DateTimeField()
+    remark = models.TextField(blank=True)
+    created_by = models.ForeignKey(User, null=True, blank=True, on_delete=models.SET_NULL)
+    is_void = models.BooleanField(default=False)
+    voided_at = models.DateTimeField(null=True, blank=True)
+    voided_by_employee = models.ForeignKey(
+        Employee,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="voided_stock_transactions",
+    )
+
+
 class PurchaseRequest(LegacyMixin):
-    STATUS=[('DRAFT','Draft'),('PENDING_APPROVAL','Pending Approval'),('APPROVED','Approved'),('REJECTED','Rejected'),('CANCELLED','Cancelled'),('CONVERTED_TO_PO','Converted to PO')]
-    pr_number=models.CharField(max_length=60,unique=True); request_date=models.DateField(); requester=models.ForeignKey(Employee,null=True,blank=True,on_delete=models.SET_NULL); department=models.CharField(max_length=120,blank=True); machine=models.ForeignKey(Machine,null=True,blank=True,on_delete=models.SET_NULL); purpose=models.TextField(blank=True); priority=models.CharField(max_length=30,default='NORMAL'); status=models.CharField(max_length=30,choices=STATUS,default='DRAFT'); approved_by=models.ForeignKey(User,null=True,blank=True,on_delete=models.SET_NULL); approved_at=models.DateTimeField(null=True,blank=True); remark=models.TextField(blank=True)
+    STATUS = [
+        ("DRAFT", "Draft"),
+        ("PENDING_APPROVAL", "Pending Approval"),
+        ("APPROVED", "Approved"),
+        ("REJECTED", "Rejected"),
+        ("CANCELLED", "Cancelled"),
+        ("CONVERTED_TO_PO", "Converted to PO"),
+    ]
+    pr_number = models.CharField(max_length=60, unique=True)
+    request_date = models.DateField()
+    requester = models.ForeignKey(Employee, null=True, blank=True, on_delete=models.SET_NULL)
+    department = models.CharField(max_length=120, blank=True)
+    machine = models.ForeignKey(Machine, null=True, blank=True, on_delete=models.SET_NULL)
+    purpose = models.TextField(blank=True)
+    priority = models.CharField(max_length=30, default="NORMAL")
+    status = models.CharField(max_length=30, choices=STATUS, default="DRAFT")
+    approved_by = models.ForeignKey(User, null=True, blank=True, on_delete=models.SET_NULL)
+    approved_at = models.DateTimeField(null=True, blank=True)
+    remark = models.TextField(blank=True)
+
+
 class PurchaseRequestItem(UUIDMixin):
-    pr=models.ForeignKey(PurchaseRequest,on_delete=models.CASCADE,related_name='items'); part=models.ForeignKey(Part,on_delete=models.PROTECT); quantity=models.DecimalField(max_digits=14,decimal_places=2); estimated_price=models.DecimalField(max_digits=16,decimal_places=4,default=0); reason=models.TextField(blank=True); remark=models.TextField(blank=True)
+    pr = models.ForeignKey(PurchaseRequest, on_delete=models.CASCADE, related_name="items")
+    part = models.ForeignKey(Part, on_delete=models.PROTECT)
+    quantity = models.DecimalField(max_digits=14, decimal_places=2)
+    estimated_price = models.DecimalField(max_digits=16, decimal_places=4, default=0)
+    reason = models.TextField(blank=True)
+    remark = models.TextField(blank=True)
+
+
 class RFQ(LegacyMixin):
-    STATUS=[('OPEN','Open'),('CLOSED','Closed'),('CANCELLED','Cancelled')]
-    rfq_number=models.CharField(max_length=60,unique=True); pr=models.ForeignKey(PurchaseRequest,null=True,blank=True,on_delete=models.SET_NULL); issue_date=models.DateField(); due_date=models.DateField(null=True,blank=True); status=models.CharField(max_length=20,choices=STATUS,default='OPEN'); created_by=models.ForeignKey(User,null=True,blank=True,on_delete=models.SET_NULL); remark=models.TextField(blank=True)
+    STATUS = [("OPEN", "Open"), ("CLOSED", "Closed"), ("CANCELLED", "Cancelled")]
+    rfq_number = models.CharField(max_length=60, unique=True)
+    pr = models.ForeignKey(PurchaseRequest, null=True, blank=True, on_delete=models.SET_NULL)
+    issue_date = models.DateField()
+    due_date = models.DateField(null=True, blank=True)
+    status = models.CharField(max_length=20, choices=STATUS, default="OPEN")
+    created_by = models.ForeignKey(User, null=True, blank=True, on_delete=models.SET_NULL)
+    remark = models.TextField(blank=True)
+
+
 class RFQSupplier(UUIDMixin):
-    rfq=models.ForeignKey(RFQ,on_delete=models.CASCADE,related_name='supplier_requests'); supplier=models.ForeignKey(Supplier,on_delete=models.PROTECT); sent_at=models.DateTimeField(null=True,blank=True); response_at=models.DateTimeField(null=True,blank=True); status=models.CharField(max_length=30,default='PENDING')
+    rfq = models.ForeignKey(RFQ, on_delete=models.CASCADE, related_name="supplier_requests")
+    supplier = models.ForeignKey(Supplier, on_delete=models.PROTECT)
+    sent_at = models.DateTimeField(null=True, blank=True)
+    response_at = models.DateTimeField(null=True, blank=True)
+    status = models.CharField(max_length=30, default="PENDING")
+
+
 class Quotation(LegacyMixin):
-    rfq=models.ForeignKey(RFQ,on_delete=models.CASCADE,related_name='quotations'); supplier=models.ForeignKey(Supplier,on_delete=models.PROTECT); quotation_no=models.CharField(max_length=100,blank=True); quotation_date=models.DateField(null=True,blank=True); valid_until=models.DateField(null=True,blank=True); currency=models.CharField(max_length=10,default='THB'); subtotal=models.DecimalField(max_digits=16,decimal_places=4,default=0); discount=models.DecimalField(max_digits=16,decimal_places=4,default=0); vat=models.DecimalField(max_digits=16,decimal_places=4,default=0); total=models.DecimalField(max_digits=16,decimal_places=4,default=0); lead_time_days=models.PositiveIntegerField(default=0); remark=models.TextField(blank=True)
+    rfq = models.ForeignKey(RFQ, on_delete=models.CASCADE, related_name="quotations")
+    supplier = models.ForeignKey(Supplier, on_delete=models.PROTECT)
+    quotation_no = models.CharField(max_length=100, blank=True)
+    quotation_date = models.DateField(null=True, blank=True)
+    valid_until = models.DateField(null=True, blank=True)
+    currency = models.CharField(max_length=10, default="THB")
+    subtotal = models.DecimalField(max_digits=16, decimal_places=4, default=0)
+    discount = models.DecimalField(max_digits=16, decimal_places=4, default=0)
+    vat = models.DecimalField(max_digits=16, decimal_places=4, default=0)
+    total = models.DecimalField(max_digits=16, decimal_places=4, default=0)
+    lead_time_days = models.PositiveIntegerField(default=0)
+    remark = models.TextField(blank=True)
+
+
 class QuotationItem(UUIDMixin):
-    quotation=models.ForeignKey(Quotation,on_delete=models.CASCADE,related_name='items'); part=models.ForeignKey(Part,on_delete=models.PROTECT); quantity=models.DecimalField(max_digits=14,decimal_places=2); unit_price=models.DecimalField(max_digits=16,decimal_places=4); discount=models.DecimalField(max_digits=16,decimal_places=4,default=0); total=models.DecimalField(max_digits=16,decimal_places=4,default=0); lead_time_days=models.PositiveIntegerField(default=0)
+    quotation = models.ForeignKey(Quotation, on_delete=models.CASCADE, related_name="items")
+    part = models.ForeignKey(Part, on_delete=models.PROTECT)
+    quantity = models.DecimalField(max_digits=14, decimal_places=2)
+    unit_price = models.DecimalField(max_digits=16, decimal_places=4)
+    discount = models.DecimalField(max_digits=16, decimal_places=4, default=0)
+    total = models.DecimalField(max_digits=16, decimal_places=4, default=0)
+    lead_time_days = models.PositiveIntegerField(default=0)
+
+
 class PurchaseOrder(LegacyMixin):
-    STATUS=[('DRAFT','Draft'),('ORDERED','Ordered'),('PARTIAL','Partial'),('RECEIVED','Received'),('CANCELLED','Cancelled')]
-    po_number=models.CharField(max_length=80,unique=True); pr=models.ForeignKey(PurchaseRequest,null=True,blank=True,on_delete=models.SET_NULL); supplier=models.ForeignKey(Supplier,on_delete=models.PROTECT); machine=models.ForeignKey(Machine,null=True,blank=True,on_delete=models.SET_NULL); quotation=models.ForeignKey(Quotation,null=True,blank=True,on_delete=models.SET_NULL); order_date=models.DateField(null=True,blank=True); expected_date=models.DateField(null=True,blank=True); vendor_confirm_date=models.DateField(null=True,blank=True); receive_date=models.DateField(null=True,blank=True); ordered_by=models.ForeignKey(Employee,null=True,blank=True,on_delete=models.SET_NULL,related_name='orders_placed'); person_in_charge=models.ForeignKey(Employee,null=True,blank=True,on_delete=models.SET_NULL,related_name='orders_managed'); status=models.CharField(max_length=20,choices=STATUS,default='DRAFT'); cancel_status=models.CharField(max_length=50,blank=True); total=models.DecimalField(max_digits=16,decimal_places=4,default=0); remark=models.TextField(blank=True)
+    STATUS = [
+        ("DRAFT", "Draft"),
+        ("ORDERED", "Ordered"),
+        ("PARTIAL", "Partial"),
+        ("RECEIVED", "Received"),
+        ("CANCELLED", "Cancelled"),
+    ]
+    po_number = models.CharField(max_length=80, unique=True)
+    pr = models.ForeignKey(PurchaseRequest, null=True, blank=True, on_delete=models.SET_NULL)
+    supplier = models.ForeignKey(Supplier, on_delete=models.PROTECT)
+    machine = models.ForeignKey(Machine, null=True, blank=True, on_delete=models.SET_NULL)
+    quotation = models.ForeignKey(Quotation, null=True, blank=True, on_delete=models.SET_NULL)
+    order_date = models.DateField(null=True, blank=True)
+    expected_date = models.DateField(null=True, blank=True)
+    vendor_confirm_date = models.DateField(null=True, blank=True)
+    receive_date = models.DateField(null=True, blank=True)
+    ordered_by = models.ForeignKey(Employee, null=True, blank=True, on_delete=models.SET_NULL, related_name="orders_placed")
+    person_in_charge = models.ForeignKey(Employee, null=True, blank=True, on_delete=models.SET_NULL, related_name="orders_managed")
+    status = models.CharField(max_length=20, choices=STATUS, default="DRAFT")
+    cancel_status = models.CharField(max_length=50, blank=True)
+    total = models.DecimalField(max_digits=16, decimal_places=4, default=0)
+    remark = models.TextField(blank=True)
+
+
 class PurchaseOrderItem(UUIDMixin):
-    po=models.ForeignKey(PurchaseOrder,on_delete=models.CASCADE,related_name='items'); part=models.ForeignKey(Part,on_delete=models.PROTECT); description=models.TextField(blank=True); quantity=models.DecimalField(max_digits=14,decimal_places=2); unit=models.CharField(max_length=30,blank=True); unit_price=models.DecimalField(max_digits=16,decimal_places=4,default=0); discount=models.DecimalField(max_digits=16,decimal_places=4,default=0); total=models.DecimalField(max_digits=16,decimal_places=4,default=0); received_quantity=models.DecimalField(max_digits=14,decimal_places=2,default=0)
+    po = models.ForeignKey(PurchaseOrder, on_delete=models.CASCADE, related_name="items")
+    part = models.ForeignKey(Part, on_delete=models.PROTECT)
+    description = models.TextField(blank=True)
+    quantity = models.DecimalField(max_digits=14, decimal_places=2)
+    unit = models.CharField(max_length=30, blank=True)
+    unit_price = models.DecimalField(max_digits=16, decimal_places=4, default=0)
+    discount = models.DecimalField(max_digits=16, decimal_places=4, default=0)
+    total = models.DecimalField(max_digits=16, decimal_places=4, default=0)
+    received_quantity = models.DecimalField(max_digits=14, decimal_places=2, default=0)
+
+
 class Receiving(LegacyMixin):
-    receiving_no=models.CharField(max_length=80,unique=True); po=models.ForeignKey(PurchaseOrder,null=True,blank=True,on_delete=models.SET_NULL); received_date=models.DateTimeField(); received_by=models.ForeignKey(Employee,null=True,blank=True,on_delete=models.SET_NULL); supplier_delivery_no=models.CharField(max_length=100,blank=True); remark=models.TextField(blank=True)
+    receiving_no = models.CharField(max_length=80, unique=True)
+    po = models.ForeignKey(PurchaseOrder, null=True, blank=True, on_delete=models.SET_NULL)
+    received_date = models.DateTimeField()
+    received_by = models.ForeignKey(Employee, null=True, blank=True, on_delete=models.SET_NULL)
+    supplier_delivery_no = models.CharField(max_length=100, blank=True)
+    remark = models.TextField(blank=True)
+
+
 class ReceivingItem(UUIDMixin):
-    receiving=models.ForeignKey(Receiving,on_delete=models.CASCADE,related_name='items'); po_item=models.ForeignKey(PurchaseOrderItem,null=True,blank=True,on_delete=models.SET_NULL); part=models.ForeignKey(Part,on_delete=models.PROTECT); quantity=models.DecimalField(max_digits=14,decimal_places=2); location=models.ForeignKey(Location,null=True,blank=True,on_delete=models.PROTECT); lot_no=models.CharField(max_length=100,blank=True); serial_no=models.CharField(max_length=150,blank=True); remark=models.TextField(blank=True)
+    receiving = models.ForeignKey(Receiving, on_delete=models.CASCADE, related_name="items")
+    po_item = models.ForeignKey(PurchaseOrderItem, null=True, blank=True, on_delete=models.SET_NULL)
+    part = models.ForeignKey(Part, on_delete=models.PROTECT)
+    quantity = models.DecimalField(max_digits=14, decimal_places=2)
+    location = models.ForeignKey(Location, null=True, blank=True, on_delete=models.PROTECT)
+    lot_no = models.CharField(max_length=100, blank=True)
+    serial_no = models.CharField(max_length=150, blank=True)
+    remark = models.TextField(blank=True)
+
+
 class PurchasePriceHistory(LegacyMixin):
-    part=models.ForeignKey(Part,on_delete=models.PROTECT,related_name='price_history'); supplier=models.ForeignKey(Supplier,null=True,blank=True,on_delete=models.PROTECT); purchase_date=models.DateField(null=True,blank=True); unit_price=models.DecimalField(max_digits=16,decimal_places=4); currency=models.CharField(max_length=10,default='THB'); source_type=models.CharField(max_length=40,blank=True); source_id=models.CharField(max_length=100,blank=True)
+    part = models.ForeignKey(Part, on_delete=models.PROTECT, related_name="price_history")
+    supplier = models.ForeignKey(Supplier, null=True, blank=True, on_delete=models.PROTECT)
+    purchase_date = models.DateField(null=True, blank=True)
+    unit_price = models.DecimalField(max_digits=16, decimal_places=4)
+    currency = models.CharField(max_length=10, default="THB")
+    source_type = models.CharField(max_length=40, blank=True)
+    source_id = models.CharField(max_length=100, blank=True)
+
+
+class RoleAccess(UUIDMixin):
+    role_name = models.CharField(max_length=120, unique=True)
+    display_name = models.CharField(max_length=120, blank=True)
+    active = models.BooleanField(default=True)
+
+    can_view_dashboard = models.BooleanField(default=True)
+    can_view_parts = models.BooleanField(default=True)
+    can_edit_parts = models.BooleanField(default=False)
+    can_adjust_stock = models.BooleanField(default=False)
+    can_receive_stock = models.BooleanField(default=False)
+    can_issue_stock = models.BooleanField(default=False)
+
+    can_view_history = models.BooleanField(default=True)
+    can_edit_history = models.BooleanField(default=False)
+    can_delete_history = models.BooleanField(default=False)
+    can_view_safety_stock = models.BooleanField(default=True)
+
+    can_view_orders = models.BooleanField(default=False)
+    can_add_order = models.BooleanField(default=False)
+    can_edit_order_info = models.BooleanField(default=False)
+    can_edit_purchase_info = models.BooleanField(default=False)
+    can_receive_order = models.BooleanField(default=False)
+    can_cancel_order = models.BooleanField(default=False)
+    can_delete_order = models.BooleanField(default=False)
+    can_update_edit_data = models.BooleanField(default=False)
+    can_manage_order_projects = models.BooleanField(default=False)
+
+    can_view_suppliers = models.BooleanField(default=False)
+    can_manage_suppliers = models.BooleanField(default=False)
+    can_view_machines = models.BooleanField(default=False)
+    can_manage_machines = models.BooleanField(default=False)
+
+    can_view_employees = models.BooleanField(default=False)
+    can_add_employees = models.BooleanField(default=False)
+    can_edit_employees = models.BooleanField(default=False)
+    can_view_audit_log = models.BooleanField(default=False)
+    can_manage_roles = models.BooleanField(default=False)
+
+    class Meta:
+        ordering = ["role_name"]
+        constraints = [
+            models.UniqueConstraint(
+                Lower("role_name"),
+                name="uniq_roleaccess_role_name_ci",
+            )
+        ]
+
+    def __str__(self):
+        return self.display_name or self.role_name
+
+
+class JobType(UUIDMixin):
+    code = models.CharField(max_length=80, unique=True)
+    name = models.CharField(max_length=120, blank=True)
+    active = models.BooleanField(default=True)
+
+    class Meta:
+        ordering = ["code"]
+
+    def __str__(self):
+        return self.code
+
+
+class FastOrderPreset(UUIDMixin):
+    """Reusable SPARE Order template.
+
+    The preset stores everything required to create a Normal Order except the
+    order quantity. Quick ordering always creates JOB=SPARE.
+    """
+    name = models.CharField(max_length=160, blank=True)
+    factory = models.CharField(max_length=30, default="MM-4")
+    machine = models.ForeignKey(
+        Machine,
+        on_delete=models.PROTECT,
+        related_name="fast_order_presets",
+    )
+    part = models.ForeignKey(
+        Part,
+        on_delete=models.PROTECT,
+        related_name="fast_order_presets",
+    )
+    remark = models.TextField(blank=True)
+    active = models.BooleanField(default=True, db_index=True)
+    created_by_employee = models.ForeignKey(
+        Employee,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="created_fast_order_presets",
+    )
+
+    class Meta:
+        ordering = ["part__sku", "machine__code", "created_at"]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["factory", "machine", "part"],
+                name="uniq_fastorder_factory_machine_part",
+            )
+        ]
+
+    def __str__(self):
+        return self.name or f"{self.part.sku} / {self.machine.code}"
+
+
+class OrderProject(UUIDMixin):
+    DEPARTMENT_CHOICES = [("MODIFY", "Modify"), ("AUTOMATION", "Automation")]
+
+    name = models.CharField(max_length=250, unique=True)
+    department = models.CharField(max_length=20, choices=DEPARTMENT_CHOICES, default="MODIFY", db_index=True)
+    description = models.TextField(blank=True)
+
+    # Project-level data shared by every Order in this Project.
+    owner_employee = models.ForeignKey(
+        Employee,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="owned_order_projects",
+    )
+    pending_data_date = models.DateField(null=True, blank=True)
+
+    active = models.BooleanField(default=True)
+    created_by_employee = models.ForeignKey(
+        Employee,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="created_order_projects",
+    )
+
+    def __str__(self):
+        return self.name
+
+
+class OrderStep(UUIDMixin):
+    project = models.ForeignKey(OrderProject, on_delete=models.CASCADE, related_name="steps")
+    step_no = models.PositiveIntegerField()
+    import_filename = models.CharField(max_length=255, blank=True)
+    imported_by_employee = models.ForeignKey(
+        Employee,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="imported_order_steps",
+    )
+
+    class Meta:
+        ordering = ["project", "step_no"]
+        constraints = [models.UniqueConstraint(fields=["project", "step_no"], name="uniq_project_step")]
+
+    def __str__(self):
+        return f"{self.project.name} - Step {self.step_no}"
+
+
+class OrderRecord(LegacyMixin):
+    SOURCE_CHOICES = [("NORMAL", "Normal"), ("PROJECT", "Project")]
+    USAGE_CHOICES = [("USED", "ใช้"), ("NOT_USED", "ไม่ได้ใช้")]
+
+    STATUS_NEW = "New Order"
+    STATUS_QUOTE = "Wait Quotation"
+    STATUS_ISSUE_PR = "Wait Issue P/R"
+    STATUS_CONFIRM = "Wait Confirm Order"
+    STATUS_ITEM = "Wait for Item"
+    STATUS_COMPLETE = "Complete Order"
+
+    LIFECYCLE_ACTIVE = "ACTIVE"
+    LIFECYCLE_WAIT_CONFIRM = "WAIT_CONFIRM"
+    LIFECYCLE_CANCELLED = "CANCELLED"
+    LIFECYCLE_COMPLETED = "COMPLETED"
+    LIFECYCLE_CHOICES = [
+        (LIFECYCLE_ACTIVE, "Active"),
+        (LIFECYCLE_WAIT_CONFIRM, "Wait Confirm"),
+        (LIFECYCLE_CANCELLED, "Cancelled"),
+        (LIFECYCLE_COMPLETED, "Completed"),
+    ]
+
+    EDIT_WAIT_QUOTE = "รออัพเดต Wait Quotation"
+    EDIT_WAIT_ITEM = "รออัพเดต Wait for Item"
+    EDIT_WAIT_COMPLETE = "รออัพเดต Complete Order"
+    EDIT_DONE = "อัพเดตครบแล้ว"
+
+    order_number = models.CharField(max_length=100, unique=True)
+    order_date = models.DateField()
+    factory = models.CharField(max_length=30, blank=True)
+    group_order = models.CharField(max_length=250, blank=True, db_index=True)
+    machine = models.ForeignKey(Machine, null=True, blank=True, on_delete=models.SET_NULL, related_name="order_records")
+    job = models.CharField(max_length=80, blank=True, db_index=True)
+    urgent_status = models.CharField(max_length=120, blank=True)
+    pending_data_date = models.DateField(null=True, blank=True)
+    remark = models.TextField(blank=True)
+
+    quotation = models.TextField(blank=True)
+    part = models.ForeignKey(Part, null=True, blank=True, on_delete=models.SET_NULL, related_name="order_records")
+    part_name = models.CharField(max_length=300)
+    part_detail = models.TextField(blank=True)
+    maker_text = models.CharField(max_length=250, blank=True)
+    amount = models.PositiveIntegerField(default=1)
+    unit_text = models.CharField(max_length=80)
+
+    po_number = models.CharField(max_length=120, blank=True)
+    price_per_unit = models.DecimalField(max_digits=16, decimal_places=4, default=0)
+    price_total = models.DecimalField(max_digits=18, decimal_places=4, default=0)
+    vendor = models.ForeignKey(Supplier, null=True, blank=True, on_delete=models.SET_NULL, related_name="order_records")
+    lead_time_days = models.PositiveIntegerField(null=True, blank=True)
+    ordered_by = models.ForeignKey(Employee, null=True, blank=True, on_delete=models.SET_NULL, related_name="requested_order_records")
+    issue_pr_date = models.DateField(null=True, blank=True)
+    due_date = models.DateField(null=True, blank=True)
+    vendor_confirm_date = models.DateField(null=True, blank=True)
+    received_at = models.DateTimeField(null=True, blank=True)
+    person_in_charge = models.ForeignKey(Employee, null=True, blank=True, on_delete=models.SET_NULL, related_name="managed_order_records")
+    recorded_by = models.ForeignKey(Employee, null=True, blank=True, on_delete=models.SET_NULL, related_name="recorded_order_records")
+
+    status = models.CharField(max_length=80, default=STATUS_NEW, db_index=True)
+
+    # Workflow override: Wait Confirm is intentionally manual and independent
+    # from the data-derived purchase workflow.
+    wait_confirm = models.BooleanField(default=False, db_index=True)
+
+    # Lifecycle is separate from workflow status. This prevents completed /
+    # cancelled state from being mixed with purchase workflow progression.
+    lifecycle_status = models.CharField(
+        max_length=20,
+        choices=LIFECYCLE_CHOICES,
+        default=LIFECYCLE_ACTIVE,
+        db_index=True,
+    )
+
+    # Compatibility field kept for existing screens/integrations.
+    cancel_status = models.BooleanField(default=False, db_index=True)
+
+    cancelled_at = models.DateTimeField(null=True, blank=True)
+    cancelled_by_employee = models.ForeignKey(
+        Employee,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="cancelled_order_records",
+    )
+    cancel_reason = models.TextField(blank=True)
+
+    completed_at = models.DateTimeField(null=True, blank=True)
+    completed_by_employee = models.ForeignKey(
+        Employee,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="completed_order_records",
+    )
+    completion_note = models.TextField(blank=True)
+
+    edit_data_status = models.CharField(max_length=120, blank=True, db_index=True)
+    edit_workflow_enabled = models.BooleanField(default=True)
+
+    source_type = models.CharField(max_length=20, choices=SOURCE_CHOICES, default="NORMAL", db_index=True)
+    project = models.ForeignKey(OrderProject, null=True, blank=True, on_delete=models.CASCADE, related_name="orders")
+    step = models.ForeignKey(OrderStep, null=True, blank=True, on_delete=models.CASCADE, related_name="orders")
+    usage_status = models.CharField(max_length=20, choices=USAGE_CHOICES, default="USED")
+
+    stock_received = models.BooleanField(default=False)
+    stock_transaction = models.ForeignKey(
+        StockTransaction,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="source_orders",
+    )
+
+    is_deleted = models.BooleanField(default=False, db_index=True)
+    deleted_at = models.DateTimeField(null=True, blank=True)
+    deleted_by_employee = models.ForeignKey(
+        Employee,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="deleted_order_records",
+    )
+
+    class Meta:
+        ordering = ["-order_date", "-created_at"]
+
+    def __str__(self):
+        return self.order_number
+
+
 class AuditLog(models.Model):
-    user=models.ForeignKey(User,null=True,blank=True,on_delete=models.SET_NULL); action=models.CharField(max_length=120); entity=models.CharField(max_length=120); entity_id=models.CharField(max_length=120,blank=True); detail=models.JSONField(default=dict); created_at=models.DateTimeField(auto_now_add=True)
+    user = models.ForeignKey(User, null=True, blank=True, on_delete=models.SET_NULL)
+    employee = models.ForeignKey(Employee, null=True, blank=True, on_delete=models.SET_NULL, related_name="audit_logs")
+    action = models.CharField(max_length=120)
+    entity = models.CharField(max_length=120)
+    entity_id = models.CharField(max_length=120, blank=True)
+    detail = models.JSONField(default=dict)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-created_at"]

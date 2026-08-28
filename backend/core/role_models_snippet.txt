@@ -1,0 +1,18 @@
+class RoleAccess(UUIDMixin):
+    role_name = models.CharField(max_length=120, unique=True)
+    display_name = models.CharField(max_length=120, blank=True)
+    active = models.BooleanField(default=True)
+    can_view_dashboard = models.BooleanField(default=True)
+    can_view_parts = models.BooleanField(default=True)
+    can_edit_parts = models.BooleanField(default=False)
+    can_receive_stock = models.BooleanField(default=False)
+    can_issue_stock = models.BooleanField(default=False)
+    can_view_suppliers = models.BooleanField(default=False)
+    can_view_machines = models.BooleanField(default=False)
+    can_manage_roles = models.BooleanField(default=False)
+
+    class Meta:
+        ordering = ["role_name"]
+
+    def __str__(self):
+        return self.display_name or self.role_name

@@ -1,0 +1,10 @@
+.auth-loading{min-height:100vh;display:grid;place-items:center;color:#64748b}
+.login-page{min-height:100vh;display:grid;place-items:center;padding:24px;background:#f4f7fb}
+.login-card{width:min(430px,100%);background:#fff;border:1px solid #e2e8f0;border-radius:22px;box-shadow:0 24px 70px rgba(15,23,42,.12);padding:30px}
+.login-brand{display:flex;align-items:center;gap:13px;padding-bottom:24px;border-bottom:1px solid #eef2f7}
+.login-mark{width:48px;height:48px}.login-brand h1{margin:0;font-size:21px}.login-brand p{margin:3px 0 0;color:#94a3b8;font-size:12px}
+.login-copy{margin:26px 0 22px}.login-copy h2{margin:0;font-size:26px}.login-copy p{margin:7px 0 0;color:#64748b;font-size:14px}
+.login-form{display:grid;gap:10px}.login-form label{font-size:13px;font-weight:700}.login-form input{width:100%;padding:13px 14px}
+.login-error{border:1px solid #fecdd3;background:#fff1f2;color:#9f1239;border-radius:10px;padding:10px 12px;font-size:13px}
+.account-area{display:flex;align-items:center;gap:13px}.account-text{display:flex;flex-direction:column;align-items:flex-end}.account-text strong{font-size:13px}.account-text span{margin-top:3px;font-size:11px;color:#64748b}
+.logout-button{padding:8px 12px;background:#fff;border:1px solid #dbe3ee;color:#475569}.logout-button:hover{background:#f8fafc;color:#0f172a}
