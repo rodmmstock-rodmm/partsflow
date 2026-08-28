@@ -13,11 +13,12 @@ def env_list(name):
     return [x.strip() for x in os.getenv(name, "").split(",") if x.strip()]
 
 
-# Local development stays simple. Production hosts are supplied by environment.
 ALLOWED_HOSTS = env_list("ALLOWED_HOSTS")
-render_hostname = os.getenv("RENDER_EXTERNAL_HOSTNAME", "").strip()
-if render_hostname and render_hostname not in ALLOWED_HOSTS:
-    ALLOWED_HOSTS.append(render_hostname)
+
+railway_hostname = os.getenv("RAILWAY_PUBLIC_DOMAIN", "").strip()
+if railway_hostname and railway_hostname not in ALLOWED_HOSTS:
+    ALLOWED_HOSTS.append(railway_hostname)
+
 if DEBUG and not ALLOWED_HOSTS:
     ALLOWED_HOSTS = ["localhost", "127.0.0.1", ".app.github.dev"]
 
@@ -83,8 +84,6 @@ STORAGES = {
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
-# Frontend origin(s), for example:
-# CORS_ALLOWED_ORIGINS=https://partsflow.vercel.app,https://partsflow.example.com
 CORS_ALLOWED_ORIGINS = env_list("CORS_ALLOWED_ORIGINS")
 CSRF_TRUSTED_ORIGINS = env_list("CSRF_TRUSTED_ORIGINS")
 CORS_ALLOW_ALL_ORIGINS = DEBUG and not CORS_ALLOWED_ORIGINS
@@ -95,7 +94,6 @@ REST_FRAMEWORK = {
     ]
 }
 
-# Render / Codespaces terminate TLS before Django.
 SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
 USE_X_FORWARDED_HOST = True
 
