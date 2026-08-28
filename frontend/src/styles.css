@@ -37,3 +37,160 @@
   .m-permission-chips{display:flex;gap:4px;flex-wrap:wrap;margin-top:9px}.m-permission-chips span{font-size:8px;padding:4px 6px;border-radius:7px;background:#f1effc;color:#6653c5}
   .m-loading,.m-empty{padding:34px 12px;text-align:center;font-size:10px;color:#989eae}.modal-backdrop{z-index:120}.modal-card{max-height:94dvh;border-radius:18px 18px 14px 14px}.modal-head h2{font-size:16px}
 }
+
+/* ==========================================================================
+   PartsFlow desktop UI fix — History groups + Order Step department selector
+   ========================================================================== */
+
+/* History */
+.history-tabs{
+  margin-bottom:10px;
+}
+.history-groups{
+  display:grid;
+  gap:12px;
+  margin-top:4px;
+}
+.history-year{
+  overflow:hidden;
+  border:1px solid var(--border);
+  border-radius:14px;
+  background:#fff;
+}
+.history-collapse{
+  width:100%;
+  border:0;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:16px;
+  text-align:left;
+  transition:background .15s ease,color .15s ease;
+}
+.history-collapse span{
+  display:flex;
+  align-items:center;
+  gap:8px;
+  min-width:0;
+}
+.history-collapse b{
+  flex:0 0 auto;
+  white-space:nowrap;
+  font-weight:500;
+}
+.history-collapse.year{
+  min-height:48px;
+  padding:11px 15px;
+  background:#faf9ff;
+  color:#312e81;
+  font-size:13px;
+  font-weight:600;
+}
+.history-collapse.year:hover{
+  background:var(--brand-soft);
+}
+.history-collapse.year b{
+  padding:5px 9px;
+  border-radius:999px;
+  background:#ede9fe;
+  color:#6d28d9;
+  font-size:10px;
+}
+.history-months{
+  display:grid;
+  gap:8px;
+  padding:10px;
+  border-top:1px solid var(--border-soft);
+  background:#fbfcfe;
+}
+.history-month{
+  overflow:hidden;
+  border:1px solid var(--border-soft);
+  border-radius:11px;
+  background:#fff;
+}
+.history-collapse.month{
+  min-height:42px;
+  padding:9px 13px;
+  background:#fff;
+  color:#475569;
+  font-size:12px;
+  font-weight:500;
+}
+.history-collapse.month:hover{
+  background:#f8fafc;
+}
+.history-collapse.month b{
+  color:var(--muted);
+  font-size:10px;
+}
+.history-month .table-wrap{
+  border-top:1px solid var(--border-soft);
+  border-radius:0;
+}
+
+/* Order Step — department selector */
+.order-department-switch{
+  display:grid;
+  grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:10px;
+  max-width:760px;
+  margin-bottom:16px;
+}
+.department-card{
+  position:relative;
+  min-height:68px;
+  padding:12px 15px;
+  border:1px solid var(--border);
+  border-radius:13px;
+  background:#fff;
+  color:#475569;
+  text-align:left;
+  display:flex;
+  align-items:center;
+  gap:10px;
+  transition:border-color .15s ease,background .15s ease,box-shadow .15s ease,transform .15s ease;
+}
+.department-card:hover{
+  border-color:#c4b5fd;
+  background:#faf9ff;
+  transform:translateY(-1px);
+  box-shadow:0 5px 14px rgba(76,29,149,.07);
+}
+.department-card.active{
+  border-color:#a78bfa;
+  background:linear-gradient(135deg,#f5f3ff,#faf9ff);
+  color:#5b21b6;
+  box-shadow:0 0 0 2px rgba(167,139,250,.14),0 5px 14px rgba(76,29,149,.06);
+}
+.department-card strong{
+  display:block;
+  font-size:13px;
+  line-height:1.35;
+  color:#334155;
+}
+.department-card.active strong{
+  color:#5b21b6;
+}
+.department-card span,
+.department-card small{
+  display:block;
+  margin-top:3px;
+  color:var(--muted);
+  font-size:10px;
+  line-height:1.4;
+  font-weight:400;
+}
+.department-card.active span,
+.department-card.active small{
+  color:#7c3aed;
+}
+
+@media(max-width:767px){
+  .history-groups{gap:9px}
+  .history-collapse.year{min-height:45px;padding:10px 12px}
+  .history-months{padding:8px}
+  .history-collapse.month{padding:9px 11px}
+  .order-department-switch{grid-template-columns:1fr;gap:7px;max-width:none}
+  .department-card{min-height:58px;padding:10px 12px}
+}
