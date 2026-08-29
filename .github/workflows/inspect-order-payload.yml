@@ -1,0 +1,47 @@
+name: Inspect order payload compression
+
+on:
+  push:
+    paths:
+      - '.github/workflows/inspect-order-payload.yml'
+
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install brotli probe
+        run: python -m pip install --quiet brotli
+      - name: Probe payload formats
+        shell: bash
+        run: |
+          python - <<'PY'
+          import base64, bz2, gzip, json, lzma, zlib
+          from pathlib import Path
+          import brotli
+
+          p=Path('backend/core/migrations/order_import_2026_payload.txt')
+          s=p.read_text().strip()
+          raw=base64.b64decode(s + '=' * (-len(s)%4))
+          print('encoded_len=',len(s),'raw_len=',len(raw),'head=',raw[:16].hex(),'tail=',raw[-16:].hex())
+
+          probes=[
+            ('lzma-auto', lambda b:lzma.decompress(b)),
+            ('bz2', lambda b:bz2.decompress(b)),
+            ('gzip', lambda b:gzip.decompress(b)),
+            ('zlib', lambda b:zlib.decompress(b)),
+            ('deflate-raw', lambda b:zlib.decompress(b,-15)),
+            ('brotli', lambda b:brotli.decompress(b)),
+          ]
+          for name, fn in probes:
+            try:
+              out=fn(raw)
+              print('SUCCESS',name,'out_len=',len(out),'head=',repr(out[:100]))
+              try:
+                data=json.loads(out.decode('utf-8'))
+                print('JSON rows=',len(data),'first_keys=',sorted(data[0].keys()) if data else [])
+              except Exception as e:
+                print('not-json',type(e).__name__,str(e))
+            except Exception as e:
+              print('FAIL',name,type(e).__name__,str(e))
+          PY
