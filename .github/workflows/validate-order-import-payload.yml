@@ -19,19 +19,30 @@ jobs:
           from pathlib import Path
           import base64, hashlib, json, lzma
           d=Path('backend/core/migrations')
+          names=[f'order_import_2026_payload_01{x}.txt' for x in 'abcd'] + [f'order_import_2026_payload_{i:02d}.txt' for i in range(2,13)]
+          expected_sub={
+            'order_import_2026_payload_01a.txt':'7e73f1cef4d321bd412e7b0790c4256897c15821ef53448e1f4b41d088b8694c',
+            'order_import_2026_payload_01b.txt':'ff795ddc8834ec9a191761da8ff46a5a116cd6bb92bf0a864bfe25949f1d2d5b',
+            'order_import_2026_payload_01c.txt':'0b08962b6184ac100d8e80e088653c297448d8a64c4cec077201a888d0ee2cdf',
+            'order_import_2026_payload_01d.txt':'d8a1e404ab113946479c16422260a60e866193a4dfe49978fe3a31fa24aaadb3',
+          }
           parts=[]
-          for i in range(1,13):
-              p=d/f'order_import_2026_payload_{i:02d}.txt'
+          for name in names:
+              p=d/name
               s=p.read_text(encoding='utf-8').strip()
-              print(p.name, len(s), hashlib.sha256(s.encode('ascii')).hexdigest())
+              digest=hashlib.sha256(s.encode('ascii')).hexdigest()
+              print(name, len(s), digest)
+              if name in expected_sub:
+                  assert len(s)==4000, (name,len(s))
+                  assert digest==expected_sub[name], (name,digest)
               parts.append(s)
           encoded=''.join(parts)
-          print('encoded_len', len(encoded))
           digest=hashlib.sha256(encoded.encode('ascii')).hexdigest()
-          print('sha256', digest)
+          print('encoded_len',len(encoded))
+          print('sha256',digest)
           assert len(encoded)==189160, len(encoded)
           assert digest=='31468142039ed7466b9062dd155b40aa5f70f198effb49972bc1af9e370c9cbb', digest
           rows=json.loads(lzma.decompress(base64.b64decode(encoded)).decode('utf-8'))
-          print('rows', len(rows), 'first', rows[0]['sheet'], rows[0]['row'], 'last', rows[-1]['sheet'], rows[-1]['row'])
+          print('rows',len(rows),'first',rows[0]['sheet'],rows[0]['row'],'last',rows[-1]['sheet'],rows[-1]['row'])
           assert len(rows)==4107
           PY
