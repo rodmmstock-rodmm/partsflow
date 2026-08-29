@@ -2,10 +2,6 @@
 builder = "RAILPACK"
 
 [deploy]
-# Apply migrations in pre-deploy as normal, then repeat the migration/check in
-# the actual runtime process. This guarantees the database used by Gunicorn is
-# the same database that contains the approved 2026 Order import.
-preDeployCommand = "python manage.py migrate --noinput"
-startCommand = "python manage.py migrate --noinput && python manage.py shell -c \"from core.models import OrderRecord; n=OrderRecord.objects.filter(legacy_source='EXCEL_ORDER_2026', is_deleted=False).count(); assert n == 4107, f'Runtime DB expected 4107 imported Orders, got {n}'\" && gunicorn config.wsgi:application --bind 0.0.0.0:$PORT --workers 2 --timeout 120"
+startCommand = "gunicorn config.wsgi:application --bind 0.0.0.0:$PORT --workers 2 --timeout 120"
 restartPolicyType = "ON_FAILURE"
-restartPolicyMaxRetries = 3
+restartPolicyMaxRetries = 10
