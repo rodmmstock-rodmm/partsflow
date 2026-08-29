@@ -19,44 +19,26 @@ jobs:
           from pathlib import Path
           import base64, hashlib, json, lzma
           d=Path('backend/core/migrations')
-          names=[f'order_import_2026_payload_01{x}.txt' for x in 'abcd'] + [f'order_import_2026_payload_{i:02d}.txt' for i in range(2,13)]
-          expected_sub={
-            'order_import_2026_payload_01a.txt':'7e73f1cef4d321bd412e7b0790c4256897c15821ef53448e1f4b41d088b8694c',
-            'order_import_2026_payload_01b.txt':'ff795ddc8834ec9a191761da8ff46a5a116cd6bb92bf0a864bfe25949f1d2d5b',
-            'order_import_2026_payload_01c.txt':'0b08962b6184ac100d8e80e088653c297448d8a64c4cec077201a888d0ee2cdf',
-            'order_import_2026_payload_01d.txt':'d8a1e404ab113946479c16422260a60e866193a4dfe49978fe3a31fa24aaadb3',
-          }
-          expected_01a_segments=[
-            '02dbec51447d47927eafe3d7c6714a69c8b8ac6acb1f00072391b284c4b890c6',
-            'c74370eb35cfa968388771a2ac67c789ef0d88b674f60e7bf56bb004e047733e',
-            '25216be8e11d3b9e9f3a563d3675da8ec6a70cb99dfb72e2db0f220d628c4637',
-            'dcdd73e3f76cd1dd3015a3e5fe556a27b280d94d3e2a3b1c778127dba178a41f',
-            '0512db97dfd62a48eaeca0b1099fca6ffb243c6462429b2f552066b7daa992c8',
-            '03d90e26e131db191cc053279f826584a03383eb461ec0ba4bc5b6ddde09f162',
-            'e413acbf3bdd7480be7936ff954dece43692ad79f58af349b622d7b141572564',
-            '8c8c8f7908b6187e4c4ebca7c840b844b9a839182012e9bf9eb6d58b0e8a8750',
-          ]
-          parts=[]
-          for name in names:
-              p=d/name
-              s=p.read_text(encoding='utf-8').strip()
-              digest=hashlib.sha256(s.encode('ascii')).hexdigest()
-              print(name, len(s), digest)
-              if name=='order_import_2026_payload_01a.txt':
-                  for idx in range(8):
-                      seg=s[idx*500:(idx+1)*500]
-                      got=hashlib.sha256(seg.encode('ascii')).hexdigest()
-                      print('01a-segment',idx,got,'expected',expected_01a_segments[idx],'ok',got==expected_01a_segments[idx])
-              if name in expected_sub:
-                  assert len(s)==4000, (name,len(s))
-                  assert digest==expected_sub[name], (name,digest)
-              parts.append(s)
+          first=d/'order_import_2026_payload_01a.txt'
+          s=first.read_text(encoding='utf-8').strip()
+          fix=(d/'order_import_2026_payload_01a_fix_0500_0999.txt').read_text(encoding='utf-8').strip()
+          print('fix',len(fix),hashlib.sha256(fix.encode('ascii')).hexdigest())
+          assert len(fix)==500
+          assert hashlib.sha256(fix.encode('ascii')).hexdigest()=='c74370eb35cfa968388771a2ac67c789ef0d88b674f60e7bf56bb004e047733e'
+          first_corrected=s[:500]+fix+s[1000:]
+          print('01a-corrected',len(first_corrected),hashlib.sha256(first_corrected.encode('ascii')).hexdigest())
+          assert hashlib.sha256(first_corrected.encode('ascii')).hexdigest()=='7e73f1cef4d321bd412e7b0790c4256897c15821ef53448e1f4b41d088b8694c'
+          parts=[first_corrected]
+          for name in ['order_import_2026_payload_01b.txt','order_import_2026_payload_01c.txt','order_import_2026_payload_01d.txt'] + [f'order_import_2026_payload_{i:02d}.txt' for i in range(2,13)]:
+              value=(d/name).read_text(encoding='utf-8').strip()
+              print(name,len(value),hashlib.sha256(value.encode('ascii')).hexdigest())
+              parts.append(value)
           encoded=''.join(parts)
           digest=hashlib.sha256(encoded.encode('ascii')).hexdigest()
           print('encoded_len',len(encoded))
           print('sha256',digest)
-          assert len(encoded)==189160, len(encoded)
-          assert digest=='31468142039ed7466b9062dd155b40aa5f70f198effb49972bc1af9e370c9cbb', digest
+          assert len(encoded)==189160
+          assert digest=='31468142039ed7466b9062dd155b40aa5f70f198effb49972bc1af9e370c9cbb'
           rows=json.loads(lzma.decompress(base64.b64decode(encoded)).decode('utf-8'))
           print('rows',len(rows),'first',rows[0]['sheet'],rows[0]['row'],'last',rows[-1]['sheet'],rows[-1]['row'])
           assert len(rows)==4107
