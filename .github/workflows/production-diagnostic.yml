@@ -1,0 +1,31 @@
+name: Production Diagnostic
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/production-diagnostic.yml'
+      - 'backend/core/production_check_api.py'
+      - 'backend/core/web_urls.py'
+      - 'backend/railway.toml'
+  workflow_dispatch:
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Wait for deployment
+        run: sleep 45
+      - name: Probe Railway production API
+        shell: bash
+        run: |
+          set -euxo pipefail
+          curl --fail --show-error --silent --location --max-time 30 \
+            https://partsflow-production.up.railway.app/api/production-check/ | tee production-check.json
+          echo
+          python - <<'PY'
+          import json
+          with open('production-check.json', encoding='utf-8') as f:
+              data=json.load(f)
+          print(json.dumps(data, indent=2, ensure_ascii=False, sort_keys=True))
+          PY
