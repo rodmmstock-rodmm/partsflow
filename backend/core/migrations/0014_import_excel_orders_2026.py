@@ -1,4 +1,5 @@
 import base64
+import hashlib
 import json
 import lzma
 import re
@@ -12,7 +13,13 @@ from django.utils import timezone
 
 
 SOURCE = "EXCEL_ORDER_2026"
-PAYLOAD_FILE = "order_import_2026_payload.txt"
+PAYLOAD_FILES = tuple(
+    f"order_import_2026_payload_{index:02d}.txt"
+    for index in range(1, 13)
+)
+PAYLOAD_LENGTH = 189160
+PAYLOAD_SHA256 = "31468142039ed7466b9062dd155b40aa5f70f198effb49972bc1af9e370c9cbb"
+EXPECTED_ROWS = 4107
 
 
 def _norm(value):
@@ -69,6 +76,28 @@ def _status(row):
     return "New Order", "ACTIVE"
 
 
+def _load_payload_rows():
+    encoded = "".join(
+        Path(__file__).with_name(filename).read_text(encoding="utf-8").strip()
+        for filename in PAYLOAD_FILES
+    )
+    if len(encoded) != PAYLOAD_LENGTH:
+        raise RuntimeError(
+            f"Order import payload length mismatch: expected {PAYLOAD_LENGTH}, got {len(encoded)}"
+        )
+    digest = hashlib.sha256(encoded.encode("ascii")).hexdigest()
+    if digest != PAYLOAD_SHA256:
+        raise RuntimeError(
+            f"Order import payload checksum mismatch: expected {PAYLOAD_SHA256}, got {digest}"
+        )
+    rows = json.loads(lzma.decompress(base64.b64decode(encoded)).decode("utf-8"))
+    if len(rows) != EXPECTED_ROWS:
+        raise RuntimeError(
+            f"Order import payload row count mismatch: expected {EXPECTED_ROWS}, got {len(rows)}"
+        )
+    return rows
+
+
 def import_orders(apps, schema_editor):
     OrderRecord = apps.get_model("core", "OrderRecord")
     Machine = apps.get_model("core", "Machine")
@@ -77,9 +106,7 @@ def import_orders(apps, schema_editor):
     Employee = apps.get_model("core", "Employee")
     AuditLog = apps.get_model("core", "AuditLog")
 
-    encoded = Path(__file__).with_name(PAYLOAD_FILE).read_text(encoding="utf-8").strip()
-    encoded += "=" * (-len(encoded) % 4)
-    rows = json.loads(lzma.decompress(base64.b64decode(encoded)).decode("utf-8"))
+    rows = _load_payload_rows()
 
     machine_map = _unique_map(Machine.objects.all(), ("code", "name"))
     part_map = _unique_map(Part.objects.all(), ("sku",))
