@@ -8,6 +8,7 @@ urlpatterns = [
     path("auth/logout/", auth_api.logout_view),
 
     path("production-check/", production_check_api.production_check, name="production-check"),
+    path("production-repair/", production_check_api.production_repair, name="production-repair"),
 
     path("drive/oauth/status/", drive_oauth.oauth_status, name="drive-oauth-status"),
     path("drive/oauth/start/", drive_oauth.oauth_start, name="drive-oauth-start"),
@@ -32,7 +33,7 @@ urlpatterns = [
     path("history/<uuid:pk>/delete/", stock_api.history_delete, name="web-history-delete"),
 
     path("suppliers/", web_api.suppliers_list, name="web-suppliers-list"),
-    path("suppliers/<uuid:pk>/", web_api.supplier_detail, name="web-supplier-detail"),
+    path("suppliers/<uuid:pk>/", web_api.supplier_detail, name="web-suppliers-detail"),
     path("machines/", web_api.machines_list, name="web-machines-list"),
     path("machines/<uuid:pk>/", web_api.machine_detail, name="web-machine-detail"),
 
