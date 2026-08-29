@@ -1,27 +1,12 @@
-name: Verify PartsFlow Production
+name: Deprecated production verification
 
+# Incident-only workflow retired after the 2026 Order import was verified.
+# Kept inert because the connected GitHub action cannot delete this workflow file.
 on:
-  push:
-    branches: [main]
+  workflow_dispatch:
 
 jobs:
-  verify-production:
+  retired:
     runs-on: ubuntu-latest
     steps:
-      - name: Wait for Railway deploy
-        run: sleep 120
-      - name: Check production dataset
-        run: |
-          set -euo pipefail
-          URL="https://partsflow-production.up.railway.app/api/production-check/"
-          echo "Checking $URL"
-          RESPONSE="$(curl --fail --silent --show-error --retry 8 --retry-delay 10 "$URL")"
-          echo "$RESPONSE"
-          python - "$RESPONSE" <<'PY'
-          import json, sys
-          data = json.loads(sys.argv[1])
-          assert data.get("migration_0014_applied") is True, data
-          assert data.get("imported_order_count") == 4107, data
-          assert data.get("order_count") == 4107, data
-          print("Production Order dataset verified: 4107 imported rows")
-          PY
+      - run: echo "Production verification workflow retired."
