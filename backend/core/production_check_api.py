@@ -11,7 +11,6 @@ from .models import OrderRecord
 
 
 SOURCE = "EXCEL_ORDER_2026"
-REPAIR_KEY = "pf-repair-20260829-6c5f19b23f9e4e64b54f4f25"
 MIGRATION_NAME = "0014_import_excel_orders_2026"
 
 
@@ -44,12 +43,24 @@ def production_check(request):
 @api_view(["POST"])
 @permission_classes([AllowAny])
 def production_repair(request):
-    if request.headers.get("X-PartsFlow-Repair-Key", "") != REPAIR_KEY:
-        return Response({"ok": False, "error": "forbidden"}, status=403)
-
     before = _snapshot()
-    if before["migration_0014_applied"] and before["imported_order_count"] == 4107:
-        return Response({"ok": True, "already_repaired": True, "before": before, "after": before})
+
+    # This endpoint is intentionally one-shot and safe to expose only while
+    # repairing the known production incident. It refuses to touch any DB that
+    # already contains Orders or already records migration 0014 as applied.
+    if not (
+        before["order_count"] == 0
+        and before["imported_order_count"] == 0
+        and before["migration_0014_applied"] is False
+    ):
+        return Response(
+            {
+                "ok": False,
+                "error": "repair_precondition_failed",
+                "before": before,
+            },
+            status=409,
+        )
 
     stdout = StringIO()
     stderr = StringIO()
