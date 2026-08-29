@@ -1,0 +1,87 @@
+import { useEffect, useMemo, useState } from "react";
+import { apiGet, apiPost } from "../api";
+import { Alert, Modal, fmt } from "./Common";
+
+function suggestedQty(row) {
+  const preset = Number(row.order_qty || 0);
+  if (preset > 0) return Math.max(1, Math.ceil(preset));
+  const gap = Number(row.min_stock || 0) - Number(row.stock_qty || 0);
+  return Math.max(1, Math.ceil(gap > 0 ? gap : 1));
+}
+
+export default function SafetyOrderModal({ rows, employee, onClose, onSaved }) {
+  const [options, setOptions] = useState({ machines: [], employees: [], jobs: [] });
+  const [job, setJob] = useState("SPARE");
+  const [orderedById, setOrderedById] = useState(employee?.id || "");
+  const [remark, setRemark] = useState("Safety Stock");
+  const [items, setItems] = useState(() => rows.map(row => ({
+    part_id: row.id,
+    sku: row.sku,
+    name: row.name,
+    unit_code: row.unit_code,
+    stock_qty: row.stock_qty,
+    min_stock: row.min_stock,
+    amount: suggestedQty(row),
+    machine_id: row.last_machine_id || "",
+    factory: row.warehouse === "MM-11" ? "MM-11" : "MM-4",
+  })));
+  const [loading, setLoading] = useState(true);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    apiGet("/options/").then(o => {
+      setOptions(o || {});
+      if (!orderedById && employee?.id) setOrderedById(employee.id);
+    }).catch(e => setError(e.message)).finally(() => setLoading(false));
+  }, []);
+
+  const invalid = useMemo(() => items.some(x => !x.machine_id || !Number.isInteger(Number(x.amount)) || Number(x.amount) <= 0), [items]);
+  function update(index, patch) { setItems(xs => xs.map((x, i) => i === index ? { ...x, ...patch } : x)); }
+
+  async function submit(e) {
+    e.preventDefault(); setError("");
+    if (!orderedById) return setError("กรุณาเลือกชื่อผู้สั่ง");
+    if (!job) return setError("กรุณาเลือก JOB");
+    if (invalid) return setError("กรุณาเลือก Machine และใส่จำนวนเป็นเลขจำนวนเต็มมากกว่า 0 ให้ครบทุกแถว");
+    setBusy(true);
+    try {
+      const result = await apiPost("/orders/batch/", {
+        job,
+        ordered_by_id: orderedById,
+        remark,
+        items: items.map(x => ({
+          part_id: x.part_id,
+          amount: Number(x.amount),
+          machine_id: x.machine_id,
+          factory: x.factory,
+        })),
+      });
+      onSaved(result);
+    } catch (err) { setError(err.message); }
+    finally { setBusy(false); }
+  }
+
+  return <Modal title={`Review ก่อนสร้าง Order · ${rows.length} รายการ`} onClose={onClose} wide>
+    <form onSubmit={submit}>
+      <div className="alert success">ระบบจะสร้างเป็น Order Normal แยกรายการ และยังไม่ Receive Stock จนกว่าจะผ่าน workflow รับของตามปกติ</div>
+      <div className="form-grid three safety-order-shared">
+        <label className="field"><span>JOB *</span><select value={job} onChange={e => setJob(e.target.value)} disabled={loading}><option value="SPARE">SPARE</option>{(options.jobs || []).filter(x => x !== "SPARE").map(x => <option key={x} value={x}>{x}</option>)}</select></label>
+        <label className="field"><span>ชื่อผู้สั่ง *</span><select value={orderedById} onChange={e => setOrderedById(e.target.value)} disabled={loading}><option value="">เลือกผู้สั่ง</option>{(options.employees || []).map(x => <option key={x.id} value={x.id}>{x.name}</option>)}</select></label>
+        <label className="field"><span>ผู้บันทึก</span><input readOnly value={employee?.name || ""}/></label>
+        <label className="field span3"><span>Remark</span><input value={remark} onChange={e => setRemark(e.target.value)}/></label>
+      </div>
+
+      <div className="safety-order-review-list">
+        {items.map((item, index) => <div className="safety-order-review-row" key={item.part_id}>
+          <div className="safety-order-review-part"><b>{item.sku}</b><strong>{item.name}</strong><small>Stock {fmt(item.stock_qty)} · Min {fmt(item.min_stock)} {item.unit_code}</small></div>
+          <label className="field"><span>Factory</span><select value={item.factory} onChange={e => update(index, { factory: e.target.value })}><option value="MM-4">Phase4</option><option value="MM-11">Phase11</option></select></label>
+          <label className="field safety-machine-field"><span>Machine *</span><select value={item.machine_id} onChange={e => update(index, { machine_id: e.target.value })} disabled={loading}><option value="">เลือก Machine</option>{(options.machines || []).map(x => <option key={x.id} value={x.id}>{x.code} · {x.name}</option>)}</select></label>
+          <label className="field"><span>จำนวน Order *</span><input type="number" min="1" step="1" value={item.amount} onChange={e => update(index, { amount: e.target.value })}/></label>
+        </div>)}
+      </div>
+      <Alert>{error}</Alert>
+      <div className="modal-actions"><button type="button" className="btn ghost" onClick={onClose}>ยกเลิก</button><button className="btn primary" disabled={busy || loading}>{busy ? "กำลังสร้าง Order..." : `สร้าง Order ${items.length} รายการ`}</button></div>
+    </form>
+  </Modal>;
+}

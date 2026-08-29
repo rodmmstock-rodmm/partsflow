@@ -5,7 +5,7 @@ import { Alert, Modal, PageHeader, fmt } from "../components/Common";
 
 const MONTHS_TH = ["มกราคม","กุมภาพันธ์","มีนาคม","เมษายน","พฤษภาคม","มิถุนายน","กรกฎาคม","สิงหาคม","กันยายน","ตุลาคม","พฤศจิกายน","ธันวาคม"];
 
-function EditHistory({ row, options, onClose, onSaved }) {
+export function EditHistory({ row, options, onClose, onSaved }) {
   const [quantity, setQuantity] = useState(row.quantity);
   const [machineId, setMachineId] = useState(row.machine ? (options.machines||[]).find(x=>x.code===row.machine)?.id||"" : "");
   const [requesterId, setRequesterId] = useState(row.requester_id||"");

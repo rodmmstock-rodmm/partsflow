@@ -3,7 +3,7 @@ import { apiGet, apiPatch, apiPost } from "../api";
 import { useAuth } from "../auth";
 import { Alert, Modal, PageHeader } from "../components/Common";
 
-const PERMISSIONS = [
+export const PERMISSIONS = [
   ["can_view_dashboard", "View Dashboard Stock", "Stock"],
   ["can_view_parts", "View Part & Stock", "Stock"],
   ["can_edit_parts", "Add / Edit Part", "Stock"],
@@ -34,14 +34,14 @@ const PERMISSIONS = [
   ["can_manage_roles", "Manage Roles & Permissions", "Admin"],
 ];
 
-function EmployeeModal({ row, roles, onClose, onSaved }) {
+export function EmployeeModal({ row, roles, onClose, onSaved }) {
   const [form,setForm]=useState(row||{employee_code:"",name:"",department:"",role:"",active:true});
   const [error,setError]=useState(""); const [busy,setBusy]=useState(false); const set=(k,v)=>setForm(x=>({...x,[k]:v}));
   async function save(e){e.preventDefault();setBusy(true);setError("");try{row?await apiPatch(`/employees/${row.id}/`,{...form,role:(form.role||"").trim().toUpperCase()}):await apiPost("/employees/",{...form,role:(form.role||"").trim().toUpperCase()});onSaved()}catch(err){setError(err.message)}finally{setBusy(false)}}
   return <Modal title={row?"แก้ไขข้อมูลพนักงาน":"เพิ่มพนักงาน"} onClose={onClose}><form onSubmit={save}><div className="form-grid"><label className="field"><span>Employee Code *</span><input required value={form.employee_code} onChange={e=>set("employee_code",e.target.value)}/></label><label className="field"><span>ชื่อพนักงาน *</span><input required value={form.name} onChange={e=>set("name",e.target.value)}/></label><label className="field"><span>Department</span><input value={form.department||""} onChange={e=>set("department",e.target.value)}/></label><label className="field"><span>Role</span><select value={form.role||""} onChange={e=>set("role",e.target.value)}><option value="">-</option>{roles.filter(r=>r.active).map(r=><option key={r.id} value={r.role_name}>{r.display_name||r.role_name}</option>)}</select></label><label className="check"><input type="checkbox" checked={!!form.active} onChange={e=>set("active",e.target.checked)}/> Active</label></div><Alert>{error}</Alert><div className="modal-actions"><button type="button" className="btn ghost" onClick={onClose}>ยกเลิก</button><button className="btn primary" disabled={busy}>บันทึก</button></div></form></Modal>
 }
 
-function NewRoleModal({ onClose, onSaved }){const[name,setName]=useState("");const[display,setDisplay]=useState("");const[error,setError]=useState("");async function save(e){e.preventDefault();setError("");try{await apiPost("/roles/",{role_name:name.trim().toUpperCase(),display_name:display});onSaved()}catch(err){setError(err.message)}}return <Modal title="เพิ่ม Role" onClose={onClose}><form onSubmit={save}><label className="field"><span>Role Name *</span><input required value={name} onChange={e=>setName(e.target.value)} placeholder="PURCHASE"/></label><label className="field"><span>Display Name</span><input value={display} onChange={e=>setDisplay(e.target.value)}/></label><Alert>{error}</Alert><div className="modal-actions"><button type="button" className="btn ghost" onClick={onClose}>ยกเลิก</button><button className="btn primary">เพิ่ม Role</button></div></form></Modal>}
+export function NewRoleModal({ onClose, onSaved }){const[name,setName]=useState("");const[display,setDisplay]=useState("");const[error,setError]=useState("");async function save(e){e.preventDefault();setError("");try{await apiPost("/roles/",{role_name:name.trim().toUpperCase(),display_name:display});onSaved()}catch(err){setError(err.message)}}return <Modal title="เพิ่ม Role" onClose={onClose}><form onSubmit={save}><label className="field"><span>Role Name *</span><input required value={name} onChange={e=>setName(e.target.value)} placeholder="PURCHASE"/></label><label className="field"><span>Display Name</span><input value={display} onChange={e=>setDisplay(e.target.value)}/></label><Alert>{error}</Alert><div className="modal-actions"><button type="button" className="btn ghost" onClick={onClose}>ยกเลิก</button><button className="btn primary">เพิ่ม Role</button></div></form></Modal>}
 
 export default function RoleSettings(){
   const auth=useAuth(); const[roles,setRoles]=useState([]); const[employees,setEmployees]=useState([]); const[logs,setLogs]=useState([]); const[tab,setTab]=useState("roles"); const[error,setError]=useState(""); const[msg,setMsg]=useState(""); const[empModal,setEmpModal]=useState(undefined); const[roleModal,setRoleModal]=useState(false); const[q,setQ]=useState("");

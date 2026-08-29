@@ -11,7 +11,7 @@ const blank = {
   remark: "",
 };
 
-function FastOrderModal({ row, onClose, onSaved }) {
+export function FastOrderModal({ row, onClose, onSaved }) {
   const [form, setForm] = useState(row ? { ...blank, ...row } : blank);
   const [partQuery, setPartQuery] = useState(row?.item_id || "");
   const [partResults, setPartResults] = useState([]);

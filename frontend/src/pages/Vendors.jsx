@@ -3,7 +3,7 @@ import { apiDelete, apiGet, apiPatch, apiPost } from "../api";
 import { useAuth } from "../auth";
 import { Alert, Modal, PageHeader } from "../components/Common";
 
-function VendorModal({ row, onClose, onSaved }) {
+export function VendorModal({ row, onClose, onSaved }) {
   const [form,setForm]=useState(row||{code:"",name:"",contact:"",phone:"",email:"",lead_time_days:0,remark:"",active:true});
   const [error,setError]=useState(""); const [busy,setBusy]=useState(false); const set=(k,v)=>setForm(x=>({...x,[k]:v}));
   async function save(e){e.preventDefault();setBusy(true);setError("");try{row?await apiPatch(`/suppliers/${row.id}/`,form):await apiPost("/suppliers/",form);onSaved()}catch(err){setError(err.message)}finally{setBusy(false)}}

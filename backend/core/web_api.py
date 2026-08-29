@@ -6,6 +6,7 @@ from django.db import IntegrityError
 from django.db.models import DecimalField, Exists, F, OuterRef, Q, Sum, Value
 from django.db.models.functions import Coalesce
 from django.http import HttpResponse
+from django.utils import timezone
 from django.views.decorators.csrf import csrf_exempt
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import AllowAny
@@ -35,9 +36,13 @@ from .models import (
     JobType,
     Location,
     Machine,
+    MachineSpareSetItem,
     Maker,
     OrderRecord,
     Part,
+    PartMachine,
+    PartSupplier,
+    PurchasePriceHistory,
     Supplier,
     Unit,
 )
@@ -150,6 +155,149 @@ def part_json(part):
         "stock_qty": float(stock_qty or 0),
         **part_stock_status(part, stock_qty),
     }
+
+
+def part_detail_json(part):
+    data = part_json(part)
+
+    inventory_rows = list(
+        part.inventory.select_related("location").order_by("location__code")
+    )
+    data["inventory_locations"] = [
+        {
+            "id": str(row.id),
+            "location_id": str(row.location_id) if row.location_id else "",
+            "location_code": row.location.code if row.location else "",
+            "warehouse": (row.location.warehouse or "") if row.location else "",
+            "quantity": float(row.quantity or 0),
+            "updated_at": timezone.localtime(row.updated_at).isoformat(),
+        }
+        for row in inventory_rows
+    ]
+
+    machine_links = PartMachine.objects.select_related("machine").filter(
+        part=part
+    ).order_by("machine__code")
+    data["machines"] = [
+        {
+            "id": str(link.id),
+            "machine_id": str(link.machine_id),
+            "code": link.machine.code,
+            "name": link.machine.name,
+            "location": link.machine.location or "",
+            "quantity_per_machine": float(link.quantity_per_machine or 0),
+            "is_critical": link.is_critical,
+            "position": link.position or "",
+            "remark": link.remark or "",
+        }
+        for link in machine_links
+    ]
+
+    supplier_links = PartSupplier.objects.select_related("supplier").filter(
+        part=part
+    ).order_by("-is_preferred", "supplier__code")
+    data["suppliers"] = [
+        {
+            "id": str(link.id),
+            "supplier_id": str(link.supplier_id),
+            "code": link.supplier.code,
+            "name": link.supplier.name,
+            "supplier_part_no": link.supplier_part_no or "",
+            "unit_price": float(link.unit_price or 0),
+            "currency": link.currency or "THB",
+            "lead_time_days": link.lead_time_days or 0,
+            "minimum_order_qty": float(link.minimum_order_qty or 0),
+            "is_preferred": link.is_preferred,
+            "last_quoted_at": link.last_quoted_at.isoformat() if link.last_quoted_at else "",
+        }
+        for link in supplier_links
+    ]
+
+    spare_set_links = (
+        MachineSpareSetItem.objects
+        .select_related("spare_set", "spare_set__machine")
+        .filter(part=part, spare_set__active=True)
+        .order_by("spare_set__machine__code", "spare_set__name")
+    )
+    data["spare_sets"] = [
+        {
+            "id": str(link.spare_set_id),
+            "name": link.spare_set.name,
+            "machine_code": link.spare_set.machine.code,
+            "machine_name": link.spare_set.machine.name,
+            "quantity": float(link.quantity or 0),
+            "remark": link.remark or "",
+        }
+        for link in spare_set_links
+    ]
+
+    txs = (
+        part.transactions.filter(is_void=False)
+        .select_related("machine", "employee", "recorded_by_employee", "location")
+        .order_by("-transaction_date")[:30]
+    )
+    data["recent_transactions"] = [
+        {
+            "id": str(tx.id),
+            "transaction_no": tx.transaction_no,
+            "transaction_type": tx.transaction_type,
+            "quantity": float(tx.quantity or 0),
+            "transaction_date": timezone.localtime(tx.transaction_date).isoformat(),
+            "machine_code": tx.machine.code if tx.machine else "",
+            "machine_name": tx.machine.name if tx.machine else "",
+            "employee": tx.employee.name if tx.employee else "",
+            "recorded_by": tx.recorded_by_employee.name if tx.recorded_by_employee else "",
+            "location_code": tx.location.code if tx.location else "",
+            "remark": tx.remark or "",
+        }
+        for tx in txs
+    ]
+
+    orders = (
+        OrderRecord.objects.filter(part=part, is_deleted=False)
+        .select_related("machine", "vendor", "ordered_by")
+        .order_by("-order_date", "-created_at")[:30]
+    )
+    data["recent_orders"] = [
+        {
+            "id": str(order.id),
+            "order_number": order.order_number,
+            "date": order.order_date.isoformat(),
+            "factory": order.factory,
+            "machine_code": order.machine.code if order.machine else "",
+            "machine_name": order.machine.name if order.machine else "",
+            "job": order.job,
+            "amount": order.amount,
+            "status": (
+                OrderRecord.STATUS_CONFIRM
+                if order.lifecycle_status == OrderRecord.LIFECYCLE_WAIT_CONFIRM
+                else order.status
+            ),
+            "lifecycle_status": order.lifecycle_status,
+            "po_number": order.po_number or "",
+            "vendor_name": order.vendor.name if order.vendor else "",
+            "due_date": order.due_date.isoformat() if order.due_date else "",
+            "ordered_by": order.ordered_by.name if order.ordered_by else "",
+        }
+        for order in orders
+    ]
+
+    prices = PurchasePriceHistory.objects.select_related("supplier").filter(
+        part=part
+    ).order_by("-purchase_date", "-created_at")[:30]
+    data["price_history"] = [
+        {
+            "id": str(row.id),
+            "purchase_date": row.purchase_date.isoformat() if row.purchase_date else "",
+            "supplier_name": row.supplier.name if row.supplier else "",
+            "unit_price": float(row.unit_price or 0),
+            "currency": row.currency or "THB",
+            "source_type": row.source_type or "",
+            "source_id": row.source_id or "",
+        }
+        for row in prices
+    ]
+    return data
 
 
 def base_parts():
@@ -362,7 +510,7 @@ def part_detail(request, pk):
     if not part:
         return Response({"detail": "ไม่พบอะไหล่"}, status=404)
     if request.method == "GET":
-        return Response(part_json(base_parts().get(pk=pk)))
+        return Response(part_detail_json(base_parts().get(pk=pk)))
     before = part_json(base_parts().get(pk=pk))
     try:
         apply_part_fields(part, request.data)
@@ -817,6 +965,8 @@ def safety_stock(request):
             {
                 **part_json(part),
                 "last_machine": last_tx.machine.code if last_tx and last_tx.machine else "",
+                "last_machine_id": str(last_tx.machine_id) if last_tx and last_tx.machine_id else "",
+                "last_machine_name": last_tx.machine.name if last_tx and last_tx.machine else "",
                 "order_qty": float(part.reorder_qty or 0),
             }
         )

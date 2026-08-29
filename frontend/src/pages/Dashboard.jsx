@@ -1,7 +1,9 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { apiGet, apiPatch, apiPost, apiUpload } from "../api";
 import { useAuth } from "../auth";
 import { Alert, Modal, PageHeader, PartImage, fmt, money } from "../components/Common";
+import PartDetailModal from "../components/PartDetailModal";
 
 const blankPart = {
   sku: "", name: "", description: "", maker_name: "", unit_code: "",
@@ -493,6 +495,7 @@ function AdjustModal({ part, onClose, onSaved }) {
 
 export default function Dashboard(){
   const auth=useAuth();
+  const navigate=useNavigate();
   const tableScrollRef=useRef(null);
   const topScrollRef=useRef(null);
   const searchTimerRef=useRef(null);
@@ -516,6 +519,7 @@ export default function Dashboard(){
   const [partModal,setPartModal]=useState(null);
   const [stockModal,setStockModal]=useState(null);
   const [adjust,setAdjust]=useState(null);
+  const [detail,setDetail]=useState(null);
 
   useEffect(()=>{
     clearTimeout(searchTimerRef.current);
@@ -630,11 +634,14 @@ export default function Dashboard(){
     <PageHeader
       title="Dashboard Stock"
       subtitle="Part & Stock ในหน้าเดียว"
-      actions={auth.can("can_edit_parts")&&
-        <button className="btn primary" onClick={openAddPart} disabled={optionsLoading}>
-          {optionsLoading?"กำลังโหลด...":"+ เพิ่มรายการอะไหล่"}
-        </button>
-      }
+      actions={<>
+        <button className="btn ghost" onClick={()=>navigate("/spare-sets")}>⚙ ชุดอะไหล่เครื่องจักร</button>
+        {auth.can("can_edit_parts")&&
+          <button className="btn primary" onClick={openAddPart} disabled={optionsLoading}>
+            {optionsLoading?"กำลังโหลด...":"+ เพิ่มรายการอะไหล่"}
+          </button>
+        }
+      </>}
     />
 
     <Alert>{error}</Alert>
@@ -763,6 +770,7 @@ export default function Dashboard(){
                       <td><span className={`stock-state ${p.stock_status||"normal"}`}>{p.stock_status_label||"normal"}</span></td>
                       <td>
                         <div className="row-actions">
+                          <button className="mini primary" onClick={()=>setDetail(p)}>รายละเอียด</button>
                           {auth.can("can_edit_parts")&&
                             <button className="mini" onClick={()=>openEditPart(p)}>แก้ไข</button>}
                           {auth.can("can_adjust_stock")&&
@@ -781,6 +789,15 @@ export default function Dashboard(){
           </>
       }
     </section>
+
+
+
+    {detail&&
+      <PartDetailModal
+        part={detail}
+        onClose={()=>setDetail(null)}
+      />
+    }
 
     {partModal!==null&&
       <PartModal

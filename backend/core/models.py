@@ -170,6 +170,63 @@ class PartMachine(LegacyMixin):
         constraints = [models.UniqueConstraint(fields=["part", "machine"], name="uniq_part_machine")]
 
 
+class MachineSpareSet(UUIDMixin):
+    machine = models.ForeignKey(
+        Machine,
+        on_delete=models.PROTECT,
+        related_name="spare_sets",
+    )
+    name = models.CharField(max_length=200)
+    description = models.TextField(blank=True)
+    active = models.BooleanField(default=True, db_index=True)
+    created_by_employee = models.ForeignKey(
+        Employee,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="created_machine_spare_sets",
+    )
+
+    class Meta:
+        ordering = ["machine__code", "name"]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["machine", "name"],
+                name="uniq_machine_spare_set",
+            )
+        ]
+
+    def __str__(self):
+        return f"{self.machine.code} - {self.name}"
+
+
+class MachineSpareSetItem(UUIDMixin):
+    spare_set = models.ForeignKey(
+        MachineSpareSet,
+        on_delete=models.CASCADE,
+        related_name="items",
+    )
+    part = models.ForeignKey(
+        Part,
+        on_delete=models.PROTECT,
+        related_name="spare_set_items",
+    )
+    quantity = models.DecimalField(max_digits=14, decimal_places=2, default=1)
+    remark = models.TextField(blank=True)
+
+    class Meta:
+        ordering = ["part__sku"]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["spare_set", "part"],
+                name="uniq_machine_spare_set_part",
+            )
+        ]
+
+    def __str__(self):
+        return f"{self.spare_set} / {self.part.sku}"
+
+
 class Inventory(LegacyMixin):
     part = models.ForeignKey(Part, on_delete=models.PROTECT, related_name="inventory")
     location = models.ForeignKey(Location, null=True, blank=True, on_delete=models.PROTECT)

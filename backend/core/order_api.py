@@ -382,6 +382,94 @@ def urgency_class(order):
 
 
 @csrf_exempt
+@api_view(["POST"])
+@permission_classes([AllowAny])
+def create_orders_batch(request):
+    actor, err = require_permission(request, "can_add_order")
+    if err:
+        return err
+
+    items = request.data.get("items")
+    if not isinstance(items, list) or not items:
+        return Response({"detail": "กรุณาเลือกรายการที่จะสร้าง Order"}, status=400)
+    if len(items) > 200:
+        return Response({"detail": "สร้าง Order ได้สูงสุดครั้งละ 200 รายการ"}, status=400)
+
+    shared_job = str(request.data.get("job") or "SPARE").strip().upper()
+    shared_ordered_by_id = request.data.get("ordered_by_id") or str(actor.id)
+    shared_remark = str(request.data.get("remark") or "").strip()
+
+    created_ids = []
+    seen_part_ids = set()
+    try:
+        with transaction.atomic():
+            for index, item in enumerate(items, start=1):
+                raw = item or {}
+                part_id = str(raw.get("part_id") or "").strip()
+                if not part_id:
+                    raise ValueError(f"รายการที่ {index}: ไม่พบ Item ID")
+                if part_id in seen_part_ids:
+                    raise ValueError(f"รายการที่ {index}: มี Item ID ซ้ำในรายการที่เลือก")
+                seen_part_ids.add(part_id)
+
+                if OrderRecord.objects.filter(
+                    part_id=part_id,
+                    is_deleted=False,
+                    lifecycle_status__in=[
+                        OrderRecord.LIFECYCLE_ACTIVE,
+                        OrderRecord.LIFECYCLE_WAIT_CONFIRM,
+                    ],
+                ).exists():
+                    raise ValueError(
+                        f"รายการที่ {index}: Item นี้มี Active / Wait Confirm Order อยู่แล้ว กรุณารีเฟรช Safety Stock"
+                    )
+
+                payload = {
+                    "factory": raw.get("factory") or request.data.get("factory") or "MM-4",
+                    "machine_id": raw.get("machine_id") or request.data.get("machine_id"),
+                    "job": raw.get("job") or shared_job,
+                    "urgent_status": raw.get("urgent_status") or "",
+                    "pending_data_date": raw.get("pending_data_date") or "",
+                    "part_id": part_id,
+                    "amount": raw.get("amount"),
+                    "remark": raw.get("remark") or shared_remark or "Safety Stock",
+                    "ordered_by_id": raw.get("ordered_by_id") or shared_ordered_by_id,
+                }
+
+                order = OrderRecord(
+                    order_number=generate_order_number(),
+                    order_date=timezone.localdate(),
+                    recorded_by=actor,
+                    source_type="NORMAL",
+                    edit_workflow_enabled=True,
+                )
+                try:
+                    apply_order_info(order, payload, creating=True)
+                except ValueError as exc:
+                    raise ValueError(f"รายการที่ {index}: {exc}")
+                order.save()
+                created_ids.append(order.id)
+                audit(
+                    actor,
+                    "CREATE",
+                    "OrderRecord",
+                    order.id,
+                    {
+                        **order_json(order_queryset().get(pk=order.pk)),
+                        "batch_source": "SAFETY_STOCK",
+                    },
+                )
+
+        results = [
+            order_json(order)
+            for order in order_queryset().filter(id__in=created_ids).order_by("created_at")
+        ]
+        return Response({"created_count": len(results), "results": results}, status=201)
+    except (ValueError, IntegrityError) as exc:
+        return Response({"detail": str(exc)}, status=400)
+
+
+@csrf_exempt
 @api_view(["GET", "POST"])
 @permission_classes([AllowAny])
 def orders(request):

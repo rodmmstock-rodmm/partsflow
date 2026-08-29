@@ -1,6 +1,6 @@
 from django.urls import path
 
-from . import appsheet_api, auth_api, dashboard_api, drive_oauth, fast_order_api, order_api, role_api, stock_api, web_api
+from . import appsheet_api, auth_api, dashboard_api, drive_oauth, fast_order_api, order_api, role_api, spare_set_api, stock_api, web_api
 
 urlpatterns = [
     path("auth/login/", auth_api.login_view),
@@ -18,6 +18,8 @@ urlpatterns = [
     path("parts/<uuid:pk>/image/", web_api.part_image, name="web-part-image"),
     path("inventory/", web_api.inventory_list, name="web-inventory-list"),
     path("safety-stock/", web_api.safety_stock, name="web-safety-stock"),
+    path("spare-sets/", spare_set_api.spare_sets, name="web-spare-sets"),
+    path("spare-sets/<uuid:pk>/", spare_set_api.spare_set_detail, name="web-spare-set-detail"),
     path("options/", web_api.options, name="web-options"),
 
     path("stock/issue/", stock_api.issue_stock, name="web-stock-issue"),
@@ -41,6 +43,7 @@ urlpatterns = [
     path("appsheet/stock/", appsheet_api.appsheet_stock, name="appsheet-stock"),
 
     path("orders/", order_api.orders, name="web-orders"),
+    path("orders/batch/", order_api.create_orders_batch, name="web-orders-batch"),
     path("orders/<uuid:pk>/", order_api.order_detail, name="web-order-detail"),
     path("orders/<uuid:pk>/info/", order_api.update_order_info, name="web-order-info"),
     path("orders/<uuid:pk>/purchase/", order_api.update_purchase_info, name="web-order-purchase"),

@@ -90,7 +90,7 @@ function statusClass(status) {
   return "muted";
 }
 
-function OrderInfoModal({
+export function OrderInfoModal({
   order,
   project,
   step,
@@ -439,7 +439,7 @@ function OrderInfoModal({
   );
 }
 
-function PurchaseModal({ order, options, onClose, onChanged }) {
+export function PurchaseModal({ order, options, onClose, onChanged }) {
   const [local, setLocal] = useState({ ...order });
   const [vendorText, setVendorText] = useState(
     order.vendor_id ? `${order.vendor_code} · ${order.vendor_name}` : ""
@@ -955,7 +955,7 @@ function BulkActions({ rows, auth, busy, onRun, onClear }) {
   );
 }
 
-function ProjectModal({
+export function ProjectModal({
   department,
   options,
   employee,
