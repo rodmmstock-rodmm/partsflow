@@ -78,6 +78,7 @@ def import_orders(apps, schema_editor):
     AuditLog = apps.get_model("core", "AuditLog")
 
     encoded = Path(__file__).with_name(PAYLOAD_FILE).read_text(encoding="utf-8").strip()
+    encoded += "=" * (-len(encoded) % 4)
     rows = json.loads(lzma.decompress(base64.b64decode(encoded)).decode("utf-8"))
 
     machine_map = _unique_map(Machine.objects.all(), ("code", "name"))
