@@ -1,0 +1,265 @@
+from django.utils import timezone
+from django.views.decorators.csrf import csrf_exempt
+from rest_framework.decorators import api_view, permission_classes
+from rest_framework.permissions import AllowAny
+from rest_framework.response import Response
+
+from . import order_api
+from .audit_utils import audit
+from .auth_api import current_employee, permissions_for, require_permission
+from .models import AuditLog
+
+
+TRACKED_FIELDS = (
+    "factory",
+    "machine",
+    "job",
+    "urgent_status",
+    "pending_data_date",
+    "item_id",
+    "part_name",
+    "part_detail",
+    "maker",
+    "amount",
+    "unit",
+    "remark",
+    "ordered_by",
+    "quotation",
+    "po_number",
+    "price_per_unit",
+    "vendor",
+    "lead_time_days",
+    "issue_pr_date",
+    "due_date",
+    "vendor_confirm_date",
+    "person_in_charge",
+    "received_at",
+    "status",
+    "lifecycle_status",
+    "edit_data_status",
+    "usage_status",
+    "wait_confirm",
+    "cancel_status",
+    "cancel_reason",
+    "completion_note",
+    "stock_received",
+)
+
+
+def _code_name(code, name):
+    code = str(code or "").strip()
+    name = str(name or "").strip()
+    if code and name:
+        return f"{code} · {name}"
+    return code or name
+
+
+def _snapshot(order):
+    if not order:
+        return None
+    data = order_api.order_json(order)
+    return {
+        "factory": data.get("factory") or "",
+        "machine": _code_name(data.get("machine_code"), data.get("machine_name")),
+        "job": data.get("job") or "",
+        "urgent_status": data.get("urgent_status") or "",
+        "pending_data_date": data.get("pending_data_date") or "",
+        "item_id": data.get("item_id") or "",
+        "part_name": data.get("part_name") or "",
+        "part_detail": data.get("part_detail") or "",
+        "maker": data.get("maker") or "",
+        "amount": data.get("amount"),
+        "unit": data.get("unit") or "",
+        "remark": data.get("remark") or "",
+        "ordered_by": data.get("ordered_by") or "",
+        "quotation": data.get("quotation") or "",
+        "po_number": data.get("po_number") or "",
+        "price_per_unit": data.get("price_per_unit"),
+        "vendor": _code_name(data.get("vendor_code"), data.get("vendor_name")),
+        "lead_time_days": data.get("lead_time_days"),
+        "issue_pr_date": data.get("issue_pr_date") or "",
+        "due_date": data.get("due_date") or "",
+        "vendor_confirm_date": data.get("vendor_confirm_date") or "",
+        "person_in_charge": data.get("person_in_charge") or "",
+        "received_at": data.get("received_at") or "",
+        "status": data.get("display_status") or data.get("status") or "",
+        "lifecycle_status": data.get("lifecycle_status") or "",
+        "edit_data_status": data.get("edit_data_status") or "",
+        "usage_status": data.get("usage_status") or "",
+        "wait_confirm": bool(data.get("wait_confirm")),
+        "cancel_status": bool(data.get("cancel_status")),
+        "cancel_reason": data.get("cancel_reason") or "",
+        "completion_note": data.get("completion_note") or "",
+        "stock_received": bool(data.get("stock_received")),
+    }
+
+
+def _current_order(pk):
+    return order_api.order_queryset().filter(pk=pk, is_deleted=False).first()
+
+
+def _changed(before, after):
+    if not before or not after:
+        return {}
+    result = {}
+    for field in TRACKED_FIELDS:
+        old = before.get(field)
+        new = after.get(field)
+        if str(old if old is not None else "") != str(new if new is not None else ""):
+            result[field] = {"old": old, "new": new}
+    return result
+
+
+def _run_mutation(request, pk, view_func, source_action):
+    actor = current_employee(request)
+    before = _snapshot(_current_order(pk))
+    response = view_func(request, pk)
+
+    if actor and 200 <= getattr(response, "status_code", 500) < 300:
+        after = _snapshot(_current_order(pk))
+        fields = _changed(before, after)
+        if fields:
+            audit(
+                actor,
+                "ORDER_FIELD_UPDATE",
+                "OrderRecord",
+                pk,
+                {
+                    "source_action": source_action,
+                    "fields": fields,
+                },
+            )
+    return response
+
+
+@csrf_exempt
+def orders(request):
+    """Keep Normal filters local to the Normal tab; preserve text search everywhere."""
+    if request.method == "GET":
+        view = str(request.GET.get("view", "normal")).strip().lower()
+        if view != "normal":
+            params = request.GET.copy()
+            params["urgency"] = "all"
+            params["job"] = ""
+            params["status"] = ""
+            request.GET = params
+    return order_api.orders(request)
+
+
+@api_view(["GET"])
+@permission_classes([AllowAny])
+def order_detail_by_number(request, order_number):
+    actor, err = require_permission(request, "can_view_orders")
+    if err:
+        return err
+
+    order = (
+        order_api.order_queryset()
+        .filter(order_number=order_number, is_deleted=False)
+        .first()
+    )
+    if not order:
+        return Response({"detail": "ไม่พบ Order"}, status=404)
+
+    data = order_api.order_json(order)
+    data["recorded_by_code"] = (
+        order.recorded_by.employee_code if order.recorded_by else ""
+    )
+    data["ordered_by_code"] = (
+        order.ordered_by.employee_code if order.ordered_by else ""
+    )
+    data["person_in_charge_code"] = (
+        order.person_in_charge.employee_code if order.person_in_charge else ""
+    )
+
+    can_view_stamps = bool(
+        permissions_for(actor).get("can_view_audit_log")
+    )
+    data["can_view_field_stamps"] = can_view_stamps
+    data["field_stamps"] = {}
+
+    if can_view_stamps:
+        logs = (
+            AuditLog.objects
+            .select_related("employee")
+            .filter(
+                entity="OrderRecord",
+                entity_id=str(order.id),
+                action="ORDER_FIELD_UPDATE",
+            )
+            .order_by("-created_at")
+        )
+        stamps = {}
+        for item in logs:
+            detail = item.detail or {}
+            source_action = str(detail.get("source_action") or "")
+            for field, change in (detail.get("fields") or {}).items():
+                if field not in TRACKED_FIELDS or not isinstance(change, dict):
+                    continue
+                stamps.setdefault(field, []).append(
+                    {
+                        "created_at": timezone.localtime(item.created_at).isoformat(),
+                        "employee_code": (
+                            item.employee.employee_code
+                            if item.employee else ""
+                        ),
+                        "employee_name": (
+                            item.employee.name if item.employee else ""
+                        ),
+                        "old": change.get("old"),
+                        "new": change.get("new"),
+                        "source_action": source_action,
+                    }
+                )
+        data["field_stamps"] = stamps
+
+    return Response(data)
+
+
+@csrf_exempt
+def update_order_info(request, pk):
+    return _run_mutation(
+        request, pk, order_api.update_order_info, "UPDATE_ORDER_INFO"
+    )
+
+
+@csrf_exempt
+def update_purchase_info(request, pk):
+    return _run_mutation(
+        request, pk, order_api.update_purchase_info, "UPDATE_PURCHASE_INFO"
+    )
+
+
+@csrf_exempt
+def receive_order(request, pk):
+    return _run_mutation(
+        request, pk, order_api.receive_order, "RECEIVE_ORDER"
+    )
+
+
+@csrf_exempt
+def wait_confirm_order(request, pk):
+    return _run_mutation(
+        request, pk, order_api.wait_confirm_order, "WAIT_CONFIRM_ORDER"
+    )
+
+
+@csrf_exempt
+def cancel_order(request, pk):
+    return _run_mutation(
+        request, pk, order_api.cancel_order, "CANCEL_ORDER"
+    )
+
+
+@csrf_exempt
+def update_edit_data(request, pk):
+    return _run_mutation(
+        request, pk, order_api.update_edit_data, "UPDATE_EDIT_DATA"
+    )
+
+
+@csrf_exempt
+def update_usage(request, pk):
+    return _run_mutation(
+        request, pk, order_api.update_usage, "UPDATE_USAGE"
+    )
