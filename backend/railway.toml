@@ -2,7 +2,7 @@
 builder = "RAILPACK"
 
 [deploy]
-preDeployCommand = ["python manage.py shell -c \"from core.models import OrderRecord; from core.order_api import order_json, order_queryset; q=OrderRecord.objects.filter(legacy_source='EXCEL_ORDER_2026', is_deleted=False, lifecycle_status='ACTIVE').exclude(status='Complete Order'); assert q.exists(), 'No displayable ACTIVE imported Orders'; o=order_queryset().filter(pk=q.values_list('pk', flat=True).first()).first(); d=order_json(o); assert d.get('id') and d.get('order_number'), 'order_json failed'\""]
+preDeployCommand = ["python manage.py shell -c \"from rest_framework.test import APIRequestFactory; from core.models import Employee; from core.auth_api import create_auth_token, permissions_for; from core.order_audit_api import orders; e=Employee.objects.filter(employee_code__iexact='1032', active=True).first(); assert e, 'Employee 1032 not found'; assert permissions_for(e).get('can_view_orders'), f'1032 cannot view orders: {e.role}'; token=create_auth_token(e); req=APIRequestFactory().get('/api/orders/?view=normal&urgency=all&job=&status='); req.META['HTTP_AUTHORIZATION']='Bearer '+token; resp=orders(req); assert resp.status_code==200, f'orders status {resp.status_code}: {getattr(resp, \\\"data\\\", None)}'; data=getattr(resp, 'data', {}) or {}; assert len(data.get('results') or [])>0, f'orders returned zero; kpi={data.get(\\\"kpi\\\")} count={data.get(\\\"count\\\")}'\""]
 startCommand = "gunicorn config.wsgi:application --bind 0.0.0.0:$PORT --workers 2 --timeout 120"
 restartPolicyType = "ON_FAILURE"
 restartPolicyMaxRetries = 10
