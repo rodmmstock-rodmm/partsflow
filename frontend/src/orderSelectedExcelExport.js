@@ -108,11 +108,14 @@ function syncButton() {
     else toolbar.appendChild(button);
   }
 
-  button.disabled = count === 0;
-  button.textContent = `⬇ Export Excel (${count})`;
-  button.title = count
+  const label = `⬇ Export Excel (${count})`;
+  const title = count
     ? `Export ${count} รายการที่เลือกเป็นไฟล์ Excel`
     : "เลือกรายการ Order ก่อน Export";
+
+  button.disabled = count === 0;
+  if (button.textContent !== label) button.textContent = label;
+  if (button.title !== title) button.title = title;
 }
 
 export function installOrderSelectedExcelExport() {
@@ -120,7 +123,14 @@ export function installOrderSelectedExcelExport() {
   if (window[INSTALLED_KEY]) return;
   window[INSTALLED_KEY] = true;
 
-  const scheduleSync = () => window.requestAnimationFrame(syncButton);
+  let pendingFrame = 0;
+  const scheduleSync = () => {
+    if (pendingFrame) return;
+    pendingFrame = window.requestAnimationFrame(() => {
+      pendingFrame = 0;
+      syncButton();
+    });
+  };
 
   document.addEventListener("change", (event) => {
     if (event.target?.matches?.('input[type="checkbox"]')) scheduleSync();
