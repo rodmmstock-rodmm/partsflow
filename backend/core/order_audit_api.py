@@ -45,6 +45,8 @@ TRACKED_FIELDS = (
     "stock_received",
 )
 
+ORDER_LIST_PAGE_SIZE = 500
+
 
 def _code_name(code, name):
     code = str(code or "").strip()
@@ -170,7 +172,12 @@ def _apply_import_source(data, detail):
 
 @csrf_exempt
 def orders(request):
-    """Keep Normal filters local to the Normal tab; preserve text search everywhere."""
+    """Keep Normal filters local to the Normal tab; preserve text search everywhere.
+
+    Large production imports can contain several thousand Orders. Returning all of
+    them in one browser response made the Order page unreliable, so cap the list
+    payload while preserving the total count for pagination/search UX.
+    """
     if request.method == "GET":
         view = str(request.GET.get("view", "normal")).strip().lower()
         if view != "normal":
@@ -182,10 +189,18 @@ def orders(request):
 
     response = order_api.orders(request)
     if request.method == "GET" and 200 <= getattr(response, "status_code", 500) < 300:
-        results = (getattr(response, "data", {}) or {}).get("results") or []
-        sources = _import_source_map([row.get("id") for row in results])
-        for row in results:
+        data = getattr(response, "data", {}) or {}
+        results = data.get("results") or []
+        total_count = len(results)
+        visible_results = results[:ORDER_LIST_PAGE_SIZE]
+        sources = _import_source_map([row.get("id") for row in visible_results])
+        for row in visible_results:
             _apply_import_source(row, sources.get(str(row.get("id"))))
+        data["results"] = visible_results
+        data["count"] = len(visible_results)
+        data["total_count"] = total_count
+        data["page_size"] = ORDER_LIST_PAGE_SIZE
+        response.data = data
     return response
 
 
