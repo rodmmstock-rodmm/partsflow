@@ -2,7 +2,7 @@
 builder = "RAILPACK"
 
 [deploy]
-preDeployCommand = ["python manage.py shell -c \"from django.db import connection; assert connection.vendor == 'postgresql', f'Expected PostgreSQL, got {connection.vendor}'\""]
+preDeployCommand = ["python manage.py shell -c \"from django.db import connection; from django.db.migrations.recorder import MigrationRecorder; from core.models import OrderRecord; assert connection.vendor == 'postgresql'; assert MigrationRecorder(connection).migration_qs.filter(app='core', name='0014_import_excel_orders_2026').exists(), 'Migration 0014 is not applied'; n=OrderRecord.objects.filter(legacy_source='EXCEL_ORDER_2026').count(); assert n == 4107, f'Expected 4107 imported Orders, got {n}'\""]
 startCommand = "gunicorn config.wsgi:application --bind 0.0.0.0:$PORT --workers 2 --timeout 120"
 restartPolicyType = "ON_FAILURE"
 restartPolicyMaxRetries = 10
