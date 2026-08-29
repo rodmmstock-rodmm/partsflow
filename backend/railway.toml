@@ -2,6 +2,10 @@
 builder = "RAILPACK"
 
 [deploy]
+# Run migrations against the persistent PostgreSQL database before the new
+# runtime is promoted. Gunicorn remains a clean startup command so a migration
+# failure cannot create a restart loop in the web process.
+preDeployCommand = "python manage.py migrate --noinput"
 startCommand = "gunicorn config.wsgi:application --bind 0.0.0.0:$PORT --workers 2 --timeout 120"
 restartPolicyType = "ON_FAILURE"
 restartPolicyMaxRetries = 10
