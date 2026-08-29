@@ -23,7 +23,7 @@ jobs:
           for i in range(1,13):
               p=d/f'order_import_2026_payload_{i:02d}.txt'
               s=p.read_text(encoding='utf-8').strip()
-              print(p.name, len(s))
+              print(p.name, len(s), hashlib.sha256(s.encode('ascii')).hexdigest())
               parts.append(s)
           encoded=''.join(parts)
           print('encoded_len', len(encoded))
