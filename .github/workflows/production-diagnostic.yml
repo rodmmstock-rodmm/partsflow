@@ -11,21 +11,46 @@ on:
   workflow_dispatch:
 
 jobs:
-  probe:
+  repair-and-probe:
     runs-on: ubuntu-latest
     steps:
-      - name: Wait for deployment
-        run: sleep 45
-      - name: Probe Railway production API
+      - name: Wait for Railway deployment
+        run: sleep 60
+      - name: Check production before repair
         shell: bash
         run: |
           set -euxo pipefail
           curl --fail --show-error --silent --location --max-time 30 \
-            https://partsflow-production.up.railway.app/api/production-check/ | tee production-check.json
+            https://partsflow-production.up.railway.app/api/production-check/ | tee before.json
+          echo
+          cat before.json
+      - name: Run isolated production migration repair
+        shell: bash
+        run: |
+          set -uxo pipefail
+          status=$(curl --show-error --silent --location --max-time 180 \
+            -o repair.json -w '%{http_code}' \
+            -X POST \
+            -H 'X-PartsFlow-Repair-Key: pf-repair-20260829-6c5f19b23f9e4e64b54f4f25' \
+            https://partsflow-production.up.railway.app/api/production-repair/)
+          cat repair.json
+          echo
+          echo "HTTP_STATUS=$status"
+          test "$status" = "200"
+      - name: Verify production after repair
+        shell: bash
+        run: |
+          set -euxo pipefail
+          curl --fail --show-error --silent --location --max-time 30 \
+            https://partsflow-production.up.railway.app/api/production-check/ | tee after.json
           echo
           python - <<'PY'
           import json
-          with open('production-check.json', encoding='utf-8') as f:
+          with open('after.json', encoding='utf-8') as f:
               data=json.load(f)
           print(json.dumps(data, indent=2, ensure_ascii=False, sort_keys=True))
+          assert data['database_vendor'] == 'postgresql', data
+          assert data['migration_0014_applied'] is True, data
+          assert data['imported_order_count'] == 4107, data
+          assert data['order_count'] == 4107, data
           PY
