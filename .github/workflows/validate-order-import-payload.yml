@@ -26,12 +26,27 @@ jobs:
             'order_import_2026_payload_01c.txt':'0b08962b6184ac100d8e80e088653c297448d8a64c4cec077201a888d0ee2cdf',
             'order_import_2026_payload_01d.txt':'d8a1e404ab113946479c16422260a60e866193a4dfe49978fe3a31fa24aaadb3',
           }
+          expected_01a_segments=[
+            '02dbec51447d47927eafe3d7c6714a69c8b8ac6acb1f00072391b284c4b890c6',
+            'c74370eb35cfa968388771a2ac67c789ef0d88b674f60e7bf56bb004e047733e',
+            '25216be8e11d3b9e9f3a563d3675da8ec6a70cb99dfb72e2db0f220d628c4637',
+            'dcdd73e3f76cd1dd3015a3e5fe556a27b280d94d3e2a3b1c778127dba178a41f',
+            '0512db97dfd62a48eaeca0b1099fca6ffb243c6462429b2f552066b7daa992c8',
+            '03d90e26e131db191cc053279f826584a03383eb461ec0ba4bc5b6ddde09f162',
+            'e413acbf3bdd7480be7936ff954dece43692ad79f58af349b622d7b141572564',
+            '8c8c8f7908b6187e4c4ebca7c840b844b9a839182012e9bf9eb6d58b0e8a8750',
+          ]
           parts=[]
           for name in names:
               p=d/name
               s=p.read_text(encoding='utf-8').strip()
               digest=hashlib.sha256(s.encode('ascii')).hexdigest()
               print(name, len(s), digest)
+              if name=='order_import_2026_payload_01a.txt':
+                  for idx in range(8):
+                      seg=s[idx*500:(idx+1)*500]
+                      got=hashlib.sha256(seg.encode('ascii')).hexdigest()
+                      print('01a-segment',idx,got,'expected',expected_01a_segments[idx],'ok',got==expected_01a_segments[idx])
               if name in expected_sub:
                   assert len(s)==4000, (name,len(s))
                   assert digest==expected_sub[name], (name,digest)
