@@ -1,8 +1,7 @@
-// Development must always use the same-origin Vite proxy.
-// This deliberately ignores a stale VITE_API_BASE_URL exported in the terminal,
-// so Codespaces never jumps directly to the forwarded Django :8000 origin.
-const CONFIGURED_API_BASE = (import.meta.env.VITE_API_BASE_URL || "/api").replace(/\/$/, "");
-const API_BASE = import.meta.env.DEV ? "/api" : CONFIGURED_API_BASE;
+// Development uses the same-origin Vite proxy. Production must always use
+// the Railway service that owns the PartsFlow production database.
+const PRODUCTION_API_BASE = "https://partsflow-production.up.railway.app/api";
+const API_BASE = import.meta.env.DEV ? "/api" : PRODUCTION_API_BASE;
 
 const TOKEN_KEY = "partsflow_auth_token";
 
