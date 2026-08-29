@@ -1,0 +1,37 @@
+name: Validate order import payload
+
+on:
+  push:
+    paths:
+      - '.github/workflows/validate-order-import-payload.yml'
+      - 'backend/core/migrations/order_import_2026_payload_*.txt'
+      - 'backend/core/migrations/0014_import_excel_orders_2026.py'
+  workflow_dispatch:
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validate chunked payload
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import base64, hashlib, json, lzma
+          d=Path('backend/core/migrations')
+          parts=[]
+          for i in range(1,13):
+              p=d/f'order_import_2026_payload_{i:02d}.txt'
+              s=p.read_text(encoding='utf-8').strip()
+              print(p.name, len(s))
+              parts.append(s)
+          encoded=''.join(parts)
+          print('encoded_len', len(encoded))
+          digest=hashlib.sha256(encoded.encode('ascii')).hexdigest()
+          print('sha256', digest)
+          assert len(encoded)==189160, len(encoded)
+          assert digest=='31468142039ed7466b9062dd155b40aa5f70f198effb49972bc1af9e370c9cbb', digest
+          rows=json.loads(lzma.decompress(base64.b64decode(encoded)).decode('utf-8'))
+          print('rows', len(rows), 'first', rows[0]['sheet'], rows[0]['row'], 'last', rows[-1]['sheet'], rows[-1]['row'])
+          assert len(rows)==4107
+          PY
