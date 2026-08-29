@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 export function PageHeader({ title, subtitle, actions }) {
   return (
@@ -13,9 +13,39 @@ export function PageHeader({ title, subtitle, actions }) {
 }
 
 export function Modal({ title, children, onClose, wide = false }) {
+  const cardRef = useRef(null);
+
+  useEffect(() => {
+    if (title !== "เบิกอะไหล่") return undefined;
+
+    const input = cardRef.current?.querySelector('input[type="number"]');
+    if (!input) return undefined;
+
+    input.min = "1";
+    input.step = "1";
+    input.inputMode = "numeric";
+
+    const validateInteger = () => {
+      if (input.value === "") {
+        input.setCustomValidity("");
+        return;
+      }
+      const amount = Number(input.value);
+      input.setCustomValidity(
+        Number.isInteger(amount) && amount > 0
+          ? ""
+          : "จำนวนเบิกต้องเป็นจำนวนเต็มมากกว่า 0"
+      );
+    };
+
+    validateInteger();
+    input.addEventListener("input", validateInteger);
+    return () => input.removeEventListener("input", validateInteger);
+  }, [title, children]);
+
   return (
     <div className="modal-backdrop" onMouseDown={onClose}>
-      <div className={`modal-card ${wide ? "wide" : ""}`} onMouseDown={(e) => e.stopPropagation()}>
+      <div ref={cardRef} className={`modal-card ${wide ? "wide" : ""}`} onMouseDown={(e) => e.stopPropagation()}>
         <div className="modal-head">
           <h2>{title}</h2>
           <button type="button" className="icon-btn" onClick={onClose}>×</button>
@@ -126,4 +156,3 @@ export function PartImage({
     />
   );
 }
-
