@@ -5,7 +5,6 @@ import App from "./App";
 import { AuthProvider } from "./auth";
 import { installOrderSelectedExcelExport } from "./orderSelectedExcelExport";
 import { installOrderDetailEnhancer } from "./orderDetailEnhancer";
-import { installOrderRuntimeProbe } from "./orderRuntimeProbe";
 import "./styles.css";
 
 ReactDOM.createRoot(document.getElementById("root")).render(
@@ -20,4 +19,3 @@ ReactDOM.createRoot(document.getElementById("root")).render(
 
 installOrderSelectedExcelExport();
 installOrderDetailEnhancer();
-installOrderRuntimeProbe();
