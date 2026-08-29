@@ -10,7 +10,38 @@ function lifeLabel(x){if(x.lifecycle_status==="WAIT_CONFIRM")return "Wait Confir
 export default function MobileOrders(){
   const auth=useAuth();
   const[rows,setRows]=useState([]),[kpi,setKpi]=useState({}),[options,setOptions]=useState({}),[q,setQ]=useState(""),[status,setStatus]=useState(""),[job,setJob]=useState(""),[tab,setTab]=useState("normal"),[loading,setLoading]=useState(true),[error,setError]=useState(""),[busy,setBusy]=useState(""),[editor,setEditor]=useState(null),[purchase,setPurchase]=useState(null);
-  async function load(force=false){setLoading(true);setError("");try{const p=new URLSearchParams({view:tab,q:"",urgency:"all",job,status});const[d,o]=await Promise.all([apiGet(`/orders/?${p}`,{forceRefresh:force}),apiGet("/options/",{forceRefresh:force})]);setRows(d.results||[]);setKpi(d.kpi||{});setOptions(o||{})}catch(e){setError(e.message)}finally{setLoading(false)}}
+
+  async function load(force=false){
+    setLoading(true);
+    setError("");
+    try{
+      const p=new URLSearchParams({view:tab,q:"",urgency:"all",job,status});
+      const d=await apiGet(`/orders/?${p}`,{forceRefresh:force,cache:false});
+      setRows(d.results||[]);
+      setKpi(d.kpi||{});
+    }catch(e){
+      setRows([]);
+      setKpi({});
+      setError(e.message);
+      setLoading(false);
+      return;
+    }
+
+    // Master/options data is useful for edit modals, but it must never block
+    // the Order list itself. The previous Promise.all made a slow/failed
+    // /options/ request discard a perfectly valid /orders/ response on mobile.
+    try{
+      const o=await apiGet("/options/",{forceRefresh:force});
+      setOptions(o||{});
+    }catch(e){
+      setOptions({});
+      // Keep the successfully loaded Orders visible. Editing can be retried
+      // after options become available instead of showing an empty Order page.
+    }finally{
+      setLoading(false);
+    }
+  }
+
   useEffect(()=>{load()},[tab,status,job]);
   const shown=useMemo(()=>rows.filter(x=>!q||`${x.order_number} ${x.item_id} ${x.part_name} ${x.machine_name} ${x.machine_code} ${x.vendor_name} ${x.po_number}`.toLowerCase().includes(q.toLowerCase())),[rows,q]);
   async function act(row,action){if(busy)return;let ok=true,reason="";if(action==="receive")ok=confirm(`ยืนยันรับ ${row.order_number}?`);if(action==="wait")ok=confirm(`เปลี่ยน ${row.order_number} เป็น Wait Confirm?`);if(action==="cancelwait")ok=confirm(`ยกเลิก Wait Confirm ${row.order_number}?`);if(action==="cancel"){ok=confirm(`ยกเลิก ${row.order_number}?`);if(ok)reason=prompt("เหตุผลการยกเลิก","")||""}if(action==="restore")ok=confirm(`คืนรายการ ${row.order_number}?`);if(action==="delete")ok=confirm(`ลบ ${row.order_number} ถาวร?`);if(action==="update")ok=confirm(`ยืนยันอัพเดตข้อมูล ${row.order_number}?`);if(!ok)return;setBusy(row.id+action);setError("");try{if(action==="receive")await apiPost(`/orders/${row.id}/receive/`,{});if(action==="wait")await apiPost(`/orders/${row.id}/wait-confirm/`,{wait_confirm:true});if(action==="cancelwait")await apiPost(`/orders/${row.id}/wait-confirm/`,{wait_confirm:false});if(action==="cancel")await apiPost(`/orders/${row.id}/cancel/`,{cancel:true,reason});if(action==="restore")await apiPost(`/orders/${row.id}/cancel/`,{cancel:false});if(action==="delete")await apiDelete(`/orders/${row.id}/delete/`);if(action==="update")await apiPost(`/orders/${row.id}/update-data/`,{});await load(true)}catch(e){setError(e.message)}finally{setBusy("")}}
