@@ -215,7 +215,7 @@ function stampBlock(stamps) {
 
   const wrap = el("div", "pf-order-stamp");
   const latest = stamps[0];
-  const who = cleanText(latest.employee_code) || "ไม่ทราบรหัส";
+  const who = cleanText(latest.employee_name) || "ไม่ทราบผู้แก้ไข";
   wrap.appendChild(
     el(
       "div",
@@ -231,9 +231,7 @@ function stampBlock(stamps) {
 
   stamps.forEach((stamp) => {
     const item = el("div", "pf-order-stamp-entry");
-    const employee = [stamp.employee_code, stamp.employee_name]
-      .filter(Boolean)
-      .join(" · ");
+    const employee = cleanText(stamp.employee_name);
     item.appendChild(
       el(
         "div",

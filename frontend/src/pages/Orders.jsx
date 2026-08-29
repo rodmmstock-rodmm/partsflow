@@ -26,6 +26,8 @@ const URGENT = [
   "งานด่วน + ค้าง DATA",
 ];
 
+const MONTHS_TH = ["มกราคม","กุมภาพันธ์","มีนาคม","เมษายน","พฤษภาคม","มิถุนายน","กรกฎาคม","สิงหาคม","กันยายน","ตุลาคม","พฤศจิกายน","ธันวาคม"];
+
 const STEP_HEADERS = [
   "DATE",
   "FACTORY",
@@ -857,6 +859,47 @@ function OrderTable({
   );
 }
 
+
+function MonthlyOrderTables({ rows, auth, selected, onToggle, onToggleAll, onEdit, onPurchase }) {
+  const [openYears, setOpenYears] = useState({});
+  const [openMonths, setOpenMonths] = useState({});
+  const groups = useMemo(() => {
+    const years = new Map();
+    for (const row of rows) {
+      const raw = row.cancelled_at || row.received_at || row.updated_at || row.date || row.order_date;
+      const d = raw ? new Date(raw) : null;
+      const valid = d && !Number.isNaN(d.getTime());
+      const year = valid ? String(d.getFullYear()) : String(row.date || "").slice(0, 4) || "ไม่ระบุปี";
+      const mi = valid ? d.getMonth() : Math.max(0, Number(String(row.date || "").slice(5, 7)) - 1 || 0);
+      const key = `${year}-${String(mi + 1).padStart(2, "0")}`;
+      if (!years.has(year)) years.set(year, new Map());
+      const months = years.get(year);
+      if (!months.has(key)) months.set(key, { key, label: MONTHS_TH[mi] || key, rows: [] });
+      months.get(key).rows.push(row);
+    }
+    return Array.from(years.entries())
+      .sort((a, b) => Number(b[0]) - Number(a[0]))
+      .map(([year, months]) => ({ year, months: Array.from(months.values()).sort((a, b) => b.key.localeCompare(a.key)) }));
+  }, [rows]);
+
+  useEffect(() => {
+    if (!groups.length) return;
+    const y = groups[0];
+    const m = y.months[0];
+    setOpenYears((prev) => Object.keys(prev).length ? prev : { [y.year]: true });
+    if (m) setOpenMonths((prev) => Object.keys(prev).length ? prev : { [m.key]: true });
+  }, [groups]);
+
+  if (!groups.length) return <div className="empty">ไม่พบข้อมูล</div>;
+  return <div className="history-groups">{groups.map((y) => <section className="history-year" key={y.year}>
+    <button className="history-collapse year" onClick={() => setOpenYears((x) => ({ ...x, [y.year]: !x[y.year] }))}><span>{openYears[y.year] ? "▾" : "▸"} ปี {y.year}</span><b>{y.months.reduce((n, m) => n + m.rows.length, 0)} รายการ</b></button>
+    {openYears[y.year] && <div className="history-months">{y.months.map((m) => <section className="history-month" key={m.key}>
+      <button className="history-collapse month" onClick={() => setOpenMonths((x) => ({ ...x, [m.key]: !x[m.key] }))}><span>{openMonths[m.key] ? "▾" : "▸"} {m.label}</span><b>{m.rows.length} รายการ</b></button>
+      {openMonths[m.key] && <OrderTable rows={m.rows} auth={auth} selected={selected} onToggle={onToggle} onToggleAll={onToggleAll} onEdit={onEdit} onPurchase={onPurchase} />}
+    </section>)}</div>}
+  </section>)}</div>;
+}
+
 function BulkActions({ rows, auth, busy, onRun, onClear }) {
   const count = rows.length;
   const canWait = rows.some((o) => o.lifecycle_status === "ACTIVE");
@@ -1017,7 +1060,7 @@ export function ProjectModal({
             <option value="">เลือกเจ้าของ Project</option>
             {(options.employees || []).map((x) => (
               <option key={x.id} value={x.id}>
-                {x.name} · {x.employee_code}
+                {x.name}
               </option>
             ))}
           </select>
@@ -1807,16 +1850,28 @@ export default function Orders({ mode = "orders" }) {
           {loading ? (
             <div className="empty">กำลังโหลด...</div>
           ) : (
-            <OrderTable
-              rows={rows}
-              auth={auth}
-              selected={selected}
-              onToggle={toggleSelected}
-              onToggleAll={toggleAll}
-              onEdit={(order) => setEditor({ order, project: null })}
-              onPurchase={setPurchase}
-              onUpdate={tab === "updates" ? updateData : null}
-            />
+            ["completed", "cancelled"].includes(tab) ? (
+              <MonthlyOrderTables
+                rows={rows}
+                auth={auth}
+                selected={selected}
+                onToggle={toggleSelected}
+                onToggleAll={toggleAll}
+                onEdit={(order) => setEditor({ order, project: null })}
+                onPurchase={setPurchase}
+              />
+            ) : (
+              <OrderTable
+                rows={rows}
+                auth={auth}
+                selected={selected}
+                onToggle={toggleSelected}
+                onToggleAll={toggleAll}
+                onEdit={(order) => setEditor({ order, project: null })}
+                onPurchase={setPurchase}
+                onUpdate={tab === "updates" ? updateData : null}
+              />
+            )
           )}
         </section>
       )}

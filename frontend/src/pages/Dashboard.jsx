@@ -189,18 +189,6 @@ function PartModal({ part, options, onClose, onSaved }) {
             <input type="number" step="any" value={form.reorder_qty} onChange={(e) => set("reorder_qty", e.target.value)} />
           </label>
           <label className="field">
-            <span>Vendor Lead Time</span>
-            <div className="input-suffix">
-              <input
-                type="number"
-                min="0"
-                value={form.vendor_lead_time_days}
-                onChange={(e) => set("vendor_lead_time_days", e.target.value)}
-              />
-              <b>DAY</b>
-            </div>
-          </label>
-          <label className="field">
             <span>Last Purchase Price</span>
             <div className="input-suffix">
               <input
@@ -283,7 +271,7 @@ function StockModal({ mode, part, options, employee, onClose, onSaved }) {
   function findByLabel(list, label, kind) {
     const target = label.trim().toLowerCase();
     return list.find((item) => {
-      const shown = kind === "employee" ? `${item.name}` : kind === "machine" ? `${item.name}` : `${item.code} · ${item.name}`;
+      const shown = kind === "employee" ? `${item.name}` : kind === "machine" ? `${item.code}` : `${item.code} · ${item.name}`;
       const code = kind === "employee" ? item.employee_code : item.code;
       return shown.toLowerCase() === target || String(code || "").toLowerCase() === target;
     });
@@ -344,7 +332,7 @@ function StockModal({ mode, part, options, employee, onClose, onSaved }) {
                 <span>เครื่องจักร *</span>
                 <input list="mc-stock" value={machine} onChange={(e) => setMachine(e.target.value)} placeholder="พิมพ์ค้นหา..." />
                 <datalist id="mc-stock">
-                  {(options.machines || []).map((item) => <option key={item.id} value={item.name} />)}
+                  {(options.machines || []).map((item) => <option key={item.id} value={item.code} />)}
                 </datalist>
               </label>
             </>

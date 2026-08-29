@@ -71,9 +71,6 @@ export default function PartDetailModal({ part, onClose }) {
           <Info label="Vendor หลัก">{p.supplier_name || "-"}</Info>
           <Info label="Min Stock">{fmt(p.min_stock)}</Info>
           <Info label="จำนวนที่ Order">{fmt(p.reorder_qty)}</Info>
-          <Info label="Vendor Lead Time">{fmt(p.vendor_lead_time_days)} วัน</Info>
-          <Info label="Purchasing Lead Time">{fmt(p.purchasing_lead_time_days)} วัน</Info>
-          <Info label="Total Lead Time">{fmt(p.total_lead_time_days)} วัน</Info>
           <Info label="Last Purchase Price">฿ {money(p.last_purchase_price)}</Info>
         </div>
         {p.remark && <div className="part-detail-note"><b>Remark</b><p>{p.remark}</p></div>}
@@ -95,8 +92,8 @@ export default function PartDetailModal({ part, onClose }) {
 
       <Section title="Vendor / Supplier" count={(p.suppliers || []).length}>
         {(p.suppliers || []).length === 0 ? <div className="empty compact">ยังไม่มี Supplier Link</div> :
-          <div className="detail-table-wrap"><table><thead><tr><th>Vendor</th><th>Supplier Part No.</th><th>ราคา</th><th>Lead Time</th><th>MOQ</th><th>Preferred</th></tr></thead><tbody>
-            {p.suppliers.map(x => <tr key={x.id}><td><b>{x.code}</b> · {x.name}</td><td>{x.supplier_part_no || "-"}</td><td>{x.currency} {money(x.unit_price)}</td><td>{fmt(x.lead_time_days)} วัน</td><td>{fmt(x.minimum_order_qty)}</td><td>{x.is_preferred ? "✓" : "-"}</td></tr>)}
+          <div className="detail-table-wrap"><table><thead><tr><th>Vendor</th><th>Supplier Part No.</th><th>ราคา</th><th>MOQ</th><th>Preferred</th></tr></thead><tbody>
+            {p.suppliers.map(x => <tr key={x.id}><td><b>{x.code}</b> · {x.name}</td><td>{x.supplier_part_no || "-"}</td><td>{x.currency} {money(x.unit_price)}</td><td>{fmt(x.minimum_order_qty)}</td><td>{x.is_preferred ? "✓" : "-"}</td></tr>)}
           </tbody></table></div>}
       </Section>
 
