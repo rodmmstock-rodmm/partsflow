@@ -6,7 +6,7 @@ const STYLE_ID = "partsflow-order-detail-style";
 const ORDER_TARGET_SELECTOR =
   "table.order-table tbody tr, article.m-order-card, article.m-step-order";
 const INTERACTIVE_SELECTOR =
-  "button,input,select,textarea,a,label,summary,details,[role=button]";
+  "button,input,select,textarea,a,label,summary,details";
 
 const ORDER_FIELDS = [
   { key: null, label: "DATE", value: (d) => d.date },
