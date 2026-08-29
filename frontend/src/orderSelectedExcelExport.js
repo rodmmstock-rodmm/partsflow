@@ -1,5 +1,6 @@
 import * as XLSX from "xlsx";
 
+const HOST_ID = "partsflow-order-selected-export-host";
 const BUTTON_ID = "partsflow-order-selected-export";
 const INSTALLED_KEY = "__partsflowOrderSelectedExcelExportInstalled";
 
@@ -68,51 +69,48 @@ function exportSelectedOrders() {
   XLSX.writeFile(wb, `partsflow_orders_selected_${date}.xlsx`);
 }
 
-function findBulkToolbar() {
-  return Array.from(document.querySelectorAll(".toolbar.wrap")).find((node) =>
-    cleanText(node.textContent).includes("เลือกแล้ว")
-  );
-}
+function ensureExportHost() {
+  let host = document.getElementById(HOST_ID);
+  if (host) return host;
 
-function removeButton() {
-  document.getElementById(BUTTON_ID)?.remove();
+  host = document.createElement("div");
+  host.id = HOST_ID;
+  host.style.position = "fixed";
+  host.style.right = "18px";
+  host.style.bottom = "18px";
+  host.style.zIndex = "1200";
+  host.style.display = "none";
+
+  const button = document.createElement("button");
+  button.id = BUTTON_ID;
+  button.type = "button";
+  button.className = "btn primary";
+  button.style.boxShadow = "0 10px 28px rgba(15, 23, 42, 0.18)";
+  button.addEventListener("click", exportSelectedOrders);
+
+  host.appendChild(button);
+  document.body.appendChild(host);
+  return host;
 }
 
 function syncButton() {
-  // Order Step already has its own project export controls. Add this helper only
-  // to the normal Order page requested by the user.
-  if (currentPageTitle() !== "Order") {
-    removeButton();
-    return;
-  }
-
+  const host = ensureExportHost();
+  const button = document.getElementById(BUTTON_ID);
   const table = orderTable();
-  const toolbar = findBulkToolbar();
-  if (!table || !toolbar) {
-    removeButton();
+  const isNormalOrderPage = currentPageTitle() === "Order" && !!table;
+
+  if (!isNormalOrderPage) {
+    host.style.display = "none";
     return;
   }
 
   const count = selectedOrderRows(table).length;
-  let button = document.getElementById(BUTTON_ID);
-
-  if (!button) {
-    button = document.createElement("button");
-    button.id = BUTTON_ID;
-    button.type = "button";
-    button.className = "btn ghost";
-    button.addEventListener("click", exportSelectedOrders);
-
-    const summary = toolbar.querySelector("strong");
-    if (summary?.nextSibling) toolbar.insertBefore(button, summary.nextSibling);
-    else toolbar.appendChild(button);
-  }
-
   const label = `⬇ Export Excel (${count})`;
   const title = count
     ? `Export ${count} รายการที่เลือกเป็นไฟล์ Excel`
     : "เลือกรายการ Order ก่อน Export";
 
+  host.style.display = "block";
   button.disabled = count === 0;
   if (button.textContent !== label) button.textContent = label;
   if (button.title !== title) button.title = title;
@@ -137,7 +135,7 @@ export function installOrderSelectedExcelExport() {
   });
 
   const observer = new MutationObserver(scheduleSync);
-  observer.observe(document.body, { childList: true, subtree: true });
+  observer.observe(document.getElementById("root"), { childList: true, subtree: true });
 
   scheduleSync();
 }
