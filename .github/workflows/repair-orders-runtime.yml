@@ -1,5 +1,6 @@
 name: Repair production Orders runtime
 
+# Triggered after validated payload + Railway deployment.
 on:
   push:
     paths:
