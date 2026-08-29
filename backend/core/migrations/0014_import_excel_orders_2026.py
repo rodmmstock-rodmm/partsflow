@@ -13,10 +13,6 @@ from django.utils import timezone
 
 
 SOURCE = "EXCEL_ORDER_2026"
-PAYLOAD_FILES = tuple(
-    f"order_import_2026_payload_{index:02d}.txt"
-    for index in range(1, 13)
-)
 PAYLOAD_LENGTH = 189160
 PAYLOAD_SHA256 = "31468142039ed7466b9062dd155b40aa5f70f198effb49972bc1af9e370c9cbb"
 EXPECTED_ROWS = 4107
@@ -77,10 +73,25 @@ def _status(row):
 
 
 def _load_payload_rows():
-    encoded = "".join(
-        Path(__file__).with_name(filename).read_text(encoding="utf-8").strip()
-        for filename in PAYLOAD_FILES
-    )
+    directory = Path(__file__).parent
+    first = (directory / "order_import_2026_payload_01a.txt").read_text(encoding="utf-8").strip()
+    fix = (directory / "order_import_2026_payload_01a_fix_0500_0999.txt").read_text(encoding="utf-8").strip()
+    if len(first) != 4000 or len(fix) != 500:
+        raise RuntimeError("Order import first payload segment has invalid length")
+    first = first[:500] + fix + first[1000:]
+    if hashlib.sha256(first.encode("ascii")).hexdigest() != "7e73f1cef4d321bd412e7b0790c4256897c15821ef53448e1f4b41d088b8694c":
+        raise RuntimeError("Order import first payload segment checksum mismatch")
+
+    pieces = [first]
+    for filename in (
+        "order_import_2026_payload_01b.txt",
+        "order_import_2026_payload_01c.txt",
+        "order_import_2026_payload_01d.txt",
+        *tuple(f"order_import_2026_payload_{index:02d}.txt" for index in range(2, 13)),
+    ):
+        pieces.append((directory / filename).read_text(encoding="utf-8").strip())
+
+    encoded = "".join(pieces)
     if len(encoded) != PAYLOAD_LENGTH:
         raise RuntimeError(
             f"Order import payload length mismatch: expected {PAYLOAD_LENGTH}, got {len(encoded)}"
