@@ -132,6 +132,42 @@ def _run_mutation(request, pk, view_func, source_action):
     return response
 
 
+def _import_source_map(entity_ids):
+    ids = [str(value) for value in entity_ids if value]
+    if not ids:
+        return {}
+    rows = AuditLog.objects.filter(
+        entity="OrderRecord",
+        action="ORDER_IMPORT_SOURCE",
+        entity_id__in=ids,
+    ).values("entity_id", "detail")
+    return {row["entity_id"]: (row["detail"] or {}) for row in rows}
+
+
+def _apply_import_source(data, detail):
+    if not detail:
+        return data
+    if not data.get("machine_code") and detail.get("machine_raw"):
+        data["machine_code"] = detail.get("machine_raw")
+    if not data.get("item_id") and detail.get("item_id"):
+        data["item_id"] = detail.get("item_id")
+    if not data.get("vendor_name") and detail.get("vendor_raw"):
+        data["vendor_name"] = detail.get("vendor_raw")
+    if not data.get("ordered_by") and detail.get("ordered_by_raw"):
+        data["ordered_by"] = detail.get("ordered_by_raw")
+    if not data.get("issue_pr_date") and detail.get("issue_pr_raw"):
+        data["issue_pr_date"] = detail.get("issue_pr_raw")
+    if not data.get("due_date") and detail.get("due_raw"):
+        data["due_date"] = detail.get("due_raw")
+    if not data.get("vendor_confirm_date") and detail.get("vendor_confirm_raw"):
+        data["vendor_confirm_date"] = detail.get("vendor_confirm_raw")
+    data["import_source"] = {
+        "sheet": detail.get("sheet"),
+        "row": detail.get("row"),
+    }
+    return data
+
+
 @csrf_exempt
 def orders(request):
     """Keep Normal filters local to the Normal tab; preserve text search everywhere."""
@@ -143,7 +179,14 @@ def orders(request):
             params["job"] = ""
             params["status"] = ""
             request.GET = params
-    return order_api.orders(request)
+
+    response = order_api.orders(request)
+    if request.method == "GET" and 200 <= getattr(response, "status_code", 500) < 300:
+        results = (getattr(response, "data", {}) or {}).get("results") or []
+        sources = _import_source_map([row.get("id") for row in results])
+        for row in results:
+            _apply_import_source(row, sources.get(str(row.get("id"))))
+    return response
 
 
 @api_view(["GET"])
@@ -162,6 +205,8 @@ def order_detail_by_number(request, order_number):
         return Response({"detail": "ไม่พบ Order"}, status=404)
 
     data = order_api.order_json(order)
+    source = _import_source_map([order.id]).get(str(order.id))
+    _apply_import_source(data, source)
     data["recorded_by_code"] = (
         order.recorded_by.employee_code if order.recorded_by else ""
     )
