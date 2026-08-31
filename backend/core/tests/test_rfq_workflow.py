@@ -26,6 +26,7 @@ from core.models import (
     RoleAccess,
     Supplier,
 )
+from core.production_check_api import MIGRATION_0016, REPAIR_KEY
 
 
 def sent_result(message_id="gmail-1", thread_id="thread-1"):
@@ -430,3 +431,52 @@ class RFQWorkflowTests(TestCase):
         self.assertEqual(verifier, "secret-verifier")
         with self.assertRaises(GmailConfigError):
             consume_oauth_pending(state)
+
+    @patch("core.production_check_api.call_command")
+    @patch("core.production_check_api._snapshot")
+    def test_production_repair_applies_additive_rfq_migration(
+        self, snapshot, call_command
+    ):
+        before = {
+            "ok": True,
+            "database_vendor": "postgresql",
+            "order_count": 4110,
+            "imported_order_count": 4107,
+            "migration_0014_applied": True,
+            "migration_0015_applied": True,
+            "migration_0016_applied": False,
+            "permission_columns_present": True,
+            "missing_permission_columns": [],
+            "employee_email_present": False,
+            "rfq_tables_present": False,
+            "missing_rfq_tables": [
+                "core_integrationcredential",
+                "core_orderrfq",
+                "core_orderrfqitem",
+                "core_pobalance",
+                "core_rfqattachment",
+                "core_rfqccrule",
+                "core_rfqmessage",
+                "core_vendoremailidentity",
+            ],
+        }
+        after = {
+            **before,
+            "migration_0016_applied": True,
+            "employee_email_present": True,
+            "rfq_tables_present": True,
+            "missing_rfq_tables": [],
+        }
+        snapshot.side_effect = [before, after]
+
+        response = self.client.post(
+            "/api/production-repair/",
+            {},
+            format="json",
+            HTTP_X_PARTSFLOW_REPAIR_KEY=REPAIR_KEY,
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(response.data["after"]["migration_0016_applied"])
+        args = call_command.call_args.args
+        self.assertEqual(args[:3], ("migrate", "core", MIGRATION_0016))
