@@ -51,14 +51,14 @@ jobs:
           pyinstaller --noconfirm --clean --onefile --name PartsFlowLocal `
             --paths backend `
             --add-data "frontend/dist;frontend_dist" `
-            --collect-all core `
-            --collect-all config `
+            --add-data "backend/core/migrations/*.txt;core/migrations" `
             backend/local_app.py
 
       - name: Smoke test EXE and local database
         shell: pwsh
         run: |
-          $p = Start-Process -FilePath "$PWD\dist\PartsFlowLocal.exe" -PassThru
+          Remove-Item local-smoke-out.txt,local-smoke-err.txt -ErrorAction SilentlyContinue
+          $p = Start-Process -FilePath "$PWD\dist\PartsFlowLocal.exe" -PassThru -RedirectStandardOutput "$PWD\local-smoke-out.txt" -RedirectStandardError "$PWD\local-smoke-err.txt"
           try {
             $ok = $false
             for ($i = 0; $i -lt 90; $i++) {
@@ -73,7 +73,13 @@ jobs:
               } catch {}
               if ($p.HasExited) { break }
             }
-            if (-not $ok) { throw 'PartsFlow Local smoke/database test failed' }
+            if (-not $ok) {
+              Write-Host '--- PartsFlowLocal stdout ---'
+              if (Test-Path local-smoke-out.txt) { Get-Content local-smoke-out.txt }
+              Write-Host '--- PartsFlowLocal stderr ---'
+              if (Test-Path local-smoke-err.txt) { Get-Content local-smoke-err.txt }
+              throw 'PartsFlow Local smoke/database test failed'
+            }
             Write-Host 'SMOKE TEST PASSED: SQLite + migration 0014 + 4107 imported orders'
           } finally {
             if (-not $p.HasExited) { Stop-Process -Id $p.Id -Force }
