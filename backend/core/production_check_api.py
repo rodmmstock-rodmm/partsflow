@@ -119,10 +119,16 @@ def production_repair(request):
             status=500,
         )
 
-    if (
+    core_schema_ready = (
         before["migration_0015_applied"]
         and before["permission_columns_present"]
-    ):
+    )
+    rfq_schema_ready = (
+        before["migration_0016_applied"]
+        and before["employee_email_present"]
+        and before["rfq_tables_present"]
+    )
+    if core_schema_ready and rfq_schema_ready:
         return Response(
             {
                 "ok": True,
@@ -139,14 +145,22 @@ def production_repair(request):
         precondition_errors.append("migration_0014_not_applied")
     if before["imported_order_count"] != 4107:
         precondition_errors.append("unexpected_imported_order_count")
-    if before["migration_0015_applied"]:
+    if before["migration_0015_applied"] and not before["permission_columns_present"]:
         precondition_errors.append("migration_0015_recorded_without_columns")
-    if before["permission_columns_present"]:
+    if not before["migration_0015_applied"] and before["permission_columns_present"]:
         precondition_errors.append("permission_columns_exist_without_migration")
-    if len(before["missing_permission_columns"]) != len(
-        REQUIRED_PERMISSION_COLUMNS
-    ):
+    if not core_schema_ready and len(before["missing_permission_columns"]) not in {
+        0,
+        len(REQUIRED_PERMISSION_COLUMNS),
+    }:
         precondition_errors.append("partial_permission_schema")
+    if before["migration_0016_applied"] and not rfq_schema_ready:
+        precondition_errors.append("migration_0016_recorded_without_schema")
+    present_rfq_tables = REQUIRED_RFQ_TABLES - set(before["missing_rfq_tables"])
+    if not before["migration_0016_applied"] and (
+        before["employee_email_present"] or present_rfq_tables
+    ):
+        precondition_errors.append("partial_rfq_schema")
 
     if precondition_errors:
         return Response(
@@ -165,7 +179,7 @@ def production_repair(request):
         call_command(
             "migrate",
             "core",
-            MIGRATION_0015,
+            MIGRATION_0016,
             interactive=False,
             verbosity=1,
             stdout=stdout,
@@ -175,7 +189,10 @@ def production_repair(request):
         if not (
             after["migration_0014_applied"]
             and after["migration_0015_applied"]
+            and after["migration_0016_applied"]
             and after["permission_columns_present"]
+            and after["employee_email_present"]
+            and after["rfq_tables_present"]
             and after["order_count"] == before["order_count"]
             and after["imported_order_count"] == 4107
         ):
