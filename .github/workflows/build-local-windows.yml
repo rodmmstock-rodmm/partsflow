@@ -52,6 +52,8 @@ jobs:
             --paths backend `
             --add-data "frontend/dist;frontend_dist" `
             --add-data "backend/core/migrations/*.txt;core/migrations" `
+            --hidden-import whitenoise.middleware `
+            --hidden-import corsheaders.middleware `
             backend/local_app.py
 
       - name: Smoke test EXE and local database
