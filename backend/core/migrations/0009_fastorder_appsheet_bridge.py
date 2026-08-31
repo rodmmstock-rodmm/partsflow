@@ -62,6 +62,25 @@ DROP VIEW IF EXISTS appsheet_parts_view;
 """
 
 
+def create_appsheet_views(apps, schema_editor):
+    # These views are an external AppSheet/PostgreSQL bridge. Local Edition uses
+    # SQLite and does not consume them, so keep SQLite schema portable while
+    # preserving the exact PostgreSQL behaviour for normal/cloud installations.
+    if schema_editor.connection.vendor != "postgresql":
+        return
+    with schema_editor.connection.cursor() as cursor:
+        cursor.execute(PARTS_VIEW_SQL)
+        cursor.execute(EMPLOYEES_VIEW_SQL)
+        cursor.execute(MACHINES_VIEW_SQL)
+
+
+def drop_appsheet_views(apps, schema_editor):
+    if schema_editor.connection.vendor != "postgresql":
+        return
+    with schema_editor.connection.cursor() as cursor:
+        cursor.execute(DROP_VIEWS_SQL)
+
+
 class Migration(migrations.Migration):
 
     dependencies = [
@@ -125,16 +144,5 @@ class Migration(migrations.Migration):
                 name="uniq_fastorder_factory_machine_part",
             ),
         ),
-        migrations.RunSQL(
-            sql=PARTS_VIEW_SQL,
-            reverse_sql="DROP VIEW IF EXISTS appsheet_parts_view;",
-        ),
-        migrations.RunSQL(
-            sql=EMPLOYEES_VIEW_SQL,
-            reverse_sql="DROP VIEW IF EXISTS appsheet_employees_view;",
-        ),
-        migrations.RunSQL(
-            sql=MACHINES_VIEW_SQL,
-            reverse_sql="DROP VIEW IF EXISTS appsheet_machines_view;",
-        ),
+        migrations.RunPython(create_appsheet_views, drop_appsheet_views),
     ]
