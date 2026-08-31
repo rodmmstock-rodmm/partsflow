@@ -10,7 +10,7 @@ on:
       - '.github/workflows/build-local-windows.yml'
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   build:
@@ -97,3 +97,24 @@ jobs:
           name: PartsFlow-Local-Windows
           path: PartsFlow-Local-Windows.zip
           retention-days: 30
+
+      - name: Publish successful build marker
+        shell: pwsh
+        run: |
+          $hash = (Get-FileHash PartsFlow-Local-Windows.zip -Algorithm SHA256).Hash.ToLower()
+          $size = (Get-Item PartsFlow-Local-Windows.zip).Length
+          $status = [ordered]@{
+            ok = $true
+            run_id = '${{ github.run_id }}'
+            source_sha = '${{ github.sha }}'
+            artifact_name = 'PartsFlow-Local-Windows'
+            zip_sha256 = $hash
+            zip_size = $size
+            built_at_utc = (Get-Date).ToUniversalTime().ToString('o')
+          } | ConvertTo-Json
+          Set-Content -Path local-build-status.json -Value $status -Encoding UTF8
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add local-build-status.json
+          git commit -m "build: record PartsFlow Local Windows artifact" || exit 0
+          git push
