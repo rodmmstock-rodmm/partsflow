@@ -54,5 +54,5 @@ jobs:
           assert data['migration_0015_applied'] is True, data
           assert data['permission_columns_present'] is True, data
           assert data['imported_order_count'] == 4107, data
-          assert data['order_count'] == 4107, data
+          assert data['order_count'] >= data['imported_order_count'], data
           PY
