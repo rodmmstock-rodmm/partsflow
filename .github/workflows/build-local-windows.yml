@@ -52,6 +52,7 @@ jobs:
             --paths backend `
             --add-data "frontend/dist;frontend_dist" `
             --add-data "backend/core/migrations/*.txt;core/migrations" `
+            --collect-submodules core.migrations `
             --hidden-import whitenoise.middleware `
             --hidden-import corsheaders.middleware `
             backend/local_app.py
@@ -68,11 +69,14 @@ jobs:
               try {
                 $r = Invoke-WebRequest -UseBasicParsing -Uri 'http://127.0.0.1:8765/' -TimeoutSec 3
                 $check = Invoke-RestMethod -Uri 'http://127.0.0.1:8765/api/production-check/' -TimeoutSec 5
+                Write-Host ("Local check: " + ($check | ConvertTo-Json -Compress))
                 if ($r.StatusCode -eq 200 -and $r.Content -match 'root' -and $check.database_vendor -eq 'sqlite' -and $check.migration_0014_applied -eq $true -and $check.imported_order_count -eq 4107) {
                   $ok = $true
                   break
                 }
-              } catch {}
+              } catch {
+                if (($i % 10) -eq 0) { Write-Host ("Waiting for local app: " + $_.Exception.Message) }
+              }
               if ($p.HasExited) { break }
             }
             if (-not $ok) {
