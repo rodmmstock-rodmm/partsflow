@@ -98,13 +98,17 @@ jobs:
           path: PartsFlow-Local-Windows.zip
           retention-days: 30
 
-      - name: Publish successful build marker
+      - name: Publish build result marker
+        if: always()
         shell: pwsh
         run: |
-          $hash = (Get-FileHash PartsFlow-Local-Windows.zip -Algorithm SHA256).Hash.ToLower()
-          $size = (Get-Item PartsFlow-Local-Windows.zip).Length
+          $zipExists = Test-Path PartsFlow-Local-Windows.zip
+          $hash = if ($zipExists) { (Get-FileHash PartsFlow-Local-Windows.zip -Algorithm SHA256).Hash.ToLower() } else { '' }
+          $size = if ($zipExists) { (Get-Item PartsFlow-Local-Windows.zip).Length } else { 0 }
+          $ok = '${{ job.status }}' -eq 'success'
           $status = [ordered]@{
-            ok = $true
+            ok = $ok
+            job_status = '${{ job.status }}'
             run_id = '${{ github.run_id }}'
             source_sha = '${{ github.sha }}'
             artifact_name = 'PartsFlow-Local-Windows'
@@ -116,5 +120,5 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add local-build-status.json
-          git commit -m "build: record PartsFlow Local Windows artifact" || exit 0
+          git commit -m "build: record PartsFlow Local Windows result" || exit 0
           git push
