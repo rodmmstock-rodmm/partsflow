@@ -51,6 +51,8 @@ jobs:
           print(json.dumps(data, indent=2, ensure_ascii=False, sort_keys=True))
           assert data['database_vendor'] == 'postgresql', data
           assert data['migration_0014_applied'] is True, data
+          assert data['migration_0015_applied'] is True, data
+          assert data['permission_columns_present'] is True, data
           assert data['imported_order_count'] == 4107, data
           assert data['order_count'] == 4107, data
           PY

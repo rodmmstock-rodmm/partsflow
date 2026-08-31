@@ -1,11 +1,14 @@
 from django.urls import path
 
-from . import appsheet_api, auth_api, dashboard_api, drive_oauth, fast_order_api, order_api, order_audit_api, role_api, spare_set_api, stock_api, web_api
+from . import appsheet_api, auth_api, dashboard_api, drive_oauth, fast_order_api, order_api, order_audit_api, production_check_api, role_api, spare_set_api, stock_api, web_api
 
 urlpatterns = [
     path("auth/login/", auth_api.login_view),
     path("auth/me/", auth_api.me_view),
     path("auth/logout/", auth_api.logout_view),
+
+    path("production-check/", production_check_api.production_check, name="production-check"),
+    path("production-repair/", production_check_api.production_repair, name="production-repair"),
 
     path("drive/oauth/status/", drive_oauth.oauth_status, name="drive-oauth-status"),
     path("drive/oauth/start/", drive_oauth.oauth_start, name="drive-oauth-start"),
