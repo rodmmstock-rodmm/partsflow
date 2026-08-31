@@ -9,6 +9,7 @@ urlpatterns = [
 
     path("production-check/", production_check_api.production_check, name="production-check"),
     path("production-repair/", production_check_api.production_repair, name="production-repair"),
+    path("production-session-check/", production_check_api.production_session_check, name="production-session-check"),
 
     path("drive/oauth/status/", drive_oauth.oauth_status, name="drive-oauth-status"),
     path("drive/oauth/start/", drive_oauth.oauth_start, name="drive-oauth-start"),
