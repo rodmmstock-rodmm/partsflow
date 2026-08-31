@@ -61,13 +61,22 @@ TEMPLATES = [{
 }]
 WSGI_APPLICATION = "config.wsgi.application"
 
-DATABASES = {
-    "default": dj_database_url.config(
-        default=os.getenv("DATABASE_URL", "sqlite:///db.sqlite3"),
-        conn_max_age=0,
-        conn_health_checks=True,
-    )
-}
+LOCAL_DB_PATH = os.getenv("PARTSFLOW_LOCAL_DB", "").strip()
+if LOCAL_DB_PATH:
+    DATABASES = {
+        "default": {
+            "ENGINE": "django.db.backends.sqlite3",
+            "NAME": LOCAL_DB_PATH,
+        }
+    }
+else:
+    DATABASES = {
+        "default": dj_database_url.config(
+            default=os.getenv("DATABASE_URL", "sqlite:///db.sqlite3"),
+            conn_max_age=0,
+            conn_health_checks=True,
+        )
+    }
 
 LANGUAGE_CODE = "en-us"
 TIME_ZONE = "Asia/Bangkok"
