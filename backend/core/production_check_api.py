@@ -3,6 +3,8 @@ from io import StringIO
 from django.core.management import call_command
 from django.db import connection
 from django.db.migrations.recorder import MigrationRecorder
+from django.conf import settings
+from django.http import JsonResponse
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
@@ -182,3 +184,54 @@ def production_repair(request):
             },
             status=500,
         )
+
+
+def production_session_check(request):
+    result = {
+        "ok": True,
+        "session_cookie_present": bool(
+            request.COOKIES.get(settings.SESSION_COOKIE_NAME)
+        ),
+    }
+
+    try:
+        keys = set(request.session.keys())
+        result.update(
+            {
+                "session_load_ok": True,
+                "has_employee_session": "partsflow_employee_id" in keys,
+                "has_django_auth_session": "_auth_user_id" in keys,
+                "has_auth_backend": "_auth_user_backend" in keys,
+                "has_auth_hash": "_auth_user_hash" in keys,
+            }
+        )
+    except Exception as exc:
+        result.update(
+            {
+                "ok": False,
+                "session_load_ok": False,
+                "session_error_type": type(exc).__name__,
+                "session_error": str(exc),
+            }
+        )
+        return JsonResponse(result, status=200)
+
+    try:
+        user = request.user
+        result.update(
+            {
+                "django_user_load_ok": True,
+                "django_user_authenticated": bool(user.is_authenticated),
+            }
+        )
+    except Exception as exc:
+        result.update(
+            {
+                "ok": False,
+                "django_user_load_ok": False,
+                "django_user_error_type": type(exc).__name__,
+                "django_user_error": str(exc),
+            }
+        )
+
+    return JsonResponse(result, status=200)
