@@ -513,11 +513,11 @@ export function PurchaseModal({ order, options, onClose, onChanged }) {
                   <span>{rfq.vendor || "รอระบุ Vendor"}</span>
                   <span>{rfq.sent_at ? new Date(rfq.sent_at).toLocaleString("th-TH") : "-"}</span>
                   <span>{rfq.sent_by || "-"}</span>
-                  {rfq.gmail_link && <a href={rfq.gmail_link} target="_blank" rel="noreferrer">เปิด Gmail</a>}
+                  {(rfq.email_link || rfq.gmail_link) && <a href={rfq.email_link || rfq.gmail_link} target="_blank" rel="noreferrer">เปิดอีเมล</a>}
                 </div>
               ))
             ) : (
-              <span>ยังไม่มีอีเมลขอราคา</span>
+              <span>ยังไม่มีรายการขอราคา</span>
             )}
             {local.quotation && (
               <div className="legacy-quotation">
@@ -1092,7 +1092,7 @@ function BulkActions({ rows, auth, busy, onRun, onClear, onRfq }) {
             disabled={!canRfq || busy}
             onClick={onRfq}
           >
-            ✉ ขอราคา
+            บันทึกขอราคา
           </button>
           <button
             className="btn warning"
@@ -2307,7 +2307,7 @@ export default function Orders({ mode = "orders" }) {
           orders={selectedRows}
           options={options}
           onClose={() => setRfqCompose(false)}
-          onSent={async () => {
+          onRecorded={async () => {
             setRfqCompose(false);
             setSelected(new Set());
             await refresh();

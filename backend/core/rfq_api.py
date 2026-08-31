@@ -1,18 +1,16 @@
-"""Order RFQ and PO Balance API for PartsFlow V7.4."""
+"""Manual Order RFQ and PO Balance API for PartsFlow V7.4."""
 
 from __future__ import annotations
 
 import json
 import re
 from decimal import Decimal, InvalidOperation
-from email.utils import getaddresses
-from pathlib import Path
 from uuid import uuid4
 
 from django.core.exceptions import ValidationError
-from django.core.validators import validate_email
+from django.core.validators import URLValidator, validate_email
 from django.db import IntegrityError, transaction
-from django.db.models import Max, Q
+from django.db.models import Q
 from django.http import HttpResponse
 from django.utils import timezone
 from django.utils.dateparse import parse_date, parse_datetime
@@ -23,14 +21,7 @@ from rest_framework.response import Response
 
 from .audit_utils import audit
 from .auth_api import require_permission
-from .gmail_service import (
-    GmailConfigError,
-    download_gmail_attachment,
-    get_gmail_thread,
-    gmail_credential_row,
-    gmail_search_link,
-    send_gmail_message,
-)
+from .gmail_service import download_gmail_attachment
 from .models import (
     OrderRFQ,
     OrderRFQItem,
@@ -42,13 +33,6 @@ from .models import (
     Supplier,
     VendorEmailIdentity,
 )
-
-
-QUOTE_MIME_TYPES = {
-    "application/pdf",
-    "application/vnd.ms-excel",
-    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-}
 
 
 def _json_value(value, default):
@@ -84,8 +68,28 @@ def _emails(value, *, required=False):
     return result
 
 
-def _header_emails(value):
-    return [address.lower() for _, address in getaddresses([value or ""]) if address]
+def _email_link(value, *, required=False):
+    link = str(value or "").strip()
+    if not link:
+        if required:
+            raise ValueError("กรุณาวางลิงก์อีเมลที่ส่งคำขอราคา")
+        return ""
+    try:
+        URLValidator(schemes=["https"])(link)
+    except ValidationError as exc:
+        raise ValueError("ลิงก์อีเมลไม่ถูกต้อง ต้องเป็นลิงก์ https://") from exc
+    return link
+
+
+def _occurred_at(value):
+    if value in (None, ""):
+        return timezone.now()
+    parsed = parse_datetime(str(value))
+    if not parsed:
+        raise ValueError("วันที่และเวลาไม่ถูกต้อง")
+    if timezone.is_naive(parsed):
+        parsed = timezone.make_aware(parsed, timezone.get_current_timezone())
+    return parsed
 
 
 def _rfq_number():
@@ -197,8 +201,6 @@ def _order_item(order):
 
 
 def _actor_link(actor, message):
-    if actor.email and message.rfc_message_id:
-        return gmail_search_link(actor.email, message.rfc_message_id)
     return message.gmail_web_link or ""
 
 
@@ -218,6 +220,7 @@ def _attachment_json(item):
 
 
 def _message_json(message, actor, *, include_body=True):
+    email_link = _actor_link(actor, message)
     return {
         "id": str(message.id),
         "message_type": message.message_type,
@@ -230,7 +233,8 @@ def _message_json(message, actor, *, include_body=True):
         "cc_emails": message.cc_emails,
         "occurred_at": message.occurred_at.isoformat() if message.occurred_at else "",
         "sent_by": message.sent_by_employee.name if message.sent_by_employee else "",
-        "gmail_link": _actor_link(actor, message),
+        "email_link": email_link,
+        "gmail_link": email_link,
         "attachments": [_attachment_json(item) for item in message.attachments.all()],
     }
 
@@ -253,6 +257,7 @@ def _rfq_json(rfq, actor, *, full=False):
         "sent_by": rfq.sent_by_employee.name if rfq.sent_by_employee else "",
         "status": rfq.status,
         "subject": rfq.subject,
+        "email_link": link,
         "gmail_link": link,
         "vendor_pending": not bool(rfq.vendor_id or rfq.vendor_name),
     }
@@ -348,267 +353,173 @@ def rfq_preview(request):
         return Response({"detail": str(exc)}, status=400)
 
 
-def _reset_uploads(files):
-    for uploaded in files:
-        try:
-            uploaded.seek(0)
-        except (AttributeError, OSError):
-            pass
-
-
 @csrf_exempt
 @api_view(["POST"])
 @permission_classes([AllowAny])
-def send_rfq(request):
+def record_rfq(request):
+    """Record an RFQ email that the employee already sent outside PartsFlow."""
     actor, err = require_permission(request, "can_edit_purchase_info")
     if err:
         return err
     try:
         order_ids = _json_value(request.data.get("order_ids"), [])
-        recipients = _emails(request.data.get("recipients"), required=True)
         groups = _selected_groups(order_ids)
-        supplied_cc = (
-            _emails(request.data.get("cc_emails"))
-            if "cc_emails" in request.data
-            else None
+        recipients = _emails(
+            request.data.get("recipient_email") or request.data.get("recipients"),
+            required=True,
+        )
+        if len(recipients) != 1:
+            raise ValueError("กรุณาบันทึกแยกครั้งละ 1 Vendor เพื่อให้ลิงก์อีเมลตรงกัน")
+        recipient = recipients[0]
+        email_link = _email_link(
+            request.data.get("email_link") or request.data.get("gmail_link"),
+            required=True,
+        )
+        requested_at = _occurred_at(
+            request.data.get("sent_at") or request.data.get("requested_at")
         )
         raw_group_cc = _json_value(request.data.get("group_cc_emails"), {})
         group_cc = {
             str(key): _emails(value)
-            for key, value in (raw_group_cc.items() if isinstance(raw_group_cc, dict) else [])
+            for key, value in (
+                raw_group_cc.items() if isinstance(raw_group_cc, dict) else []
+            )
         }
-        body_template = str(request.data.get("body_text") or _default_request_body(actor.name))
-        subject_template = str(request.data.get("subject") or _default_subject())
-        if len(subject_template) > 500:
-            raise ValueError("Subject ต้องไม่เกิน 500 ตัวอักษร")
+        vendor_id = str(request.data.get("vendor_id") or "").strip()
+        vendor = None
+        if vendor_id:
+            vendor = Supplier.objects.filter(pk=vendor_id, active=True).first()
+            if not vendor:
+                raise ValueError("ไม่พบ Vendor ที่เลือก")
+        vendor_name = vendor.name if vendor else str(
+            request.data.get("vendor_name") or ""
+        ).strip()
+        if not vendor_name:
+            raise ValueError("กรุณาเลือกหรือระบุชื่อ Vendor")
+        if not vendor:
+            vendor = Supplier.objects.filter(
+                name__iexact=vendor_name, active=True
+            ).first()
+        if vendor:
+            vendor_name = vendor.name
+        body_text = str(request.data.get("body_text") or "").strip()
     except ValueError as exc:
         return Response({"detail": str(exc)}, status=400)
 
-    files = request.FILES.getlist("attachments")
     results = []
-
     for group_order, orders in groups.items():
         job = orders[0].job
-        cc_emails = (
-            group_cc[group_order]
-            if group_order in group_cc
-            else supplied_cc
-            if supplied_cc is not None
-            else _cc_for_job(job)
-        )
-        cc_emails = [email for email in cc_emails if email not in recipients]
-        item_rows = [_order_item(order) for order in orders]
+        cc_emails = group_cc.get(group_order, _cc_for_job(job))
+        cc_emails = [email for email in cc_emails if email != recipient]
+        number = _rfq_number()
+        subject = f"[RFQ {number}] Request for Quotation - {group_order}"[:500]
 
-        for recipient in recipients:
-            number = _rfq_number()
-            subject = (
-                subject_template.replace("{{RFQ_NO}}", number)
-                .replace("{{GROUP_ORDER}}", group_order)
-                .replace("{{JOB}}", job)
-            )[:500]
-            body_text = (
-                body_template.replace("{{RFQ_NO}}", number)
-                .replace("{{GROUP_ORDER}}", group_order)
-                .replace("{{JOB}}", job)
+        with transaction.atomic():
+            rfq = OrderRFQ.objects.create(
+                rfq_number=number,
+                group_order=group_order,
+                job=job,
+                vendor=vendor,
+                vendor_name=vendor_name,
+                recipient_email=recipient,
+                sender_email=actor.email or "",
+                requested_at=requested_at,
+                sent_by_employee=actor,
+                status=OrderRFQ.STATUS_SENT,
+                subject=subject,
+                body_text=body_text,
+                to_emails=[recipient],
+                cc_emails=cc_emails,
+                gmail_web_link=email_link,
             )
-            identity = VendorEmailIdentity.objects.select_related("vendor").filter(
-                email__iexact=recipient
-            ).first()
-            matched_vendor = (
-                identity.vendor
-                if identity and identity.vendor
-                else Supplier.objects.filter(email__iexact=recipient, active=True).first()
-            )
-
-            with transaction.atomic():
-                rfq = OrderRFQ.objects.create(
-                    rfq_number=number,
-                    group_order=group_order,
-                    job=job,
-                    vendor=matched_vendor,
-                    vendor_name=(
-                        matched_vendor.name
-                        if matched_vendor
-                        else identity.vendor_name if identity else ""
-                    ),
-                    recipient_email=recipient,
-                    sent_by_employee=actor,
-                    subject=subject,
-                    body_text=body_text,
-                    to_emails=[recipient],
-                    cc_emails=cc_emails,
-                )
-                for order in orders:
-                    OrderRFQItem.objects.create(
-                        rfq=rfq,
-                        order=order,
-                        order_number=order.order_number,
-                        item_id=order.part.sku if order.part else "",
-                        part_name=order.part_name,
-                        part_detail=order.part_detail,
-                        amount=order.amount,
-                        unit=order.unit_text,
-                    )
-                message = RFQMessage.objects.create(
+            for order in orders:
+                OrderRFQItem.objects.create(
                     rfq=rfq,
-                    message_type=RFQMessage.TYPE_REQUEST,
-                    direction=RFQMessage.DIRECTION_OUTBOUND,
-                    status=RFQMessage.STATUS_PENDING,
-                    subject=subject,
-                    body_text=body_text,
-                    to_emails=[recipient],
-                    cc_emails=cc_emails,
-                    sent_by_employee=actor,
+                    order=order,
+                    order_number=order.order_number,
+                    item_id=order.part.sku if order.part else "",
+                    part_name=order.part_name,
+                    part_detail=order.part_detail,
+                    amount=order.amount,
+                    unit=order.unit_text,
                 )
-
-            try:
-                _reset_uploads(files)
-                sent = send_gmail_message(
-                    subject=subject,
-                    body_text=body_text,
-                    to_emails=[recipient],
-                    cc_emails=cc_emails,
-                    items=item_rows,
-                    attachments=files,
-                )
-            except Exception as exc:
-                rfq.status = OrderRFQ.STATUS_FAILED
-                rfq.send_error = str(exc)
-                rfq.save(update_fields=["status", "send_error", "updated_at"])
-                message.status = RFQMessage.STATUS_FAILED
-                message.error = str(exc)
-                message.occurred_at = timezone.now()
-                message.save(update_fields=["status", "error", "occurred_at", "updated_at"])
-                results.append(
-                    {
-                        "success": False,
-                        "rfq_number": number,
-                        "recipient_email": recipient,
-                        "detail": str(exc),
-                    }
-                )
-                continue
-
-            # From this point Gmail has accepted the message. Never label it as
-            # a failed send because a secondary database/audit update has an
-            # issue; that would invite a duplicate email on retry.
-            now = timezone.now()
-            rfq.status = OrderRFQ.STATUS_SENT
-            rfq.requested_at = now
-            rfq.sender_email = sent["sender_email"]
-            rfq.gmail_message_id = sent["gmail_message_id"]
-            rfq.gmail_thread_id = sent["gmail_thread_id"]
-            rfq.rfc_message_id = sent["rfc_message_id"]
-            rfq.gmail_web_link = sent["gmail_web_link"]
-            rfq.send_error = ""
-            message.status = RFQMessage.STATUS_SENT
-            message.from_email = sent["sender_email"]
-            message.gmail_message_id = sent["gmail_message_id"]
-            message.gmail_thread_id = sent["gmail_thread_id"]
-            message.rfc_message_id = sent["rfc_message_id"]
-            message.gmail_web_link = sent["gmail_web_link"]
-            message.occurred_at = now
-
-            post_send_errors = []
-            try:
-                with transaction.atomic():
-                    rfq.save()
-                    message.save()
-            except Exception as exc:
-                post_send_errors.append(f"บันทึก Gmail IDs: {exc}")
-
-            try:
-                with transaction.atomic():
-                    for uploaded in files:
-                        RFQAttachment.objects.create(
-                            message=message,
-                            filename=str(uploaded.name or "attachment")[:500],
-                            mime_type=uploaded.content_type or "",
-                            size=uploaded.size or 0,
-                            gmail_message_id=sent["gmail_message_id"],
-                        )
-                    POBalance.objects.get_or_create(rfq=rfq)
-                    if identity:
-                        identity.last_used_at = now
-                        identity.save(update_fields=["last_used_at", "updated_at"])
-                    elif matched_vendor:
-                        VendorEmailIdentity.objects.update_or_create(
-                            email=recipient,
-                            defaults={
-                                "vendor": matched_vendor,
-                                "vendor_name": matched_vendor.name,
-                                "confirmed_by_employee": actor,
-                                "last_used_at": now,
-                            },
-                        )
-            except Exception as exc:
-                post_send_errors.append(f"บันทึก PO Balance/ไฟล์แนบ: {exc}")
+            RFQMessage.objects.create(
+                rfq=rfq,
+                message_type=RFQMessage.TYPE_REQUEST,
+                direction=RFQMessage.DIRECTION_OUTBOUND,
+                status=RFQMessage.STATUS_SENT,
+                subject=subject,
+                body_text=body_text,
+                from_email=actor.email or "",
+                to_emails=[recipient],
+                cc_emails=cc_emails,
+                gmail_web_link=email_link,
+                occurred_at=requested_at,
+                sent_by_employee=actor,
+            )
+            POBalance.objects.create(rfq=rfq)
+            VendorEmailIdentity.objects.update_or_create(
+                email=recipient,
+                defaults={
+                    "vendor": vendor,
+                    "vendor_name": vendor_name,
+                    "confirmed_by_employee": actor,
+                    "last_used_at": requested_at,
+                },
+            )
 
             from .order_api import compute_status
+
             for order in orders:
-                try:
-                    order.status = compute_status(order, validate=False)
-                    order.save(update_fields=["status", "updated_at"])
-                except Exception as exc:
-                    post_send_errors.append(
-                        f"อัปเดตสถานะ {order.order_number}: {exc}"
-                    )
+                order.status = compute_status(order, validate=False)
+                order.save(update_fields=["status", "updated_at"])
 
-            try:
-                audit(
-                    actor,
-                    "RFQ_SENT",
-                    "OrderRFQ",
-                    rfq.id,
-                    {
-                        "rfq_number": number,
-                        "group_order": group_order,
-                        "recipient_email": recipient,
-                        "order_ids": [str(order.id) for order in orders],
-                    },
-                )
-            except Exception as exc:
-                post_send_errors.append(f"Audit: {exc}")
-
-            warning = " | ".join(post_send_errors)
-            if warning:
-                try:
-                    rfq.send_error = f"POST_SEND_WARNING: {warning}"
-                    rfq.save(update_fields=["send_error", "updated_at"])
-                except Exception:
-                    pass
-            try:
-                result_row = _rfq_json(_rfq_queryset().get(pk=rfq.pk), actor)
-            except Exception:
-                result_row = {
-                    "id": str(rfq.id),
+        warning = ""
+        try:
+            audit(
+                actor,
+                "RFQ_RECORDED",
+                "OrderRFQ",
+                rfq.id,
+                {
                     "rfq_number": number,
                     "group_order": group_order,
-                    "job": job,
+                    "vendor": vendor_name,
                     "recipient_email": recipient,
-                    "status": OrderRFQ.STATUS_SENT,
-                    "gmail_link": sent["gmail_web_link"],
-                    "vendor_id": str(rfq.vendor_id) if rfq.vendor_id else "",
-                    "vendor": rfq.vendor_name,
-                    "vendor_pending": not bool(rfq.vendor_id or rfq.vendor_name),
-                }
-            results.append(
-                {
-                    "success": True,
-                    **result_row,
-                    **({"warning": warning} if warning else {}),
-                }
+                    "email_link": email_link,
+                    "order_ids": [str(order.id) for order in orders],
+                },
             )
+        except Exception as exc:
+            warning = f"Audit: {exc}"
 
-    successful = [row for row in results if row.get("success")]
-    status_code = 201 if successful and len(successful) == len(results) else 207
+        result = _rfq_json(_rfq_queryset().get(pk=rfq.pk), actor)
+        results.append(
+            {
+                "success": True,
+                **result,
+                **({"warning": warning} if warning else {}),
+            }
+        )
+
     return Response(
         {
             "results": results,
-            "sent_count": len(successful),
-            "failed_count": len(results) - len(successful),
+            "recorded_count": len(results),
+            "sent_count": 0,
+            "failed_count": 0,
         },
-        status=status_code,
+        status=201,
+    )
+
+
+@csrf_exempt
+@api_view(["POST"])
+@permission_classes([AllowAny])
+def disabled_send_rfq(request):
+    return Response(
+        {"detail": "ระบบไม่ส่งอีเมลแล้ว กรุณาส่งเองและบันทึกลิงก์อีเมล"},
+        status=410,
     )
 
 
@@ -743,15 +654,23 @@ def po_balance_detail(request, pk):
 @csrf_exempt
 @api_view(["POST"])
 @permission_classes([AllowAny])
-def follow_up(request, pk):
+def record_follow_up(request, pk):
+    """Record a price or delivery follow-up sent manually by the employee."""
     actor, err = require_permission(request, "can_edit_purchase_info")
     if err:
         return err
     rfq = _rfq_queryset().filter(pk=pk, status=OrderRFQ.STATUS_SENT).first()
-    if not rfq or not rfq.gmail_thread_id:
+    initial = (
+        rfq.messages.filter(message_type=RFQMessage.TYPE_REQUEST).first()
+        if rfq
+        else None
+    )
+    if not rfq or not (rfq.gmail_web_link or (initial and initial.gmail_web_link)):
         return Response(
-            {"detail": "ยังไม่มีอีเมลขอราคาสำหรับรายการนี้"}, status=400
+            {"detail": "รายการนี้ยังไม่มีลิงก์อีเมลขอราคา จึงบันทึกการติดตามไม่ได้"},
+            status=400,
         )
+
     message_type = str(request.data.get("message_type") or "")
     if message_type not in {
         RFQMessage.TYPE_PRICE_FOLLOW_UP,
@@ -759,6 +678,11 @@ def follow_up(request, pk):
     }:
         return Response({"detail": "ประเภทการติดตามไม่ถูกต้อง"}, status=400)
     try:
+        email_link = _email_link(
+            request.data.get("email_link") or request.data.get("gmail_link"),
+            required=True,
+        )
+        occurred_at = _occurred_at(request.data.get("occurred_at"))
         cc_emails = (
             _emails(request.data.get("cc_emails"))
             if "cc_emails" in request.data
@@ -766,198 +690,44 @@ def follow_up(request, pk):
         )
     except ValueError as exc:
         return Response({"detail": str(exc)}, status=400)
+
     body_text = str(
         request.data.get("body_text")
         or _default_follow_up_body(rfq, message_type, actor.name)
-    )
-    latest = rfq.messages.filter(status__in=[RFQMessage.STATUS_SENT, RFQMessage.STATUS_RECEIVED]).last()
+    ).strip()
     message = RFQMessage.objects.create(
         rfq=rfq,
         message_type=message_type,
         direction=RFQMessage.DIRECTION_OUTBOUND,
-        status=RFQMessage.STATUS_PENDING,
+        status=RFQMessage.STATUS_SENT,
         subject=rfq.subject,
         body_text=body_text,
-        to_emails=[rfq.recipient_email],
+        from_email=actor.email or "",
+        to_emails=[rfq.recipient_email] if rfq.recipient_email else [],
         cc_emails=cc_emails,
+        gmail_web_link=email_link,
+        occurred_at=occurred_at,
         sent_by_employee=actor,
     )
-    files = request.FILES.getlist("attachments")
-    try:
-        sent = send_gmail_message(
-            subject=rfq.subject,
-            body_text=body_text,
-            to_emails=[rfq.recipient_email],
-            cc_emails=cc_emails,
-            items=[
-                {
-                    "item_id": item.item_id,
-                    "part_name": item.part_name,
-                    "part_detail": item.part_detail,
-                    "amount": item.amount,
-                    "unit": item.unit,
-                }
-                for item in rfq.items.all()
-            ],
-            attachments=files,
-            thread_id=rfq.gmail_thread_id,
-            in_reply_to=(latest.rfc_message_id if latest else rfq.rfc_message_id),
-        )
-    except Exception as exc:
-        message.status = RFQMessage.STATUS_FAILED
-        message.error = str(exc)
-        message.occurred_at = timezone.now()
-        message.save(update_fields=["status", "error", "occurred_at", "updated_at"])
-        return Response({"detail": str(exc)}, status=502)
-
-    # Gmail has accepted the follow-up. Keep it SENT even if a later metadata
-    # or audit write fails, otherwise the UI could encourage a duplicate retry.
-    message.status = RFQMessage.STATUS_SENT
-    message.from_email = sent["sender_email"]
-    message.gmail_message_id = sent["gmail_message_id"]
-    message.gmail_thread_id = sent["gmail_thread_id"]
-    message.rfc_message_id = sent["rfc_message_id"]
-    message.gmail_web_link = sent["gmail_web_link"]
-    message.occurred_at = timezone.now()
-    post_send_errors = []
-    try:
-        message.save()
-    except Exception as exc:
-        post_send_errors.append(f"บันทึก Gmail IDs: {exc}")
-
-    try:
-        for uploaded in files:
-            RFQAttachment.objects.create(
-                message=message,
-                filename=str(uploaded.name or "attachment")[:500],
-                mime_type=uploaded.content_type or "",
-                size=uploaded.size or 0,
-                gmail_message_id=sent["gmail_message_id"],
-            )
-    except Exception as exc:
-        post_send_errors.append(f"บันทึกไฟล์แนบ: {exc}")
-
+    warning = ""
     try:
         audit(
             actor,
-            "RFQ_FOLLOW_UP_SENT",
+            "RFQ_FOLLOW_UP_RECORDED",
             "OrderRFQ",
             rfq.id,
-            {"message_type": message_type},
+            {
+                "message_type": message_type,
+                "email_link": email_link,
+                "occurred_at": occurred_at.isoformat(),
+            },
         )
     except Exception as exc:
-        post_send_errors.append(f"Audit: {exc}")
-
-    warning = " | ".join(post_send_errors)
-    if warning:
-        try:
-            message.error = f"POST_SEND_WARNING: {warning}"
-            message.save(update_fields=["error", "updated_at"])
-        except Exception:
-            pass
-    try:
-        payload = _message_json(message, actor)
-    except Exception:
-        payload = {
-            "id": str(message.id),
-            "message_type": message_type,
-            "direction": RFQMessage.DIRECTION_OUTBOUND,
-            "status": RFQMessage.STATUS_SENT,
-            "subject": rfq.subject,
-            "body_text": body_text,
-            "from_email": sent["sender_email"],
-            "to_emails": [rfq.recipient_email],
-            "cc_emails": cc_emails,
-            "occurred_at": message.occurred_at.isoformat(),
-            "sent_by": actor.name,
-            "gmail_link": sent["gmail_web_link"],
-            "attachments": [],
-        }
+        warning = f"Audit: {exc}"
+    payload = _message_json(message, actor)
     if warning:
         payload["warning"] = warning
     return Response(payload, status=201)
-
-
-@csrf_exempt
-@api_view(["POST"])
-@permission_classes([AllowAny])
-def sync_rfq_thread(request, pk):
-    actor, err = require_permission(request, "can_edit_purchase_info")
-    if err:
-        return err
-    rfq = _rfq_queryset().filter(pk=pk, status=OrderRFQ.STATUS_SENT).first()
-    if not rfq or not rfq.gmail_thread_id:
-        return Response({"detail": "ไม่พบ Gmail Thread ของ RFQ"}, status=400)
-    try:
-        rows = get_gmail_thread(rfq.gmail_thread_id)
-    except Exception as exc:
-        return Response({"detail": str(exc)}, status=502)
-
-    known = set(rfq.messages.exclude(gmail_message_id="").values_list("gmail_message_id", flat=True))
-    sender_row = gmail_credential_row()
-    sender_email = (
-        (sender_row.account_email if sender_row else "") or rfq.sender_email
-    ).lower()
-    created = 0
-    balance, _ = POBalance.objects.get_or_create(rfq=rfq)
-
-    for row in rows:
-        if not row["gmail_message_id"] or row["gmail_message_id"] in known:
-            continue
-        from_addresses = _header_emails(row["from_email"])
-        if sender_email and sender_email in from_addresses:
-            continue
-        message = RFQMessage.objects.create(
-            rfq=rfq,
-            message_type=RFQMessage.TYPE_VENDOR_REPLY,
-            direction=RFQMessage.DIRECTION_INBOUND,
-            status=RFQMessage.STATUS_RECEIVED,
-            subject=row["subject"],
-            body_text=row["body_text"],
-            from_email=from_addresses[0] if from_addresses else "",
-            to_emails=_header_emails(row["to_raw"]),
-            cc_emails=_header_emails(row["cc_raw"]),
-            gmail_message_id=row["gmail_message_id"],
-            gmail_thread_id=row["gmail_thread_id"],
-            rfc_message_id=row["rfc_message_id"],
-            gmail_web_link=gmail_search_link(
-                sender_email, row["rfc_message_id"]
-            ) if row["rfc_message_id"] else "",
-            occurred_at=row["occurred_at"],
-        )
-        known.add(row["gmail_message_id"])
-        quote_files = [
-            item for item in row["attachments"]
-            if item["mime_type"] in QUOTE_MIME_TYPES
-            or Path(item["filename"]).suffix.lower() in {".pdf", ".xls", ".xlsx"}
-        ]
-        revision = 0
-        if quote_files:
-            revision = (
-                RFQAttachment.objects.filter(
-                    message__rfq=rfq, quotation_revision__gt=0
-                ).aggregate(value=Max("quotation_revision"))["value"]
-                or 0
-            ) + 1
-            if not balance.quotation_received_at:
-                balance.quotation_received_at = row["occurred_at"]
-                balance.updated_by_employee = actor
-                balance.save()
-        for item in row["attachments"]:
-            RFQAttachment.objects.create(
-                message=message,
-                filename=item["filename"],
-                mime_type=item["mime_type"],
-                size=item["size"],
-                gmail_attachment_id=item["gmail_attachment_id"],
-                gmail_message_id=row["gmail_message_id"],
-                quotation_revision=revision if item in quote_files else 0,
-            )
-        created += 1
-
-    audit(actor, "RFQ_GMAIL_SYNC", "OrderRFQ", rfq.id, {"new_messages": created})
-    fresh = _rfq_queryset().get(pk=rfq.pk)
-    return Response({"new_messages": created, "rfq": _rfq_json(fresh, actor, full=True)})
 
 
 @api_view(["GET"])
