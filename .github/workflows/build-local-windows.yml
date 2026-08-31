@@ -1,0 +1,95 @@
+name: Build PartsFlow Local Windows
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - 'backend/**'
+      - 'frontend/**'
+      - '.github/workflows/build-local-windows.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Build local frontend
+        shell: pwsh
+        run: |
+          cd frontend
+          npm ci
+          $env:VITE_API_BASE_URL='/api'
+          npm run build
+
+      - name: Install Python dependencies
+        shell: pwsh
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r backend/requirements.txt
+          pip install waitress pyinstaller
+
+      - name: Build standalone EXE
+        shell: pwsh
+        run: |
+          pyinstaller --noconfirm --clean --onefile --name PartsFlowLocal `
+            --paths backend `
+            --add-data "frontend/dist;frontend_dist" `
+            --collect-all core `
+            --collect-all config `
+            backend/local_app.py
+
+      - name: Smoke test EXE startup
+        shell: pwsh
+        run: |
+          $p = Start-Process -FilePath "$PWD\dist\PartsFlowLocal.exe" -PassThru
+          try {
+            $ok = $false
+            for ($i = 0; $i -lt 60; $i++) {
+              Start-Sleep -Seconds 2
+              try {
+                $r = Invoke-WebRequest -UseBasicParsing -Uri 'http://127.0.0.1:8765/' -TimeoutSec 3
+                if ($r.StatusCode -eq 200 -and $r.Content -match 'root') { $ok = $true; break }
+              } catch {}
+              if ($p.HasExited) { break }
+            }
+            if (-not $ok) { throw 'PartsFlow Local smoke test failed' }
+            Write-Host 'SMOKE TEST PASSED'
+          } finally {
+            if (-not $p.HasExited) { Stop-Process -Id $p.Id -Force }
+          }
+
+      - name: Create portable package
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force -Path package | Out-Null
+          Copy-Item dist\PartsFlowLocal.exe package\PartsFlowLocal.exe
+          Copy-Item local\README-LOCAL-TH.txt package\README-LOCAL-TH.txt
+          Copy-Item local\Backup-PartsFlow.bat package\Backup-PartsFlow.bat
+          Copy-Item local\Restore-PartsFlow.bat package\Restore-PartsFlow.bat
+          New-Item -ItemType Directory -Force -Path package\data | Out-Null
+          New-Item -ItemType Directory -Force -Path package\backups | Out-Null
+          Compress-Archive -Path package\* -DestinationPath PartsFlow-Local-Windows.zip -Force
+
+      - name: Upload portable ZIP
+        uses: actions/upload-artifact@v4
+        with:
+          name: PartsFlow-Local-Windows
+          path: PartsFlow-Local-Windows.zip
+          retention-days: 30
