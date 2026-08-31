@@ -11,6 +11,14 @@ from .models import (
     QuotationItem,
     PurchaseOrder,
     PurchaseOrderItem,
+    OrderRFQ,
+    OrderRFQItem,
+    RFQMessage,
+    RFQAttachment,
+    POBalance,
+    RFQCCRule,
+    VendorEmailIdentity,
+    IntegrationCredential,
     AuditLog,
 )
 
@@ -26,5 +34,13 @@ admin.site.register([
     QuotationItem,
     PurchaseOrder,
     PurchaseOrderItem,
+    OrderRFQ,
+    OrderRFQItem,
+    RFQMessage,
+    RFQAttachment,
+    POBalance,
+    RFQCCRule,
+    VendorEmailIdentity,
+    IntegrationCredential,
     AuditLog,
 ])

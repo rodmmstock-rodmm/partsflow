@@ -3,6 +3,7 @@ import * as XLSX from "xlsx";
 import { apiDelete, apiGet, apiPatch, apiPost } from "../api";
 import { useAuth } from "../auth";
 import { Alert, Modal, PageHeader, fmt, money } from "../components/Common";
+import RFQComposeModal from "../components/RFQComposeModal";
 
 const ORDER_TABS = [
   ["normal", "Order Normal"],
@@ -454,7 +455,19 @@ export function PurchaseModal({ order, options, onClose, onChanged }) {
   );
   const [error, setError] = useState("");
   const [busy, setBusy] = useState("");
+  const [rfqs, setRfqs] = useState([]);
+  const [rfqLoading, setRfqLoading] = useState(true);
   const set = (k, v) => setLocal((x) => ({ ...x, [k]: v }));
+
+  useEffect(() => {
+    let active = true;
+    setRfqLoading(true);
+    apiGet(`/rfqs/?order_id=${order.id}`, { cache: false, forceRefresh: true })
+      .then((data) => active && setRfqs(data.results || []))
+      .catch((err) => active && setError(err.message))
+      .finally(() => active && setRfqLoading(false));
+    return () => { active = false; };
+  }, [order.id]);
 
   async function saveField(key, payload) {
     setBusy(key);
@@ -488,18 +501,31 @@ export function PurchaseModal({ order, options, onClose, onChanged }) {
       </p>
 
       <div className="purchase-list">
-        <div className="purchase-field">
-          <label>Quotation</label>
-          <input
-            value={local.quotation || ""}
-            onChange={(e) => set("quotation", e.target.value)}
-          />
-          <button
-            className="mini"
-            onClick={() => saveField("quotation", { quotation: local.quotation })}
-          >
-            {busy === "quotation" ? "..." : "บันทึก"}
-          </button>
+        <div className="purchase-field quotation-history">
+          <label>Quotation · รายการขอราคา</label>
+          <div className="quotation-rfq-list">
+            {rfqLoading ? (
+              <span>กำลังโหลด...</span>
+            ) : rfqs.length ? (
+              rfqs.map((rfq) => (
+                <div key={rfq.id}>
+                  <b>{rfq.rfq_number}</b>
+                  <span>{rfq.vendor || "รอระบุ Vendor"}</span>
+                  <span>{rfq.sent_at ? new Date(rfq.sent_at).toLocaleString("th-TH") : "-"}</span>
+                  <span>{rfq.sent_by || "-"}</span>
+                  {rfq.gmail_link && <a href={rfq.gmail_link} target="_blank" rel="noreferrer">เปิด Gmail</a>}
+                </div>
+              ))
+            ) : (
+              <span>ยังไม่มีอีเมลขอราคา</span>
+            )}
+            {local.quotation && (
+              <div className="legacy-quotation">
+                <b>ข้อมูล Quotation เดิม</b>
+                <span>{local.quotation}</span>
+              </div>
+            )}
+          </div>
         </div>
 
         <div className="purchase-field">
@@ -806,7 +832,13 @@ function OrderTable({
                 <td>{o.maker}</td>
                 <td>{fmt(o.amount)}</td>
                 <td>{o.unit}</td>
-                <td>{o.quotation || "-"}</td>
+                <td>
+                  {o.rfq_count ? (
+                    <span className="status info">RFQ {fmt(o.rfq_count)}</span>
+                  ) : o.quotation ? (
+                    <span title="ข้อมูล Quotation เดิม">{o.quotation}</span>
+                  ) : "-"}
+                </td>
                 <td>{o.po_number || "-"}</td>
                 <td>{money(o.price_per_unit)}</td>
                 <td>{money(o.price_total)}</td>
@@ -1023,7 +1055,7 @@ function MonthlyProjectList({ projects, onSelect }) {
   );
 }
 
-function BulkActions({ rows, auth, busy, onRun, onClear }) {
+function BulkActions({ rows, auth, busy, onRun, onClear, onRfq }) {
   const count = rows.length;
   const canWait = rows.some((o) => o.lifecycle_status === "ACTIVE");
   const canCancelWait = rows.some(
@@ -1034,6 +1066,9 @@ function BulkActions({ rows, auth, busy, onRun, onClear }) {
   );
   const canCancel = canReceive;
   const canRestore = rows.some((o) => o.lifecycle_status === "CANCELLED");
+  const canRfq = count > 0 && rows.every((o) =>
+    ["ACTIVE", "WAIT_CONFIRM"].includes(o.lifecycle_status)
+  );
 
   return (
     <div
@@ -1052,6 +1087,13 @@ function BulkActions({ rows, auth, busy, onRun, onClear }) {
 
       {auth.can("can_edit_purchase_info") && (
         <>
+          <button
+            className="btn primary"
+            disabled={!canRfq || busy}
+            onClick={onRfq}
+          >
+            ✉ ขอราคา
+          </button>
           <button
             className="btn warning"
             disabled={!count || busy || !canWait}
@@ -1271,6 +1313,7 @@ export default function Orders({ mode = "orders" }) {
 
   const [editor, setEditor] = useState(null);
   const [purchase, setPurchase] = useState(null);
+  const [rfqCompose, setRfqCompose] = useState(false);
 
   const [projects, setProjects] = useState([]);
   const [selectedProject, setSelectedProject] = useState(null);
@@ -1968,6 +2011,7 @@ export default function Orders({ mode = "orders" }) {
             busy={bulkBusy}
             onRun={runBulk}
             onClear={() => setSelected(new Set())}
+            onRfq={() => setRfqCompose(true)}
           />
 
           {loading ? (
@@ -2150,6 +2194,7 @@ export default function Orders({ mode = "orders" }) {
                     busy={bulkBusy}
                     onRun={runBulk}
                     onClear={() => setSelected(new Set())}
+                    onRfq={() => setRfqCompose(true)}
                   />
 
                   {projectDetail.steps.length ? (
@@ -2253,6 +2298,19 @@ export default function Orders({ mode = "orders" }) {
           onChanged={(result) => {
             setPurchase(result);
             refresh();
+          }}
+        />
+      )}
+
+      {rfqCompose && (
+        <RFQComposeModal
+          orders={selectedRows}
+          options={options}
+          onClose={() => setRfqCompose(false)}
+          onSent={async () => {
+            setRfqCompose(false);
+            setSelected(new Set());
+            await refresh();
           }}
         />
       )}

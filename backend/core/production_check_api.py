@@ -16,10 +16,22 @@ SOURCE = "EXCEL_ORDER_2026"
 REPAIR_KEY = "pf-repair-20260829-6c5f19b23f9e4e64b54f4f25"
 MIGRATION_0014 = "0014_import_excel_orders_2026"
 MIGRATION_0015 = "0015_order_visibility_and_date_permissions"
+MIGRATION_0016 = "0016_rfq_po_balance_email_workflow"
 ROLE_ACCESS_TABLE = "core_roleaccess"
+EMPLOYEE_TABLE = "core_employee"
 REQUIRED_PERMISSION_COLUMNS = {
     "can_view_order_updates",
     "can_edit_order_date",
+}
+REQUIRED_RFQ_TABLES = {
+    "core_integrationcredential",
+    "core_orderrfq",
+    "core_orderrfqitem",
+    "core_pobalance",
+    "core_rfqattachment",
+    "core_rfqccrule",
+    "core_rfqmessage",
+    "core_vendoremailidentity",
 }
 
 
@@ -39,8 +51,19 @@ def _role_access_columns():
     return {column.name for column in description}
 
 
+def _table_columns(table_name):
+    with connection.cursor() as cursor:
+        description = connection.introspection.get_table_description(
+            cursor,
+            table_name,
+        )
+    return {column.name for column in description}
+
+
 def _snapshot():
     columns = _role_access_columns()
+    tables = set(connection.introspection.table_names())
+    employee_columns = _table_columns(EMPLOYEE_TABLE)
     imported = OrderRecord.objects.filter(legacy_source=SOURCE)
     all_orders = OrderRecord.objects.all()
     return {
@@ -50,10 +73,14 @@ def _snapshot():
         "imported_order_count": imported.count(),
         "migration_0014_applied": _migration_applied(MIGRATION_0014),
         "migration_0015_applied": _migration_applied(MIGRATION_0015),
+        "migration_0016_applied": _migration_applied(MIGRATION_0016),
         "permission_columns_present": REQUIRED_PERMISSION_COLUMNS.issubset(columns),
         "missing_permission_columns": sorted(
             REQUIRED_PERMISSION_COLUMNS - columns
         ),
+        "employee_email_present": "email" in employee_columns,
+        "rfq_tables_present": REQUIRED_RFQ_TABLES.issubset(tables),
+        "missing_rfq_tables": sorted(REQUIRED_RFQ_TABLES - tables),
     }
 
 

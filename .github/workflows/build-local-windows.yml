@@ -70,7 +70,7 @@ jobs:
                 $r = Invoke-WebRequest -UseBasicParsing -Uri 'http://127.0.0.1:8765/' -TimeoutSec 3
                 $check = Invoke-RestMethod -Uri 'http://127.0.0.1:8765/api/production-check/' -TimeoutSec 5
                 Write-Host ("Local check: " + ($check | ConvertTo-Json -Compress))
-                if ($r.StatusCode -eq 200 -and $r.Content -match 'root' -and $check.database_vendor -eq 'sqlite' -and $check.migration_0014_applied -eq $true -and $check.imported_order_count -eq 4107) {
+                if ($r.StatusCode -eq 200 -and $r.Content -match 'root' -and $check.database_vendor -eq 'sqlite' -and $check.migration_0014_applied -eq $true -and $check.migration_0016_applied -eq $true -and $check.rfq_tables_present -eq $true -and $check.imported_order_count -eq 4107) {
                   $ok = $true
                   break
                 }
@@ -86,7 +86,7 @@ jobs:
               if (Test-Path local-smoke-err.txt) { Get-Content local-smoke-err.txt }
               throw 'PartsFlow Local smoke/database test failed'
             }
-            Write-Host 'SMOKE TEST PASSED: SQLite + migration 0014 + 4107 imported orders'
+            Write-Host 'SMOKE TEST PASSED: SQLite + migrations 0014/0016 + RFQ schema + 4107 imported orders'
           } finally {
             if (-not $p.HasExited) { Stop-Process -Id $p.Id -Force }
           }

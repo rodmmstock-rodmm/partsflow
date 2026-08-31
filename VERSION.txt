@@ -1,2 +1,3 @@
-PartsFlow V7.3
-Base production commit: b1cb25fad25e4f6a1ce21e712845dbb0a84920e2
+PartsFlow V7.4
+Release: RFQ & PO Balance Email Workflow
+Base production commit: a54f2d31dff8e34801a00077bc64588e9cb141dc

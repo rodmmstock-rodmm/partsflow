@@ -1,6 +1,6 @@
 from django.urls import path
 
-from . import appsheet_api, auth_api, dashboard_api, drive_oauth, fast_order_api, order_api, order_audit_api, production_check_api, role_api, spare_set_api, stock_api, web_api
+from . import appsheet_api, auth_api, dashboard_api, drive_oauth, fast_order_api, gmail_oauth, order_api, order_audit_api, production_check_api, rfq_api, role_api, spare_set_api, stock_api, web_api
 
 urlpatterns = [
     path("auth/login/", auth_api.login_view),
@@ -14,6 +14,10 @@ urlpatterns = [
     path("drive/oauth/status/", drive_oauth.oauth_status, name="drive-oauth-status"),
     path("drive/oauth/start/", drive_oauth.oauth_start, name="drive-oauth-start"),
     path("drive/oauth/callback/", drive_oauth.oauth_callback, name="drive-oauth-callback"),
+
+    path("gmail/oauth/status/", gmail_oauth.oauth_status, name="gmail-oauth-status"),
+    path("gmail/oauth/start/", gmail_oauth.oauth_start, name="gmail-oauth-start"),
+    path("gmail/oauth/callback/", gmail_oauth.oauth_callback, name="gmail-oauth-callback"),
 
     path("dashboard/", dashboard_api.dashboard, name="web-dashboard"),
 
@@ -64,6 +68,18 @@ urlpatterns = [
     path("order-projects/<uuid:pk>/steps/<uuid:step_pk>/", order_api.delete_project_step, name="web-order-project-step-delete"),
     path("order-projects/<uuid:pk>/steps/<uuid:step_pk>/orders/", order_api.create_project_order, name="web-order-project-step-order-add"),
     path("order-projects/<uuid:pk>/steps/<uuid:step_pk>/import/", order_api.import_project_step, name="web-order-project-step-import"),
+
+    path("rfqs/preview/", rfq_api.rfq_preview, name="web-rfq-preview"),
+    path("rfqs/send/", rfq_api.send_rfq, name="web-rfq-send"),
+    path("rfqs/", rfq_api.rfq_list, name="web-rfq-list"),
+    path("rfqs/<uuid:pk>/vendor/", rfq_api.rfq_vendor, name="web-rfq-vendor"),
+    path("rfqs/<uuid:pk>/follow-up/", rfq_api.follow_up, name="web-rfq-follow-up"),
+    path("rfqs/<uuid:pk>/sync/", rfq_api.sync_rfq_thread, name="web-rfq-sync"),
+    path("po-balances/", rfq_api.po_balance_list, name="web-po-balance-list"),
+    path("po-balances/<uuid:pk>/", rfq_api.po_balance_detail, name="web-po-balance-detail"),
+    path("rfq-attachments/<uuid:pk>/download/", rfq_api.download_attachment, name="web-rfq-attachment-download"),
+    path("rfq-cc-rules/", rfq_api.cc_rules, name="web-rfq-cc-rules"),
+    path("rfq-cc-rules/<uuid:pk>/", rfq_api.cc_rule_detail, name="web-rfq-cc-rule-detail"),
 
     path("roles/", role_api.roles, name="web-roles"),
     path("roles/<uuid:pk>/", role_api.update_role, name="web-role-update"),

@@ -64,6 +64,7 @@ class Location(LegacyMixin):
 class Employee(LegacyMixin):
     employee_code = models.CharField(max_length=80, unique=True)
     name = models.CharField(max_length=200)
+    email = models.EmailField(blank=True, db_index=True)
     role = models.CharField(max_length=120, blank=True)
     department = models.CharField(max_length=120, blank=True)
     active = models.BooleanField(default=True)
@@ -704,6 +705,269 @@ class OrderRecord(LegacyMixin):
 
     def __str__(self):
         return self.order_number
+
+
+class RFQCCRule(UUIDMixin):
+    TYPE_DEFAULT = "DEFAULT"
+    TYPE_JOB = "JOB"
+    TYPE_CHOICES = [
+        (TYPE_DEFAULT, "ทุกการส่ง"),
+        (TYPE_JOB, "ตาม JOB"),
+    ]
+
+    rule_type = models.CharField(max_length=20, choices=TYPE_CHOICES, db_index=True)
+    job = models.CharField(max_length=80, blank=True, db_index=True)
+    email = models.EmailField()
+    display_name = models.CharField(max_length=200, blank=True)
+    active = models.BooleanField(default=True, db_index=True)
+    created_by_employee = models.ForeignKey(
+        Employee,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="created_rfq_cc_rules",
+    )
+
+    class Meta:
+        ordering = ["rule_type", "job", "email"]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["rule_type", "job", "email"],
+                name="uniq_rfq_cc_rule",
+            )
+        ]
+
+
+class VendorEmailIdentity(UUIDMixin):
+    email = models.EmailField(unique=True)
+    vendor = models.ForeignKey(
+        Supplier,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="email_identities",
+    )
+    vendor_name = models.CharField(max_length=250, blank=True)
+    confirmed_by_employee = models.ForeignKey(
+        Employee,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="confirmed_vendor_email_identities",
+    )
+    last_used_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        ordering = ["email"]
+
+
+class OrderRFQ(UUIDMixin):
+    STATUS_DRAFT = "DRAFT"
+    STATUS_SENT = "SENT"
+    STATUS_FAILED = "FAILED"
+    STATUS_CANCELLED = "CANCELLED"
+    STATUS_CHOICES = [
+        (STATUS_DRAFT, "Draft"),
+        (STATUS_SENT, "Sent"),
+        (STATUS_FAILED, "Failed"),
+        (STATUS_CANCELLED, "Cancelled"),
+    ]
+
+    rfq_number = models.CharField(max_length=80, unique=True)
+    group_order = models.CharField(max_length=250, db_index=True)
+    job = models.CharField(max_length=80, db_index=True)
+    vendor = models.ForeignKey(
+        Supplier,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="order_rfqs",
+    )
+    vendor_name = models.CharField(max_length=250, blank=True)
+    recipient_email = models.EmailField(db_index=True)
+    sender_email = models.EmailField(blank=True)
+    requested_at = models.DateTimeField(null=True, blank=True, db_index=True)
+    sent_by_employee = models.ForeignKey(
+        Employee,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="sent_order_rfqs",
+    )
+    status = models.CharField(
+        max_length=20,
+        choices=STATUS_CHOICES,
+        default=STATUS_DRAFT,
+        db_index=True,
+    )
+    subject = models.CharField(max_length=500, blank=True)
+    body_text = models.TextField(blank=True)
+    to_emails = models.JSONField(default=list, blank=True)
+    cc_emails = models.JSONField(default=list, blank=True)
+    gmail_message_id = models.CharField(max_length=200, blank=True)
+    gmail_thread_id = models.CharField(max_length=200, blank=True, db_index=True)
+    rfc_message_id = models.CharField(max_length=500, blank=True, db_index=True)
+    gmail_web_link = models.TextField(blank=True)
+    send_error = models.TextField(blank=True)
+
+    class Meta:
+        ordering = ["-requested_at", "-created_at"]
+        indexes = [
+            models.Index(fields=["group_order", "job"]),
+            models.Index(fields=["status", "requested_at"]),
+        ]
+
+    def __str__(self):
+        return self.rfq_number
+
+
+class OrderRFQItem(UUIDMixin):
+    rfq = models.ForeignKey(OrderRFQ, on_delete=models.CASCADE, related_name="items")
+    order = models.ForeignKey(
+        OrderRecord,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="rfq_items",
+    )
+    order_number = models.CharField(max_length=100)
+    item_id = models.CharField(max_length=100, blank=True)
+    part_name = models.CharField(max_length=300)
+    part_detail = models.TextField(blank=True)
+    amount = models.PositiveIntegerField(default=1)
+    unit = models.CharField(max_length=80)
+
+    class Meta:
+        ordering = ["created_at"]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["rfq", "order"],
+                name="uniq_order_rfq_item",
+            )
+        ]
+
+
+class RFQMessage(UUIDMixin):
+    TYPE_REQUEST = "RFQ_REQUEST"
+    TYPE_PRICE_FOLLOW_UP = "PRICE_FOLLOW_UP"
+    TYPE_DELIVERY_FOLLOW_UP = "DELIVERY_FOLLOW_UP"
+    TYPE_VENDOR_REPLY = "VENDOR_REPLY"
+    TYPE_CHOICES = [
+        (TYPE_REQUEST, "ขอราคา"),
+        (TYPE_PRICE_FOLLOW_UP, "ตามราคา"),
+        (TYPE_DELIVERY_FOLLOW_UP, "ตามวันที่จัดส่ง"),
+        (TYPE_VENDOR_REPLY, "Vendor ตอบกลับ"),
+    ]
+    DIRECTION_OUTBOUND = "OUTBOUND"
+    DIRECTION_INBOUND = "INBOUND"
+    DIRECTION_CHOICES = [
+        (DIRECTION_OUTBOUND, "Outbound"),
+        (DIRECTION_INBOUND, "Inbound"),
+    ]
+    STATUS_PENDING = "PENDING"
+    STATUS_SENT = "SENT"
+    STATUS_RECEIVED = "RECEIVED"
+    STATUS_FAILED = "FAILED"
+    STATUS_CHOICES = [
+        (STATUS_PENDING, "Pending"),
+        (STATUS_SENT, "Sent"),
+        (STATUS_RECEIVED, "Received"),
+        (STATUS_FAILED, "Failed"),
+    ]
+
+    rfq = models.ForeignKey(OrderRFQ, on_delete=models.CASCADE, related_name="messages")
+    message_type = models.CharField(max_length=30, choices=TYPE_CHOICES)
+    direction = models.CharField(max_length=10, choices=DIRECTION_CHOICES)
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default=STATUS_PENDING)
+    subject = models.CharField(max_length=500, blank=True)
+    body_text = models.TextField(blank=True)
+    from_email = models.EmailField(blank=True)
+    to_emails = models.JSONField(default=list, blank=True)
+    cc_emails = models.JSONField(default=list, blank=True)
+    gmail_message_id = models.CharField(max_length=200, blank=True, db_index=True)
+    gmail_thread_id = models.CharField(max_length=200, blank=True, db_index=True)
+    rfc_message_id = models.CharField(max_length=500, blank=True, db_index=True)
+    gmail_web_link = models.TextField(blank=True)
+    occurred_at = models.DateTimeField(null=True, blank=True, db_index=True)
+    sent_by_employee = models.ForeignKey(
+        Employee,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="sent_rfq_messages",
+    )
+    error = models.TextField(blank=True)
+
+    class Meta:
+        ordering = ["occurred_at", "created_at"]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["rfq", "gmail_message_id"],
+                condition=~models.Q(gmail_message_id=""),
+                name="uniq_rfq_gmail_message",
+            )
+        ]
+
+
+class RFQAttachment(UUIDMixin):
+    message = models.ForeignKey(RFQMessage, on_delete=models.CASCADE, related_name="attachments")
+    filename = models.CharField(max_length=500)
+    mime_type = models.CharField(max_length=200, blank=True)
+    size = models.PositiveBigIntegerField(default=0)
+    gmail_attachment_id = models.CharField(max_length=500, blank=True)
+    gmail_message_id = models.CharField(max_length=200, blank=True)
+    quotation_revision = models.PositiveIntegerField(default=0)
+
+    class Meta:
+        ordering = ["created_at"]
+
+
+class POBalance(UUIDMixin):
+    rfq = models.OneToOneField(OrderRFQ, on_delete=models.CASCADE, related_name="po_balance")
+    quotation_received_at = models.DateTimeField(null=True, blank=True)
+    price = models.DecimalField(max_digits=18, decimal_places=4, null=True, blank=True)
+    currency = models.CharField(max_length=10, default="THB")
+    lead_time_days = models.PositiveIntegerField(null=True, blank=True)
+    vendor_delivery_date = models.DateField(null=True, blank=True)
+    actual_delivery_date = models.DateField(null=True, blank=True)
+    note = models.TextField(blank=True)
+    updated_by_employee = models.ForeignKey(
+        Employee,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="updated_po_balances",
+    )
+
+    class Meta:
+        ordering = ["-updated_at"]
+
+
+class IntegrationCredential(UUIDMixin):
+    PROVIDER_GMAIL = "GMAIL"
+    provider = models.CharField(max_length=30, unique=True)
+    encrypted_credentials = models.TextField(blank=True)
+    account_email = models.EmailField(blank=True)
+    scopes = models.JSONField(default=list, blank=True)
+    connected_by_employee = models.ForeignKey(
+        Employee,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="connected_integrations",
+    )
+    connected_at = models.DateTimeField(null=True, blank=True)
+    last_error = models.TextField(blank=True)
+    pending_state_hash = models.CharField(max_length=64, blank=True, db_index=True)
+    pending_code_verifier = models.TextField(blank=True)
+    pending_by_employee = models.ForeignKey(
+        Employee,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="pending_integrations",
+    )
+    pending_at = models.DateTimeField(null=True, blank=True)
 
 
 class AuditLog(models.Model):

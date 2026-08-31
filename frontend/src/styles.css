@@ -286,3 +286,61 @@
 }
 .stock-state.low_stock{background:#fff0f4;color:#d64d69}
 .stock-state.ordering_now{background:#fff4dc;color:#b87916}
+
+/* ========================================================================== */
+/* PartsFlow V7.4 — RFQ & PO Balance email workflow                          */
+/* ========================================================================== */
+.alert.info{background:var(--info-soft);color:var(--info)}
+.alert.warning{background:var(--warning-soft);color:#9a6512}
+.mini.link{display:inline-flex;align-items:center;text-decoration:none;background:#eef2ff;color:#4f46e5}
+.table-wrap.compact{max-height:300px;border:1px solid var(--border-soft)}
+
+.quotation-history{align-items:start}
+.quotation-rfq-list{display:grid;gap:6px;min-width:0}
+.quotation-rfq-list>div{display:grid;grid-template-columns:minmax(120px,.8fr) minmax(130px,1fr) minmax(150px,1fr) minmax(100px,.6fr) auto;gap:8px;align-items:center;padding:8px 10px;border:1px solid var(--border-soft);border-radius:9px;background:#fafbff;font-size:10px}
+.quotation-rfq-list>div>b{color:#4f46e5}
+.quotation-rfq-list>div>span{white-space:normal;overflow-wrap:anywhere;color:#64748b}
+.quotation-rfq-list a{color:#5b21b6;font-weight:600;text-decoration:none;white-space:nowrap}
+.quotation-rfq-list .legacy-quotation{grid-template-columns:150px 1fr;background:#fff8e8;border-color:#fde7b2}
+.quotation-rfq-list .legacy-quotation b{color:#a36b12}
+
+.rfq-group-list,.rfq-result-list{display:grid;gap:12px;margin-top:14px}
+.rfq-group-card,.rfq-result{border:1px solid var(--border-soft);border-radius:14px;background:#fff;padding:13px}
+.rfq-group-card>header{display:flex;justify-content:space-between;gap:12px;margin-bottom:10px}
+.rfq-group-card>header strong,.rfq-result strong{display:block;color:#4338ca;font-size:12px}
+.rfq-group-card>header span,.rfq-result span,.rfq-result small{display:block;margin-top:3px;color:var(--muted);font-size:10px}
+.rfq-result{display:grid;grid-template-columns:minmax(180px,.7fr) minmax(0,1.3fr);gap:12px;align-items:center}
+.rfq-result.sent{border-color:#bbf0de;background:#f8fffc}
+.rfq-result.failed{border-color:#fecdd3;background:#fff8f9}
+.rfq-result.failed strong,.rfq-result.failed small{color:var(--danger)}
+.rfq-vendor-confirm{display:flex;gap:7px;align-items:center;justify-content:flex-end;min-width:0}
+.rfq-vendor-confirm select,.rfq-vendor-confirm input{min-height:34px;padding:6px 9px;border:1px solid var(--border);border-radius:8px;min-width:0}
+.rfq-vendor-confirm select{flex:1}.rfq-vendor-confirm input{flex:1}
+
+.gmail-setup{display:flex;align-items:center;justify-content:space-between;gap:16px}
+.gmail-setup h2{margin:0;font-size:14px}.gmail-setup p{margin:4px 0;color:var(--sub);font-size:11px}.gmail-setup small{display:block;color:var(--muted);font-size:9px;overflow-wrap:anywhere}
+.cc-settings summary{cursor:pointer;color:#4338ca;font-weight:600;font-size:12px}
+.cc-settings[open] summary{margin-bottom:14px}
+.po-inline-form{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.po-inline-form input,.po-inline-form select{flex:1;min-width:150px;min-height:38px;padding:8px 10px;border:1px solid var(--border);border-radius:9px}
+.cc-rule-list{display:flex;gap:7px;flex-wrap:wrap;margin-top:12px}
+.cc-rule-list>span{display:flex;align-items:center;gap:5px;padding:6px 8px;border-radius:9px;background:#f5f3ff;color:#5b556f;font-size:9px}
+.cc-rule-list b{color:#6d28d9}.cc-rule-list button{border:0;background:transparent;color:#be3455;font-size:15px;line-height:1}
+
+.po-balance-table{min-width:1250px}
+.po-balance-table td small{display:block;margin-top:3px;color:var(--muted);font-size:9px}
+.po-detail-head{display:grid;grid-template-columns:1fr 1fr auto;gap:10px;align-items:center;padding:13px;border:1px solid #ddd6fe;border-radius:13px;background:#faf9ff;margin-bottom:14px}
+.po-detail-head span,.po-detail-head small{display:block;color:var(--muted);font-size:9px}.po-detail-head strong{display:block;margin:3px 0;color:#334155;font-size:12px}.po-detail-head a{text-decoration:none}
+.po-section{padding:14px 0;border-top:1px solid var(--border-soft)}
+.po-section:first-of-type{border-top:0}.po-section>h3,.po-section .section-head h3{margin:0 0 10px;color:#334155;font-size:12px}.po-section .section-head h3{margin-bottom:0}.po-section .section-head p{margin:3px 0 0;color:var(--muted);font-size:9px}
+.modal-actions.compact{margin-top:10px}
+.attachment-list{display:flex;gap:8px;flex-wrap:wrap}.attachment-list button{display:flex;flex-direction:column;align-items:flex-start;gap:3px;min-width:190px;padding:9px 11px;border:1px solid #c7d2fe;border-radius:10px;background:#f8faff;text-align:left}.attachment-list span{font-size:8px;color:#4f46e5}.attachment-list b{font-size:10px;color:#334155}.attachment-list small{font-size:8px;color:var(--muted)}
+.po-mail-addresses{display:grid;gap:6px;margin-bottom:12px}.po-mail-addresses span{display:grid;grid-template-columns:45px 1fr;gap:8px;padding:7px 9px;border-radius:9px;background:#f8fafc;color:#64748b;font-size:9px;overflow-wrap:anywhere}.po-mail-addresses b{color:#334155}
+.mail-timeline{display:grid;gap:9px}.mail-event{position:relative;padding:12px 13px 12px 16px;border:1px solid var(--border-soft);border-radius:12px;background:#fff}.mail-event:before{content:"";position:absolute;left:0;top:10px;bottom:10px;width:3px;border-radius:4px;background:#8b5cf6}.mail-event.inbound:before{background:#10b981}.mail-event>header{display:flex;justify-content:space-between;gap:10px}.mail-event>header strong,.mail-event>header span{display:block}.mail-event>header strong{font-size:11px;color:#334155}.mail-event>header span,.mail-event time{font-size:8px;color:var(--muted)}.mail-event p{white-space:pre-wrap;margin:9px 0;color:#64748b;font-size:10px;line-height:1.55}.mail-event-meta{display:grid;gap:3px;color:var(--muted);font-size:8px;overflow-wrap:anywhere}.mail-event>a{display:inline-block;margin-top:8px;color:#5b21b6;font-size:9px;font-weight:600;text-decoration:none}.mail-files{display:flex;gap:5px;flex-wrap:wrap;margin-top:7px}.mail-files button,.mail-files span{border:0;border-radius:7px;background:#eef2ff;color:#4f46e5;padding:5px 7px;font-size:8px}
+
+@media(max-width:900px){
+  .quotation-rfq-list>div{grid-template-columns:1fr 1fr}.rfq-result{grid-template-columns:1fr}.rfq-vendor-confirm{justify-content:flex-start;flex-wrap:wrap}.gmail-setup{align-items:flex-start;flex-direction:column}.po-detail-head{grid-template-columns:1fr 1fr}.po-detail-head>a{grid-column:1/-1}.po-section .section-head{align-items:flex-start;flex-direction:column}.po-section .page-actions{width:100%;flex-wrap:wrap}.po-section .page-actions .btn{width:auto;flex:1}
+}
+@media(max-width:767px){
+  .rfq-group-card,.rfq-result{padding:10px}.rfq-vendor-confirm{display:grid;grid-template-columns:1fr}.rfq-vendor-confirm .mini{justify-content:center}.quotation-rfq-list>div{grid-template-columns:1fr}.quotation-rfq-list .legacy-quotation{grid-template-columns:1fr}.gmail-setup .page-actions{display:grid;grid-template-columns:1fr 1fr;width:100%}.gmail-setup .page-actions .status{grid-column:1/-1;justify-content:center}.po-inline-form{display:grid;grid-template-columns:1fr}.po-inline-form input,.po-inline-form select{width:100%;min-width:0}.po-detail-head{grid-template-columns:1fr}.po-detail-head>a{grid-column:auto;text-align:center}.attachment-list{display:grid}.attachment-list button{width:100%;min-width:0}.mail-event>header{align-items:flex-start;flex-direction:column}.m-rfq-selection{position:sticky;top:0;z-index:8;display:flex;align-items:center;gap:6px;padding:8px 9px;margin-bottom:9px;border:1px solid #c4b5fd;border-radius:11px;background:#f7f5ff;box-shadow:0 4px 12px rgba(76,29,149,.08)}.m-rfq-selection b{font-size:9px;color:#5b21b6;margin-right:auto}.m-rfq-selection button{border:0;border-radius:8px;padding:7px 9px;background:#e9e5ff;color:#5b21b6;font-size:8px}.m-rfq-selection button:first-of-type{background:#6d28d9;color:#fff}.m-order-card.selected{border-color:#b9a5f2;box-shadow:0 0 0 2px rgba(124,58,237,.08)}.m-rfq-check{display:flex;align-items:center;gap:6px;margin:-2px 0 8px;padding:6px 7px;border-radius:8px;background:#f7f5ff;color:#6551c9;font-size:8px}.m-rfq-check input{width:16px;height:16px;accent-color:#7c3aed}
+}

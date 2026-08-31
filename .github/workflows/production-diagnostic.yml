@@ -52,7 +52,10 @@ jobs:
           assert data['database_vendor'] == 'postgresql', data
           assert data['migration_0014_applied'] is True, data
           assert data['migration_0015_applied'] is True, data
+          assert data['migration_0016_applied'] is True, data
           assert data['permission_columns_present'] is True, data
+          assert data['employee_email_present'] is True, data
+          assert data['rfq_tables_present'] is True, data
           assert data['imported_order_count'] == 4107, data
           assert data['order_count'] >= data['imported_order_count'], data
           PY
