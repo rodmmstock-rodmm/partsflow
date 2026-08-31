@@ -6,6 +6,7 @@ on:
     paths:
       - 'backend/**'
       - 'frontend/**'
+      - 'local/**'
       - '.github/workflows/build-local-windows.yml'
 
 permissions:
