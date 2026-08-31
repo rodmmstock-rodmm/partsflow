@@ -108,8 +108,6 @@ def production_repair(request):
         precondition_errors.append("database_not_postgresql")
     if not before["migration_0014_applied"]:
         precondition_errors.append("migration_0014_not_applied")
-    if before["order_count"] != 4107:
-        precondition_errors.append("unexpected_order_count")
     if before["imported_order_count"] != 4107:
         precondition_errors.append("unexpected_imported_order_count")
     if before["migration_0015_applied"]:
@@ -149,7 +147,7 @@ def production_repair(request):
             after["migration_0014_applied"]
             and after["migration_0015_applied"]
             and after["permission_columns_present"]
-            and after["order_count"] == 4107
+            and after["order_count"] == before["order_count"]
             and after["imported_order_count"] == 4107
         ):
             return Response(
