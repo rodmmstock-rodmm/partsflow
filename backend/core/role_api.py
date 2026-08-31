@@ -1,5 +1,7 @@
 from django.db import IntegrityError
 from django.db.models import Q
+from django.core.exceptions import ValidationError
+from django.core.validators import validate_email
 from django.views.decorators.csrf import csrf_exempt
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import AllowAny
@@ -27,10 +29,21 @@ def employee_json(employee):
         "id": str(employee.id),
         "employee_code": employee.employee_code,
         "name": employee.name,
+        "email": employee.email or "",
         "department": employee.department or "",
         "role": employee.role or "",
         "active": employee.active,
     }
+
+
+def _employee_email(value):
+    email = str(value or "").strip().lower()
+    if email:
+        try:
+            validate_email(email)
+        except ValidationError as exc:
+            raise ValueError("อีเมลพนักงานไม่ถูกต้อง") from exc
+    return email
 
 
 @csrf_exempt
@@ -101,6 +114,7 @@ def employees(request):
             qs = qs.filter(
                 Q(employee_code__icontains=q)
                 | Q(name__icontains=q)
+                | Q(email__icontains=q)
                 | Q(department__icontains=q)
                 | Q(role__icontains=q)
             )
@@ -114,15 +128,19 @@ def employees(request):
     if role and not RoleAccess.objects.filter(role_name__iexact=role, active=True).exists():
         return Response({"detail": "Role นี้ยังไม่มีใน Role & Permissions"}, status=400)
     try:
+        email = _employee_email(request.data.get("email", ""))
         employee = Employee.objects.create(
             employee_code=code,
             name=name,
+            email=email,
             department=str(request.data.get("department", "")).strip(),
             role=role,
             active=bool(request.data.get("active", True)),
             legacy_source="WEB",
             legacy_id=code,
         )
+    except ValueError as exc:
+        return Response({"detail": str(exc)}, status=400)
     except IntegrityError:
         return Response({"detail": "Employee Code นี้มีอยู่แล้ว"}, status=400)
     audit(actor, "CREATE", "Employee", employee.id, employee_json(employee))
@@ -145,6 +163,11 @@ def update_employee(request, pk):
         employee.employee_code = str(request.data.get("employee_code") or "").strip()
     if "name" in request.data:
         employee.name = str(request.data.get("name") or "").strip()
+    if "email" in request.data:
+        try:
+            employee.email = _employee_email(request.data.get("email"))
+        except ValueError as exc:
+            return Response({"detail": str(exc)}, status=400)
     if "department" in request.data:
         employee.department = str(request.data.get("department") or "").strip()
     if "active" in request.data:

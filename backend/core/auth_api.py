@@ -127,6 +127,7 @@ def payload(employee):
         "id": str(employee.id),
         "employee_code": employee.employee_code,
         "name": employee.name,
+        "email": employee.email or "",
         "role": employee.role or "",
         "department": employee.department or "",
         "permissions": permissions_for(employee),

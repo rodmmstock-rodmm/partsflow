@@ -1,7 +1,7 @@
 from decimal import Decimal, InvalidOperation
 
 from django.db import IntegrityError, transaction
-from django.db.models import Max, Q, Sum
+from django.db.models import Count, Exists, Max, OuterRef, Q, Sum
 from django.utils import timezone
 from django.utils.dateparse import parse_date
 from django.views.decorators.csrf import csrf_exempt
@@ -17,6 +17,8 @@ from .models import (
     Machine,
     OrderProject,
     OrderRecord,
+    OrderRFQ,
+    OrderRFQItem,
     OrderStep,
     Part,
     StockTransaction,
@@ -76,6 +78,18 @@ def group_order_for(order):
     return f"{order.machine.code}_{order.order_date.strftime('%d%m%Y')}"
 
 
+def quotation_is_ready(order):
+    if bool((order.quotation or "").strip()):
+        return True
+    annotated = getattr(order, "_has_sent_rfq", None)
+    if annotated is not None:
+        return bool(annotated)
+    return bool(
+        order.pk
+        and order.rfq_items.filter(rfq__status=OrderRFQ.STATUS_SENT).exists()
+    )
+
+
 def compute_status(order, validate=True):
     """Return the data-derived purchase workflow status.
 
@@ -93,7 +107,7 @@ def compute_status(order, validate=True):
         -> Receive
       Complete Order
     """
-    quotation_ready = bool((order.quotation or "").strip())
+    quotation_ready = quotation_is_ready(order)
     vendor_ready = bool(order.vendor_id)
     po_group = [
         bool((order.po_number or "").strip()),
@@ -153,6 +167,7 @@ def order_json(order):
         "pending_data_date": order.pending_data_date.isoformat() if order.pending_data_date else "",
         "remark": order.remark,
         "quotation": order.quotation,
+        "rfq_count": int(getattr(order, "rfq_count", 0) or 0),
         "part_id": str(order.part_id) if order.part_id else "",
         "item_id": order.part.sku if order.part else "",
         "part_name": order.part_name,
@@ -331,7 +346,7 @@ def apply_purchase_info(order, data):
     if "person_in_charge_id" in data:
         order.person_in_charge = employee_or_none(data.get("person_in_charge_id"))
 
-    quotation_ready = bool((order.quotation or "").strip())
+    quotation_ready = quotation_is_ready(order)
     vendor_ready = bool(order.vendor_id)
     po_group = [
         bool((order.po_number or "").strip()),
@@ -356,6 +371,9 @@ def apply_purchase_info(order, data):
 
 
 def order_queryset():
+    sent_rfq = OrderRFQItem.objects.filter(
+        order_id=OuterRef("pk"), rfq__status=OrderRFQ.STATUS_SENT
+    )
     return OrderRecord.objects.select_related(
         "machine",
         "part",
@@ -367,6 +385,13 @@ def order_queryset():
         "completed_by_employee",
         "project",
         "step",
+    ).annotate(
+        _has_sent_rfq=Exists(sent_rfq),
+        rfq_count=Count(
+            "rfq_items",
+            filter=Q(rfq_items__rfq__status=OrderRFQ.STATUS_SENT),
+            distinct=True,
+        ),
     )
 
 
