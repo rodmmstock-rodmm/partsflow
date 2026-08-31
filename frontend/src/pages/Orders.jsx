@@ -98,6 +98,7 @@ export function OrderInfoModal({
   step,
   options,
   employee,
+  canEditOrderDate = false,
   onClose,
   onSaved,
 }) {
@@ -234,7 +235,12 @@ export function OrderInfoModal({
         <div className="form-grid three">
           <label className="field">
             <span>DATE *</span>
-            <input type="date" readOnly value={form.date} />
+            <input
+              type="date"
+              readOnly={!canEditOrderDate}
+              value={form.date}
+              onChange={(e) => set("date", e.target.value)}
+            />
           </label>
 
           <label className="field">
@@ -860,13 +866,15 @@ function OrderTable({
 }
 
 
-function MonthlyOrderTables({ rows, auth, selected, onToggle, onToggleAll, onEdit, onPurchase }) {
+function MonthlyOrderTables({ rows, auth, selected, onToggle, onToggleAll, onEdit, onPurchase, dateBasis = "lifecycle" }) {
   const [openYears, setOpenYears] = useState({});
   const [openMonths, setOpenMonths] = useState({});
   const groups = useMemo(() => {
     const years = new Map();
     for (const row of rows) {
-      const raw = row.cancelled_at || row.received_at || row.updated_at || row.date || row.order_date;
+      const raw = dateBasis === "order"
+        ? (row.date || row.order_date || row.created_at)
+        : (row.cancelled_at || row.completed_at || row.received_at || row.date || row.order_date || row.updated_at);
       const d = raw ? new Date(raw) : null;
       const valid = d && !Number.isNaN(d.getTime());
       const year = valid ? String(d.getFullYear()) : String(row.date || "").slice(0, 4) || "ไม่ระบุปี";
@@ -880,7 +888,7 @@ function MonthlyOrderTables({ rows, auth, selected, onToggle, onToggleAll, onEdi
     return Array.from(years.entries())
       .sort((a, b) => Number(b[0]) - Number(a[0]))
       .map(([year, months]) => ({ year, months: Array.from(months.values()).sort((a, b) => b.key.localeCompare(a.key)) }));
-  }, [rows]);
+  }, [rows, dateBasis]);
 
   useEffect(() => {
     if (!groups.length) return;
@@ -898,6 +906,121 @@ function MonthlyOrderTables({ rows, auth, selected, onToggle, onToggleAll, onEdi
       {openMonths[m.key] && <OrderTable rows={m.rows} auth={auth} selected={selected} onToggle={onToggle} onToggleAll={onToggleAll} onEdit={onEdit} onPurchase={onPurchase} />}
     </section>)}</div>}
   </section>)}</div>;
+}
+
+
+function MonthlyProjectList({ projects, onSelect }) {
+  const [openYears, setOpenYears] = useState({});
+  const [openMonths, setOpenMonths] = useState({});
+  const groups = useMemo(() => {
+    const years = new Map();
+    for (const project of projects) {
+      const raw = project.created_at || project.pending_data_date;
+      const d = raw ? new Date(raw) : null;
+      const valid = d && !Number.isNaN(d.getTime());
+      const year = valid ? String(d.getFullYear()) : "ไม่ระบุปี";
+      const mi = valid ? d.getMonth() : 0;
+      const key = valid
+        ? `${year}-${String(mi + 1).padStart(2, "0")}`
+        : `${year}-00`;
+      if (!years.has(year)) years.set(year, new Map());
+      const months = years.get(year);
+      if (!months.has(key)) {
+        months.set(key, {
+          key,
+          label: valid ? (MONTHS_TH[mi] || key) : "ไม่ระบุเดือน",
+          projects: [],
+        });
+      }
+      months.get(key).projects.push(project);
+    }
+    return Array.from(years.entries())
+      .sort((a, b) => Number(b[0]) - Number(a[0]))
+      .map(([year, months]) => ({
+        year,
+        months: Array.from(months.values()).sort((a, b) => b.key.localeCompare(a.key)),
+      }));
+  }, [projects]);
+
+  useEffect(() => {
+    if (!groups.length) return;
+    const y = groups[0];
+    const m = y.months[0];
+    setOpenYears((prev) => Object.keys(prev).length ? prev : { [y.year]: true });
+    if (m) setOpenMonths((prev) => Object.keys(prev).length ? prev : { [m.key]: true });
+  }, [groups]);
+
+  if (!groups.length) return <div className="empty">ไม่พบ Project</div>;
+
+  return (
+    <div className="history-groups">
+      {groups.map((y) => (
+        <section className="history-year" key={y.year}>
+          <button
+            className="history-collapse year"
+            onClick={() => setOpenYears((x) => ({ ...x, [y.year]: !x[y.year] }))}
+          >
+            <span>{openYears[y.year] ? "▾" : "▸"} ปี {y.year}</span>
+            <b>{y.months.reduce((n, m) => n + m.projects.length, 0)} Project</b>
+          </button>
+          {openYears[y.year] && (
+            <div className="history-months">
+              {y.months.map((m) => (
+                <section className="history-month" key={m.key}>
+                  <button
+                    className="history-collapse month"
+                    onClick={() => setOpenMonths((x) => ({ ...x, [m.key]: !x[m.key] }))}
+                  >
+                    <span>{openMonths[m.key] ? "▾" : "▸"} {m.label}</span>
+                    <b>{m.projects.length} Project</b>
+                  </button>
+                  {openMonths[m.key] && (
+                    <div className="table-wrap">
+                      <table>
+                        <thead>
+                          <tr>
+                            <th>PROJECT</th>
+                            <th>OWNER</th>
+                            <th>CREATED</th>
+                            <th>STEP</th>
+                            <th>ORDER</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {m.projects.map((project) => (
+                            <tr
+                              key={project.id}
+                              role="button"
+                              tabIndex={0}
+                              title="กดเพื่อเปิด Project"
+                              style={{ cursor: "pointer" }}
+                              onClick={() => onSelect(project)}
+                              onKeyDown={(event) => {
+                                if (event.key === "Enter" || event.key === " ") {
+                                  event.preventDefault();
+                                  onSelect(project);
+                                }
+                              }}
+                            >
+                              <td><b>{project.name}</b></td>
+                              <td>{project.owner_name || "-"}</td>
+                              <td>{project.created_at ? new Date(project.created_at).toLocaleDateString("th-TH") : "-"}</td>
+                              <td>{fmt(project.step_count)}</td>
+                              <td>{fmt(project.total_items)}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+                </section>
+              ))}
+            </div>
+          )}
+        </section>
+      ))}
+    </div>
+  );
 }
 
 function BulkActions({ rows, auth, busy, onRun, onClear }) {
@@ -1781,7 +1904,7 @@ export default function Orders({ mode = "orders" }) {
 
       {!stepPage && (
       <div className="tab-row page-tabs">
-        {ORDER_TABS.map(([key, label]) => (
+        {ORDER_TABS.filter(([key]) => key !== "updates" || auth.can("can_view_order_updates")).map(([key, label]) => (
           <button
             key={key}
             className={`tab ${tab === key ? "active" : ""}`}
@@ -1850,7 +1973,7 @@ export default function Orders({ mode = "orders" }) {
           {loading ? (
             <div className="empty">กำลังโหลด...</div>
           ) : (
-            ["completed", "cancelled"].includes(tab) ? (
+            ["normal", "completed", "cancelled"].includes(tab) ? (
               <MonthlyOrderTables
                 rows={rows}
                 auth={auth}
@@ -1859,6 +1982,7 @@ export default function Orders({ mode = "orders" }) {
                 onToggleAll={toggleAll}
                 onEdit={(order) => setEditor({ order, project: null })}
                 onPurchase={setPurchase}
+                dateBasis={tab === "normal" ? "order" : "lifecycle"}
               />
             ) : (
               <OrderTable
@@ -1899,69 +2023,47 @@ export default function Orders({ mode = "orders" }) {
             </button>
           </div>
 
-          <section className="panel">
-            <div className="section-head">
-              <div>
-                <h2>
-                  {projectDepartment === "MODIFY"
-                    ? "Modify Projects"
-                    : "Automation Projects"}
-                </h2>
-                <p>ค้นหาจากชื่อ Project หรือชื่อเจ้าของ แล้วเลือกจาก Dropdown</p>
+          {!selectedProject && (
+            <section className="panel">
+              <div className="section-head">
+                <div>
+                  <h2>
+                    {projectDepartment === "MODIFY"
+                      ? "Modify Projects"
+                      : "Automation Projects"}
+                  </h2>
+                  <p>เลือก Project จากรายการที่แยกตามเดือน / ปี</p>
+                </div>
+
+                {auth.can("can_manage_order_projects") && (
+                  <button
+                    className="btn primary"
+                    onClick={() => setProjectModal(true)}
+                  >
+                    + Project
+                  </button>
+                )}
               </div>
 
-              {auth.can("can_manage_order_projects") && (
-                <button
-                  className="btn primary"
-                  onClick={() => setProjectModal(true)}
-                >
-                  + Project
-                </button>
-              )}
-            </div>
+              <div className="toolbar wrap">
+                <input
+                  className="search-input"
+                  value={projectSearch}
+                  onChange={(e) => setProjectSearch(e.target.value)}
+                  placeholder="ค้นหา Project / เจ้าของ Project..."
+                />
+              </div>
 
-            <div className="toolbar wrap">
-              <input
-                className="search-input"
-                value={projectSearch}
-                onChange={(e) => setProjectSearch(e.target.value)}
-                placeholder="ค้นหา Project / เจ้าของ Project..."
+              <MonthlyProjectList
+                projects={shownProjects}
+                onSelect={selectProject}
               />
+            </section>
+          )}
 
-              <select
-                value={selectedProject?.id || ""}
-                onChange={(e) => {
-                  const project = shownProjects.find(
-                    (x) => x.id === e.target.value
-                  );
-                  if (project) selectProject(project);
-                  else {
-                    setSelectedProject(null);
-                    setProjectDetail(null);
-                  }
-                }}
-                style={{ minWidth: 320 }}
-              >
-                <option value="">เลือก Project...</option>
-                {shownProjects.map((project) => (
-                  <option key={project.id} value={project.id}>
-                    {project.name}
-                    {" · "}
-                    {project.owner_name || "ไม่ระบุเจ้าของ"}
-                    {" · "}
-                    {project.step_count} Step
-                  </option>
-                ))}
-              </select>
-            </div>
-          </section>
-
+          {selectedProject && (
           <section className="project-content">
-              {!selectedProject ? (
-                <div className="empty">
-                  เลือก Project หรือสร้าง Project ใหม่ใน {projectDepartment === "MODIFY" ? "Modify" : "Automation"}
-                </div>
-              ) : projectDetail ? (
+              {projectDetail ? (
                 <>
                   <div className="page-header project-head">
                     <div>
@@ -1979,6 +2081,16 @@ export default function Orders({ mode = "orders" }) {
                       </p>
                     </div>
                     <div className="page-actions" style={{ flexWrap: "wrap" }}>
+                      <button
+                        className="btn ghost"
+                        onClick={() => {
+                          setSelectedProject(null);
+                          setProjectDetail(null);
+                          setSelected(new Set());
+                        }}
+                      >
+                        ← กลับรายการ Project
+                      </button>
                       {auth.can("can_manage_order_projects") && (
                         <button className="btn primary" onClick={createStep}>
                           + เพิ่ม Step
@@ -2113,6 +2225,7 @@ export default function Orders({ mode = "orders" }) {
                 <div className="empty">กำลังโหลด Project...</div>
               )}
             </section>
+          )}
         </>
       )}
 
@@ -2123,6 +2236,7 @@ export default function Orders({ mode = "orders" }) {
           step={editor.step}
           options={options}
           employee={auth.employee}
+          canEditOrderDate={auth.can("can_edit_order_date")}
           onClose={() => setEditor(null)}
           onSaved={async () => {
             setEditor(null);

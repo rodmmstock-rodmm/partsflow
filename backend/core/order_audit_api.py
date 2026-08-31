@@ -11,6 +11,7 @@ from .models import AuditLog
 
 
 TRACKED_FIELDS = (
+    "date",
     "factory",
     "machine",
     "job",
@@ -61,6 +62,7 @@ def _snapshot(order):
         return None
     data = order_api.order_json(order)
     return {
+        "date": data.get("date") or "",
         "factory": data.get("factory") or "",
         "machine": _code_name(data.get("machine_code"), data.get("machine_name")),
         "job": data.get("job") or "",
@@ -180,6 +182,10 @@ def orders(request):
     """
     if request.method == "GET":
         view = str(request.GET.get("view", "normal")).strip().lower()
+        if view == "updates":
+            _, permission_error = require_permission(request, "can_view_order_updates")
+            if permission_error:
+                return permission_error
         if view != "normal":
             params = request.GET.copy()
             params["urgency"] = "all"

@@ -10,7 +10,7 @@ from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 
 from .audit_utils import audit
-from .auth_api import require_permission
+from .auth_api import permissions_for, require_permission
 from .models import (
     Employee,
     Inventory,
@@ -218,10 +218,11 @@ def order_json(order):
     }
 
 
-def apply_order_info(order, data, *, creating=False):
+def apply_order_info(order, data, *, creating=False, allow_order_date=False):
     if creating:
         order.order_date = timezone.localdate()
-    # DATE cannot be edited after creation.
+    if allow_order_date and "date" in data:
+        order.order_date = as_date(data.get("date"), "DATE", required=True)
     if "factory" in data or creating:
         factory = str(data.get("factory") or "").strip()
         if factory not in {"MM-4", "MM-11"}:
@@ -488,7 +489,12 @@ def orders(request):
                     source_type="NORMAL",
                     edit_workflow_enabled=True,
                 )
-                apply_order_info(order, request.data, creating=True)
+                apply_order_info(
+                    order,
+                    request.data,
+                    creating=True,
+                    allow_order_date=bool(permissions_for(actor).get("can_edit_order_date")),
+                )
                 order.save()
                 audit(actor, "CREATE", "OrderRecord", order.id, order_json(order_queryset().get(pk=order.pk)))
             return Response(order_json(order_queryset().get(pk=order.pk)), status=201)
@@ -606,9 +612,21 @@ def update_order_info(request, pk):
         if incoming_part != current_part or incoming_job != (order.job or "").upper() or incoming_amount != order.amount:
             return Response({"detail": "Order นี้รับเข้า Stock แล้ว จึงไม่อนุญาตให้เปลี่ยน Item ID, JOB หรือ AMOUNT เพื่อป้องกัน Stock ไม่ตรง"}, status=400)
     before = order_json(order)
+    can_edit_order_date = bool(permissions_for(actor).get("can_edit_order_date"))
+    if "date" in request.data:
+        try:
+            incoming_date = as_date(request.data.get("date"), "DATE", required=True)
+        except ValueError as exc:
+            return Response({"detail": str(exc)}, status=400)
+        if incoming_date != order.order_date and not can_edit_order_date:
+            return Response({"detail": "คุณไม่มีสิทธิ์แก้ไข DATE ของ Order"}, status=403)
     try:
         with transaction.atomic():
-            apply_order_info(order, request.data)
+            apply_order_info(
+                order,
+                request.data,
+                allow_order_date=can_edit_order_date,
+            )
             order.save()
             after = order_json(order_queryset().get(pk=pk))
             audit(actor, "UPDATE_ORDER_INFO", "OrderRecord", order.id, {"before": before, "after": after})
@@ -1070,6 +1088,7 @@ def project_json(project):
             project.created_by_employee.name
             if project.created_by_employee else ""
         ),
+        "created_at": timezone.localtime(project.created_at).isoformat(),
         "active": project.active,
         "step_count": project.steps.count(),
         "total_items": len(orders),
@@ -1466,7 +1485,12 @@ def create_project_order(request, pk, step_pk=None):
                 edit_workflow_enabled=False,
                 usage_status="USED",
             )
-            apply_order_info(order, request.data, creating=True)
+            apply_order_info(
+                order,
+                request.data,
+                creating=True,
+                allow_order_date=bool(permissions_for(actor).get("can_edit_order_date")),
+            )
             order.save()
 
             audit(

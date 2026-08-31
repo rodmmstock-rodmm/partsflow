@@ -660,8 +660,6 @@ export default function Dashboard() {
                     <th>Maker</th>
                     <th>Stock</th>
                     <th>Unit</th>
-                    <th>Min</th>
-                    <th>Vendor</th>
                     <th>สถานะ</th>
                     <th>Action</th>
                   </tr>
@@ -700,8 +698,6 @@ export default function Dashboard() {
                           <b>{fmt(part.stock_qty)}</b>
                         </td>
                         <td>{part.unit_code}</td>
-                        <td>{fmt(part.min_stock)}</td>
-                        <td>{part.supplier_name || "-"}</td>
                         <td>
                           {inactive ? (
                             <span className="status muted">Inactive</span>
