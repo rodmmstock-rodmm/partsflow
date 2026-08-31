@@ -1,42 +1,23 @@
-import json
 from datetime import date
 from unittest.mock import patch
 
-from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test import TestCase
 from django.utils import timezone
 from rest_framework.test import APIClient
 
 from core.auth_api import create_auth_token
-from core.gmail_service import (
-    GmailConfigError,
-    consume_oauth_pending,
-    create_oauth_pending,
-    save_oauth_pending,
-)
 from core.models import (
     Employee,
     OrderRFQ,
     OrderRFQItem,
     OrderRecord,
     POBalance,
-    RFQAttachment,
     RFQCCRule,
     RFQMessage,
     RoleAccess,
     Supplier,
 )
 from core.production_check_api import MIGRATION_0016, REPAIR_KEY
-
-
-def sent_result(message_id="gmail-1", thread_id="thread-1"):
-    return {
-        "sender_email": "purchasing@example.com",
-        "gmail_message_id": message_id,
-        "gmail_thread_id": thread_id,
-        "rfc_message_id": f"<{message_id}@example.com>",
-        "gmail_web_link": f"https://mail.google.com/search/{message_id}",
-    }
 
 
 class RFQWorkflowTests(TestCase):
@@ -73,6 +54,17 @@ class RFQWorkflowTests(TestCase):
             status=OrderRecord.STATUS_NEW,
         )
 
+    def record_payload(self, orders, **overrides):
+        payload = {
+            "order_ids": [str(order.id) for order in orders],
+            "vendor_name": "Manual Vendor",
+            "recipient_email": "vendor@example.com",
+            "sent_at": "2026-08-31T10:30:00+07:00",
+            "email_link": "https://mail.google.com/mail/u/0/#sent/test-message",
+        }
+        payload.update(overrides)
+        return payload
+
     def test_preview_groups_items_and_default_job_cc(self):
         first = self.order("ORD-001")
         second = self.order("ORD-002")
@@ -101,8 +93,6 @@ class RFQWorkflowTests(TestCase):
             set(group["cc_emails"]),
             {"fixed@example.com", "repair@example.com"},
         )
-        self.assertIn("{{RFQ_NO}}", response.data["subject_template"])
-        self.assertIn("กรุณาเสนอราคา", response.data["body_text"])
 
     def test_preview_rejects_group_order_with_more_than_one_job(self):
         first = self.order("ORD-001", job="REPAIR")
@@ -117,130 +107,114 @@ class RFQWorkflowTests(TestCase):
         self.assertEqual(response.status_code, 400)
         self.assertIn("JOB เดียวกัน", response.data["detail"])
 
-    @patch("core.rfq_api.send_gmail_message")
-    def test_send_creates_separate_vendor_threads_and_never_overwrites_legacy(self, send):
-        send.side_effect = [
-            sent_result("gmail-1", "thread-1"),
-            sent_result("gmail-2", "thread-2"),
-        ]
-        order = self.order("ORD-001", quotation="LEGACY-Q-001")
-        RFQCCRule.objects.create(
-            rule_type=RFQCCRule.TYPE_DEFAULT,
-            email="fixed@example.com",
+    def test_manual_record_creates_one_rfq_per_group_and_preserves_legacy(self):
+        first = self.order(
+            "ORD-001", group="GRP-001", job="REPAIR", quotation="LEGACY-Q-001"
         )
-        Supplier.objects.create(
+        second = self.order("ORD-002", group="GRP-002", job="PM")
+        vendor = Supplier.objects.create(
             code="V001",
             name="Known Vendor",
             email="known@example.com",
         )
-        attachment = SimpleUploadedFile(
-            "spec.pdf", b"pdf-content", content_type="application/pdf"
+        RFQCCRule.objects.create(
+            rule_type=RFQCCRule.TYPE_DEFAULT,
+            email="fixed@example.com",
         )
 
         response = self.client.post(
-            "/api/rfqs/send/",
-            {
-                "order_ids": json.dumps([str(order.id)]),
-                "recipients": json.dumps(["known@example.com", "new@example.com"]),
-                # An explicit empty list proves the user can remove default CC.
-                "group_cc_emails": json.dumps({"GRP-001": []}),
-                "subject": "[RFQ {{RFQ_NO}}] {{GROUP_ORDER}}",
-                "body_text": "เรียน ผู้ขาย",
-                "attachments": attachment,
-            },
-            format="multipart",
+            "/api/rfqs/record/",
+            self.record_payload(
+                [first, second],
+                vendor_id=str(vendor.id),
+                vendor_name="",
+                recipient_email="known@example.com",
+                group_cc_emails={"GRP-001": []},
+            ),
+            format="json",
         )
 
         self.assertEqual(response.status_code, 201)
-        self.assertEqual(response.data["sent_count"], 2)
-        self.assertEqual(OrderRFQ.objects.filter(status=OrderRFQ.STATUS_SENT).count(), 2)
-        self.assertEqual(
-            set(OrderRFQ.objects.values_list("gmail_thread_id", flat=True)),
-            {"thread-1", "thread-2"},
-        )
-        self.assertTrue(OrderRFQ.objects.filter(vendor__name="Known Vendor").exists())
-        self.assertTrue(
-            all(value == [] for value in OrderRFQ.objects.values_list("cc_emails", flat=True))
-        )
+        self.assertEqual(response.data["recorded_count"], 2)
+        self.assertEqual(OrderRFQ.objects.count(), 2)
         self.assertEqual(POBalance.objects.count(), 2)
-        self.assertEqual(RFQAttachment.objects.count(), 2)
-        order.refresh_from_db()
-        self.assertEqual(order.quotation, "LEGACY-Q-001")
-        self.assertEqual(order.status, OrderRecord.STATUS_QUOTE)
+        self.assertEqual(RFQMessage.objects.count(), 2)
+        self.assertTrue(
+            all(row.status == OrderRFQ.STATUS_SENT for row in OrderRFQ.objects.all())
+        )
+        self.assertTrue(
+            all(not row.gmail_thread_id for row in OrderRFQ.objects.all())
+        )
+        self.assertTrue(
+            all(
+                row.gmail_web_link
+                == "https://mail.google.com/mail/u/0/#sent/test-message"
+                for row in OrderRFQ.objects.all()
+            )
+        )
+        self.assertEqual(
+            OrderRFQ.objects.get(group_order="GRP-001").cc_emails,
+            [],
+        )
+        self.assertEqual(
+            OrderRFQ.objects.get(group_order="GRP-002").cc_emails,
+            ["fixed@example.com"],
+        )
+        first.refresh_from_db()
+        second.refresh_from_db()
+        self.assertEqual(first.quotation, "LEGACY-Q-001")
+        self.assertEqual(first.status, OrderRecord.STATUS_QUOTE)
+        self.assertEqual(second.status, OrderRecord.STATUS_QUOTE)
 
-    @patch("core.rfq_api.send_gmail_message", side_effect=RuntimeError("Gmail unavailable"))
-    def test_failed_send_is_logged_without_advancing_order(self, _send):
+    def test_manual_record_requires_https_email_link_and_vendor(self):
+        order = self.order("ORD-001")
+        invalid_link = self.client.post(
+            "/api/rfqs/record/",
+            self.record_payload([order], email_link="javascript:alert(1)"),
+            format="json",
+        )
+        self.assertEqual(invalid_link.status_code, 400)
+        self.assertFalse(OrderRFQ.objects.exists())
+
+        missing_vendor = self.client.post(
+            "/api/rfqs/record/",
+            self.record_payload([order], vendor_name=""),
+            format="json",
+        )
+        self.assertEqual(missing_vendor.status_code, 400)
+        self.assertFalse(OrderRFQ.objects.exists())
+
+    def test_manual_record_rejects_multiple_vendor_emails(self):
+        order = self.order("ORD-001")
+        response = self.client.post(
+            "/api/rfqs/record/",
+            self.record_payload(
+                [order],
+                recipient_email="one@example.com, two@example.com",
+            ),
+            format="json",
+        )
+        self.assertEqual(response.status_code, 400)
+        self.assertIn("ครั้งละ 1 Vendor", response.data["detail"])
+
+    def test_legacy_send_endpoint_is_disabled(self):
         order = self.order("ORD-001")
         response = self.client.post(
             "/api/rfqs/send/",
-            {
-                "order_ids": json.dumps([str(order.id)]),
-                "recipients": json.dumps(["vendor@example.com"]),
-            },
-            format="multipart",
+            self.record_payload([order]),
+            format="json",
         )
+        self.assertEqual(response.status_code, 410)
+        self.assertFalse(OrderRFQ.objects.exists())
 
-        self.assertEqual(response.status_code, 207)
-        rfq = OrderRFQ.objects.get()
-        self.assertEqual(rfq.status, OrderRFQ.STATUS_FAILED)
-        self.assertIn("Gmail unavailable", rfq.send_error)
-        self.assertFalse(POBalance.objects.exists())
-        order.refresh_from_db()
-        self.assertEqual(order.status, OrderRecord.STATUS_NEW)
-
-    @patch("core.rfq_api.audit", side_effect=RuntimeError("audit unavailable"))
-    @patch("core.rfq_api.send_gmail_message", return_value=sent_result())
-    def test_post_send_audit_problem_never_labels_email_as_failed(self, _send, _audit):
+    def test_manual_follow_up_records_link_without_gmail_thread(self):
         order = self.order("ORD-001")
-        response = self.client.post(
-            "/api/rfqs/send/",
-            {
-                "order_ids": json.dumps([str(order.id)]),
-                "recipients": json.dumps(["vendor@example.com"]),
-            },
-            format="multipart",
+        recorded = self.client.post(
+            "/api/rfqs/record/",
+            self.record_payload([order]),
+            format="json",
         )
-        self.assertEqual(response.status_code, 201)
-        self.assertEqual(response.data["sent_count"], 1)
-        self.assertIn("Audit", response.data["results"][0]["warning"])
-        rfq = OrderRFQ.objects.get()
-        self.assertEqual(rfq.status, OrderRFQ.STATUS_SENT)
-        self.assertIn("POST_SEND_WARNING", rfq.send_error)
-
-    @patch("core.rfq_api.send_gmail_message")
-    def test_follow_up_replies_in_original_thread(self, send):
-        send.return_value = sent_result("follow-1", "thread-1")
-        order = self.order("ORD-001")
-        rfq = OrderRFQ.objects.create(
-            rfq_number="RFQ-TEST-001",
-            group_order=order.group_order,
-            job=order.job,
-            recipient_email="vendor@example.com",
-            status=OrderRFQ.STATUS_SENT,
-            requested_at=timezone.now(),
-            sent_by_employee=self.employee,
-            subject="[RFQ RFQ-TEST-001] Request for Quotation",
-            gmail_thread_id="thread-1",
-            rfc_message_id="<original@example.com>",
-        )
-        OrderRFQItem.objects.create(
-            rfq=rfq,
-            order=order,
-            order_number=order.order_number,
-            part_name=order.part_name,
-            part_detail=order.part_detail,
-            amount=order.amount,
-            unit=order.unit_text,
-        )
-        RFQMessage.objects.create(
-            rfq=rfq,
-            message_type=RFQMessage.TYPE_REQUEST,
-            direction=RFQMessage.DIRECTION_OUTBOUND,
-            status=RFQMessage.STATUS_SENT,
-            rfc_message_id="<original@example.com>",
-            gmail_thread_id="thread-1",
-            occurred_at=timezone.now(),
-        )
+        rfq = OrderRFQ.objects.get(pk=recorded.data["results"][0]["id"])
 
         response = self.client.post(
             f"/api/rfqs/{rfq.id}/follow-up/",
@@ -248,151 +222,68 @@ class RFQWorkflowTests(TestCase):
                 "message_type": RFQMessage.TYPE_PRICE_FOLLOW_UP,
                 "body_text": "ขอติดตามราคา",
                 "cc_emails": "staff@example.com",
+                "occurred_at": "2026-09-01T09:00:00+07:00",
+                "email_link": "https://mail.google.com/mail/u/0/#sent/follow-up",
             },
-            format="multipart",
+            format="json",
         )
 
         self.assertEqual(response.status_code, 201)
-        kwargs = send.call_args.kwargs
-        self.assertEqual(kwargs["thread_id"], "thread-1")
-        self.assertEqual(kwargs["in_reply_to"], "<original@example.com>")
-        self.assertEqual(kwargs["to_emails"], ["vendor@example.com"])
-        follow = RFQMessage.objects.get(message_type=RFQMessage.TYPE_PRICE_FOLLOW_UP)
-        self.assertEqual(follow.status, RFQMessage.STATUS_SENT)
-
-    @patch("core.rfq_api.audit", side_effect=RuntimeError("audit unavailable"))
-    @patch("core.rfq_api.send_gmail_message", return_value=sent_result("follow-2", "thread-2"))
-    def test_follow_up_audit_problem_never_labels_email_as_failed(self, _send, _audit):
-        order = self.order("ORD-001")
-        rfq = OrderRFQ.objects.create(
-            rfq_number="RFQ-TEST-002",
-            group_order=order.group_order,
-            job=order.job,
-            recipient_email="vendor@example.com",
-            status=OrderRFQ.STATUS_SENT,
-            requested_at=timezone.now(),
-            sent_by_employee=self.employee,
-            subject="[RFQ RFQ-TEST-002] Request for Quotation",
-            gmail_thread_id="thread-2",
-            rfc_message_id="<original-2@example.com>",
-        )
-        RFQMessage.objects.create(
-            rfq=rfq,
-            message_type=RFQMessage.TYPE_REQUEST,
-            direction=RFQMessage.DIRECTION_OUTBOUND,
-            status=RFQMessage.STATUS_SENT,
-            rfc_message_id="<original-2@example.com>",
-            gmail_thread_id="thread-2",
-            occurred_at=timezone.now(),
-        )
-
-        response = self.client.post(
-            f"/api/rfqs/{rfq.id}/follow-up/",
-            {"message_type": RFQMessage.TYPE_PRICE_FOLLOW_UP},
-            format="multipart",
-        )
-
-        self.assertEqual(response.status_code, 201)
-        self.assertIn("Audit", response.data["warning"])
         follow = RFQMessage.objects.get(
             message_type=RFQMessage.TYPE_PRICE_FOLLOW_UP
         )
         self.assertEqual(follow.status, RFQMessage.STATUS_SENT)
-        self.assertIn("POST_SEND_WARNING", follow.error)
+        self.assertEqual(
+            follow.gmail_web_link,
+            "https://mail.google.com/mail/u/0/#sent/follow-up",
+        )
+        self.assertEqual(follow.gmail_thread_id, "")
+        self.assertEqual(response.data["email_link"], follow.gmail_web_link)
 
-    def test_follow_up_is_blocked_without_a_sent_original_email(self):
+    def test_follow_up_is_blocked_without_original_email_link(self):
         rfq = OrderRFQ.objects.create(
-            rfq_number="RFQ-DRAFT-001",
+            rfq_number="RFQ-NO-LINK",
             group_order="GRP-001",
             job="REPAIR",
             recipient_email="vendor@example.com",
-            status=OrderRFQ.STATUS_DRAFT,
+            status=OrderRFQ.STATUS_SENT,
+            requested_at=timezone.now(),
         )
         response = self.client.post(
             f"/api/rfqs/{rfq.id}/follow-up/",
-            {"message_type": RFQMessage.TYPE_PRICE_FOLLOW_UP},
+            {
+                "message_type": RFQMessage.TYPE_PRICE_FOLLOW_UP,
+                "email_link": "https://mail.google.com/mail/u/0/#sent/follow-up",
+            },
             format="json",
         )
         self.assertEqual(response.status_code, 400)
 
-    @patch("core.rfq_api.get_gmail_thread")
-    def test_sync_preserves_each_quotation_revision(self, get_thread):
-        order = self.order("ORD-001")
-        rfq = OrderRFQ.objects.create(
-            rfq_number="RFQ-TEST-001",
-            group_order=order.group_order,
-            job=order.job,
-            recipient_email="vendor@example.com",
-            sender_email="purchasing@example.com",
-            status=OrderRFQ.STATUS_SENT,
-            requested_at=timezone.now(),
-            gmail_thread_id="thread-1",
-        )
-        POBalance.objects.create(rfq=rfq)
-        RFQMessage.objects.create(
-            rfq=rfq,
-            message_type=RFQMessage.TYPE_REQUEST,
-            direction=RFQMessage.DIRECTION_OUTBOUND,
-            status=RFQMessage.STATUS_SENT,
-            gmail_message_id="sent-1",
-            gmail_thread_id="thread-1",
-            occurred_at=timezone.now(),
-        )
-        when = timezone.now()
-        get_thread.return_value = [
-            {
-                "gmail_message_id": "reply-1",
-                "gmail_thread_id": "thread-1",
-                "rfc_message_id": "<reply-1@example.com>",
-                "subject": "Re: RFQ",
-                "from_email": "Vendor <vendor@example.com>",
-                "to_raw": "purchasing@example.com",
-                "cc_raw": "staff@example.com",
-                "body_text": "แนบใบเสนอราคา",
-                "occurred_at": when,
-                "attachments": [
-                    {
-                        "filename": "quote-v1.pdf",
-                        "mime_type": "application/pdf",
-                        "size": 100,
-                        "gmail_attachment_id": "att-1",
-                    }
-                ],
-            }
-        ]
-        first = self.client.post(f"/api/rfqs/{rfq.id}/sync/", {}, format="json")
-        self.assertEqual(first.status_code, 200)
-        self.assertEqual(first.data["new_messages"], 1)
-        self.assertEqual(RFQAttachment.objects.get().quotation_revision, 1)
-
-        get_thread.return_value.append(
-            {
-                "gmail_message_id": "reply-2",
-                "gmail_thread_id": "thread-1",
-                "rfc_message_id": "<reply-2@example.com>",
-                "subject": "Re: RFQ revised",
-                "from_email": "vendor@example.com",
-                "to_raw": "purchasing@example.com",
-                "cc_raw": "staff@example.com",
-                "body_text": "แก้ไขราคา",
-                "occurred_at": timezone.now(),
-                "attachments": [
-                    {
-                        "filename": "quote-v2.xlsx",
-                        "mime_type": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-                        "size": 200,
-                        "gmail_attachment_id": "att-2",
-                    }
-                ],
-            }
-        )
-        second = self.client.post(f"/api/rfqs/{rfq.id}/sync/", {}, format="json")
-        self.assertEqual(second.data["new_messages"], 1)
+    def test_oauth_and_sync_routes_are_not_exposed(self):
         self.assertEqual(
-            list(RFQAttachment.objects.order_by("quotation_revision").values_list("quotation_revision", flat=True)),
-            [1, 2],
+            self.client.get("/api/gmail/oauth/status/").status_code,
+            404,
         )
-        self.assertEqual(POBalance.objects.get(rfq=rfq).quotation_received_at, when)
+        self.assertEqual(
+            self.client.post(
+                "/api/rfqs/00000000-0000-0000-0000-000000000000/sync/",
+                {},
+                format="json",
+            ).status_code,
+            404,
+        )
+
+    @patch("core.rfq_api.audit", side_effect=RuntimeError("audit unavailable"))
+    def test_audit_problem_does_not_remove_manual_record(self, _audit):
+        order = self.order("ORD-001")
+        response = self.client.post(
+            "/api/rfqs/record/",
+            self.record_payload([order]),
+            format="json",
+        )
+        self.assertEqual(response.status_code, 201)
+        self.assertIn("Audit", response.data["results"][0]["warning"])
+        self.assertEqual(OrderRFQ.objects.count(), 1)
 
     def test_rfq_item_snapshot_survives_order_deletion(self):
         order = self.order("ORD-001")
@@ -418,19 +309,6 @@ class RFQWorkflowTests(TestCase):
         self.assertIsNone(item.order_id)
         self.assertEqual(item.order_number, "ORD-001")
         self.assertEqual(item.part_name, "Part ORD-001")
-
-    def test_oauth_pending_state_is_one_time_and_encrypted(self):
-        state, state_hash = create_oauth_pending(self.employee)
-        save_oauth_pending(
-            state_hash=state_hash,
-            code_verifier="secret-verifier",
-            actor=self.employee,
-        )
-        actor, verifier = consume_oauth_pending(state)
-        self.assertEqual(actor, self.employee)
-        self.assertEqual(verifier, "secret-verifier")
-        with self.assertRaises(GmailConfigError):
-            consume_oauth_pending(state)
 
     @patch("core.production_check_api.call_command")
     @patch("core.production_check_api._snapshot")

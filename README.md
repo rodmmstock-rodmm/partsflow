@@ -1,18 +1,13 @@
-# PartsFlow V7.4 — RFQ & PO Balance Email Workflow
+# PartsFlow V7.4 — RFQ & PO Balance Manual Email Link Workflow
 
-V7.4 adds a Google Workspace Gmail workflow for sending RFQs from selected
-Orders, keeping every vendor email/thread, and following price and delivery
-dates from PO Balance. Migration `0016` is additive: the legacy Order
-`quotation` field and existing Order rows are preserved.
+V7.4 records RFQs from selected Orders after Purchasing sends email in Gmail
+manually. The employee records the Vendor, recipient, sent date, CC list, and
+the email URL. Price and delivery follow-ups are also recorded with their email
+URLs from PO Balance. PartsFlow does not connect to, send through, or sync Gmail.
+Migration `0016` remains additive: the legacy Order `quotation` field and
+existing Order rows are preserved.
 
-Production Gmail setup uses:
-
-- `GOOGLE_GMAIL_OAUTH_CLIENT_JSON` or `GOOGLE_GMAIL_OAUTH_CLIENT_FILE`
-- `GOOGLE_GMAIL_OAUTH_REDIRECT_URI`
-
-The redirect URI must end at `/api/gmail/oauth/callback/` and be registered in
-the Google Cloud OAuth client. An authorized administrator can then connect the
-corporate sender account from the PO Balance page.
+No Gmail OAuth credentials or Gmail API configuration are required.
 
 ## Original ROD MM STOCK migration
 
