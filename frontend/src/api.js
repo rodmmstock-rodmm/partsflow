@@ -1,7 +1,9 @@
-// Development uses the same-origin Vite proxy. Production must always use
-// the Railway service that owns the PartsFlow production database.
+// Development uses the same-origin Vite proxy. Production defaults to the
+// Railway service, while packaged Local Edition builds can override this with
+// VITE_API_BASE_URL=/api so the browser talks to the bundled Django server.
 const PRODUCTION_API_BASE = "https://partsflow-production.up.railway.app/api";
-const API_BASE = import.meta.env.DEV ? "/api" : PRODUCTION_API_BASE;
+const ENV_API_BASE = (import.meta.env.VITE_API_BASE_URL || "").trim();
+const API_BASE = import.meta.env.DEV ? "/api" : (ENV_API_BASE || PRODUCTION_API_BASE);
 
 const TOKEN_KEY = "partsflow_auth_token";
 
