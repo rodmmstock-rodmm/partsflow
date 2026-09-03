@@ -48,6 +48,7 @@ urlpatterns = [
 
     path("orders/", order_audit_api.orders, name="web-orders"),
     path("orders/batch/", order_api.create_orders_batch, name="web-orders-batch"),
+    path("orders/import/", order_api.import_orders_excel, name="web-orders-import"),
     path("orders/detail-by-number/<str:order_number>/", order_audit_api.order_detail_by_number, name="web-order-detail-by-number"),
     path("orders/<uuid:pk>/", order_api.order_detail, name="web-order-detail"),
     path("orders/<uuid:pk>/info/", order_audit_api.update_order_info, name="web-order-info"),
@@ -56,6 +57,7 @@ urlpatterns = [
     path("orders/<uuid:pk>/wait-confirm/", order_audit_api.wait_confirm_order, name="web-order-wait-confirm"),
     path("orders/<uuid:pk>/cancel/", order_audit_api.cancel_order, name="web-order-cancel"),
     path("orders/<uuid:pk>/delete/", order_api.delete_order, name="web-order-delete"),
+    path("orders/<uuid:pk>/restore/", order_api.restore_order, name="web-order-restore"),
     path("orders/<uuid:pk>/update-data/", order_audit_api.update_edit_data, name="web-order-update-data"),
     path("orders/<uuid:pk>/usage/", order_audit_api.update_usage, name="web-order-usage"),
     path("order-projects/", order_api.projects, name="web-order-projects"),

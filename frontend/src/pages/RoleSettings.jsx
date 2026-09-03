@@ -26,6 +26,7 @@ export const PERMISSIONS = [
   ["can_update_edit_data", "Update Data Workflow", "Order"],
   ["can_manage_order_projects", "Manage Order Project / Step", "Order Step"],
   ["can_create_order_from_quotation", "สร้าง Order จากใบเสนอราคา", "Order Step"],
+  ["can_view_deleted_orders", "View / Restore Deleted Order (Admin)", "Order"],
   ["can_view_suppliers", "View Vendor", "Vendor"],
   ["can_manage_suppliers", "Add / Edit / Delete Vendor", "Vendor"],
   ["can_view_machines", "View Machines", "Machine"],

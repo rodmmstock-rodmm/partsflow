@@ -450,6 +450,7 @@ class RoleAccess(UUIDMixin):
     can_update_edit_data = models.BooleanField(default=False)
     can_manage_order_projects = models.BooleanField(default=False)
     can_create_order_from_quotation = models.BooleanField(default=False)
+    can_view_deleted_orders = models.BooleanField(default=False)
 
     can_view_suppliers = models.BooleanField(default=False)
     can_manage_suppliers = models.BooleanField(default=False)

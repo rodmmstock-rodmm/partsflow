@@ -11,6 +11,7 @@ const ORDER_TABS = [
   ["confirm", "Wait Confirm Order"],
   ["completed", "Completed Order"],
   ["cancelled", "Cancelled Order"],
+  ["deleted", "Deleted Order"],
 ];
 
 const STATUS = [
@@ -28,6 +29,34 @@ const URGENT = [
 ];
 
 const MONTHS_TH = ["มกราคม","กุมภาพันธ์","มีนาคม","เมษายน","พฤษภาคม","มิถุนายน","กรกฎาคม","สิงหาคม","กันยายน","ตุลาคม","พฤศจิกายน","ธันวาคม"];
+
+const ORDER_IMPORT_HEADERS = [
+  "ORDER NUMBER",
+  "DATE",
+  "FACTORY",
+  "MACHINE NAME",
+  "JOB",
+  "URGENT STATUS",
+  "PENDING DATA DATE",
+  "PART ID",
+  "PART NAME",
+  "PART DETAIL",
+  "MAKER",
+  "AMOUNT",
+  "UNIT",
+  "REMARK",
+  "ORDERED BY",
+  "QUOTATION",
+  "PO NUMBER",
+  "PRICE PER UNIT",
+  "CURRENCY",
+  "VENDOR ORDER",
+  "LEAD TIME",
+  "ISSUE PR DATE",
+  "DUE DATE",
+  "VENDOR CONFIRM DATE",
+  "PERSON IN CHARGE OF ORDER",
+];
 
 const STEP_HEADERS = [
   "DATE",
@@ -774,6 +803,64 @@ export function PurchaseModal({
         </button>
       </div>
     </Modal>
+  );
+}
+
+function DeletedOrderTable({ rows, onRestore, restoringId }) {
+  return (
+    <div className="table-wrap">
+      <table className="order-table">
+        <thead>
+          <tr>
+            <th>Action</th>
+            <th>ORDER NO</th>
+            <th>DATE</th>
+            <th>MACHINE</th>
+            <th>PART NAME</th>
+            <th>AMOUNT</th>
+            <th>สถานะก่อนลบ</th>
+            <th>ลบโดย</th>
+            <th>ลบเมื่อ</th>
+          </tr>
+        </thead>
+        <tbody>
+          {rows.map((o) => (
+            <tr key={o.id}>
+              <td className="sticky-action">
+                <button
+                  className="mini primary"
+                  disabled={restoringId === o.id}
+                  onClick={() => onRestore(o)}
+                >
+                  {restoringId === o.id ? "กำลังกู้คืน..." : "กู้คืน"}
+                </button>
+              </td>
+              <td>
+                <b>{o.order_number}</b>
+              </td>
+              <td>{o.date}</td>
+              <td>{o.machine_code || o.machine_name || "-"}</td>
+              <td>{o.part_name}</td>
+              <td>{fmt(o.amount)}</td>
+              <td>{o.lifecycle_status}</td>
+              <td>{o.deleted_by || "-"}</td>
+              <td>
+                {o.deleted_at
+                  ? new Date(o.deleted_at).toLocaleString("th-TH")
+                  : "-"}
+              </td>
+            </tr>
+          ))}
+          {!rows.length && (
+            <tr>
+              <td colSpan={9} className="empty">
+                ไม่มี Order ที่ถูกลบ
+              </td>
+            </tr>
+          )}
+        </tbody>
+      </table>
+    </div>
   );
 }
 
@@ -1750,6 +1837,9 @@ export default function Orders({ mode = "orders" }) {
   const [bulkBusy, setBulkBusy] = useState(false);
   const [importTargetStep, setImportTargetStep] = useState(null);
   const fileRef = useRef(null);
+  const orderImportFileRef = useRef(null);
+  const [orderImportBusy, setOrderImportBusy] = useState(false);
+  const [restoringId, setRestoringId] = useState(null);
 
   async function loadOptions() {
     try {
@@ -2013,6 +2103,26 @@ export default function Orders({ mode = "orders" }) {
     }
   }
 
+  async function restoreOrder(order) {
+    if (
+      !window.confirm(
+        `กู้คืน Order ${order.order_number} กลับมาใช้งาน ?\n` +
+          `Order จะกลับไปแสดงในแท็บสถานะเดิมของมันตามปกติ`
+      )
+    )
+      return;
+    setRestoringId(order.id);
+    setError("");
+    try {
+      await apiPost(`/orders/${order.id}/restore/`, {});
+      await loadOrders(true);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setRestoringId(null);
+    }
+  }
+
   async function usage(order, value) {
     try {
       await apiPatch(`/orders/${order.id}/usage/`, { usage_status: value });
@@ -2229,6 +2339,162 @@ export default function Orders({ mode = "orders" }) {
     }
   }
 
+  function downloadOrderImportTemplate() {
+    const example = {
+      "ORDER NUMBER": "เว้นว่าง = สร้างใหม่ · ใส่เลข Order เดิม = ลบของเดิมแล้วแทนที่ด้วยแถวนี้",
+      DATE: new Date().toISOString().slice(0, 10),
+      FACTORY: "Phase4",
+      "MACHINE NAME": "ใส่รหัสหรือชื่อ Machine ที่มีในระบบ",
+      JOB: "REPAIR",
+      "URGENT STATUS": "",
+      "PENDING DATA DATE": "",
+      "PART ID": "",
+      "PART NAME": "กรอกเมื่อไม่มี Part ID",
+      "PART DETAIL": "กรอกเมื่อไม่มี Part ID",
+      MAKER: "กรอกเมื่อไม่มี Part ID",
+      AMOUNT: 1,
+      UNIT: "EA",
+      REMARK: "",
+      "ORDERED BY": auth.employee?.name || "",
+      QUOTATION: "",
+      "PO NUMBER": "",
+      "PRICE PER UNIT": "",
+      CURRENCY: "THB",
+      "VENDOR ORDER": "",
+      "LEAD TIME": "",
+      "ISSUE PR DATE": "",
+      "DUE DATE": "",
+      "VENDOR CONFIRM DATE": "",
+      "PERSON IN CHARGE OF ORDER": "",
+    };
+
+    const ws = XLSX.utils.json_to_sheet([example], { header: ORDER_IMPORT_HEADERS });
+    const guide = XLSX.utils.aoa_to_sheet([
+      ["PartsFlow Order Import / Replace"],
+      ["ให้แก้ไขแถวตัวอย่างเป็นข้อมูลจริงก่อน Import"],
+      ["ORDER NUMBER เว้นว่างไว้ = ระบบจะสร้าง Order ใหม่ให้"],
+      ["ORDER NUMBER ที่ตรงกับ Order เดิมในระบบ = ลบของเดิมแล้วแทนที่ด้วยข้อมูลแถวนี้ (ใช้เลข Order เดิม)"],
+      ["MACHINE NAME ต้องตรงกับรหัสหรือชื่อในระบบ"],
+      ["JOB จำเป็นต้องใส่ (REPAIR / MODIFY / AUTOMATION / PM หรืออื่น ๆ)"],
+      ["PART ID ถ้ามี ระบบจะดึง Part Name / Detail / Maker / Unit จาก Part Master"],
+      ["ถ้าใส่ Vendor Order ต้องมี Quotation ก่อน"],
+      ["PO NUMBER + ISSUE PR DATE + DUE DATE ต้องใส่ครบทั้ง 3 ช่อง"],
+      ["วันที่รองรับ yyyy-mm-dd หรือ dd/mm/yyyy"],
+      ["Import ได้สูงสุดครั้งละ 1000 แถว"],
+    ]);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Import Template");
+    XLSX.utils.book_append_sheet(wb, guide, "วิธีใช้");
+    XLSX.writeFile(wb, `orders_import_template.xlsx`);
+  }
+
+  function chooseOrderImport() {
+    window.setTimeout(() => orderImportFileRef.current?.click(), 0);
+  }
+
+  async function importOrdersExcel(file) {
+    if (!file) return;
+    setError("");
+    try {
+      const buf = await file.arrayBuffer();
+      const wb = XLSX.read(buf, { type: "array", cellDates: false });
+      const ws = wb.Sheets[wb.SheetNames[0]];
+      const rawRows = XLSX.utils.sheet_to_json(ws, { defval: "" });
+
+      if (!rawRows.length) {
+        throw new Error("ไม่พบข้อมูลในไฟล์ Excel");
+      }
+
+      const normalized = rawRows
+        .map(normalizedExcelRow)
+        .map((r) => ({
+          order_number: readCell(r, "ORDER NUMBER", "ORDER NO"),
+          date: excelDate(readCell(r, "DATE", "ORDER DATE")),
+          factory: String(readCell(r, "FACTORY", "WAREHOUSE") || "Phase4")
+            .toLowerCase()
+            .includes("11")
+            ? "MM-11"
+            : "MM-4",
+          machine: readCell(r, "MACHINE NAME", "MACHINE", "M/C"),
+          job: readCell(r, "JOB"),
+          urgent_status: readCell(r, "URGENT STATUS", "สถานะงานด่วน"),
+          pending_data_date: excelDate(
+            readCell(r, "PENDING DATA DATE", "วันที่งานค้าง")
+          ),
+          item_id: readCell(r, "PART ID", "ITEM ID", "ITEM", "PART NO"),
+          part_name: readCell(r, "PART NAME"),
+          part_detail: readCell(r, "PART DETAIL", "DESCRIPTION"),
+          maker: readCell(r, "MAKER", "MANUFACTURER"),
+          amount: readCell(r, "AMOUNT", "QTY", "QUANTITY") || 0,
+          unit: readCell(r, "UNIT"),
+          remark: readCell(r, "REMARK", "NOTE"),
+          ordered_by: readCell(r, "ORDERED BY", "ORDER BY"),
+          quotation: readCell(r, "QUOTATION", "QUOTE"),
+          po_number: readCell(r, "PO NUMBER", "PO NO", "PO"),
+          price_per_unit: readCell(r, "PRICE PER UNIT", "UNIT PRICE"),
+          currency: readCell(r, "CURRENCY") || "THB",
+          vendor_order: readCell(r, "VENDOR ORDER", "VENDOR", "SUPPLIER"),
+          lead_time_days: readCell(r, "LEAD TIME", "LEAD TIME DAYS"),
+          issue_pr_date: excelDate(readCell(r, "ISSUE PR DATE", "PR DATE")),
+          due_date: excelDate(readCell(r, "DUE DATE")),
+          vendor_confirm_date: excelDate(
+            readCell(r, "VENDOR CONFIRM DATE", "CONFIRM DATE")
+          ),
+          person_in_charge: readCell(
+            r,
+            "PERSON IN CHARGE OF ORDER",
+            "PERSON IN CHARGE",
+            "PIC"
+          ),
+        }))
+        .filter((r) =>
+          Object.values(r).some((value) => String(value || "").trim() !== "")
+        );
+
+      if (!normalized.length) {
+        throw new Error("ไม่มีแถวข้อมูลสำหรับ Import");
+      }
+
+      const replaceCount = normalized.filter((r) => r.order_number).length;
+      const newCount = normalized.length - replaceCount;
+      if (
+        !window.confirm(
+          `พบ ${normalized.length} แถวในไฟล์\n` +
+            `- ${replaceCount} แถวมี ORDER NUMBER ตรงกับ Order เดิม จะลบของเดิมแล้วแทนที่ด้วยข้อมูลใหม่\n` +
+            `- ${newCount} แถวไม่มี ORDER NUMBER ตรงกับของเดิม จะสร้างเป็น Order ใหม่\n\n` +
+            `การลบของเดิมไม่สามารถย้อนกลับได้ ยืนยันการ Import ?`
+        )
+      ) {
+        return;
+      }
+
+      setOrderImportBusy(true);
+      const result = await apiPost("/orders/import/", {
+        filename: file.name,
+        rows: normalized,
+      });
+
+      const parts = [];
+      if (result.replaced) parts.push(`แทนที่ ${result.replaced} รายการ`);
+      if (result.created) parts.push(`สร้างใหม่ ${result.created} รายการ`);
+      if (result.errors?.length) {
+        const details = result.errors
+          .slice(0, 5)
+          .map((x) => `แถว ${x.row}: ${x.error}`)
+          .join(" | ");
+        parts.push(`ข้าม ${result.errors.length} แถว · ${details}`);
+      }
+      setError(parts.join(" · ") || "Import สำเร็จ");
+
+      await loadOrders(true);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setOrderImportBusy(false);
+      if (orderImportFileRef.current) orderImportFileRef.current.value = "";
+    }
+  }
+
   function projectExportRows(sourceRows) {
     return sourceRows.map((o) => ({
       PROJECT: projectDetail?.project?.name || "",
@@ -2328,7 +2594,7 @@ export default function Orders({ mode = "orders" }) {
 
   const updateCount = tab === "updates" ? rows.length : 0;
 
-  const kpiBlocks = tab !== "step" && (
+  const kpiBlocks = tab !== "step" && tab !== "deleted" && (
     <>
       <div className="kpi-grid five">
         <div className="kpi-card">
@@ -2388,7 +2654,11 @@ export default function Orders({ mode = "orders" }) {
 
       {!stepPage && (
       <div className="tab-row page-tabs">
-        {ORDER_TABS.filter(([key]) => key !== "updates" || auth.can("can_view_order_updates")).map(([key, label]) => (
+        {ORDER_TABS.filter(
+          ([key]) =>
+            (key !== "updates" || auth.can("can_view_order_updates")) &&
+            (key !== "deleted" || auth.can("can_view_deleted_orders"))
+        ).map(([key, label]) => (
           <button
             key={key}
             className={`tab ${tab === key ? "active" : ""}`}
@@ -2444,19 +2714,51 @@ export default function Orders({ mode = "orders" }) {
             <button className="btn ghost" onClick={() => loadOrders(true)}>
               ค้นหา
             </button>
+
+            {tab === "normal" &&
+              auth.can("can_add_order") &&
+              auth.can("can_delete_order") && (
+                <>
+                  <button className="btn ghost" onClick={downloadOrderImportTemplate}>
+                    ⬇ Template
+                  </button>
+                  <button
+                    className="btn ghost"
+                    onClick={chooseOrderImport}
+                    disabled={orderImportBusy}
+                  >
+                    {orderImportBusy ? "กำลัง Import..." : "⬆ Import Excel"}
+                  </button>
+                  <input
+                    type="file"
+                    accept=".xlsx,.xls"
+                    ref={orderImportFileRef}
+                    style={{ display: "none" }}
+                    onChange={(e) => importOrdersExcel(e.target.files?.[0])}
+                  />
+                </>
+              )}
           </div>
 
-          <BulkActions
-            rows={selectedRows}
-            auth={auth}
-            busy={bulkBusy}
-            onRun={runBulk}
-            onClear={() => setSelected(new Set())}
-            onRfq={() => setRfqCompose(true)}
-          />
+          {tab !== "deleted" && (
+            <BulkActions
+              rows={selectedRows}
+              auth={auth}
+              busy={bulkBusy}
+              onRun={runBulk}
+              onClear={() => setSelected(new Set())}
+              onRfq={() => setRfqCompose(true)}
+            />
+          )}
 
           {loading ? (
             <div className="empty">กำลังโหลด...</div>
+          ) : tab === "deleted" ? (
+            <DeletedOrderTable
+              rows={rows}
+              onRestore={restoreOrder}
+              restoringId={restoringId}
+            />
           ) : (
             ["normal", "completed", "cancelled"].includes(tab) ? (
               <MonthlyOrderTables

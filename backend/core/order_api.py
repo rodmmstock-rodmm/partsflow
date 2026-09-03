@@ -301,6 +301,14 @@ def order_json(order):
         ),
         "stock_received": order.stock_received,
         "is_deleted": order.is_deleted,
+        "deleted_at": (
+            timezone.localtime(order.deleted_at).isoformat()
+            if order.deleted_at else ""
+        ),
+        "deleted_by": (
+            order.deleted_by_employee.name
+            if order.deleted_by_employee else ""
+        ),
         "created_at": timezone.localtime(order.created_at).isoformat(),
         "updated_at": timezone.localtime(order.updated_at).isoformat(),
     }
@@ -465,6 +473,7 @@ def order_queryset():
         "recorded_by",
         "cancelled_by_employee",
         "completed_by_employee",
+        "deleted_by_employee",
         "project",
         "step",
         "source_quotation_order",
@@ -620,10 +629,13 @@ def orders(request):
     job = str(request.GET.get("job", "")).strip().upper()
     status = str(request.GET.get("status", "")).strip()
 
-    qs = order_queryset().filter(
-        is_deleted=False,
-        procurement_phase=OrderRecord.PROCUREMENT_PURCHASE,
-    )
+    if view == "deleted":
+        qs = order_queryset().filter(is_deleted=True)
+    else:
+        qs = order_queryset().filter(
+            is_deleted=False,
+            procurement_phase=OrderRecord.PROCUREMENT_PURCHASE,
+        )
     if view == "completed":
         qs = qs.filter(
             lifecycle_status=OrderRecord.LIFECYCLE_COMPLETED
@@ -647,6 +659,8 @@ def orders(request):
             | Q(edit_data_status=OrderRecord.EDIT_WAIT_ITEM, status=OrderRecord.STATUS_ITEM)
             | Q(edit_data_status=OrderRecord.EDIT_WAIT_COMPLETE, status=OrderRecord.STATUS_COMPLETE)
         )
+    elif view == "deleted":
+        pass  # already scoped to is_deleted=True above; show any lifecycle_status
     else:
         qs = qs.filter(
             lifecycle_status=OrderRecord.LIFECYCLE_ACTIVE,
@@ -668,7 +682,8 @@ def orders(request):
     if status:
         qs = qs.filter(status=status)
 
-    rows = list(qs.order_by("-order_date", "-created_at")[:5000])
+    order_fields = ("-deleted_at", "-updated_at") if view == "deleted" else ("-order_date", "-created_at")
+    rows = list(qs.order_by(*order_fields)[:5000])
     if urgency in {"normal", "urgent", "pending", "urgent_pending"}:
         rows = [row for row in rows if urgency_class(row) == urgency]
 
@@ -1169,6 +1184,24 @@ def delete_order(request, pk):
     order.save(update_fields=["is_deleted", "deleted_at", "deleted_by_employee", "updated_at"])
     audit(actor, "SOFT_DELETE", "OrderRecord", order.id, before)
     return Response({"success": True})
+
+
+@api_view(["POST"])
+@permission_classes([AllowAny])
+def restore_order(request, pk):
+    actor, err = require_permission(request, "can_view_deleted_orders")
+    if err:
+        return err
+    order = OrderRecord.objects.filter(pk=pk, is_deleted=True).first()
+    if not order:
+        return Response({"detail": "ไม่พบ Order ที่ถูกลบ"}, status=404)
+    before = order_json(order_queryset().get(pk=order.pk))
+    order.is_deleted = False
+    order.deleted_at = None
+    order.deleted_by_employee = None
+    order.save(update_fields=["is_deleted", "deleted_at", "deleted_by_employee", "updated_at"])
+    audit(actor, "RESTORE", "OrderRecord", order.id, before)
+    return Response(order_json(order_queryset().get(pk=order.pk)))
 
 
 @csrf_exempt
@@ -2088,6 +2121,213 @@ def import_project_step(request, pk, step_pk=None):
             },
             status=400,
         )
+
+
+@csrf_exempt
+@api_view(["POST"])
+@permission_classes([AllowAny])
+def import_orders_excel(request):
+    """Bulk Import Excel for the main (non-Project) Order list.
+
+    Each row is matched by ORDER NUMBER against an existing, non-deleted,
+    NORMAL-source Order:
+      - Match found  -> the existing Order is soft-deleted (its order_number
+        is suffixed so it stays unique) and a brand new Order is created
+        re-using the original order_number, populated from the row data.
+        This is the "delete the current one and put the new one in its
+        place" replace behaviour.
+      - No match     -> a brand new Order is created (a fresh order_number
+        is generated if the row left ORDER NUMBER blank or it doesn't match
+        anything on file).
+
+    Rows are processed independently; one bad row does not block the rest.
+    """
+    actor, err = require_permission(request, "can_delete_order")
+    if err:
+        return err
+    if not permissions_for(actor).get("can_add_order"):
+        return Response({"detail": "คุณไม่มีสิทธิ์ใช้งานส่วนนี้"}, status=403)
+
+    rows = request.data.get("rows") or []
+    if not isinstance(rows, list) or not rows:
+        return Response({"detail": "ไม่พบรายการในไฟล์ Import"}, status=400)
+    if len(rows) > 1000:
+        return Response({"detail": "Import ได้สูงสุดครั้งละ 1000 แถว"}, status=400)
+
+    filename = str(request.data.get("filename") or "Excel Import")[:255]
+
+    replaced = 0
+    created_new = 0
+    errors = []
+
+    try:
+        with transaction.atomic():
+            for idx, raw_row in enumerate(rows, start=2):
+                if not isinstance(raw_row, dict):
+                    errors.append({"row": idx, "error": "รูปแบบข้อมูลแถวไม่ถูกต้อง"})
+                    continue
+
+                try:
+                    with transaction.atomic():
+                        row = {str(k).strip().lower(): v for k, v in raw_row.items()}
+
+                        machine = resolve_machine_from_row(row)
+                        if not machine:
+                            raise ValueError("ไม่พบ MACHINE NAME ในระบบ")
+
+                        ordered_by = resolve_employee_from_row(row, "ordered_by") or actor
+                        part = resolve_part_from_row(row)
+
+                        item_id = clean_lookup(row.get("item_id"))
+                        if item_id and not part:
+                            raise ValueError(f"ไม่พบ PART ID '{item_id}' ใน Part Master")
+
+                        job = clean_lookup(row.get("job")).upper()
+                        if not job:
+                            raise ValueError("JOB จำเป็นต้องใส่")
+
+                        data = {
+                            "factory": normalize_import_factory(row.get("factory")),
+                            "machine_id": str(machine.id),
+                            "job": job,
+                            "urgent_status": clean_lookup(row.get("urgent_status")),
+                            "pending_data_date": row.get("pending_data_date") or "",
+                            "part_id": str(part.id) if part else "",
+                            "part_name": row.get("part_name") or "",
+                            "part_detail": row.get("part_detail") or "",
+                            "maker": row.get("maker") or "",
+                            "amount": row.get("amount") or 0,
+                            "unit": row.get("unit") or "",
+                            "remark": row.get("remark") or "",
+                            "ordered_by_id": str(ordered_by.id),
+                        }
+
+                        order_number = clean_lookup(row.get("order_number"))
+                        existing = None
+                        if order_number:
+                            existing = OrderRecord.objects.select_for_update().filter(
+                                order_number=order_number,
+                                is_deleted=False,
+                                source_type="NORMAL",
+                            ).first()
+
+                        if existing:
+                            if (
+                                existing.procurement_phase == OrderRecord.PROCUREMENT_QUOTATION
+                                and existing.converted_orders.filter(is_deleted=False).exists()
+                            ):
+                                raise ValueError(
+                                    "แทนที่รายการนี้ไม่ได้ เพราะมี Order จริงที่สร้างจากรายการนี้แล้ว"
+                                )
+                            reused_number = existing.order_number
+                            existing.order_number = (
+                                f"{reused_number}-REPLACED-"
+                                f"{timezone.localtime().strftime('%Y%m%d%H%M%S%f')}"
+                            )
+                            existing.is_deleted = True
+                            existing.deleted_at = timezone.now()
+                            existing.deleted_by_employee = actor
+                            existing.save(
+                                update_fields=[
+                                    "order_number",
+                                    "is_deleted",
+                                    "deleted_at",
+                                    "deleted_by_employee",
+                                    "updated_at",
+                                ]
+                            )
+                            new_number = reused_number
+                        else:
+                            new_number = order_number or generate_order_number()
+                            if OrderRecord.objects.filter(order_number=new_number).exists():
+                                new_number = generate_order_number()
+
+                        order = OrderRecord(
+                            order_number=new_number,
+                            order_date=timezone.localdate(),
+                            recorded_by=actor,
+                            source_type="NORMAL",
+                            edit_workflow_enabled=True,
+                        )
+                        imported_date = as_date(row.get("date"), "DATE")
+                        apply_order_info(order, data, creating=True)
+                        if imported_date:
+                            order.order_date = imported_date
+                            sync_system_fields(order, validate=False)
+
+                        supplier = resolve_supplier_from_row(row)
+                        person = resolve_employee_from_row(row, "person_in_charge")
+                        purchase = {}
+                        for key in [
+                            "quotation",
+                            "po_number",
+                            "price_per_unit",
+                            "currency",
+                            "lead_time_days",
+                            "issue_pr_date",
+                            "due_date",
+                            "vendor_confirm_date",
+                        ]:
+                            if row.get(key) not in (None, ""):
+                                purchase[key] = row.get(key)
+                        if row.get("vendor_id") or row.get("vendor_order") or row.get("vendor"):
+                            if not supplier:
+                                raise ValueError("ไม่พบ VENDOR ORDER ใน Vendor Master")
+                            purchase["vendor_id"] = str(supplier.id)
+                        if row.get("person_in_charge_id") or row.get("person_in_charge"):
+                            if not person:
+                                raise ValueError("ไม่พบ PERSON IN CHARGE OF ORDER")
+                            purchase["person_in_charge_id"] = str(person.id)
+                        if purchase:
+                            apply_purchase_info(order, purchase)
+
+                        order.save()
+
+                        if existing:
+                            replaced += 1
+                            audit(
+                                actor,
+                                "REPLACE_VIA_IMPORT",
+                                "OrderRecord",
+                                order.id,
+                                {
+                                    "filename": filename,
+                                    "replaced_order_id": str(existing.id),
+                                    "order_number": new_number,
+                                },
+                            )
+                        else:
+                            created_new += 1
+                            audit(
+                                actor,
+                                "CREATE_VIA_IMPORT",
+                                "OrderRecord",
+                                order.id,
+                                {"filename": filename, "order_number": new_number},
+                            )
+
+                except Exception as exc:
+                    errors.append({"row": idx, "error": str(exc)})
+
+            if not replaced and not created_new:
+                raise ValueError("ไม่มีรายการที่ Import สำเร็จ กรุณาตรวจสอบรายละเอียดแถวที่ผิด")
+
+    except ValueError as exc:
+        detail = str(exc)
+        if errors:
+            preview = " | ".join(
+                f"แถว {x.get('row')}: {x.get('error')}" for x in errors[:5]
+            )
+            detail = f"{detail} · {preview}"
+        return Response({"detail": detail, "errors": errors}, status=400)
+
+    return Response(
+        {
+            "replaced": replaced,
+            "created": created_new,
+            "errors": errors,
+        }
+    )
 
 
 def _quotation_conversion_source(project, source_id, *, lock=False):

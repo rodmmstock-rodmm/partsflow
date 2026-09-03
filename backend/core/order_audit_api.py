@@ -190,6 +190,10 @@ def orders(request):
             _, permission_error = require_permission(request, "can_view_order_updates")
             if permission_error:
                 return permission_error
+        if view == "deleted":
+            _, permission_error = require_permission(request, "can_view_deleted_orders")
+            if permission_error:
+                return permission_error
         if view != "normal":
             params = request.GET.copy()
             params["urgency"] = "all"
