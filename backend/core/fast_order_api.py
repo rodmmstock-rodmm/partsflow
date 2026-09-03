@@ -90,7 +90,7 @@ def fast_orders(request):
 
     part = Part.objects.filter(pk=part_id, active=True).first()
     if not part:
-        return Response({"detail": "ไม่พบ Item ID ที่เลือก"}, status=400)
+        return Response({"detail": "ไม่พบ Part ID ที่เลือก"}, status=400)
 
     machine = Machine.objects.filter(pk=machine_id, active=True).first()
     if not machine:
@@ -159,7 +159,7 @@ def fast_order_detail(request, pk):
             active=True,
         ).first()
         if not part:
-            return Response({"detail": "ไม่พบ Item ID ที่เลือก"}, status=400)
+            return Response({"detail": "ไม่พบ Part ID ที่เลือก"}, status=400)
         item.part = part
     if "machine_id" in request.data:
         machine = Machine.objects.filter(

@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { apiDelete, apiGet, apiPatch, apiPost } from "../api";
 import { useAuth } from "../auth";
-import { Alert, Modal, PageHeader, fmt } from "../components/Common";
+import { Alert, Modal, PageHeader, SearchableSelect, fmt } from "../components/Common";
 
 const blank = {
   name: "",
@@ -50,7 +50,7 @@ export function FastOrderModal({ row, onClose, onSaved }) {
     setError("");
 
     try {
-      if (!form.part_id) throw new Error("กรุณาเลือก Item ID จากผลการค้นหา");
+      if (!form.part_id) throw new Error("กรุณาเลือก Part ID จากผลการค้นหา");
       if (!form.machine_id) throw new Error("กรุณาเลือก Machine");
 
       if (row?.id) {
@@ -91,14 +91,14 @@ export function FastOrderModal({ row, onClose, onSaved }) {
           </label>
 
           <label className="field span2">
-            <span>Item ID *</span>
+            <span>Part ID *</span>
             <input
               value={partQuery}
               onChange={(e) => {
                 setPartQuery(e.target.value);
                 if (!row?.id) set("part_id", "");
               }}
-              placeholder="พิมพ์ Item ID / Part Name..."
+              placeholder="พิมพ์ Part ID / Part Name..."
             />
             {!row?.id && partResults.length > 0 && (
               <div className="panel" style={{ marginTop: 6, padding: 8 }}>
@@ -123,18 +123,15 @@ export function FastOrderModal({ row, onClose, onSaved }) {
 
           <label className="field span2">
             <span>Machine *</span>
-            <select
+            <SearchableSelect
               required
               value={form.machine_id}
-              onChange={(e) => set("machine_id", e.target.value)}
-            >
-              <option value="">เลือก Machine</option>
-              {machines.map((m) => (
-                <option key={m.id} value={m.id}>
-                  {m.code} · {m.name}
-                </option>
-              ))}
-            </select>
+              options={machines}
+              onChange={(value) => set("machine_id", value)}
+              getLabel={(machine) => `${machine.code} · ${machine.name}`}
+              getSearchText={(machine) => `${machine.code || ""} ${machine.name || ""} ${machine.location || ""}`}
+              placeholder="พิมพ์ชื่อหรือรหัส Machine"
+            />
           </label>
 
           <label className="field span2">
@@ -192,7 +189,7 @@ function QuickOrderModal({ row, onClose, onSaved }) {
       <form onSubmit={submit}>
         <div className="confirm-box">
           <dl>
-            <dt>Item ID</dt>
+            <dt>Part ID</dt>
             <dd>{row.item_id}</dd>
             <dt>Part</dt>
             <dd>{row.part_name}</dd>
@@ -302,7 +299,7 @@ export default function FastOrders() {
             className="search-input"
             value={q}
             onChange={(e) => setQ(e.target.value)}
-            placeholder="ค้นหา Item ID / Part / Machine..."
+            placeholder="ค้นหา Part ID / Part / Machine..."
           />
         </div>
 
@@ -313,7 +310,7 @@ export default function FastOrders() {
             <table>
               <thead>
                 <tr>
-                  <th>Item ID</th>
+                  <th>Part ID</th>
                   <th>Part Name</th>
                   <th>Factory</th>
                   <th>Machine</th>

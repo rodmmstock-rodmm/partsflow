@@ -1,3 +1,4 @@
+import re
 from decimal import Decimal, InvalidOperation
 
 from django.db import IntegrityError, transaction
@@ -21,6 +22,7 @@ from .models import (
     OrderRFQItem,
     OrderStep,
     Part,
+    POBalance,
     StockTransaction,
     Supplier,
 )
@@ -73,6 +75,33 @@ def generate_order_number(prefix="ORD"):
 
 
 def group_order_for(order):
+    if (
+        order.source_type == "PROJECT"
+        and order.procurement_phase == OrderRecord.PROCUREMENT_PURCHASE
+        and order.source_quotation_order_id
+    ):
+        source_group = str(
+            order.source_quotation_order.group_order or ""
+        ).strip()
+        if source_group:
+            return source_group[:250]
+    if (
+        order.source_type == "PROJECT"
+        and order.procurement_phase == OrderRecord.PROCUREMENT_QUOTATION
+        and order.project_id
+        and order.step_id
+    ):
+        project_token = re.sub(
+            r"[^A-Z0-9]+",
+            "-",
+            str(order.project.name or "").strip().upper(),
+        ).strip("-")[:80]
+        if not project_token:
+            project_token = str(order.project_id).split("-")[0].upper()
+        return (
+            f"{project_token}_STEP{order.step.step_no}_"
+            f"{order.project.department}"
+        )[:250]
     if not (order.urgent_status or order.pending_data_date) or not order.machine:
         return ""
     return f"{order.machine.code}_{order.order_date.strftime('%d%m%Y')}"
@@ -88,6 +117,24 @@ def quotation_is_ready(order):
         order.pk
         and order.rfq_items.filter(rfq__status=OrderRFQ.STATUS_SENT).exists()
     )
+
+
+def quotation_stage_status(order):
+    if order.procurement_phase != OrderRecord.PROCUREMENT_QUOTATION:
+        return ""
+    converted = int(order.converted_quantity or 0)
+    amount = int(order.amount or 0)
+    if amount and converted >= amount:
+        return "CREATED_TO_ORDER_STEP"
+    if converted > 0:
+        return "PARTIALLY_CREATED"
+    if bool(getattr(order, "_has_ready_quote", False)):
+        return "READY_TO_CREATE_ORDER"
+    if bool(getattr(order, "_has_received_quote", False)):
+        return "QUOTATION_RECEIVED"
+    if quotation_is_ready(order):
+        return "WAIT_QUOTATION"
+    return "DRAFT"
 
 
 def compute_status(order, validate=True):
@@ -178,6 +225,7 @@ def order_json(order):
         "po_number": order.po_number,
         "price_per_unit": float(order.price_per_unit or 0),
         "price_total": float(order.price_total or 0),
+        "currency": order.currency or "THB",
         "vendor_id": str(order.vendor_id) if order.vendor_id else "",
         "vendor_code": order.vendor.code if order.vendor else "",
         "vendor_name": order.vendor.name if order.vendor else "",
@@ -226,6 +274,31 @@ def order_json(order):
         "step_id": str(order.step_id) if order.step_id else "",
         "step_no": order.step.step_no if order.step else None,
         "usage_status": order.usage_status,
+        "procurement_phase": order.procurement_phase,
+        "quotation_stage_status": quotation_stage_status(order),
+        "converted_quantity": int(order.converted_quantity or 0),
+        "remaining_quantity": max(
+            int(order.amount or 0) - int(order.converted_quantity or 0),
+            0,
+        ),
+        "source_quotation_order_id": (
+            str(order.source_quotation_order_id)
+            if order.source_quotation_order_id else ""
+        ),
+        "source_rfq_id": str(order.source_rfq_id) if order.source_rfq_id else "",
+        "source_rfq_number": order.source_rfq.rfq_number if order.source_rfq else "",
+        "created_from_quotation_by": (
+            order.created_from_quotation_by_employee.name
+            if order.created_from_quotation_by_employee else ""
+        ),
+        "created_from_quotation_by_code": (
+            order.created_from_quotation_by_employee.employee_code
+            if order.created_from_quotation_by_employee else ""
+        ),
+        "created_from_quotation_at": (
+            timezone.localtime(order.created_from_quotation_at).isoformat()
+            if order.created_from_quotation_at else ""
+        ),
         "stock_received": order.stock_received,
         "is_deleted": order.is_deleted,
         "created_at": timezone.localtime(order.created_at).isoformat(),
@@ -332,6 +405,8 @@ def apply_purchase_info(order, data):
         if price < 0:
             raise ValueError("PRICE PER UNIT ต้องไม่น้อยกว่า 0")
         order.price_per_unit = price
+    if "currency" in data:
+        order.currency = str(data.get("currency") or "THB").strip().upper()[:10]
     if "vendor_id" in data:
         order.vendor = supplier_or_none(data.get("vendor_id"))
     if "lead_time_days" in data:
@@ -374,6 +449,13 @@ def order_queryset():
     sent_rfq = OrderRFQItem.objects.filter(
         order_id=OuterRef("pk"), rfq__status=OrderRFQ.STATUS_SENT
     )
+    received_quote = sent_rfq.filter(
+        rfq__po_balance__quotation_received_at__isnull=False,
+    )
+    ready_quote = received_quote.filter(
+        rfq__po_balance__price__isnull=False,
+        rfq__vendor__isnull=False,
+    )
     return OrderRecord.objects.select_related(
         "machine",
         "part",
@@ -385,8 +467,13 @@ def order_queryset():
         "completed_by_employee",
         "project",
         "step",
+        "source_quotation_order",
+        "source_rfq",
+        "created_from_quotation_by_employee",
     ).annotate(
         _has_sent_rfq=Exists(sent_rfq),
+        _has_received_quote=Exists(received_quote),
+        _has_ready_quote=Exists(ready_quote),
         rfq_count=Count(
             "rfq_items",
             filter=Q(rfq_items__rfq__status=OrderRFQ.STATUS_SENT),
@@ -433,21 +520,22 @@ def create_orders_batch(request):
                 raw = item or {}
                 part_id = str(raw.get("part_id") or "").strip()
                 if not part_id:
-                    raise ValueError(f"รายการที่ {index}: ไม่พบ Item ID")
+                    raise ValueError(f"รายการที่ {index}: ไม่พบ Part ID")
                 if part_id in seen_part_ids:
-                    raise ValueError(f"รายการที่ {index}: มี Item ID ซ้ำในรายการที่เลือก")
+                    raise ValueError(f"รายการที่ {index}: มี Part ID ซ้ำในรายการที่เลือก")
                 seen_part_ids.add(part_id)
 
                 if OrderRecord.objects.filter(
                     part_id=part_id,
                     is_deleted=False,
+                    procurement_phase=OrderRecord.PROCUREMENT_PURCHASE,
                     lifecycle_status__in=[
                         OrderRecord.LIFECYCLE_ACTIVE,
                         OrderRecord.LIFECYCLE_WAIT_CONFIRM,
                     ],
                 ).exists():
                     raise ValueError(
-                        f"รายการที่ {index}: Item นี้มี Active / Wait Confirm Order อยู่แล้ว กรุณารีเฟรช Safety Stock"
+                        f"รายการที่ {index}: Part นี้มี Active / Wait Confirm Order อยู่แล้ว กรุณารีเฟรช Safety Stock"
                     )
 
                 payload = {
@@ -532,7 +620,10 @@ def orders(request):
     job = str(request.GET.get("job", "")).strip().upper()
     status = str(request.GET.get("status", "")).strip()
 
-    qs = order_queryset().filter(is_deleted=False)
+    qs = order_queryset().filter(
+        is_deleted=False,
+        procurement_phase=OrderRecord.PROCUREMENT_PURCHASE,
+    )
     if view == "completed":
         qs = qs.filter(
             lifecycle_status=OrderRecord.LIFECYCLE_COMPLETED
@@ -583,6 +674,7 @@ def orders(request):
 
     active_qs = order_queryset().filter(
         is_deleted=False,
+        procurement_phase=OrderRecord.PROCUREMENT_PURCHASE,
         lifecycle_status__in=[
             OrderRecord.LIFECYCLE_ACTIVE,
             OrderRecord.LIFECYCLE_WAIT_CONFIRM,
@@ -635,7 +727,7 @@ def update_order_info(request, pk):
         except (TypeError, ValueError):
             incoming_amount = order.amount
         if incoming_part != current_part or incoming_job != (order.job or "").upper() or incoming_amount != order.amount:
-            return Response({"detail": "Order นี้รับเข้า Stock แล้ว จึงไม่อนุญาตให้เปลี่ยน Item ID, JOB หรือ AMOUNT เพื่อป้องกัน Stock ไม่ตรง"}, status=400)
+            return Response({"detail": "Order นี้รับเข้า Stock แล้ว จึงไม่อนุญาตให้เปลี่ยน Part ID, JOB หรือ AMOUNT เพื่อป้องกัน Stock ไม่ตรง"}, status=400)
     before = order_json(order)
     can_edit_order_date = bool(permissions_for(actor).get("can_edit_order_date"))
     if "date" in request.data:
@@ -652,6 +744,13 @@ def update_order_info(request, pk):
                 request.data,
                 allow_order_date=can_edit_order_date,
             )
+            if (
+                order.procurement_phase == OrderRecord.PROCUREMENT_QUOTATION
+                and int(order.amount or 0) < int(order.converted_quantity or 0)
+            ):
+                raise ValueError(
+                    "AMOUNT ของรายการขอราคาต้องไม่น้อยกว่าจำนวนที่สร้างเป็น Order แล้ว"
+                )
             order.save()
             after = order_json(order_queryset().get(pk=pk))
             audit(actor, "UPDATE_ORDER_INFO", "OrderRecord", order.id, {"before": before, "after": after})
@@ -670,6 +769,11 @@ def update_purchase_info(request, pk):
     order = order_queryset().filter(pk=pk, is_deleted=False).first()
     if not order:
         return Response({"detail": "ไม่พบ Order"}, status=404)
+    if order.procurement_phase == OrderRecord.PROCUREMENT_QUOTATION:
+        return Response(
+            {"detail": "รายการขอราคาต้องบันทึกราคาใน PO Balance ก่อนสร้างเป็น Order จริง"},
+            status=400,
+        )
     before = order_json(order)
     try:
         with transaction.atomic():
@@ -734,6 +838,11 @@ def receive_order(request, pk):
     order = order_queryset().filter(pk=pk, is_deleted=False).first()
     if not order:
         return Response({"detail": "ไม่พบ Order"}, status=404)
+    if order.procurement_phase == OrderRecord.PROCUREMENT_QUOTATION:
+        return Response(
+            {"detail": "รายการขอราคายัง Receive ไม่ได้ กรุณาสร้างไปยัง Order Step ก่อน"},
+            status=400,
+        )
 
     if (
         order.lifecycle_status == OrderRecord.LIFECYCLE_CANCELLED
@@ -771,7 +880,7 @@ def receive_order(request, pk):
             tx = None
 
             # New business rule:
-            # Any Order that has an Item ID / linked Part increases stock.
+            # Any Order that has a Part ID / linked Part increases stock.
             # JOB no longer has to be SPARE.
             if order.part_id:
                 part = Part.objects.select_for_update().get(pk=order.part_id)
@@ -874,6 +983,12 @@ def wait_confirm_order(request, pk):
             ).first()
             if not order:
                 return Response({"detail": "ไม่พบ Order"}, status=404)
+
+            if order.procurement_phase == OrderRecord.PROCUREMENT_QUOTATION:
+                return Response(
+                    {"detail": "รายการขอราคาไม่ใช้ Wait Confirm ของ Order จริง"},
+                    status=400,
+                )
 
             if order.lifecycle_status == OrderRecord.LIFECYCLE_CANCELLED:
                 return Response(
@@ -1029,6 +1144,17 @@ def delete_order(request, pk):
     order = order_queryset().filter(pk=pk, is_deleted=False).first()
     if not order:
         return Response({"detail": "ไม่พบ Order"}, status=404)
+    if (
+        order.procurement_phase == OrderRecord.PROCUREMENT_QUOTATION
+        and order.converted_orders.filter(is_deleted=False).exists()
+    ):
+        return Response(
+            {
+                "detail":
+                "ลบรายการขอราคานี้ไม่ได้ เพราะมี Order จริงที่สร้างจากรายการนี้แล้ว"
+            },
+            status=400,
+        )
     before = order_json(order)
     order.is_deleted = True
     order.deleted_at = timezone.now()
@@ -1070,8 +1196,18 @@ def update_edit_data(request, pk):
 
 def project_json(project):
     orders = list(
-        project.orders.filter(is_deleted=False)
+        project.orders.filter(
+            is_deleted=False,
+            procurement_phase=OrderRecord.PROCUREMENT_PURCHASE,
+        )
         .select_related("step")
+    )
+    quotation_orders = list(
+        order_queryset().filter(
+            project=project,
+            is_deleted=False,
+            procurement_phase=OrderRecord.PROCUREMENT_QUOTATION,
+        )
     )
 
     # "ราคาอะไหล่ทั้งหมดที่สั่ง":
@@ -1117,6 +1253,23 @@ def project_json(project):
         "active": project.active,
         "step_count": project.steps.count(),
         "total_items": len(orders),
+        "quotation_items": len(quotation_orders),
+        "quotation_waiting": sum(
+            1
+            for x in quotation_orders
+            if quotation_stage_status(x) == "WAIT_QUOTATION"
+        ),
+        "quotation_received": sum(
+            1
+            for x in quotation_orders
+            if quotation_stage_status(x)
+            in {"QUOTATION_RECEIVED", "READY_TO_CREATE_ORDER"}
+        ),
+        "quotation_converted": sum(
+            1
+            for x in quotation_orders
+            if quotation_stage_status(x) == "CREATED_TO_ORDER_STEP"
+        ),
         "used_items": len(used_orders),
         "wait_confirm_items": sum(
             1
@@ -1307,9 +1460,55 @@ def project_detail(request, pk):
     for step in project.steps.order_by("step_no"):
         step_orders = list(
             order_queryset()
-            .filter(step=step, is_deleted=False)
+            .filter(
+                step=step,
+                is_deleted=False,
+                procurement_phase=OrderRecord.PROCUREMENT_PURCHASE,
+            )
             .order_by("created_at")
         )
+        quotation_orders = list(
+            order_queryset()
+            .filter(
+                step=step,
+                is_deleted=False,
+                procurement_phase=OrderRecord.PROCUREMENT_QUOTATION,
+            )
+            .order_by("created_at")
+        )
+        quotation_rows = []
+        for row in quotation_orders:
+            data = order_json(row)
+            data["converted_orders"] = [
+                {
+                    "id": str(converted.id),
+                    "order_number": converted.order_number,
+                    "amount": converted.amount,
+                    "created_by": (
+                        converted.created_from_quotation_by_employee.name
+                        if converted.created_from_quotation_by_employee else ""
+                    ),
+                    "created_by_code": (
+                        converted.created_from_quotation_by_employee.employee_code
+                        if converted.created_from_quotation_by_employee else ""
+                    ),
+                    "created_at": (
+                        timezone.localtime(converted.created_from_quotation_at).isoformat()
+                        if converted.created_from_quotation_at else ""
+                    ),
+                    "rfq_number": (
+                        converted.source_rfq.rfq_number
+                        if converted.source_rfq else ""
+                    ),
+                }
+                for converted in row.converted_orders.filter(is_deleted=False)
+                .select_related(
+                    "created_from_quotation_by_employee",
+                    "source_rfq",
+                )
+                .order_by("created_at")
+            ]
+            quotation_rows.append(data)
         steps.append(
             {
                 "id": str(step.id),
@@ -1319,6 +1518,7 @@ def project_detail(request, pk):
                     timezone.localtime(step.created_at).isoformat()
                 ),
                 "orders": [order_json(x) for x in step_orders],
+                "quotation_orders": quotation_rows,
             }
         )
 
@@ -1470,7 +1670,7 @@ def delete_project_step(request, pk, step_pk):
 @api_view(["POST"])
 @permission_classes([AllowAny])
 def create_project_order(request, pk, step_pk=None):
-    """Create one Project Order inside an existing selected Step."""
+    """Create one quotation item or real Project Order in a selected Step."""
     actor, err = require_permission(request, "can_add_order")
     if err:
         return err
@@ -1480,6 +1680,16 @@ def create_project_order(request, pk, step_pk=None):
             {"detail": "กรุณาเลือก Step ก่อนเพิ่ม Order"},
             status=400,
         )
+
+    procurement_phase = str(
+        request.data.get("procurement_phase")
+        or OrderRecord.PROCUREMENT_PURCHASE
+    ).strip().upper()
+    if procurement_phase not in {
+        OrderRecord.PROCUREMENT_PURCHASE,
+        OrderRecord.PROCUREMENT_QUOTATION,
+    }:
+        return Response({"detail": "ช่วงการจัดซื้อไม่ถูกต้อง"}, status=400)
 
     try:
         with transaction.atomic():
@@ -1501,7 +1711,11 @@ def create_project_order(request, pk, step_pk=None):
                 )
 
             order = OrderRecord(
-                order_number=generate_order_number("PRJ"),
+                order_number=generate_order_number(
+                    "QTN"
+                    if procurement_phase == OrderRecord.PROCUREMENT_QUOTATION
+                    else "PRJ"
+                ),
                 order_date=timezone.localdate(),
                 recorded_by=actor,
                 source_type="PROJECT",
@@ -1509,6 +1723,7 @@ def create_project_order(request, pk, step_pk=None):
                 step=step,
                 edit_workflow_enabled=False,
                 usage_status="USED",
+                procurement_phase=procurement_phase,
             )
             apply_order_info(
                 order,
@@ -1520,7 +1735,11 @@ def create_project_order(request, pk, step_pk=None):
 
             audit(
                 actor,
-                "CREATE_PROJECT_ORDER",
+                (
+                    "CREATE_PROJECT_QUOTATION_ITEM"
+                    if procurement_phase == OrderRecord.PROCUREMENT_QUOTATION
+                    else "CREATE_PROJECT_ORDER"
+                ),
                 "OrderRecord",
                 order.id,
                 {
@@ -1528,6 +1747,7 @@ def create_project_order(request, pk, step_pk=None):
                     "project_name": project.name,
                     "step_no": step.step_no,
                     "order_number": order.order_number,
+                    "procurement_phase": procurement_phase,
                 },
             )
 
@@ -1655,6 +1875,16 @@ def import_project_step(request, pk, step_pk=None):
             status=400,
         )
 
+    procurement_phase = str(
+        request.data.get("procurement_phase")
+        or OrderRecord.PROCUREMENT_PURCHASE
+    ).strip().upper()
+    if procurement_phase not in {
+        OrderRecord.PROCUREMENT_PURCHASE,
+        OrderRecord.PROCUREMENT_QUOTATION,
+    }:
+        return Response({"detail": "ช่วงการจัดซื้อไม่ถูกต้อง"}, status=400)
+
     try:
         with transaction.atomic():
             project = OrderProject.objects.select_for_update().filter(
@@ -1722,7 +1952,7 @@ def import_project_step(request, pk, step_pk=None):
                         item_id = clean_lookup(row.get("item_id"))
                         if item_id and not part:
                             raise ValueError(
-                                f"ไม่พบ ITEM ID '{item_id}' ใน Part Master"
+                                f"ไม่พบ PART ID '{item_id}' ใน Part Master"
                             )
 
                         data = {
@@ -1743,7 +1973,11 @@ def import_project_step(request, pk, step_pk=None):
                         }
 
                         order = OrderRecord(
-                            order_number=generate_order_number("PRJ"),
+                            order_number=generate_order_number(
+                                "QTN"
+                                if procurement_phase == OrderRecord.PROCUREMENT_QUOTATION
+                                else "PRJ"
+                            ),
                             order_date=timezone.localdate(),
                             recorded_by=actor,
                             source_type="PROJECT",
@@ -1751,6 +1985,7 @@ def import_project_step(request, pk, step_pk=None):
                             step=step,
                             edit_workflow_enabled=False,
                             usage_status="USED",
+                            procurement_phase=procurement_phase,
                         )
                         apply_order_info(order, data, creating=True)
                         imported_date = as_date(row.get("date"), "DATE")
@@ -1758,40 +1993,42 @@ def import_project_step(request, pk, step_pk=None):
                             order.order_date = imported_date
                             sync_system_fields(order, validate=False)
 
-                        supplier = resolve_supplier_from_row(row)
-                        person = resolve_employee_from_row(
-                            row, "person_in_charge"
-                        )
+                        if procurement_phase == OrderRecord.PROCUREMENT_PURCHASE:
+                            supplier = resolve_supplier_from_row(row)
+                            person = resolve_employee_from_row(
+                                row, "person_in_charge"
+                            )
 
-                        purchase = {}
-                        for key in [
-                            "quotation",
-                            "po_number",
-                            "price_per_unit",
-                            "lead_time_days",
-                            "issue_pr_date",
-                            "due_date",
-                            "vendor_confirm_date",
-                        ]:
-                            if row.get(key) not in (None, ""):
-                                purchase[key] = row.get(key)
+                            purchase = {}
+                            for key in [
+                                "quotation",
+                                "po_number",
+                                "price_per_unit",
+                                "currency",
+                                "lead_time_days",
+                                "issue_pr_date",
+                                "due_date",
+                                "vendor_confirm_date",
+                            ]:
+                                if row.get(key) not in (None, ""):
+                                    purchase[key] = row.get(key)
 
-                        if row.get("vendor_id") or row.get("vendor") or row.get("vendor_order"):
-                            if not supplier:
-                                raise ValueError(
-                                    "ไม่พบ VENDOR ORDER ใน Vendor Master"
-                                )
-                            purchase["vendor_id"] = str(supplier.id)
+                            if row.get("vendor_id") or row.get("vendor") or row.get("vendor_order"):
+                                if not supplier:
+                                    raise ValueError(
+                                        "ไม่พบ VENDOR ORDER ใน Vendor Master"
+                                    )
+                                purchase["vendor_id"] = str(supplier.id)
 
-                        if row.get("person_in_charge_id") or row.get("person_in_charge"):
-                            if not person:
-                                raise ValueError(
-                                    "ไม่พบ PERSON IN CHARGE OF ORDER"
-                                )
-                            purchase["person_in_charge_id"] = str(person.id)
+                            if row.get("person_in_charge_id") or row.get("person_in_charge"):
+                                if not person:
+                                    raise ValueError(
+                                        "ไม่พบ PERSON IN CHARGE OF ORDER"
+                                    )
+                                purchase["person_in_charge_id"] = str(person.id)
 
-                        if purchase:
-                            apply_purchase_info(order, purchase)
+                            if purchase:
+                                apply_purchase_info(order, purchase)
 
                         order.save()
                         created.append(order)
@@ -1814,6 +2051,7 @@ def import_project_step(request, pk, step_pk=None):
                     "step_no": step.step_no,
                     "filename": filename,
                     "created": len(created),
+                    "procurement_phase": procurement_phase,
                     "errors": errors,
                 },
             )
@@ -1843,6 +2081,333 @@ def import_project_step(request, pk, step_pk=None):
             },
             status=400,
         )
+
+
+def _quotation_conversion_source(project, source_id, *, lock=False):
+    # Keep the locking query free of nullable select_related joins. PostgreSQL
+    # rejects FOR UPDATE on the nullable side of an outer join.
+    qs = OrderRecord.objects if lock else order_queryset()
+    qs = qs.filter(
+        pk=source_id,
+        project=project,
+        source_type="PROJECT",
+        procurement_phase=OrderRecord.PROCUREMENT_QUOTATION,
+        is_deleted=False,
+        lifecycle_status__in=[
+            OrderRecord.LIFECYCLE_ACTIVE,
+            OrderRecord.LIFECYCLE_WAIT_CONFIRM,
+        ],
+    )
+    if lock:
+        qs = qs.select_for_update()
+    return qs.first()
+
+
+def _conversion_quotes(source):
+    rows = (
+        OrderRFQ.objects
+        .filter(
+            items__order=source,
+            status=OrderRFQ.STATUS_SENT,
+        )
+        .select_related("vendor", "po_balance")
+        .distinct()
+        .order_by("requested_at", "created_at")
+    )
+    result = []
+    for rfq in rows:
+        balance = getattr(rfq, "po_balance", None)
+        ready = bool(
+            rfq.vendor_id
+            and balance
+            and balance.quotation_received_at
+            and balance.price is not None
+        )
+        result.append(
+            {
+                "id": str(rfq.id),
+                "rfq_number": rfq.rfq_number,
+                "vendor_id": str(rfq.vendor_id) if rfq.vendor_id else "",
+                "vendor": rfq.vendor.name if rfq.vendor else rfq.vendor_name,
+                "recipient_email": rfq.recipient_email,
+                "quotation_received_at": (
+                    balance.quotation_received_at.isoformat()
+                    if balance and balance.quotation_received_at else ""
+                ),
+                "price": (
+                    float(balance.price)
+                    if balance and balance.price is not None else None
+                ),
+                "currency": balance.currency if balance else "THB",
+                "lead_time_days": balance.lead_time_days if balance else None,
+                "ready": ready,
+            }
+        )
+    return result
+
+
+@csrf_exempt
+@api_view(["POST"])
+@permission_classes([AllowAny])
+def quotation_conversion_preview(request, pk):
+    actor, err = require_permission(
+        request,
+        "can_create_order_from_quotation",
+    )
+    if err:
+        return err
+    project = OrderProject.objects.filter(pk=pk, active=True).first()
+    if not project:
+        return Response({"detail": "ไม่พบ Project"}, status=404)
+
+    source_ids = request.data.get("quotation_order_ids") or []
+    if not isinstance(source_ids, list) or not source_ids:
+        return Response({"detail": "กรุณาเลือกรายการขอราคา"}, status=400)
+    if len(source_ids) > 200:
+        return Response({"detail": "เลือกได้สูงสุดครั้งละ 200 รายการ"}, status=400)
+
+    results = []
+    for source_id in dict.fromkeys(str(value) for value in source_ids if value):
+        source = _quotation_conversion_source(project, source_id)
+        if not source:
+            return Response(
+                {"detail": "มีรายการขอราคาบางรายการไม่พบหรือไม่พร้อมใช้งาน"},
+                status=400,
+            )
+        results.append(
+            {
+                **order_json(source),
+                "quotes": _conversion_quotes(source),
+            }
+        )
+    return Response(
+        {
+            "project": project_json(project),
+            "employee": {
+                "employee_code": actor.employee_code,
+                "name": actor.name,
+            },
+            "results": results,
+        }
+    )
+
+
+@csrf_exempt
+@api_view(["POST"])
+@permission_classes([AllowAny])
+def convert_quotation_to_orders(request, pk):
+    actor, err = require_permission(
+        request,
+        "can_create_order_from_quotation",
+    )
+    if err:
+        return err
+
+    items = request.data.get("items") or []
+    if not isinstance(items, list) or not items:
+        return Response({"detail": "กรุณาเลือกรายการที่จะสร้าง Order"}, status=400)
+    if len(items) > 200:
+        return Response({"detail": "สร้างได้สูงสุดครั้งละ 200 รายการ"}, status=400)
+
+    try:
+        with transaction.atomic():
+            project = OrderProject.objects.select_for_update().filter(
+                pk=pk,
+                active=True,
+            ).first()
+            if not project:
+                return Response({"detail": "ไม่พบ Project"}, status=404)
+
+            created = []
+            seen_sources = set()
+            for index, raw in enumerate(items, start=1):
+                source_id = str((raw or {}).get("quotation_order_id") or "").strip()
+                rfq_id = str((raw or {}).get("rfq_id") or "").strip()
+                if not source_id or not rfq_id:
+                    raise ValueError(
+                        f"รายการที่ {index}: กรุณาเลือกรายการและใบเสนอราคา"
+                    )
+                if source_id in seen_sources:
+                    raise ValueError(f"รายการที่ {index}: เลือกรายการขอราคาซ้ำ")
+                seen_sources.add(source_id)
+
+                source = _quotation_conversion_source(
+                    project,
+                    source_id,
+                    lock=True,
+                )
+                if not source:
+                    raise ValueError(
+                        f"รายการที่ {index}: ไม่พบรายการขอราคา"
+                    )
+                try:
+                    approved_amount = int((raw or {}).get("amount") or 0)
+                except (TypeError, ValueError):
+                    raise ValueError(f"รายการที่ {index}: จำนวนไม่ถูกต้อง")
+                remaining = max(
+                    int(source.amount or 0) - int(source.converted_quantity or 0),
+                    0,
+                )
+                if approved_amount <= 0 or approved_amount > remaining:
+                    raise ValueError(
+                        f"รายการที่ {index}: จำนวนต้องอยู่ระหว่าง 1 ถึง {remaining}"
+                    )
+
+                rfq = (
+                    OrderRFQ.objects
+                    .select_related("vendor", "po_balance")
+                    .filter(
+                        pk=rfq_id,
+                        status=OrderRFQ.STATUS_SENT,
+                        items__order=source,
+                    )
+                    .distinct()
+                    .first()
+                )
+                if not rfq:
+                    raise ValueError(
+                        f"รายการที่ {index}: ไม่พบ RFQ ที่เลือก"
+                    )
+                balance = getattr(rfq, "po_balance", None)
+                if not rfq.vendor_id:
+                    raise ValueError(
+                        f"รายการที่ {index}: กรุณาเลือก Vendor จาก Vendor Master"
+                    )
+                if not balance or not balance.quotation_received_at:
+                    raise ValueError(
+                        f"รายการที่ {index}: ยังไม่ได้บันทึกวันที่ได้รับใบเสนอราคา"
+                    )
+                if balance.price is None:
+                    raise ValueError(
+                        f"รายการที่ {index}: ยังไม่ได้บันทึกราคาใบเสนอราคา"
+                    )
+                raw_price = (raw or {}).get("price_per_unit")
+                try:
+                    selected_price = Decimal(
+                        str(
+                            balance.price
+                            if raw_price in (None, "")
+                            else raw_price
+                        )
+                    )
+                except (TypeError, ValueError, ArithmeticError):
+                    raise ValueError(
+                        f"รายการที่ {index}: ราคาต่อหน่วยไม่ถูกต้อง"
+                    )
+                if selected_price < 0:
+                    raise ValueError(
+                        f"รายการที่ {index}: ราคาต่อหน่วยต้องไม่น้อยกว่า 0"
+                    )
+                selected_currency = str(
+                    (raw or {}).get("currency")
+                    or balance.currency
+                    or "THB"
+                ).strip().upper()[:10]
+
+                created_at = timezone.now()
+                order = OrderRecord(
+                    order_number=generate_order_number("PRJ"),
+                    order_date=timezone.localdate(),
+                    factory=source.factory,
+                    group_order=source.group_order,
+                    machine=source.machine,
+                    job=project.department,
+                    urgent_status="",
+                    pending_data_date=project.pending_data_date,
+                    remark=source.remark,
+                    quotation=rfq.rfq_number,
+                    part=source.part,
+                    part_name=source.part_name,
+                    part_detail=source.part_detail,
+                    maker_text=source.maker_text,
+                    amount=approved_amount,
+                    unit_text=source.unit_text,
+                    price_per_unit=selected_price,
+                    currency=selected_currency,
+                    vendor=rfq.vendor,
+                    lead_time_days=balance.lead_time_days,
+                    ordered_by=source.ordered_by or actor,
+                    recorded_by=actor,
+                    source_type="PROJECT",
+                    project=project,
+                    step=source.step,
+                    usage_status="USED",
+                    edit_workflow_enabled=False,
+                    procurement_phase=OrderRecord.PROCUREMENT_PURCHASE,
+                    source_quotation_order=source,
+                    source_rfq=rfq,
+                    created_from_quotation_by_employee=actor,
+                    created_from_quotation_at=created_at,
+                )
+                sync_system_fields(order)
+                # The quotation Step group is the traceable purchasing group.
+                order.group_order = source.group_order
+                order.save()
+                OrderRFQItem.objects.create(
+                    rfq=rfq,
+                    order=order,
+                    order_number=order.order_number,
+                    item_id=order.part.sku if order.part else "",
+                    part_name=order.part_name,
+                    part_detail=order.part_detail,
+                    amount=order.amount,
+                    unit=order.unit_text,
+                )
+                order.status = compute_status(order, validate=False)
+                order.save(update_fields=["status", "updated_at"])
+
+                source.converted_quantity = int(source.converted_quantity or 0) + approved_amount
+                source.save(update_fields=["converted_quantity", "updated_at"])
+
+                audit(
+                    actor,
+                    "CREATE_ORDER_FROM_QUOTATION",
+                    "OrderRecord",
+                    order.id,
+                    {
+                        "project_id": str(project.id),
+                        "project_name": project.name,
+                        "step_no": source.step.step_no if source.step else None,
+                        "quotation_order_id": str(source.id),
+                        "quotation_number": source.order_number,
+                        "rfq_id": str(rfq.id),
+                        "rfq_number": rfq.rfq_number,
+                        "vendor": rfq.vendor.name,
+                        "amount": approved_amount,
+                        "price_per_unit": str(selected_price),
+                        "currency": selected_currency,
+                        "created_by_code": actor.employee_code,
+                        "created_by_name": actor.name,
+                    },
+                )
+                created.append(order)
+
+            audit(
+                actor,
+                "CREATE_ORDERS_FROM_QUOTATION_BATCH",
+                "OrderProject",
+                project.id,
+                {
+                    "created_count": len(created),
+                    "created_order_ids": [str(row.id) for row in created],
+                    "created_by_code": actor.employee_code,
+                    "created_by_name": actor.name,
+                },
+            )
+
+        return Response(
+            {
+                "created_count": len(created),
+                "results": [
+                    order_json(order_queryset().get(pk=row.pk))
+                    for row in created
+                ],
+                "project": project_json(project),
+            },
+            status=201,
+        )
+    except (ValueError, IntegrityError) as exc:
+        return Response({"detail": str(exc)}, status=400)
 
 
 @csrf_exempt

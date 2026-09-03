@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import * as XLSX from "xlsx";
 import { apiDelete, apiGet, apiPatch, apiPost } from "../api";
 import { useAuth } from "../auth";
-import { Alert, Modal, PageHeader, fmt, money } from "../components/Common";
+import { Alert, Modal, PageHeader, SearchableSelect, fmt, money } from "../components/Common";
 import RFQComposeModal from "../components/RFQComposeModal";
 
 const ORDER_TABS = [
@@ -33,7 +33,7 @@ const STEP_HEADERS = [
   "DATE",
   "FACTORY",
   "MACHINE NAME",
-  "ITEM ID",
+  "PART ID",
   "PART NAME",
   "PART DETAIL",
   "MAKER",
@@ -44,6 +44,7 @@ const STEP_HEADERS = [
   "QUOTATION",
   "PO NUMBER",
   "PRICE PER UNIT",
+  "CURRENCY",
   "VENDOR ORDER",
   "LEAD TIME",
   "ISSUE PR DATE",
@@ -99,6 +100,7 @@ export function OrderInfoModal({
   step,
   options,
   employee,
+  quotationMode = false,
   canEditOrderDate = false,
   onClose,
   onSaved,
@@ -108,11 +110,13 @@ export function OrderInfoModal({
   const today = new Date().toISOString().slice(0, 10);
   const projectJob = project?.department || "";
   const isProjectOrder = !!project;
+  const isQuotationOrder =
+    quotationMode || order?.procurement_phase === "QUOTATION";
 
   const initial = {
     date: order?.date || today,
     factory: order?.factory || "MM-4",
-    machineText: order?.machine_id ? `${order.machine_name}` : "",
+    machine_id: order?.machine_id || "",
     job: order?.job || projectJob || "",
     urgent_status: order?.urgent_status || "",
     pending_data_date: order?.pending_data_date || "",
@@ -126,9 +130,7 @@ export function OrderInfoModal({
     amount: order?.amount || 1,
     unit: order?.unit || "",
     remark: order?.remark || "",
-    orderedByText: order?.ordered_by_id
-      ? `${order.ordered_by || ""}`
-      : employee?.name || "",
+    ordered_by_id: order?.ordered_by_id || employee?.id || "",
   };
 
   const [form, setForm] = useState(initial);
@@ -158,11 +160,11 @@ export function OrderInfoModal({
     setBusy(true);
     setError("");
     try {
-      const machine = findLabel(options.machines, form.machineText, "machine");
-      const ordered = findLabel(
-        options.employees,
-        form.orderedByText,
-        "employee"
+      const machine = (options.machines || []).find(
+        (x) => String(x.id) === String(form.machine_id)
+      );
+      const ordered = (options.employees || []).find(
+        (x) => String(x.id) === String(form.ordered_by_id)
       );
       if (!machine) throw new Error("กรุณาเลือก MACHINE NAME จากรายการ");
       if (!ordered) throw new Error("กรุณาเลือกชื่อผู้สั่งจากรายการ");
@@ -184,6 +186,7 @@ export function OrderInfoModal({
         unit: form.unit,
         remark: form.remark,
         ordered_by_id: ordered.id,
+        procurement_phase: isQuotationOrder ? "QUOTATION" : "PURCHASE",
       };
 
       let result;
@@ -211,9 +214,13 @@ export function OrderInfoModal({
     <Modal
       title={
         edit
-          ? "แก้ไข Order Information"
+          ? isQuotationOrder
+            ? "แก้ไขรายการขอราคา"
+            : "แก้ไข Order Information"
           : project
-            ? `เพิ่ม Order · ${project.name} · Step ${step?.step_no || "-"}`
+            ? isQuotationOrder
+              ? `เพิ่มรายการขอราคา · ${project.name} · Step ${step?.step_no || "-"}`
+              : `เพิ่ม Order · ${project.name} · Step ${step?.step_no || "-"}`
             : "เพิ่ม Order"
       }
       onClose={onClose}
@@ -225,11 +232,12 @@ export function OrderInfoModal({
           <div className="alert success">
             รายการนี้จะถูกเพิ่มเข้า Project {project.name} ({project.department})
             {step ? ` · Step ${step.step_no}` : ""}
+            {isQuotationOrder ? " · ช่วงขอราคา (ยังไม่ใช่ Order จริง)" : ""}
           </div>
         )}
         {stockLocked && (
           <div className="alert success">
-            รายการนี้รับเข้า Stock แล้ว: Item ID, JOB และ AMOUNT ถูกล็อก
+            รายการนี้รับเข้า Stock แล้ว: Part ID, JOB และ AMOUNT ถูกล็อก
           </div>
         )}
 
@@ -257,16 +265,15 @@ export function OrderInfoModal({
 
           <label className="field">
             <span>MACHINE NAME *</span>
-            <input
-              list="ord-machines"
-              value={form.machineText}
-              onChange={(e) => set("machineText", e.target.value)}
+            <SearchableSelect
+              required
+              value={form.machine_id}
+              options={options.machines || []}
+              onChange={(value) => set("machine_id", value)}
+              getLabel={(x) => `${x.code ? `${x.code} · ` : ""}${x.name}`}
+              getSearchText={(x) => `${x.code || ""} ${x.name || ""} ${x.location || ""}`}
+              placeholder="พิมพ์ชื่อหรือรหัส Machine"
             />
-            <datalist id="ord-machines">
-              {(options.machines || []).map((x) => (
-                <option key={x.id} value={x.name} />
-              ))}
-            </datalist>
           </label>
 
           {isProjectOrder ? (
@@ -331,7 +338,7 @@ export function OrderInfoModal({
           )}
 
           <label className="field span3">
-            <span>Item ID (ไม่บังคับ)</span>
+            <span>Part ID (ไม่บังคับ)</span>
             <input
               disabled={stockLocked}
               list="ord-parts"
@@ -407,16 +414,15 @@ export function OrderInfoModal({
 
           <label className="field">
             <span>ชื่อผู้สั่ง *</span>
-            <input
-              list="ord-employees"
-              value={form.orderedByText}
-              onChange={(e) => set("orderedByText", e.target.value)}
+            <SearchableSelect
+              required
+              value={form.ordered_by_id}
+              options={options.employees || []}
+              onChange={(value) => set("ordered_by_id", value)}
+              getLabel={(x) => `${x.employee_code ? `${x.employee_code} · ` : ""}${x.name}`}
+              getSearchText={(x) => `${x.employee_code || ""} ${x.name || ""} ${x.department || ""}`}
+              placeholder="พิมพ์ชื่อหรือรหัสพนักงาน"
             />
-            <datalist id="ord-employees">
-              {(options.employees || []).map((x) => (
-                <option key={x.id} value={x.name} />
-              ))}
-            </datalist>
           </label>
 
           <label className="field">
@@ -440,7 +446,11 @@ export function OrderInfoModal({
             ยกเลิก
           </button>
           <button className="btn primary" disabled={busy}>
-            {busy ? "กำลังบันทึก..." : "บันทึก Order"}
+            {busy
+              ? "กำลังบันทึก..."
+              : isQuotationOrder
+                ? "บันทึกรายการขอราคา"
+                : "บันทึก Order"}
           </button>
         </div>
       </form>
@@ -448,21 +458,26 @@ export function OrderInfoModal({
   );
 }
 
-export function PurchaseModal({ order, options, onClose, onChanged }) {
+export function PurchaseModal({
+  order,
+  options,
+  quotationOnly = false,
+  onClose,
+  onChanged,
+}) {
   const [local, setLocal] = useState({ ...order });
-  const [vendorText, setVendorText] = useState(
-    order.vendor_id ? `${order.vendor_code} · ${order.vendor_name}` : ""
-  );
   const [error, setError] = useState("");
   const [busy, setBusy] = useState("");
   const [rfqs, setRfqs] = useState([]);
   const [rfqLoading, setRfqLoading] = useState(true);
   const set = (k, v) => setLocal((x) => ({ ...x, [k]: v }));
+  const isQuotationOnly =
+    quotationOnly || order.procurement_phase === "QUOTATION";
 
   useEffect(() => {
     let active = true;
     setRfqLoading(true);
-    apiGet(`/rfqs/?order_id=${order.id}`, { cache: false, forceRefresh: true })
+    apiGet(`/rfqs/?order_id=${order.id}&full=true`, { cache: false, forceRefresh: true })
       .then((data) => active && setRfqs(data.results || []))
       .catch((err) => active && setError(err.message))
       .finally(() => active && setRfqLoading(false));
@@ -487,6 +502,61 @@ export function PurchaseModal({ order, options, onClose, onChanged }) {
   const person = (options.employees || []).find(
     (x) => x.id === local.person_in_charge_id
   );
+
+  if (isQuotationOnly) {
+    return (
+      <Modal
+        title={`Quotation · ${order.order_number}`}
+        onClose={onClose}
+        wide
+      >
+        <p className="helper">
+          รายการนี้ยังอยู่ในช่วงขอราคา และยังไม่ถูกนับเป็น Order จริง
+        </p>
+        <div className="quotation-rfq-list">
+          {rfqLoading ? (
+            <span>กำลังโหลด...</span>
+          ) : rfqs.length ? (
+            rfqs.map((rfq) => (
+              <div key={rfq.id}>
+                <b>{rfq.rfq_number}</b>
+                <span>{rfq.vendor || "รอระบุ Vendor"}</span>
+                <span>
+                  ส่ง {rfq.sent_at ? new Date(rfq.sent_at).toLocaleString("th-TH") : "-"}
+                  {` · ${rfq.sent_by || "-"}`}
+                </span>
+                {rfq.po_balance?.quotation_received_at ? (
+                  <span>
+                    รับราคา {rfq.po_balance.quotation_received_at} · {rfq.po_balance.price || "-"} {rfq.po_balance.currency || "THB"}
+                    {rfq.po_balance.lead_time_days != null
+                      ? ` · Lead time ${rfq.po_balance.lead_time_days} วัน`
+                      : ""}
+                  </span>
+                ) : (
+                  <span>ยังไม่ได้รับใบเสนอราคา</span>
+                )}
+                {(rfq.email_link || rfq.gmail_link) && (
+                  <a
+                    href={rfq.email_link || rfq.gmail_link}
+                    target="_blank"
+                    rel="noreferrer"
+                  >
+                    เปิดลิงก์อีเมล
+                  </a>
+                )}
+              </div>
+            ))
+          ) : (
+            <span>ยังไม่มีรายการขอราคา</span>
+          )}
+        </div>
+        <Alert>{error}</Alert>
+        <div className="modal-actions">
+          <button className="btn ghost" onClick={onClose}>ปิด</button>
+        </div>
+      </Modal>
+    );
+  }
 
   return (
     <Modal
@@ -531,20 +601,16 @@ export function PurchaseModal({ order, options, onClose, onChanged }) {
         <div className="purchase-field">
           <label>VENDOR ORDER</label>
           <div>
-            <input
-              list="purchase-vendors"
-              value={vendorText}
-              onChange={(e) => {
-                setVendorText(e.target.value);
-                const v = findLabel(options.vendors, e.target.value, "vendor");
-                set("vendor_id", v?.id || "");
+            <SearchableSelect
+              value={local.vendor_id || ""}
+              options={options.vendors || []}
+              onChange={(value) => {
+                set("vendor_id", value);
               }}
+              getLabel={(x) => `${x.code ? `${x.code} · ` : ""}${x.name}`}
+              getSearchText={(x) => `${x.code || ""} ${x.name || ""} ${x.email || ""} ${x.contact_person || ""}`}
+              placeholder="พิมพ์ชื่อหรือรหัส Vendor"
             />
-            <datalist id="purchase-vendors">
-              {(options.vendors || []).map((x) => (
-                <option key={x.id} value={`${x.code} · ${x.name}`} />
-              ))}
-            </datalist>
           </div>
           <button
             className="mini"
@@ -595,7 +661,7 @@ export function PurchaseModal({ order, options, onClose, onChanged }) {
               value={local.price_per_unit || 0}
               onChange={(e) => set("price_per_unit", e.target.value)}
             />
-            <b>฿</b>
+            <b>{local.currency || "THB"}</b>
           </div>
           <button
             className="mini"
@@ -610,7 +676,7 @@ export function PurchaseModal({ order, options, onClose, onChanged }) {
         <div className="purchase-field readonly">
           <label>PRICE TOTAL</label>
           <strong>
-            ฿ {money(Number(local.amount || 0) * Number(local.price_per_unit || 0))}
+            {local.currency || "THB"} {money(Number(local.amount || 0) * Number(local.price_per_unit || 0))}
           </strong>
           <span>AMOUNT × Price / Unit</span>
         </div>
@@ -657,17 +723,14 @@ export function PurchaseModal({ order, options, onClose, onChanged }) {
 
         <div className="purchase-field">
           <label>PERSON IN CHARGE OF ORDER</label>
-          <select
+          <SearchableSelect
             value={local.person_in_charge_id || ""}
-            onChange={(e) => set("person_in_charge_id", e.target.value)}
-          >
-            <option value="">-</option>
-            {(options.employees || []).map((x) => (
-              <option key={x.id} value={x.id}>
-                {x.name}
-              </option>
-            ))}
-          </select>
+            options={options.employees || []}
+            onChange={(value) => set("person_in_charge_id", value)}
+            getLabel={(x) => `${x.employee_code ? `${x.employee_code} · ` : ""}${x.name}`}
+            getSearchText={(x) => `${x.employee_code || ""} ${x.name || ""} ${x.department || ""}`}
+            placeholder="พิมพ์ชื่อหรือรหัสพนักงาน"
+          />
           <button
             className="mini"
             onClick={() =>
@@ -750,7 +813,7 @@ function OrderTable({
             <th>JOB</th>
             <th>Urgent</th>
             <th>วันที่ค้าง</th>
-            <th>Item ID</th>
+            <th>Part ID</th>
             <th>Part Name</th>
             <th>Part Detail</th>
             <th>MAKER</th>
@@ -840,8 +903,8 @@ function OrderTable({
                   ) : "-"}
                 </td>
                 <td>{o.po_number || "-"}</td>
-                <td>{money(o.price_per_unit)}</td>
-                <td>{money(o.price_total)}</td>
+                <td>{o.currency || "THB"} {money(o.price_per_unit)}</td>
+                <td>{o.currency || "THB"} {money(o.price_total)}</td>
                 <td>{o.vendor_name || "-"}</td>
                 <td>
                   {o.lead_time_days == null ? "-" : `${o.lead_time_days} DAY`}
@@ -894,6 +957,299 @@ function OrderTable({
         </tbody>
       </table>
     </div>
+  );
+}
+
+const QUOTATION_STAGE_LABELS = {
+  DRAFT: "ยังไม่บันทึกขอราคา",
+  WAIT_QUOTATION: "รอใบเสนอราคา",
+  QUOTATION_RECEIVED: "ได้รับราคาแล้ว",
+  READY_TO_CREATE_ORDER: "พร้อมสร้าง Order",
+  PARTIALLY_CREATED: "สร้าง Order บางส่วนแล้ว",
+  CREATED_TO_ORDER_STEP: "สร้าง Order ครบแล้ว",
+};
+
+function QuotationTable({
+  rows,
+  auth,
+  selected,
+  onToggle,
+  onToggleAll,
+  onEdit,
+  onQuotation,
+}) {
+  const allSelected =
+    rows.length > 0 && rows.every((row) => selected.has(row.id));
+
+  return (
+    <div className="table-wrap">
+      <table className="order-table">
+        <thead>
+          <tr>
+            <th>
+              <label style={{ display: "flex", gap: 6, alignItems: "center" }}>
+                <input
+                  type="checkbox"
+                  checked={allSelected}
+                  onChange={(event) => onToggleAll(rows, event.target.checked)}
+                />
+                เลือก / Action
+              </label>
+            </th>
+            <th>DATE</th>
+            <th>GROUP ORDER</th>
+            <th>MACHINE</th>
+            <th>Part ID</th>
+            <th>Part Name</th>
+            <th>Part Detail</th>
+            <th>MAKER</th>
+            <th>AMOUNT</th>
+            <th>UNIT</th>
+            <th>RFQ</th>
+            <th>สถานะขอราคา</th>
+            <th>สร้าง Order แล้ว</th>
+            <th>คงเหลือ</th>
+            <th>ผู้ขอ</th>
+          </tr>
+        </thead>
+        <tbody>
+          {rows.map((row) => {
+            const stage = row.quotation_stage_status || "DRAFT";
+            return (
+              <tr
+                key={row.id}
+                style={selected.has(row.id) ? { background: "#f5f3ff" } : undefined}
+              >
+                <td className="sticky-action">
+                  <div style={{ display: "flex", gap: 7, alignItems: "center", marginBottom: 6 }}>
+                    <input
+                      type="checkbox"
+                      checked={selected.has(row.id)}
+                      onChange={(event) => onToggle(row.id, event.target.checked)}
+                    />
+                    <b style={{ fontSize: 9, color: "#94a3b8" }}>
+                      {row.order_number}
+                    </b>
+                  </div>
+                  <div className="row-actions">
+                    {auth.can("can_edit_order_info") && (
+                      <button className="mini" onClick={() => onEdit(row)}>
+                        ข้อมูล
+                      </button>
+                    )}
+                    <button className="mini" onClick={() => onQuotation(row)}>
+                      Quotation
+                    </button>
+                  </div>
+                </td>
+                <td>{row.date}</td>
+                <td>{row.group_order || "-"}</td>
+                <td>{row.machine_name || row.machine_code || "-"}</td>
+                <td><b>{row.item_id || "-"}</b></td>
+                <td>{row.part_name}</td>
+                <td className="detail-cell">{row.part_detail}</td>
+                <td>{row.maker}</td>
+                <td>{fmt(row.amount)}</td>
+                <td>{row.unit}</td>
+                <td>{row.rfq_count ? fmt(row.rfq_count) : "-"}</td>
+                <td>
+                  <span className={`status ${stage.includes("CREATED") ? "success" : stage === "DRAFT" ? "muted" : "info"}`}>
+                    {QUOTATION_STAGE_LABELS[stage] || stage}
+                  </span>
+                </td>
+                <td>{fmt(row.converted_quantity)}</td>
+                <td>{fmt(row.remaining_quantity)}</td>
+                <td>{row.ordered_by || "-"}</td>
+              </tr>
+            );
+          })}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
+export function QuotationConversionModal({ project, rows, onClose, onSaved }) {
+  const [preview, setPreview] = useState(null);
+  const [choices, setChoices] = useState({});
+  const [error, setError] = useState("");
+  const [busy, setBusy] = useState(false);
+
+  useEffect(() => {
+    let active = true;
+    setError("");
+    apiPost(`/order-projects/${project.id}/quotation-conversion-preview/`, {
+      quotation_order_ids: rows.map((row) => row.id),
+    })
+      .then((data) => {
+        if (!active) return;
+        const initial = {};
+        for (const row of data.results || []) {
+          const ready = (row.quotes || []).find((quote) => quote.ready);
+          initial[row.id] = {
+            rfq_id: ready?.id || "",
+            amount: row.remaining_quantity || 0,
+            price_per_unit: ready?.price ?? "",
+            currency: ready?.currency || "THB",
+          };
+        }
+        setPreview(data);
+        setChoices(initial);
+      })
+      .catch((err) => active && setError(err.message));
+    return () => { active = false; };
+  }, [project.id, rows]);
+
+  function setChoice(orderId, key, value) {
+    setChoices((current) => ({
+      ...current,
+      [orderId]: { ...(current[orderId] || {}), [key]: value },
+    }));
+  }
+
+  function chooseQuote(row, rfqId) {
+    const quote = (row.quotes || []).find((item) => item.id === rfqId);
+    setChoices((current) => ({
+      ...current,
+      [row.id]: {
+        ...(current[row.id] || {}),
+        rfq_id: rfqId,
+        price_per_unit: quote?.price ?? "",
+        currency: quote?.currency || "THB",
+      },
+    }));
+  }
+
+  async function submit(event) {
+    event.preventDefault();
+    const items = (preview?.results || []).map((row) => ({
+      quotation_order_id: row.id,
+      rfq_id: choices[row.id]?.rfq_id || "",
+      amount: Number(choices[row.id]?.amount || 0),
+      price_per_unit: choices[row.id]?.price_per_unit,
+      currency: choices[row.id]?.currency || "THB",
+    }));
+    if (items.some((item) =>
+      !item.rfq_id ||
+      item.amount <= 0 ||
+      item.price_per_unit === "" ||
+      Number(item.price_per_unit) < 0
+    )) {
+      setError("กรุณาเลือกใบเสนอราคา ระบุจำนวน และราคาต่อหน่วยให้ครบทุกรายการ");
+      return;
+    }
+    setBusy(true);
+    setError("");
+    try {
+      const result = await apiPost(
+        `/order-projects/${project.id}/quotation-convert/`,
+        { items }
+      );
+      onSaved(result);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <Modal title="สร้างไปยัง Order Step" onClose={onClose} wide>
+      <p className="helper">
+        เลือกใบเสนอราคาและจำนวนที่จะสั่ง ระบบจะสร้าง Order จริงใหม่โดยเก็บรายการขอราคาเดิมไว้
+      </p>
+      {preview?.employee && (
+        <div className="alert success">
+          ผู้ดำเนินการ: {preview.employee.employee_code} · {preview.employee.name}
+        </div>
+      )}
+      <form onSubmit={submit}>
+        <div className="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Part ID / Part</th>
+                <th>จำนวนคงเหลือ</th>
+                <th>ใบเสนอราคาที่เลือก *</th>
+                <th>ราคาต่อหน่วย / สกุลเงิน *</th>
+                <th>จำนวนสร้าง Order *</th>
+              </tr>
+            </thead>
+            <tbody>
+              {(preview?.results || []).map((row) => {
+                const readyQuotes = (row.quotes || []).filter((quote) => quote.ready);
+                return (
+                  <tr key={row.id}>
+                    <td>
+                      <b>{row.item_id || "-"}</b>
+                      <div>{row.part_name}</div>
+                      <small>{row.part_detail}</small>
+                    </td>
+                    <td>{fmt(row.remaining_quantity)} {row.unit}</td>
+                    <td>
+                      <select
+                        required
+                        value={choices[row.id]?.rfq_id || ""}
+                        onChange={(event) => chooseQuote(row, event.target.value)}
+                      >
+                        <option value="">เลือก Vendor / ใบเสนอราคา</option>
+                        {readyQuotes.map((quote) => (
+                          <option key={quote.id} value={quote.id}>
+                            {quote.rfq_number} · {quote.vendor} · {money(quote.price)} {quote.currency || "THB"}
+                            {quote.lead_time_days != null ? ` · ${quote.lead_time_days} วัน` : ""}
+                          </option>
+                        ))}
+                      </select>
+                      {!readyQuotes.length && (
+                        <small className="field-help">ยังไม่มีใบเสนอราคาที่บันทึก Vendor, วันที่รับ และราคาไว้ครบ</small>
+                      )}
+                    </td>
+                    <td>
+                      <div className="input-suffix">
+                        <input
+                          type="number"
+                          min="0"
+                          step="0.0001"
+                          required
+                          value={choices[row.id]?.price_per_unit ?? ""}
+                          onChange={(event) => setChoice(row.id, "price_per_unit", event.target.value)}
+                        />
+                        <input
+                          style={{ maxWidth: 76 }}
+                          maxLength="10"
+                          required
+                          value={choices[row.id]?.currency || "THB"}
+                          onChange={(event) => setChoice(row.id, "currency", event.target.value.toUpperCase())}
+                        />
+                      </div>
+                    </td>
+                    <td>
+                      <input
+                        type="number"
+                        min="1"
+                        max={row.remaining_quantity}
+                        step="1"
+                        required
+                        value={choices[row.id]?.amount ?? ""}
+                        onChange={(event) => setChoice(row.id, "amount", event.target.value)}
+                      />
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+        {!preview && !error && <div className="empty">กำลังตรวจสอบใบเสนอราคา...</div>}
+        <Alert>{error}</Alert>
+        <div className="modal-actions">
+          <button type="button" className="btn ghost" onClick={onClose}>ยกเลิก</button>
+          <button className="btn primary" disabled={busy || !preview}>
+            {busy ? "กำลังสร้าง..." : "ยืนยันสร้าง Order"}
+          </button>
+        </div>
+      </form>
+    </Modal>
   );
 }
 
@@ -1015,7 +1371,8 @@ function MonthlyProjectList({ projects, onSelect }) {
                             <th>OWNER</th>
                             <th>CREATED</th>
                             <th>STEP</th>
-                            <th>ORDER</th>
+                            <th>ขอราคา</th>
+                            <th>ORDER จริง</th>
                           </tr>
                         </thead>
                         <tbody>
@@ -1038,6 +1395,7 @@ function MonthlyProjectList({ projects, onSelect }) {
                               <td>{project.owner_name || "-"}</td>
                               <td>{project.created_at ? new Date(project.created_at).toLocaleDateString("th-TH") : "-"}</td>
                               <td>{fmt(project.step_count)}</td>
+                              <td>{fmt(project.quotation_items)}</td>
                               <td>{fmt(project.total_items)}</td>
                             </tr>
                           ))}
@@ -1163,6 +1521,73 @@ function BulkActions({ rows, auth, busy, onRun, onClear, onRfq }) {
   );
 }
 
+function QuotationBulkActions({
+  rows,
+  auth,
+  busy,
+  onRfq,
+  onConvert,
+  onDelete,
+  onClear,
+}) {
+  const count = rows.length;
+  const canRfq = count > 0 && rows.every((row) =>
+    ["ACTIVE", "WAIT_CONFIRM"].includes(row.lifecycle_status)
+  );
+  const canConvert =
+    count > 0 && rows.every((row) => Number(row.remaining_quantity || 0) > 0);
+
+  return (
+    <div
+      className="toolbar wrap"
+      style={{
+        padding: 10,
+        marginBottom: 12,
+        border: "1px solid #dbeafe",
+        borderRadius: 12,
+        background: "#eff6ff",
+      }}
+    >
+      <strong style={{ fontSize: 11, marginRight: 4 }}>
+        เลือกแล้ว {fmt(count)} รายการ
+      </strong>
+      {auth.can("can_edit_purchase_info") && (
+        <button
+          className="btn primary"
+          disabled={!canRfq || busy}
+          onClick={onRfq}
+        >
+          บันทึกขอราคา
+        </button>
+      )}
+      {auth.can("can_create_order_from_quotation") && (
+        <button
+          className="btn success"
+          disabled={!canConvert || busy}
+          onClick={onConvert}
+        >
+          สร้างไปยัง Order Step
+        </button>
+      )}
+      {auth.can("can_delete_order") && (
+        <button
+          className="btn danger"
+          disabled={!count || busy}
+          onClick={onDelete}
+        >
+          ลบรายการขอราคา
+        </button>
+      )}
+      {count > 0 && (
+        <button className="btn ghost" disabled={busy} onClick={onClear}>
+          ล้างการเลือก
+        </button>
+      )}
+      {busy && <small>กำลังดำเนินการ...</small>}
+    </div>
+  );
+}
+
 export function ProjectModal({
   department,
   options,
@@ -1217,18 +1642,15 @@ export function ProjectModal({
 
         <label className="field">
           <span>เจ้าของ Project *</span>
-          <select
+          <SearchableSelect
             required
             value={ownerId}
-            onChange={(e) => setOwnerId(e.target.value)}
-          >
-            <option value="">เลือกเจ้าของ Project</option>
-            {(options.employees || []).map((x) => (
-              <option key={x.id} value={x.id}>
-                {x.name}
-              </option>
-            ))}
-          </select>
+            options={options.employees || []}
+            onChange={setOwnerId}
+            getLabel={(x) => `${x.employee_code ? `${x.employee_code} · ` : ""}${x.name}`}
+            getSearchText={(x) => `${x.employee_code || ""} ${x.name || ""} ${x.department || ""}`}
+            placeholder="พิมพ์ชื่อหรือรหัสพนักงาน"
+          />
         </label>
 
         <label className="field">
@@ -1320,7 +1742,9 @@ export default function Orders({ mode = "orders" }) {
   const [projectDetail, setProjectDetail] = useState(null);
   const [projectModal, setProjectModal] = useState(false);
   const [projectDepartment, setProjectDepartment] = useState("MODIFY");
+  const [projectPhase, setProjectPhase] = useState("quotation");
   const [projectSearch, setProjectSearch] = useState("");
+  const [conversionRows, setConversionRows] = useState(null);
 
   const [selected, setSelected] = useState(() => new Set());
   const [bulkBusy, setBulkBusy] = useState(false);
@@ -1427,6 +1851,10 @@ export default function Orders({ mode = "orders" }) {
     setSelected(new Set());
   }, [projectDepartment]);
 
+  useEffect(() => {
+    setSelected(new Set());
+  }, [projectPhase]);
+
   async function refresh() {
     setSelected(new Set());
     if (tab === "step") await loadProjects(true);
@@ -1465,8 +1893,9 @@ export default function Orders({ mode = "orders" }) {
 
   const allVisibleOrders = useMemo(() => {
     if (tab !== "step") return rows;
-    return (projectDetail?.steps || []).flatMap((step) => step.orders || []);
-  }, [tab, rows, projectDetail]);
+    const key = projectPhase === "quotation" ? "quotation_orders" : "orders";
+    return (projectDetail?.steps || []).flatMap((step) => step[key] || []);
+  }, [tab, rows, projectDetail, projectPhase]);
 
   const selectedRows = useMemo(
     () => allVisibleOrders.filter((o) => selected.has(o.id)),
@@ -1670,10 +2099,10 @@ export default function Orders({ mode = "orders" }) {
       DATE: new Date().toISOString().slice(0, 10),
       FACTORY: "Phase4",
       "MACHINE NAME": "ใส่ชื่อ Machine ที่มีในระบบ",
-      "ITEM ID": "",
-      "PART NAME": "กรอกเมื่อไม่มี Item ID",
-      "PART DETAIL": "กรอกเมื่อไม่มี Item ID",
-      MAKER: "กรอกเมื่อไม่มี Item ID",
+      "PART ID": "",
+      "PART NAME": "กรอกเมื่อไม่มี Part ID",
+      "PART DETAIL": "กรอกเมื่อไม่มี Part ID",
+      MAKER: "กรอกเมื่อไม่มี Part ID",
       AMOUNT: 1,
       UNIT: "EA",
       REMARK: "",
@@ -1681,6 +2110,7 @@ export default function Orders({ mode = "orders" }) {
       QUOTATION: "",
       "PO NUMBER": "",
       "PRICE PER UNIT": "",
+      CURRENCY: "THB",
       "VENDOR ORDER": "",
       "LEAD TIME": "",
       "ISSUE PR DATE": "",
@@ -1697,7 +2127,7 @@ export default function Orders({ mode = "orders" }) {
       ["JOB ถูกกำหนดจาก Modify / Automation ของ Project อัตโนมัติ"],
       ["วันที่งานค้างถูกกำหนดจาก Project อัตโนมัติ"],
       ["ไม่ต้องใส่ JOB / สถานะงานด่วน / วันที่งานค้างในไฟล์ Import"],
-      ["ITEM ID ถ้ามี ระบบจะดึง Part Name / Detail / Maker / Unit จาก Part Master"],
+      ["PART ID ถ้ามี ระบบจะดึง Part Name / Detail / Maker / Unit จาก Part Master"],
       ["ถ้าใส่ Vendor Order ต้องมี Quotation ก่อน"],
       ["PO NUMBER + ISSUE PR DATE + DUE DATE ต้องใส่ครบทั้ง 3 ช่อง"],
       ["วันที่รองรับ yyyy-mm-dd หรือ dd/mm/yyyy"],
@@ -1707,7 +2137,7 @@ export default function Orders({ mode = "orders" }) {
     XLSX.utils.book_append_sheet(wb, guide, "วิธีใช้");
     XLSX.writeFile(
       wb,
-      `order_step_${projectDepartment.toLowerCase()}_template.xlsx`
+      `order_step_${projectDepartment.toLowerCase()}_${projectPhase}_template.xlsx`
     );
   }
 
@@ -1734,7 +2164,7 @@ export default function Orders({ mode = "orders" }) {
             ? "MM-11"
             : "MM-4",
           machine: readCell(r, "MACHINE NAME", "MACHINE", "M/C"),
-          item_id: readCell(r, "ITEM ID", "ITEM", "PART NO"),
+          item_id: readCell(r, "PART ID", "ITEM ID", "ITEM", "PART NO"),
           part_name: readCell(r, "PART NAME"),
           part_detail: readCell(r, "PART DETAIL", "DESCRIPTION"),
           maker: readCell(r, "MAKER", "MANUFACTURER"),
@@ -1745,6 +2175,7 @@ export default function Orders({ mode = "orders" }) {
           quotation: readCell(r, "QUOTATION", "QUOTE"),
           po_number: readCell(r, "PO NUMBER", "PO NO", "PO"),
           price_per_unit: readCell(r, "PRICE PER UNIT", "UNIT PRICE"),
+          currency: readCell(r, "CURRENCY") || "THB",
           vendor_order: readCell(r, "VENDOR ORDER", "VENDOR", "SUPPLIER"),
           lead_time_days: readCell(r, "LEAD TIME", "LEAD TIME DAYS"),
           issue_pr_date: excelDate(readCell(r, "ISSUE PR DATE", "PR DATE")),
@@ -1769,7 +2200,12 @@ export default function Orders({ mode = "orders" }) {
 
       const result = await apiPost(
         `/order-projects/${selectedProject.id}/steps/${step.id}/import/`,
-        { filename: file.name, rows: normalized }
+        {
+          filename: file.name,
+          procurement_phase:
+            projectPhase === "quotation" ? "QUOTATION" : "PURCHASE",
+          rows: normalized,
+        }
       );
 
       if (result.errors?.length) {
@@ -1802,7 +2238,7 @@ export default function Orders({ mode = "orders" }) {
       FACTORY: o.factory === "MM-11" ? "Phase11" : "Phase4",
       "MACHINE NAME": o.machine_name || o.machine_code || "",
       JOB: o.job,
-      "ITEM ID": o.item_id || "",
+      "PART ID": o.item_id || "",
       "PART NAME": o.part_name,
       "PART DETAIL": o.part_detail,
       MAKER: o.maker,
@@ -1813,6 +2249,7 @@ export default function Orders({ mode = "orders" }) {
       QUOTATION: o.quotation,
       "PO NUMBER": o.po_number,
       "PRICE PER UNIT": o.price_per_unit,
+      CURRENCY: o.currency || "THB",
       TOTAL: o.price_total,
       "VENDOR ORDER": o.vendor_name,
       "LEAD TIME": o.lead_time_days ?? "",
@@ -1972,7 +2409,7 @@ export default function Orders({ mode = "orders" }) {
               className="search-input"
               value={q}
               onChange={(e) => setQ(e.target.value)}
-              placeholder="ค้นหา Order / Item ID / Part / Machine / ผู้สั่ง..."
+              placeholder="ค้นหา Order / Part ID / Part / Machine / ผู้สั่ง..."
             />
 
             {tab === "normal" && (
@@ -2173,32 +2610,80 @@ export default function Orders({ mode = "orders" }) {
                     </div>
                   </div>
 
-                  <div className="kpi-grid three">
-                    <div className="kpi-card">
-                      <span>รายการที่ใช้ (Active + Completed)</span>
-                      <strong>{fmt(projectDetail.project.used_items)}</strong>
-                    </div>
-                    <div className="kpi-card warning">
-                      <span>ราคาอะไหล่ทั้งหมด (ไม่รวม Cancelled)</span>
-                      <strong>฿ {money(projectDetail.project.total_order_value)}</strong>
-                    </div>
-                    <div className="kpi-card success">
-                      <span>ราคาอะไหล่ที่ใช้ (ไม่รวม Wait Confirm / Cancelled)</span>
-                      <strong>฿ {money(projectDetail.project.used_value)}</strong>
-                    </div>
+                  <div className="tab-row page-tabs">
+                    <button
+                      className={`tab ${projectPhase === "quotation" ? "active" : ""}`}
+                      onClick={() => setProjectPhase("quotation")}
+                    >
+                      ช่วงขอราคา ({fmt(projectDetail.project.quotation_items)})
+                    </button>
+                    <button
+                      className={`tab ${projectPhase === "purchase" ? "active" : ""}`}
+                      onClick={() => setProjectPhase("purchase")}
+                    >
+                      Order Step / สั่งซื้อจริง ({fmt(projectDetail.project.total_items)})
+                    </button>
                   </div>
 
-                  <BulkActions
-                    rows={selectedRows}
-                    auth={auth}
-                    busy={bulkBusy}
-                    onRun={runBulk}
-                    onClear={() => setSelected(new Set())}
-                    onRfq={() => setRfqCompose(true)}
-                  />
+                  {projectPhase === "quotation" ? (
+                    <div className="kpi-grid three">
+                      <div className="kpi-card info">
+                        <span>รอใบเสนอราคา</span>
+                        <strong>{fmt(projectDetail.project.quotation_waiting)}</strong>
+                      </div>
+                      <div className="kpi-card warning">
+                        <span>ได้รับราคา / พร้อมสร้าง Order</span>
+                        <strong>{fmt(projectDetail.project.quotation_received)}</strong>
+                      </div>
+                      <div className="kpi-card success">
+                        <span>สร้าง Order ครบแล้ว</span>
+                        <strong>{fmt(projectDetail.project.quotation_converted)}</strong>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="kpi-grid three">
+                      <div className="kpi-card">
+                        <span>รายการที่ใช้ (Active + Completed)</span>
+                        <strong>{fmt(projectDetail.project.used_items)}</strong>
+                      </div>
+                      <div className="kpi-card warning">
+                        <span>ราคาอะไหล่ทั้งหมด (ไม่รวม Cancelled)</span>
+                        <strong>฿ {money(projectDetail.project.total_order_value)}</strong>
+                      </div>
+                      <div className="kpi-card success">
+                        <span>ราคาอะไหล่ที่ใช้ (ไม่รวม Wait Confirm / Cancelled)</span>
+                        <strong>฿ {money(projectDetail.project.used_value)}</strong>
+                      </div>
+                    </div>
+                  )}
+
+                  {projectPhase === "quotation" ? (
+                    <QuotationBulkActions
+                      rows={selectedRows}
+                      auth={auth}
+                      busy={bulkBusy}
+                      onRfq={() => setRfqCompose(true)}
+                      onConvert={() => setConversionRows([...selectedRows])}
+                      onDelete={() => runBulk("delete")}
+                      onClear={() => setSelected(new Set())}
+                    />
+                  ) : (
+                    <BulkActions
+                      rows={selectedRows}
+                      auth={auth}
+                      busy={bulkBusy}
+                      onRun={runBulk}
+                      onClear={() => setSelected(new Set())}
+                      onRfq={() => setRfqCompose(true)}
+                    />
+                  )}
 
                   {projectDetail.steps.length ? (
-                    projectDetail.steps.map((step) => (
+                    projectDetail.steps.map((step) => {
+                      const phaseRows = projectPhase === "quotation"
+                        ? (step.quotation_orders || [])
+                        : (step.orders || []);
+                      return (
                       <div className="panel" key={step.id}>
                         <div className="section-head">
                           <div>
@@ -2211,7 +2696,7 @@ export default function Orders({ mode = "orders" }) {
                             style={{ flexWrap: "wrap", justifyContent: "flex-end" }}
                           >
                             <span className="status info">
-                              {step.orders.length} รายการ
+                              {phaseRows.length} รายการ
                             </span>
 
                             {auth.can("can_add_order") && (
@@ -2225,7 +2710,9 @@ export default function Orders({ mode = "orders" }) {
                                   })
                                 }
                               >
-                                + เพิ่ม Order
+                                {projectPhase === "quotation"
+                                  ? "+ เพิ่มรายการขอราคา"
+                                  : "+ เพิ่ม Order"}
                               </button>
                             )}
 
@@ -2247,19 +2734,33 @@ export default function Orders({ mode = "orders" }) {
                             )}
                           </div>
                         </div>
-                        <OrderTable
-                          rows={step.orders}
-                          auth={auth}
-                          selected={selected}
-                          onToggle={toggleSelected}
-                          onToggleAll={toggleAll}
-                          onEdit={(order) =>
-                            setEditor({ order, project: projectDetail.project })
-                          }
-                          onPurchase={setPurchase}
-                        />
+                        {projectPhase === "quotation" ? (
+                          <QuotationTable
+                            rows={phaseRows}
+                            auth={auth}
+                            selected={selected}
+                            onToggle={toggleSelected}
+                            onToggleAll={toggleAll}
+                            onEdit={(order) =>
+                              setEditor({ order, project: projectDetail.project })
+                            }
+                            onQuotation={setPurchase}
+                          />
+                        ) : (
+                          <OrderTable
+                            rows={phaseRows}
+                            auth={auth}
+                            selected={selected}
+                            onToggle={toggleSelected}
+                            onToggleAll={toggleAll}
+                            onEdit={(order) =>
+                              setEditor({ order, project: projectDetail.project })
+                            }
+                            onPurchase={setPurchase}
+                          />
+                        )}
                       </div>
-                    ))
+                    );})
                   ) : (
                     <div className="empty">
                       Project นี้ยังไม่มี Step — กด “+ เพิ่ม Step” ก่อน แล้วจึงเพิ่ม Order หรือ Import Excel ภายใน Step
@@ -2281,6 +2782,10 @@ export default function Orders({ mode = "orders" }) {
           step={editor.step}
           options={options}
           employee={auth.employee}
+          quotationMode={
+            !!editor.project &&
+            (editor.order?.procurement_phase === "QUOTATION" || projectPhase === "quotation")
+          }
           canEditOrderDate={auth.can("can_edit_order_date")}
           onClose={() => setEditor(null)}
           onSaved={async () => {
@@ -2309,6 +2814,19 @@ export default function Orders({ mode = "orders" }) {
           onClose={() => setRfqCompose(false)}
           onRecorded={async () => {
             setRfqCompose(false);
+            setSelected(new Set());
+            await refresh();
+          }}
+        />
+      )}
+
+      {conversionRows && selectedProject && (
+        <QuotationConversionModal
+          project={selectedProject}
+          rows={conversionRows}
+          onClose={() => setConversionRows(null)}
+          onSaved={async () => {
+            setConversionRows(null);
             setSelected(new Set());
             await refresh();
           }}

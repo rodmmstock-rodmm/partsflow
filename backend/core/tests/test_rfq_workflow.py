@@ -17,7 +17,7 @@ from core.models import (
     RoleAccess,
     Supplier,
 )
-from core.production_check_api import MIGRATION_0016, REPAIR_KEY
+from core.production_check_api import MIGRATION_0017, REPAIR_KEY
 
 
 class RFQWorkflowTests(TestCase):
@@ -323,6 +323,7 @@ class RFQWorkflowTests(TestCase):
             "migration_0014_applied": True,
             "migration_0015_applied": True,
             "migration_0016_applied": False,
+            "migration_0017_applied": False,
             "permission_columns_present": True,
             "missing_permission_columns": [],
             "employee_email_present": False,
@@ -337,13 +338,32 @@ class RFQWorkflowTests(TestCase):
                 "core_rfqmessage",
                 "core_vendoremailidentity",
             ],
+            "quotation_columns_present": False,
+            "missing_quotation_columns": [
+                "converted_quantity",
+                "created_from_quotation_at",
+                "created_from_quotation_by_employee_id",
+                "currency",
+                "procurement_phase",
+                "source_quotation_order_id",
+                "source_rfq_id",
+            ],
+            "quotation_permission_present": False,
+            "missing_quotation_permission_columns": [
+                "can_create_order_from_quotation",
+            ],
         }
         after = {
             **before,
             "migration_0016_applied": True,
+            "migration_0017_applied": True,
             "employee_email_present": True,
             "rfq_tables_present": True,
             "missing_rfq_tables": [],
+            "quotation_columns_present": True,
+            "missing_quotation_columns": [],
+            "quotation_permission_present": True,
+            "missing_quotation_permission_columns": [],
         }
         snapshot.side_effect = [before, after]
 
@@ -357,4 +377,4 @@ class RFQWorkflowTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertTrue(response.data["after"]["migration_0016_applied"])
         args = call_command.call_args.args
-        self.assertEqual(args[:3], ("migrate", "core", MIGRATION_0016))
+        self.assertEqual(args[:3], ("migrate", "core", MIGRATION_0017))

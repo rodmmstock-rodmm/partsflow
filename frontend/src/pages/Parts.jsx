@@ -61,7 +61,7 @@ export default function Parts() {
           <input
             value={q}
             onChange={(e) => setQ(e.target.value)}
-            placeholder="ค้นหา Item ID / Part Name / Detail / Maker / Supplier"
+            placeholder="ค้นหา Part ID / Part Name / Detail / Maker / Supplier"
           />
 
           <select value={status} onChange={(e) => setStatus(e.target.value)}>
@@ -83,7 +83,7 @@ export default function Parts() {
             <table>
               <thead>
                 <tr>
-                  <th>Item ID</th>
+                  <th>Part ID</th>
                   <th>Part Name</th>
                   <th>Detail</th>
                   <th>Maker</th>
@@ -138,3 +138,4 @@ export default function Parts() {
     </>
   );
 }
+

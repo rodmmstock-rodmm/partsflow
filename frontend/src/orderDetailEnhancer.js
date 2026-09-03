@@ -27,7 +27,7 @@ const ORDER_FIELDS = [
     label: "วันที่งานค้าง",
     value: (d) => d.pending_data_date,
   },
-  { key: "item_id", label: "Item ID", value: (d) => d.item_id },
+  { key: "item_id", label: "Part ID", value: (d) => d.item_id },
   { key: "part_name", label: "Part Name", value: (d) => d.part_name },
   {
     key: "part_detail",
@@ -421,3 +421,4 @@ export function installOrderDetailEnhancer() {
 
   syncEnhancements();
 }
+

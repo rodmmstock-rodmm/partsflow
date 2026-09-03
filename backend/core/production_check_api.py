@@ -17,11 +17,25 @@ REPAIR_KEY = "pf-repair-20260829-6c5f19b23f9e4e64b54f4f25"
 MIGRATION_0014 = "0014_import_excel_orders_2026"
 MIGRATION_0015 = "0015_order_visibility_and_date_permissions"
 MIGRATION_0016 = "0016_rfq_po_balance_email_workflow"
+MIGRATION_0017 = "0017_project_quotation_flow"
 ROLE_ACCESS_TABLE = "core_roleaccess"
 EMPLOYEE_TABLE = "core_employee"
+ORDER_RECORD_TABLE = "core_orderrecord"
 REQUIRED_PERMISSION_COLUMNS = {
     "can_view_order_updates",
     "can_edit_order_date",
+}
+REQUIRED_QUOTATION_PERMISSION_COLUMNS = {
+    "can_create_order_from_quotation",
+}
+REQUIRED_QUOTATION_COLUMNS = {
+    "procurement_phase",
+    "source_quotation_order_id",
+    "source_rfq_id",
+    "converted_quantity",
+    "created_from_quotation_by_employee_id",
+    "created_from_quotation_at",
+    "currency",
 }
 REQUIRED_RFQ_TABLES = {
     "core_integrationcredential",
@@ -64,24 +78,49 @@ def _snapshot():
     columns = _role_access_columns()
     tables = set(connection.introspection.table_names())
     employee_columns = _table_columns(EMPLOYEE_TABLE)
+    order_columns = _table_columns(ORDER_RECORD_TABLE)
     imported = OrderRecord.objects.filter(legacy_source=SOURCE)
     all_orders = OrderRecord.objects.all()
-    return {
-        "ok": True,
+    result = {
         "database_vendor": connection.vendor,
         "order_count": all_orders.count(),
         "imported_order_count": imported.count(),
         "migration_0014_applied": _migration_applied(MIGRATION_0014),
         "migration_0015_applied": _migration_applied(MIGRATION_0015),
         "migration_0016_applied": _migration_applied(MIGRATION_0016),
+        "migration_0017_applied": _migration_applied(MIGRATION_0017),
         "permission_columns_present": REQUIRED_PERMISSION_COLUMNS.issubset(columns),
         "missing_permission_columns": sorted(
             REQUIRED_PERMISSION_COLUMNS - columns
         ),
+        "quotation_permission_present": (
+            REQUIRED_QUOTATION_PERMISSION_COLUMNS.issubset(columns)
+        ),
+        "missing_quotation_permission_columns": sorted(
+            REQUIRED_QUOTATION_PERMISSION_COLUMNS - columns
+        ),
         "employee_email_present": "email" in employee_columns,
         "rfq_tables_present": REQUIRED_RFQ_TABLES.issubset(tables),
         "missing_rfq_tables": sorted(REQUIRED_RFQ_TABLES - tables),
+        "quotation_columns_present": REQUIRED_QUOTATION_COLUMNS.issubset(
+            order_columns
+        ),
+        "missing_quotation_columns": sorted(
+            REQUIRED_QUOTATION_COLUMNS - order_columns
+        ),
     }
+    result["ok"] = bool(
+        result["migration_0014_applied"]
+        and result["migration_0015_applied"]
+        and result["migration_0016_applied"]
+        and result["migration_0017_applied"]
+        and result["permission_columns_present"]
+        and result["employee_email_present"]
+        and result["rfq_tables_present"]
+        and result["quotation_columns_present"]
+        and result["quotation_permission_present"]
+    )
+    return result
 
 
 @api_view(["GET"])
@@ -128,7 +167,12 @@ def production_repair(request):
         and before["employee_email_present"]
         and before["rfq_tables_present"]
     )
-    if core_schema_ready and rfq_schema_ready:
+    quotation_schema_ready = (
+        before["migration_0017_applied"]
+        and before["quotation_columns_present"]
+        and before["quotation_permission_present"]
+    )
+    if core_schema_ready and rfq_schema_ready and quotation_schema_ready:
         return Response(
             {
                 "ok": True,
@@ -161,6 +205,23 @@ def production_repair(request):
         before["employee_email_present"] or present_rfq_tables
     ):
         precondition_errors.append("partial_rfq_schema")
+    if before["migration_0017_applied"] and not quotation_schema_ready:
+        precondition_errors.append("migration_0017_recorded_without_schema")
+    present_quotation_columns = (
+        REQUIRED_QUOTATION_COLUMNS
+        - set(before["missing_quotation_columns"])
+    )
+    if not before["migration_0017_applied"] and present_quotation_columns:
+        precondition_errors.append("partial_quotation_schema")
+    present_quotation_permissions = (
+        REQUIRED_QUOTATION_PERMISSION_COLUMNS
+        - set(before["missing_quotation_permission_columns"])
+    )
+    if (
+        not before["migration_0017_applied"]
+        and present_quotation_permissions
+    ):
+        precondition_errors.append("quotation_permission_without_migration")
 
     if precondition_errors:
         return Response(
@@ -179,7 +240,7 @@ def production_repair(request):
         call_command(
             "migrate",
             "core",
-            MIGRATION_0016,
+            MIGRATION_0017,
             interactive=False,
             verbosity=1,
             stdout=stdout,
@@ -190,9 +251,12 @@ def production_repair(request):
             after["migration_0014_applied"]
             and after["migration_0015_applied"]
             and after["migration_0016_applied"]
+            and after["migration_0017_applied"]
             and after["permission_columns_present"]
             and after["employee_email_present"]
             and after["rfq_tables_present"]
+            and after["quotation_columns_present"]
+            and after["quotation_permission_present"]
             and after["order_count"] == before["order_count"]
             and after["imported_order_count"] == 4107
         ):

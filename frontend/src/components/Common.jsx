@@ -65,6 +65,130 @@ export function SearchInput({ value, onChange, placeholder = "ค้นหา...
   return <input className="search-input" value={value} onChange={(e) => onChange(e.target.value)} placeholder={placeholder} />;
 }
 
+export function SearchableSelect({
+  options = [],
+  value = "",
+  onChange,
+  getLabel = (option) => option?.name || "",
+  getSearchText,
+  placeholder = "พิมพ์เพื่อค้นหา...",
+  disabled = false,
+  required = false,
+  emptyText = "ไม่พบข้อมูล",
+  className = "",
+}) {
+  const selected = options.find((option) => String(option.id) === String(value));
+  const [query, setQuery] = useState(selected ? getLabel(selected) : "");
+  const [open, setOpen] = useState(false);
+  const [activeIndex, setActiveIndex] = useState(0);
+  const closeTimer = useRef(null);
+
+  useEffect(() => {
+    if (!open) setQuery(selected ? getLabel(selected) : "");
+  }, [value, selected, open]);
+
+  useEffect(() => () => window.clearTimeout(closeTimer.current), []);
+
+  const needle = query.trim().toLowerCase();
+  const filtered = options
+    .filter((option) => {
+      if (!needle || (selected && query === getLabel(selected))) return true;
+      const text = getSearchText
+        ? getSearchText(option)
+        : `${getLabel(option)} ${option?.code || ""} ${option?.email || ""}`;
+      return String(text || "").toLowerCase().includes(needle);
+    })
+    .slice(0, 80);
+
+  function choose(option) {
+    window.clearTimeout(closeTimer.current);
+    setQuery(getLabel(option));
+    setOpen(false);
+    setActiveIndex(0);
+    onChange?.(String(option.id), option);
+  }
+
+  function clearSelection(nextQuery = "") {
+    setQuery(nextQuery);
+    setOpen(true);
+    setActiveIndex(0);
+    if (value) onChange?.("", null);
+  }
+
+  function handleKeyDown(event) {
+    if (event.key === "ArrowDown") {
+      event.preventDefault();
+      setOpen(true);
+      setActiveIndex((index) => Math.min(index + 1, filtered.length - 1));
+    } else if (event.key === "ArrowUp") {
+      event.preventDefault();
+      setOpen(true);
+      setActiveIndex((index) => Math.max(index - 1, 0));
+    } else if (event.key === "Enter" && open && filtered[activeIndex]) {
+      event.preventDefault();
+      choose(filtered[activeIndex]);
+    } else if (event.key === "Escape") {
+      setOpen(false);
+      setQuery(selected ? getLabel(selected) : "");
+    }
+  }
+
+  return (
+    <div className={`searchable-select ${className}`}>
+      <input
+        value={query}
+        disabled={disabled}
+        required={required}
+        autoComplete="off"
+        placeholder={placeholder}
+        onFocus={() => {
+          window.clearTimeout(closeTimer.current);
+          setOpen(true);
+        }}
+        onBlur={() => {
+          closeTimer.current = window.setTimeout(() => {
+            setOpen(false);
+            setQuery(selected ? getLabel(selected) : "");
+          }, 150);
+        }}
+        onChange={(event) => clearSelection(event.target.value)}
+        onKeyDown={handleKeyDown}
+        aria-autocomplete="list"
+        aria-expanded={open}
+      />
+      {value && !disabled && (
+        <button
+          type="button"
+          className="searchable-clear"
+          aria-label="ล้างค่าที่เลือก"
+          onMouseDown={(event) => event.preventDefault()}
+          onClick={() => clearSelection("")}
+        >
+          ×
+        </button>
+      )}
+      {open && !disabled && (
+        <div className="searchable-menu" role="listbox">
+          {filtered.length ? filtered.map((option, index) => (
+            <button
+              type="button"
+              role="option"
+              aria-selected={String(option.id) === String(value)}
+              className={index === activeIndex ? "active" : ""}
+              key={option.id}
+              onMouseDown={(event) => event.preventDefault()}
+              onMouseEnter={() => setActiveIndex(index)}
+              onClick={() => choose(option)}
+            >
+              {getLabel(option)}
+            </button>
+          )) : <span className="searchable-empty">{emptyText}</span>}
+        </div>
+      )}
+    </div>
+  );
+}
+
 export function DatalistInput({ label, value, onChange, options, getLabel, required = false, placeholder = "พิมพ์เพื่อค้นหา..." }) {
   const id = `dl-${label.replace(/\W/g, "")}-${Math.random().toString(36).slice(2, 7)}`;
   return (

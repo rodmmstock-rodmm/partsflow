@@ -254,7 +254,11 @@ def part_detail_json(part):
     ]
 
     orders = (
-        OrderRecord.objects.filter(part=part, is_deleted=False)
+        OrderRecord.objects.filter(
+            part=part,
+            is_deleted=False,
+            procurement_phase=OrderRecord.PROCUREMENT_PURCHASE,
+        )
         .select_related("machine", "vendor", "ordered_by")
         .order_by("-order_date", "-created_at")[:30]
     )
@@ -304,6 +308,7 @@ def base_parts():
     active_order = OrderRecord.objects.filter(
         part_id=OuterRef("pk"),
         is_deleted=False,
+        procurement_phase=OrderRecord.PROCUREMENT_PURCHASE,
         lifecycle_status__in=[
             OrderRecord.LIFECYCLE_ACTIVE,
             OrderRecord.LIFECYCLE_WAIT_CONFIRM,
@@ -476,7 +481,7 @@ def apply_part_fields(part, data):
     if "remark" in data:
         part.remark = str(data.get("remark") or "").strip()
     if not part.sku or not part.name:
-        raise ValueError("Item ID และ Part Name จำเป็นต้องใส่")
+        raise ValueError("Part ID และ Part Name จำเป็นต้องใส่")
 
 
 def create_part(actor, data):
@@ -940,6 +945,7 @@ def safety_stock(request):
     open_part_ids = set(
         OrderRecord.objects.filter(
             is_deleted=False,
+            procurement_phase=OrderRecord.PROCUREMENT_PURCHASE,
             lifecycle_status__in=[
                 OrderRecord.LIFECYCLE_ACTIVE,
                 OrderRecord.LIFECYCLE_WAIT_CONFIRM,

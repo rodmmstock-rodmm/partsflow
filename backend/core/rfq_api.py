@@ -260,6 +260,14 @@ def _rfq_json(rfq, actor, *, full=False):
         "email_link": link,
         "gmail_link": link,
         "vendor_pending": not bool(rfq.vendor_id or rfq.vendor_name),
+        "quotation_only": not rfq.items.filter(
+            order__procurement_phase=OrderRecord.PROCUREMENT_PURCHASE,
+            order__is_deleted=False,
+        ).exists(),
+        "has_purchase_order": rfq.items.filter(
+            order__procurement_phase=OrderRecord.PROCUREMENT_PURCHASE,
+            order__is_deleted=False,
+        ).exists(),
     }
     if full:
         balance = getattr(rfq, "po_balance", None)
@@ -536,8 +544,16 @@ def rfq_list(request):
     group_order = str(request.GET.get("group_order", "")).strip()
     if group_order:
         qs = qs.filter(group_order=group_order)
+    full = str(request.GET.get("full", "")).strip().lower() in {
+        "1", "true", "yes"
+    }
     return Response(
-        {"results": [_rfq_json(row, actor) for row in qs.distinct()[:1000]]}
+        {
+            "results": [
+                _rfq_json(row, actor, full=full)
+                for row in qs.distinct()[:1000]
+            ]
+        }
     )
 
 
@@ -677,6 +693,21 @@ def record_follow_up(request, pk):
         RFQMessage.TYPE_DELIVERY_FOLLOW_UP,
     }:
         return Response({"detail": "ประเภทการติดตามไม่ถูกต้อง"}, status=400)
+    if (
+        message_type == RFQMessage.TYPE_DELIVERY_FOLLOW_UP
+        and not rfq.items.filter(
+            order__procurement_phase=OrderRecord.PROCUREMENT_PURCHASE,
+            order__is_deleted=False,
+        ).exists()
+    ):
+        return Response(
+            {
+                "detail":
+                "รายการนี้ยังอยู่ในช่วงขอราคา กรุณาสร้างไปยัง Order Step "
+                "ก่อนบันทึกการตามวันที่จัดส่ง"
+            },
+            status=400,
+        )
     try:
         email_link = _email_link(
             request.data.get("email_link") or request.data.get("gmail_link"),

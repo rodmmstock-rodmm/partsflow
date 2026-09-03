@@ -64,6 +64,8 @@ urlpatterns = [
     path("order-projects/<uuid:pk>/steps/<uuid:step_pk>/", order_api.delete_project_step, name="web-order-project-step-delete"),
     path("order-projects/<uuid:pk>/steps/<uuid:step_pk>/orders/", order_api.create_project_order, name="web-order-project-step-order-add"),
     path("order-projects/<uuid:pk>/steps/<uuid:step_pk>/import/", order_api.import_project_step, name="web-order-project-step-import"),
+    path("order-projects/<uuid:pk>/quotation-conversion-preview/", order_api.quotation_conversion_preview, name="web-order-project-quotation-conversion-preview"),
+    path("order-projects/<uuid:pk>/quotation-convert/", order_api.convert_quotation_to_orders, name="web-order-project-quotation-convert"),
 
     path("rfqs/preview/", rfq_api.rfq_preview, name="web-rfq-preview"),
     path("rfqs/record/", rfq_api.record_rfq, name="web-rfq-record"),

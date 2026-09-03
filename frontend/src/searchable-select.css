@@ -1,0 +1,73 @@
+.searchable-select {
+  position: relative;
+  width: 100%;
+}
+
+.searchable-select > input {
+  width: 100%;
+  padding-right: 34px;
+}
+
+.searchable-clear {
+  position: absolute;
+  top: 50%;
+  right: 8px;
+  z-index: 3;
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: #64748b;
+  font-size: 18px;
+  line-height: 20px;
+  transform: translateY(-50%);
+  cursor: pointer;
+}
+
+.searchable-clear:hover {
+  background: #e2e8f0;
+  color: #0f172a;
+}
+
+.searchable-menu {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  right: 0;
+  z-index: 120;
+  max-height: 260px;
+  overflow-y: auto;
+  padding: 4px;
+  border: 1px solid #cbd5e1;
+  border-radius: 10px;
+  background: #fff;
+  box-shadow: 0 12px 30px rgb(15 23 42 / 18%);
+}
+
+.searchable-menu > button {
+  display: block;
+  width: 100%;
+  padding: 9px 10px;
+  border: 0;
+  border-radius: 7px;
+  background: transparent;
+  color: #0f172a;
+  text-align: left;
+  cursor: pointer;
+}
+
+.searchable-menu > button:hover,
+.searchable-menu > button.active,
+.searchable-menu > button[aria-selected="true"] {
+  background: #e8f0ff;
+  color: #1d4ed8;
+}
+
+.searchable-empty {
+  display: block;
+  padding: 10px;
+  color: #64748b;
+  text-align: center;
+}

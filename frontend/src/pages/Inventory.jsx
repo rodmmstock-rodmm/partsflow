@@ -70,7 +70,7 @@ export default function Inventory() {
             <table>
               <thead>
                 <tr>
-                  <th>Item ID</th>
+                  <th>Part ID</th>
                   <th>Part Name</th>
                   <th>Quantity</th>
                   <th>Unit</th>
@@ -142,3 +142,4 @@ export default function Inventory() {
     </>
   );
 }
+

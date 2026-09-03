@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { apiGet, apiPatch, apiPost, apiUpload } from "../api";
 import { useAuth } from "../auth";
-import { Alert, Modal, PageHeader, PartImage, fmt } from "../components/Common";
+import { Alert, Modal, PageHeader, PartImage, SearchableSelect, fmt } from "../components/Common";
 import BarcodeScannerModal from "../components/BarcodeScannerModal";
 import PartDetailModal from "../components/PartDetailModal";
 
@@ -134,7 +134,7 @@ function PartModal({ part, options, onClose, onSaved }) {
 
         <div className="form-grid three">
           <label className="field">
-            <span>Item ID *</span>
+            <span>Part ID *</span>
             <input value={form.sku} onChange={(e) => set("sku", e.target.value)} required />
           </label>
           <label className="field span2">
@@ -158,12 +158,14 @@ function PartModal({ part, options, onClose, onSaved }) {
           </label>
           <label className="field">
             <span>Vendor</span>
-            <select value={form.supplier_id || ""} onChange={(e) => set("supplier_id", e.target.value)}>
-              <option value="">-</option>
-              {(options.vendors || []).map((item) => (
-                <option key={item.id} value={item.id}>{item.code} · {item.name}</option>
-              ))}
-            </select>
+            <SearchableSelect
+              value={form.supplier_id || ""}
+              options={options.vendors || []}
+              onChange={(value) => set("supplier_id", value)}
+              getLabel={(item) => `${item.code} · ${item.name}`}
+              getSearchText={(item) => `${item.code || ""} ${item.name || ""} ${item.email || ""} ${item.contact_person || ""}`}
+              placeholder="พิมพ์ชื่อหรือรหัส Vendor"
+            />
           </label>
           <label className="field">
             <span>Location</span>
@@ -261,21 +263,12 @@ function PartModal({ part, options, onClose, onSaved }) {
 
 function StockModal({ mode, part, options, employee, onClose, onSaved }) {
   const [qty, setQty] = useState("");
-  const [requester, setRequester] = useState("");
-  const [machine, setMachine] = useState("");
+  const [requesterId, setRequesterId] = useState("");
+  const [machineId, setMachineId] = useState("");
   const [note, setNote] = useState("");
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
   const issue = mode === "issue";
-
-  function findByLabel(list, label, kind) {
-    const target = label.trim().toLowerCase();
-    return list.find((item) => {
-      const shown = kind === "employee" ? `${item.name}` : kind === "machine" ? `${item.code}` : `${item.code} · ${item.name}`;
-      const code = kind === "employee" ? item.employee_code : item.code;
-      return shown.toLowerCase() === target || String(code || "").toLowerCase() === target;
-    });
-  }
 
   async function save(event) {
     event.preventDefault();
@@ -284,12 +277,10 @@ function StockModal({ mode, part, options, employee, onClose, onSaved }) {
     try {
       const payload = { part_id: part.id, quantity: qty, note };
       if (issue) {
-        const selectedEmployee = findByLabel(options.employees || [], requester, "employee");
-        const selectedMachine = findByLabel(options.machines || [], machine, "machine");
-        if (!selectedEmployee) throw new Error("กรุณาเลือกผู้เบิกจากรายการ");
-        if (!selectedMachine) throw new Error("กรุณาเลือกเครื่องจักรจากรายการ");
-        payload.requester_id = selectedEmployee.id;
-        payload.machine_id = selectedMachine.id;
+        if (!requesterId) throw new Error("กรุณาเลือกผู้เบิกจากรายการ");
+        if (!machineId) throw new Error("กรุณาเลือกเครื่องจักรจากรายการ");
+        payload.requester_id = requesterId;
+        payload.machine_id = machineId;
       }
       await apiPost(issue ? "/stock/issue/" : "/stock/receive/", payload);
       onSaved();
@@ -323,17 +314,27 @@ function StockModal({ mode, part, options, employee, onClose, onSaved }) {
             <>
               <label className="field">
                 <span>ผู้เบิก *</span>
-                <input list="emp-stock" value={requester} onChange={(e) => setRequester(e.target.value)} placeholder="พิมพ์ค้นหา..." />
-                <datalist id="emp-stock">
-                  {(options.employees || []).map((item) => <option key={item.id} value={`${item.name}`} />)}
-                </datalist>
+                <SearchableSelect
+                  required
+                  value={requesterId}
+                  options={options.employees || []}
+                  onChange={setRequesterId}
+                  getLabel={(item) => `${item.employee_code ? `${item.employee_code} · ` : ""}${item.name}`}
+                  getSearchText={(item) => `${item.employee_code || ""} ${item.name || ""} ${item.department || ""}`}
+                  placeholder="พิมพ์ชื่อหรือรหัสพนักงาน"
+                />
               </label>
               <label className="field span2">
                 <span>เครื่องจักร *</span>
-                <input list="mc-stock" value={machine} onChange={(e) => setMachine(e.target.value)} placeholder="พิมพ์ค้นหา..." />
-                <datalist id="mc-stock">
-                  {(options.machines || []).map((item) => <option key={item.id} value={item.code} />)}
-                </datalist>
+                <SearchableSelect
+                  required
+                  value={machineId}
+                  options={options.machines || []}
+                  onChange={setMachineId}
+                  getLabel={(item) => `${item.code} · ${item.name}`}
+                  getSearchText={(item) => `${item.code || ""} ${item.name || ""} ${item.location || ""}`}
+                  placeholder="พิมพ์ชื่อหรือรหัส Machine"
+                />
               </label>
             </>
           )}
@@ -608,7 +609,7 @@ export default function Dashboard() {
             className="search-input"
             value={q}
             onChange={(e) => setQ(e.target.value)}
-            placeholder="ค้นหา Location / Item ID / Part Name / Detail / Maker..."
+            placeholder="ค้นหา Location / Part ID / Part Name / Detail / Maker..."
           />
           <button
             type="button"
@@ -654,7 +655,7 @@ export default function Dashboard() {
                     <th>รูป</th>
                     <th>Warehouse</th>
                     <th>Location</th>
-                    <th>Item ID</th>
+                    <th>Part ID</th>
                     <th>Part Name</th>
                     <th>Part Detail</th>
                     <th>Maker</th>

@@ -30,6 +30,7 @@ def dashboard(request):
     open_part_ids = set(
         OrderRecord.objects.filter(
             is_deleted=False,
+            procurement_phase=OrderRecord.PROCUREMENT_PURCHASE,
             lifecycle_status__in=[
                 OrderRecord.LIFECYCLE_ACTIVE,
                 OrderRecord.LIFECYCLE_WAIT_CONFIRM,

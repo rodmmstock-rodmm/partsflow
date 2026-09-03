@@ -449,6 +449,7 @@ class RoleAccess(UUIDMixin):
     can_delete_order = models.BooleanField(default=False)
     can_update_edit_data = models.BooleanField(default=False)
     can_manage_order_projects = models.BooleanField(default=False)
+    can_create_order_from_quotation = models.BooleanField(default=False)
 
     can_view_suppliers = models.BooleanField(default=False)
     can_manage_suppliers = models.BooleanField(default=False)
@@ -581,6 +582,13 @@ class OrderRecord(LegacyMixin):
     SOURCE_CHOICES = [("NORMAL", "Normal"), ("PROJECT", "Project")]
     USAGE_CHOICES = [("USED", "ใช้"), ("NOT_USED", "ไม่ได้ใช้")]
 
+    PROCUREMENT_PURCHASE = "PURCHASE"
+    PROCUREMENT_QUOTATION = "QUOTATION"
+    PROCUREMENT_CHOICES = [
+        (PROCUREMENT_PURCHASE, "Order จริง"),
+        (PROCUREMENT_QUOTATION, "ขอราคา"),
+    ]
+
     STATUS_NEW = "New Order"
     STATUS_QUOTE = "Wait Quotation"
     STATUS_ISSUE_PR = "Wait Issue P/R"
@@ -680,6 +688,41 @@ class OrderRecord(LegacyMixin):
     project = models.ForeignKey(OrderProject, null=True, blank=True, on_delete=models.CASCADE, related_name="orders")
     step = models.ForeignKey(OrderStep, null=True, blank=True, on_delete=models.CASCADE, related_name="orders")
     usage_status = models.CharField(max_length=20, choices=USAGE_CHOICES, default="USED")
+
+    # Project rows begin either as quotation-only items or real purchase
+    # Orders. Quotation rows are deliberately excluded from Stock, Safety
+    # Stock and Order KPI calculations until an authorized employee converts
+    # them into a linked PURCHASE row.
+    procurement_phase = models.CharField(
+        max_length=20,
+        choices=PROCUREMENT_CHOICES,
+        default=PROCUREMENT_PURCHASE,
+        db_index=True,
+    )
+    source_quotation_order = models.ForeignKey(
+        "self",
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="converted_orders",
+    )
+    source_rfq = models.ForeignKey(
+        "OrderRFQ",
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="converted_orders",
+    )
+    converted_quantity = models.PositiveIntegerField(default=0)
+    created_from_quotation_by_employee = models.ForeignKey(
+        Employee,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="orders_created_from_quotation",
+    )
+    created_from_quotation_at = models.DateTimeField(null=True, blank=True)
+    currency = models.CharField(max_length=10, default="THB")
 
     stock_received = models.BooleanField(default=False)
     stock_transaction = models.ForeignKey(

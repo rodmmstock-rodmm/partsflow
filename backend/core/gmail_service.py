@@ -280,7 +280,7 @@ def _html_body(body_text: str, items: list[dict]) -> str:
     table = (
         "<table style='border-collapse:collapse;width:100%;font-family:Arial,sans-serif'>"
         "<thead><tr>"
-        "<th style='border:1px solid #cbd5e1;padding:8px'>Item ID</th>"
+        "<th style='border:1px solid #cbd5e1;padding:8px'>Part ID</th>"
         "<th style='border:1px solid #cbd5e1;padding:8px'>Part Name</th>"
         "<th style='border:1px solid #cbd5e1;padding:8px'>Part Detail</th>"
         "<th style='border:1px solid #cbd5e1;padding:8px'>จำนวน</th>"
@@ -297,7 +297,7 @@ def _plain_body(body_text: str, items: list[dict]) -> str:
     if not items:
         return str(body_text or "")
     lines = [
-        "Item ID | Part Name | Part Detail | Amount | Unit",
+        "Part ID | Part Name | Part Detail | Amount | Unit",
         "-" * 72,
     ]
     for item in items:

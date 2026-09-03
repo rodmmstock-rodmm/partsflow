@@ -28,6 +28,7 @@ PERMISSION_FIELDS = [
     "can_delete_order",
     "can_update_edit_data",
     "can_manage_order_projects",
+    "can_create_order_from_quotation",
     "can_view_suppliers",
     "can_manage_suppliers",
     "can_view_machines",

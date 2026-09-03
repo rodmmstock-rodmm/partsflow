@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { apiDelete, apiDownload, apiGet, apiPatch, apiPost } from "../api";
 import { useAuth } from "../auth";
-import { Alert, Modal, PageHeader, fmt, money } from "../components/Common";
+import { Alert, Modal, PageHeader, SearchableSelect, fmt, money } from "../components/Common";
 
 const MESSAGE_LABELS = {
   RFQ_REQUEST: "ขอราคา",
@@ -208,26 +208,25 @@ function POBalanceDetail({ initial, options, auth, onClose, onChanged }) {
           <section className="po-section">
             <h3>บันทึกชื่อ Vendor หลังส่ง</h3>
             <div className="po-inline-form">
-              <select
+              <SearchableSelect
                 value={vendorId}
-                onChange={(event) => {
-                  const vendor = (options.vendors || []).find((item) => item.id === event.target.value);
-                  setVendorId(event.target.value);
+                options={options.vendors || []}
+                onChange={(value, vendor) => {
+                  setVendorId(value);
                   setVendorName(vendor?.name || "");
                 }}
-              >
-                <option value="">ระบุชื่อเอง</option>
-                {(options.vendors || []).map((vendor) => <option key={vendor.id} value={vendor.id}>{vendor.code} · {vendor.name}</option>)}
-              </select>
-              {!vendorId && <input value={vendorName} onChange={(event) => setVendorName(event.target.value)} placeholder="ชื่อ Vendor" />}
-              <button className="btn primary" type="button" onClick={saveVendor} disabled={busy === "vendor"}>บันทึก Vendor</button>
+                getLabel={(vendor) => `${vendor.code} · ${vendor.name}`}
+                getSearchText={(vendor) => `${vendor.code || ""} ${vendor.name || ""} ${vendor.email || ""} ${vendor.contact_person || ""}`}
+                placeholder="พิมพ์ชื่อหรือรหัส Vendor"
+              />
+              <button className="btn primary" type="button" onClick={saveVendor} disabled={busy === "vendor" || !vendorId}>บันทึก Vendor</button>
             </div>
           </section>
         )}
 
         <section className="po-section">
           <h3>รายการ Order · Group {rfq.group_order} · JOB {rfq.job}</h3>
-          <div className="table-wrap compact"><table><thead><tr><th>Order</th><th>Item ID</th><th>Part Name</th><th>Part Detail</th><th>จำนวน</th><th>Unit</th></tr></thead><tbody>{(rfq.items || []).map((item) => <tr key={item.id}><td>{item.order_number}</td><td><b>{item.item_id || "-"}</b></td><td>{item.part_name}</td><td>{item.part_detail || "-"}</td><td>{fmt(item.amount)}</td><td>{item.unit}</td></tr>)}</tbody></table></div>
+          <div className="table-wrap compact"><table><thead><tr><th>Order</th><th>Part ID</th><th>Part Name</th><th>Part Detail</th><th>จำนวน</th><th>Unit</th></tr></thead><tbody>{(rfq.items || []).map((item) => <tr key={item.id}><td>{item.order_number}</td><td><b>{item.item_id || "-"}</b></td><td>{item.part_name}</td><td>{item.part_detail || "-"}</td><td>{fmt(item.amount)}</td><td>{item.unit}</td></tr>)}</tbody></table></div>
         </section>
 
         <section className="po-section">

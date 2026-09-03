@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { apiPost } from "../api";
-import { Alert, Modal, fmt } from "./Common";
+import { Alert, Modal, SearchableSelect, fmt } from "./Common";
 
 function splitEmails(value) {
   return String(value || "")
@@ -73,8 +73,8 @@ export default function RFQComposeModal({ orders, options, onClose, onRecorded }
   async function record(event) {
     event.preventDefault();
     setError("");
-    if (!vendorId && !vendorName.trim()) {
-      setError("กรุณาเลือกหรือระบุชื่อ Vendor");
+    if (!vendorId) {
+      setError("กรุณาเลือก Vendor จาก Vendor Master");
       return;
     }
     if (!recipientEmail.trim()) {
@@ -141,7 +141,7 @@ export default function RFQComposeModal({ orders, options, onClose, onRecorded }
   }
 
   return (
-    <Modal title={`บันทึกคำขอราคา · ${orderIds.length} Order`} onClose={onClose} wide>
+    <Modal title={`บันทึกคำขอราคา · ${orderIds.length} รายการ`} onClose={onClose} wide>
       <form onSubmit={record}>
         <Alert>{error}</Alert>
         {busy && !preview ? (
@@ -160,21 +160,14 @@ export default function RFQComposeModal({ orders, options, onClose, onRecorded }
             <div className="form-grid">
               <label className="field">
                 <span>Vendor *</span>
-                <select value={vendorId} onChange={(event) => chooseVendor(event.target.value)}>
-                  <option value="">ระบุชื่อ Vendor เอง</option>
-                  {(options.vendors || []).map((vendor) => (
-                    <option key={vendor.id} value={vendor.id}>{vendorLabel(vendor)}</option>
-                  ))}
-                </select>
-              </label>
-              <label className="field">
-                <span>ชื่อ Vendor *</span>
-                <input
-                  value={vendorName}
-                  onChange={(event) => setVendorName(event.target.value)}
-                  readOnly={Boolean(vendorId)}
-                  placeholder="ชื่อ Vendor ที่ส่งอีเมลหา"
+                <SearchableSelect
                   required
+                  value={vendorId}
+                  options={options.vendors || []}
+                  onChange={chooseVendor}
+                  getLabel={vendorLabel}
+                  getSearchText={(vendor) => `${vendor.code || ""} ${vendor.name || ""} ${vendor.email || ""} ${vendor.contact_person || ""}`}
+                  placeholder="พิมพ์ชื่อหรือรหัส Vendor"
                 />
               </label>
               <label className="field">
@@ -235,7 +228,7 @@ export default function RFQComposeModal({ orders, options, onClose, onRecorded }
                     <table>
                       <thead>
                         <tr>
-                          <th>Item ID</th><th>Part Name</th><th>Part Detail</th><th>จำนวน</th><th>Unit</th>
+                          <th>Part ID</th><th>Part Name</th><th>Part Detail</th><th>จำนวน</th><th>Unit</th>
                         </tr>
                       </thead>
                       <tbody>
