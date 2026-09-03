@@ -681,9 +681,16 @@ def orders(request):
         ],
     )
     active_rows = list(active_qs)
+    active_only_rows = [
+        x for x in active_rows if x.lifecycle_status == OrderRecord.LIFECYCLE_ACTIVE
+    ]
+    wait_confirm_count = sum(
+        1 for x in active_rows if x.lifecycle_status == OrderRecord.LIFECYCLE_WAIT_CONFIRM
+    )
     job_core = {"REPAIR", "MODIFY", "AUTOMATION", "PM"}
     kpi = {
-        "total": len(active_rows),
+        "total": len(active_only_rows),
+        "wait_confirm": wait_confirm_count,
         "urgent": sum(1 for x in active_rows if urgency_class(x) == "urgent"),
         "urgent_pending": sum(1 for x in active_rows if urgency_class(x) == "urgent_pending"),
         "pending": sum(1 for x in active_rows if urgency_class(x) == "pending"),

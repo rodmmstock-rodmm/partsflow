@@ -319,9 +319,9 @@ function StockModal({ mode, part, options, employee, onClose, onSaved }) {
                   value={requesterId}
                   options={options.employees || []}
                   onChange={setRequesterId}
-                  getLabel={(item) => `${item.employee_code ? `${item.employee_code} · ` : ""}${item.name}`}
+                  getLabel={(item) => item.name}
                   getSearchText={(item) => `${item.employee_code || ""} ${item.name || ""} ${item.department || ""}`}
-                  placeholder="พิมพ์ชื่อหรือรหัสพนักงาน"
+                  placeholder="พิมพ์ชื่อพนักงาน"
                 />
               </label>
               <label className="field span2">
@@ -331,9 +331,9 @@ function StockModal({ mode, part, options, employee, onClose, onSaved }) {
                   value={machineId}
                   options={options.machines || []}
                   onChange={setMachineId}
-                  getLabel={(item) => `${item.code} · ${item.name}`}
+                  getLabel={(item) => item.code}
                   getSearchText={(item) => `${item.code || ""} ${item.name || ""} ${item.location || ""}`}
-                  placeholder="พิมพ์ชื่อหรือรหัส Machine"
+                  placeholder="พิมพ์รหัส Machine"
                 />
               </label>
             </>

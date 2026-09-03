@@ -128,9 +128,9 @@ export function FastOrderModal({ row, onClose, onSaved }) {
               value={form.machine_id}
               options={machines}
               onChange={(value) => set("machine_id", value)}
-              getLabel={(machine) => `${machine.code} · ${machine.name}`}
+              getLabel={(machine) => machine.code}
               getSearchText={(machine) => `${machine.code || ""} ${machine.name || ""} ${machine.location || ""}`}
-              placeholder="พิมพ์ชื่อหรือรหัส Machine"
+              placeholder="พิมพ์รหัส Machine"
             />
           </label>
 

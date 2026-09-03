@@ -270,9 +270,9 @@ export function OrderInfoModal({
               value={form.machine_id}
               options={options.machines || []}
               onChange={(value) => set("machine_id", value)}
-              getLabel={(x) => `${x.code ? `${x.code} · ` : ""}${x.name}`}
+              getLabel={(x) => x.code}
               getSearchText={(x) => `${x.code || ""} ${x.name || ""} ${x.location || ""}`}
-              placeholder="พิมพ์ชื่อหรือรหัส Machine"
+              placeholder="พิมพ์รหัส Machine"
             />
           </label>
 
@@ -419,9 +419,9 @@ export function OrderInfoModal({
               value={form.ordered_by_id}
               options={options.employees || []}
               onChange={(value) => set("ordered_by_id", value)}
-              getLabel={(x) => `${x.employee_code ? `${x.employee_code} · ` : ""}${x.name}`}
+              getLabel={(x) => x.name}
               getSearchText={(x) => `${x.employee_code || ""} ${x.name || ""} ${x.department || ""}`}
-              placeholder="พิมพ์ชื่อหรือรหัสพนักงาน"
+              placeholder="พิมพ์ชื่อพนักงาน"
             />
           </label>
 
@@ -727,9 +727,9 @@ export function PurchaseModal({
             value={local.person_in_charge_id || ""}
             options={options.employees || []}
             onChange={(value) => set("person_in_charge_id", value)}
-            getLabel={(x) => `${x.employee_code ? `${x.employee_code} · ` : ""}${x.name}`}
+            getLabel={(x) => x.name}
             getSearchText={(x) => `${x.employee_code || ""} ${x.name || ""} ${x.department || ""}`}
-            placeholder="พิมพ์ชื่อหรือรหัสพนักงาน"
+            placeholder="พิมพ์ชื่อพนักงาน"
           />
           <button
             className="mini"
@@ -1647,9 +1647,9 @@ export function ProjectModal({
             value={ownerId}
             options={options.employees || []}
             onChange={setOwnerId}
-            getLabel={(x) => `${x.employee_code ? `${x.employee_code} · ` : ""}${x.name}`}
+            getLabel={(x) => x.name}
             getSearchText={(x) => `${x.employee_code || ""} ${x.name || ""} ${x.department || ""}`}
-            placeholder="พิมพ์ชื่อหรือรหัสพนักงาน"
+            placeholder="พิมพ์ชื่อพนักงาน"
           />
         </label>
 
@@ -2330,7 +2330,7 @@ export default function Orders({ mode = "orders" }) {
 
   const kpiBlocks = tab !== "step" && (
     <>
-      <div className="kpi-grid four">
+      <div className="kpi-grid five">
         <div className="kpi-card">
           <span>จำนวนออเดอร์ทั้งหมด</span>
           <strong>{fmt(kpi.total)}</strong>
@@ -2346,6 +2346,10 @@ export default function Orders({ mode = "orders" }) {
         <div className="kpi-card info">
           <span>งานค้าง DATA</span>
           <strong>{fmt(kpi.pending)}</strong>
+        </div>
+        <div className="kpi-card">
+          <span>Wait Confirm Order</span>
+          <strong>{fmt(kpi.wait_confirm)}</strong>
         </div>
       </div>
       <div className="kpi-grid five compact">
