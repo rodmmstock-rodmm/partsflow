@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { apiGet, apiPost } from "../api";
-import { Alert, Modal, PartImage, SearchableSelect, fmt } from "../components/Common";
+import { Alert, Modal, PartImage, SearchableSelect, fmt, isNoCountSku, stockDisplay } from "../components/Common";
 
 export function MobilePage({ title, subtitle, actions, children }) {
   return <div className="m-page">
@@ -20,6 +20,7 @@ export function MobileLoading({ text="กำลังโหลด..." }) { retur
 export function MobileEmpty({ text="ไม่พบข้อมูล" }) { return <div className="m-empty">{text}</div>; }
 
 export function StockBadge({ row }) {
+  if (isNoCountSku(row.sku)) return <span className="m-stock-badge normal">เช็คหน้างาน</span>;
   const cls=row.stock_status||((Number(row.stock_qty||0)<=0)?"out":(Number(row.stock_qty||0)<Number(row.min_stock||0)?"low":"normal"));
   return <span className={`m-stock-badge ${cls}`}>{row.stock_status_label||cls}</span>;
 }

@@ -207,6 +207,14 @@ export function Empty({ text = "ไม่พบข้อมูล" }) {
 }
 
 export const fmt = (v) => Number(v || 0).toLocaleString("th-TH");
+
+// Items whose Part ID starts with "N" are bulk/uncountable stock (wire,
+// tape, tubing, etc. that gets cut to length) - showing a precise number
+// is misleading, so the stock quantity display is replaced with a prompt
+// to physically check on-site instead.
+export const isNoCountSku = (sku) => String(sku || "").trim().toUpperCase().startsWith("N");
+export const stockDisplay = (part) =>
+  isNoCountSku(part?.sku) ? "เช็คหน้างาน" : fmt(part?.stock_qty);
 export const money = (v) => Number(v || 0).toLocaleString("th-TH", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 export function resolveImageUrl(value) {
   const raw = String(value || "").trim();

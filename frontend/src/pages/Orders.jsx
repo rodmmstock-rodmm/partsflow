@@ -864,21 +864,46 @@ function DeletedOrderTable({ rows, onRestore, restoringId }) {
   );
 }
 
-function EditableCell({ value, canEdit, type = "text", onSave, align }) {
+function EditableCell({
+  value,
+  display,
+  canEdit,
+  type = "text",
+  options,
+  getLabel,
+  getSearchText,
+  placeholder,
+  onSave,
+}) {
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(value ?? "");
   const [saving, setSaving] = useState(false);
   const inputRef = useRef(null);
 
   useEffect(() => {
-    if (editing && inputRef.current) {
+    if (editing && type !== "searchable" && inputRef.current) {
       inputRef.current.focus();
-      inputRef.current.select();
+      inputRef.current.select?.();
     }
-  }, [editing]);
+  }, [editing, type]);
+
+  const shownText = display !== undefined ? display : value || "-";
 
   if (!canEdit) {
-    return <span>{value || (type === "number" ? 0 : "-")}</span>;
+    return <span>{shownText}</span>;
+  }
+
+  async function commit(nextValue) {
+    if (saving) return;
+    const finalValue = nextValue === undefined ? draft : nextValue;
+    if (String(finalValue ?? "") === String(value ?? "")) {
+      setEditing(false);
+      return;
+    }
+    setSaving(true);
+    const ok = await onSave(finalValue);
+    setSaving(false);
+    if (ok) setEditing(false);
   }
 
   if (!editing) {
@@ -886,11 +911,10 @@ function EditableCell({ value, canEdit, type = "text", onSave, align }) {
       <span
         className="editable-cell"
         style={{
-          cursor: "text",
+          cursor: "pointer",
           display: "inline-block",
           minWidth: 24,
           minHeight: 18,
-          borderBottom: "1px dashed transparent",
         }}
         onClick={() => {
           setDraft(value ?? "");
@@ -898,22 +922,55 @@ function EditableCell({ value, canEdit, type = "text", onSave, align }) {
         }}
         title="คลิกเพื่อแก้ไข"
       >
-        {value || (type === "number" ? 0 : "") || "-"}
+        {shownText}
       </span>
     );
   }
 
-  async function commit() {
-    if (saving) return;
-    const original = value ?? "";
-    if (String(draft) === String(original)) {
-      setEditing(false);
-      return;
-    }
-    setSaving(true);
-    const ok = await onSave(draft);
-    setSaving(false);
-    if (ok) setEditing(false);
+  if (type === "searchable") {
+    return (
+      <div style={{ minWidth: 150 }} onBlur={(e) => {
+        if (!e.currentTarget.contains(e.relatedTarget)) {
+          setEditing(false);
+        }
+      }}>
+        <SearchableSelect
+          value={draft}
+          options={options || []}
+          onChange={(val) => {
+            setDraft(val);
+            commit(val);
+          }}
+          getLabel={getLabel}
+          getSearchText={getSearchText}
+          placeholder={placeholder}
+        />
+      </div>
+    );
+  }
+
+  if (type === "select") {
+    return (
+      <select
+        ref={inputRef}
+        value={draft}
+        disabled={saving}
+        style={{ fontSize: 12, padding: "3px 4px", border: "1px solid #7c3aed", borderRadius: 4 }}
+        onChange={(e) => {
+          setDraft(e.target.value);
+          commit(e.target.value);
+        }}
+        onBlur={() => setEditing(false)}
+      >
+        {(options || []).map((opt) =>
+          typeof opt === "string" ? (
+            <option key={opt} value={opt}>{opt || "-"}</option>
+          ) : (
+            <option key={opt.value} value={opt.value}>{opt.label}</option>
+          )
+        )}
+      </select>
+    );
   }
 
   return (
@@ -922,15 +979,16 @@ function EditableCell({ value, canEdit, type = "text", onSave, align }) {
       type={type}
       value={draft}
       disabled={saving}
+      placeholder={placeholder}
       style={{
-        width: type === "number" ? 70 : 130,
+        width: type === "number" ? 70 : type === "date" ? 130 : 130,
         padding: "2px 4px",
         fontSize: 12,
         border: "1px solid #7c3aed",
         borderRadius: 4,
       }}
       onChange={(e) => setDraft(e.target.value)}
-      onBlur={commit}
+      onBlur={() => commit()}
       onKeyDown={(e) => {
         if (e.key === "Enter") {
           e.preventDefault();
@@ -955,6 +1013,8 @@ function OrderTable({
   onUpdate,
   onUsage,
   onInlineSave,
+  onInlinePurchaseSave,
+  options,
 }) {
   const allSelected =
     rows.length > 0 && rows.every((o) => selected.has(o.id));
@@ -1051,17 +1111,104 @@ function OrderTable({
                     )}
                   </div>
                 </td>
-                <td>{o.date}</td>
-                <td>{o.factory === "MM-11" ? "Phase11" : "Phase4"}</td>
+                <td>
+                  <EditableCell
+                    value={o.date}
+                    type="date"
+                    canEdit={auth.can("can_edit_order_date")}
+                    onSave={(val) => onInlineSave(o, "date", val)}
+                  />
+                </td>
+                <td>
+                  <EditableCell
+                    value={o.factory}
+                    display={o.factory === "MM-11" ? "Phase11" : "Phase4"}
+                    type="select"
+                    options={[
+                      { value: "MM-4", label: "Phase4" },
+                      { value: "MM-11", label: "Phase11" },
+                    ]}
+                    canEdit={auth.can("can_edit_order_info")}
+                    onSave={(val) => onInlineSave(o, "factory", val)}
+                  />
+                </td>
                 <td>{o.group_order || "-"}</td>
-                <td>{o.machine_name || o.machine_code || "-"}</td>
-                <td><b>{o.job}</b></td>
-                <td>{o.urgent_status || "-"}</td>
-                <td>{o.pending_data_date || "-"}</td>
-                <td><b>{o.item_id || "-"}</b></td>
-                <td>{o.part_name}</td>
-                <td className="detail-cell">{o.part_detail}</td>
-                <td>{o.maker}</td>
+                <td style={{ minWidth: 100 }}>
+                  <EditableCell
+                    value={o.machine_id}
+                    display={o.machine_name || o.machine_code || "-"}
+                    type="searchable"
+                    options={options.machines || []}
+                    getLabel={(x) => x.code}
+                    getSearchText={(x) => `${x.code || ""} ${x.name || ""}`}
+                    placeholder="พิมพ์รหัส Machine"
+                    canEdit={auth.can("can_edit_order_info")}
+                    onSave={(val) => onInlineSave(o, "machine_id", val)}
+                  />
+                </td>
+                <td>
+                  <EditableCell
+                    value={o.job}
+                    display={<b>{o.job || "-"}</b>}
+                    type="text"
+                    canEdit={auth.can("can_edit_order_info")}
+                    onSave={(val) => onInlineSave(o, "job", val)}
+                  />
+                </td>
+                <td>
+                  <EditableCell
+                    value={o.urgent_status}
+                    type="select"
+                    options={["", ...URGENT]}
+                    canEdit={auth.can("can_edit_order_info")}
+                    onSave={(val) => onInlineSave(o, "urgent_status", val)}
+                  />
+                </td>
+                <td>
+                  <EditableCell
+                    value={o.pending_data_date}
+                    type="date"
+                    canEdit={auth.can("can_edit_order_info")}
+                    onSave={(val) => onInlineSave(o, "pending_data_date", val)}
+                  />
+                </td>
+                <td style={{ minWidth: 110 }}>
+                  <EditableCell
+                    value={o.part_id}
+                    display={<b>{o.item_id || "-"}</b>}
+                    type="searchable"
+                    options={options.parts || []}
+                    getLabel={(x) => `${x.sku} · ${x.name}`}
+                    getSearchText={(x) => `${x.sku || ""} ${x.name || ""}`}
+                    placeholder="พิมพ์ Part ID / ชื่อ"
+                    canEdit={auth.can("can_edit_order_info")}
+                    onSave={(val) => onInlineSave(o, "part_id", val)}
+                  />
+                </td>
+                <td>
+                  <EditableCell
+                    value={o.part_name}
+                    type="text"
+                    canEdit={auth.can("can_edit_order_info") && !o.part_id}
+                    onSave={(val) => onInlineSave(o, "part_name", val)}
+                  />
+                </td>
+                <td className="detail-cell">
+                  <EditableCell
+                    value={o.part_detail}
+                    type="text"
+                    canEdit={auth.can("can_edit_order_info") && !o.part_id}
+                    onSave={(val) => onInlineSave(o, "part_detail", val)}
+                  />
+                </td>
+                <td>
+                  <EditableCell
+                    value={o.maker}
+                    type="text"
+                    canEdit={auth.can("can_edit_order_info") && !o.part_id}
+                    onSave={(val) => onInlineSave(o, "maker", val)}
+                  />
+                </td>
                 <td>
                   <EditableCell
                     value={o.amount}
@@ -1073,7 +1220,14 @@ function OrderTable({
                     onSave={(val) => onInlineSave(o, "amount", val)}
                   />
                 </td>
-                <td>{o.unit}</td>
+                <td>
+                  <EditableCell
+                    value={o.unit}
+                    type="text"
+                    canEdit={auth.can("can_edit_order_info") && !o.part_id}
+                    onSave={(val) => onInlineSave(o, "unit", val)}
+                  />
+                </td>
                 <td style={{ minWidth: 90 }}>
                   <EditableCell
                     value={o.remark}
@@ -1083,29 +1237,115 @@ function OrderTable({
                   />
                 </td>
                 <td>
-                  {o.rfq_count ? (
-                    <span className="status info">RFQ {fmt(o.rfq_count)}</span>
-                  ) : o.quotation ? (
-                    <span title="ข้อมูล Quotation เดิม">{o.quotation}</span>
-                  ) : "-"}
+                  <EditableCell
+                    value={o.quotation}
+                    display={
+                      o.rfq_count ? (
+                        <span className="status info">RFQ {fmt(o.rfq_count)}</span>
+                      ) : (
+                        o.quotation || "-"
+                      )
+                    }
+                    type="text"
+                    canEdit={auth.can("can_edit_purchase_info") && !o.rfq_count}
+                    onSave={(val) => onInlinePurchaseSave(o, "quotation", val)}
+                  />
                 </td>
-                <td>{o.po_number || "-"}</td>
-                <td>{o.currency || "THB"} {money(o.price_per_unit)}</td>
-                <td>{o.currency || "THB"} {money(o.price_total)}</td>
-                <td>{o.vendor_name || "-"}</td>
                 <td>
-                  {o.lead_time_days == null ? "-" : `${o.lead_time_days} DAY`}
+                  <EditableCell
+                    value={o.po_number}
+                    type="text"
+                    canEdit={auth.can("can_edit_purchase_info")}
+                    onSave={(val) => onInlinePurchaseSave(o, "po_number", val)}
+                  />
                 </td>
-                <td>{o.ordered_by || "-"}</td>
-                <td>{o.issue_pr_date || "-"}</td>
-                <td>{o.due_date || "-"}</td>
-                <td>{o.vendor_confirm_date || "-"}</td>
+                <td>
+                  <EditableCell
+                    value={o.price_per_unit}
+                    display={`${o.currency || "THB"} ${money(o.price_per_unit)}`}
+                    type="number"
+                    canEdit={auth.can("can_edit_purchase_info")}
+                    onSave={(val) => onInlinePurchaseSave(o, "price_per_unit", val)}
+                  />
+                </td>
+                <td>{o.currency || "THB"} {money(o.price_total)}</td>
+                <td style={{ minWidth: 100 }}>
+                  <EditableCell
+                    value={o.vendor_id}
+                    display={o.vendor_name || "-"}
+                    type="searchable"
+                    options={options.vendors || []}
+                    getLabel={(x) => x.name}
+                    getSearchText={(x) => `${x.code || ""} ${x.name || ""}`}
+                    placeholder="พิมพ์ชื่อ Vendor"
+                    canEdit={auth.can("can_edit_purchase_info")}
+                    onSave={(val) => onInlinePurchaseSave(o, "vendor_id", val)}
+                  />
+                </td>
+                <td>
+                  <EditableCell
+                    value={o.lead_time_days}
+                    display={o.lead_time_days == null ? "-" : `${o.lead_time_days} DAY`}
+                    type="number"
+                    canEdit={auth.can("can_edit_purchase_info")}
+                    onSave={(val) => onInlinePurchaseSave(o, "lead_time_days", val)}
+                  />
+                </td>
+                <td style={{ minWidth: 100 }}>
+                  <EditableCell
+                    value={o.ordered_by_id}
+                    display={o.ordered_by || "-"}
+                    type="searchable"
+                    options={options.employees || []}
+                    getLabel={(x) => x.name}
+                    getSearchText={(x) => `${x.employee_code || ""} ${x.name || ""}`}
+                    placeholder="พิมพ์ชื่อพนักงาน"
+                    canEdit={auth.can("can_edit_order_info")}
+                    onSave={(val) => onInlineSave(o, "ordered_by_id", val)}
+                  />
+                </td>
+                <td>
+                  <EditableCell
+                    value={o.issue_pr_date}
+                    type="date"
+                    canEdit={auth.can("can_edit_purchase_info")}
+                    onSave={(val) => onInlinePurchaseSave(o, "issue_pr_date", val)}
+                  />
+                </td>
+                <td>
+                  <EditableCell
+                    value={o.due_date}
+                    type="date"
+                    canEdit={auth.can("can_edit_purchase_info")}
+                    onSave={(val) => onInlinePurchaseSave(o, "due_date", val)}
+                  />
+                </td>
+                <td>
+                  <EditableCell
+                    value={o.vendor_confirm_date}
+                    type="date"
+                    canEdit={auth.can("can_edit_purchase_info")}
+                    onSave={(val) => onInlinePurchaseSave(o, "vendor_confirm_date", val)}
+                  />
+                </td>
                 <td>
                   {o.received_at
                     ? new Date(o.received_at).toLocaleString("th-TH")
                     : "-"}
                 </td>
-                <td>{o.person_in_charge || "-"}</td>
+                <td style={{ minWidth: 100 }}>
+                  <EditableCell
+                    value={o.person_in_charge_id}
+                    display={o.person_in_charge || "-"}
+                    type="searchable"
+                    options={options.employees || []}
+                    getLabel={(x) => x.name}
+                    getSearchText={(x) => `${x.employee_code || ""} ${x.name || ""}`}
+                    placeholder="พิมพ์ชื่อพนักงาน"
+                    canEdit={auth.can("can_edit_purchase_info")}
+                    onSave={(val) => onInlinePurchaseSave(o, "person_in_charge_id", val)}
+                  />
+                </td>
                 <td>
                   <span className={`status ${statusClass(shownStatus)}`}>
                     {shownStatus}
@@ -1441,7 +1681,7 @@ export function QuotationConversionModal({ project, rows, onClose, onSaved }) {
 }
 
 
-function MonthlyOrderTables({ rows, auth, selected, onToggle, onToggleAll, onEdit, onPurchase, onInlineSave, dateBasis = "lifecycle" }) {
+function MonthlyOrderTables({ rows, auth, selected, onToggle, onToggleAll, onEdit, onPurchase, onInlineSave, onInlinePurchaseSave, options, dateBasis = "lifecycle" }) {
   const [openYears, setOpenYears] = useState({});
   const [openMonths, setOpenMonths] = useState({});
   const groups = useMemo(() => {
@@ -1478,7 +1718,7 @@ function MonthlyOrderTables({ rows, auth, selected, onToggle, onToggleAll, onEdi
     <button className="history-collapse year" onClick={() => setOpenYears((x) => ({ ...x, [y.year]: !x[y.year] }))}><span>{openYears[y.year] ? "▾" : "▸"} ปี {y.year}</span><b>{y.months.reduce((n, m) => n + m.rows.length, 0)} รายการ</b></button>
     {openYears[y.year] && <div className="history-months">{y.months.map((m) => <section className="history-month" key={m.key}>
       <button className="history-collapse month" onClick={() => setOpenMonths((x) => ({ ...x, [m.key]: !x[m.key] }))}><span>{openMonths[m.key] ? "▾" : "▸"} {m.label}</span><b>{m.rows.length} รายการ</b></button>
-      {openMonths[m.key] && <OrderTable rows={m.rows} auth={auth} selected={selected} onToggle={onToggle} onToggleAll={onToggleAll} onEdit={onEdit} onPurchase={onPurchase} onInlineSave={onInlineSave} />}
+      {openMonths[m.key] && <OrderTable rows={m.rows} auth={auth} selected={selected} onToggle={onToggle} onToggleAll={onToggleAll} onEdit={onEdit} onPurchase={onPurchase} onInlineSave={onInlineSave} onInlinePurchaseSave={onInlinePurchaseSave} options={options} />}
     </section>)}</div>}
   </section>)}</div>;
 }
@@ -2236,6 +2476,32 @@ export default function Orders({ mode = "orders" }) {
     }
   }
 
+  async function inlinePurchaseSave(order, field, value) {
+    setError("");
+    try {
+      const updated = await apiPatch(`/orders/${order.id}/purchase/`, {
+        [field]: value,
+      });
+      setRows((current) =>
+        current.map((r) => (r.id === order.id ? updated : r))
+      );
+      return true;
+    } catch (err) {
+      setError(err.message);
+      return false;
+    }
+  }
+
+  async function quickAddOrder() {
+    setError("");
+    try {
+      const created = await apiPost("/orders/quick-add/", {});
+      setRows((current) => [created, ...current]);
+    } catch (err) {
+      setError(err.message);
+    }
+  }
+
   async function restoreOrder(order) {
     if (
       !window.confirm(
@@ -2772,12 +3038,17 @@ export default function Orders({ mode = "orders" }) {
         }
         actions={
           !stepPage && tab === "normal" && auth.can("can_add_order") ? (
-            <button
-              className="btn primary"
-              onClick={() => setEditor({ order: null, project: null })}
-            >
-              + เพิ่ม Order ปกติ
-            </button>
+            <>
+              <button className="btn ghost" onClick={quickAddOrder}>
+                + เพิ่มแถวว่าง
+              </button>
+              <button
+                className="btn primary"
+                onClick={() => setEditor({ order: null, project: null })}
+              >
+                + เพิ่ม Order ปกติ
+              </button>
+            </>
           ) : null
         }
       />
@@ -2966,6 +3237,8 @@ export default function Orders({ mode = "orders" }) {
                 onEdit={(order) => setEditor({ order, project: null })}
                 onPurchase={setPurchase}
                 onInlineSave={inlineSave}
+                onInlinePurchaseSave={inlinePurchaseSave}
+                options={options}
                 dateBasis={tab === "normal" ? "order" : "lifecycle"}
               />
             ) : (
@@ -2979,6 +3252,8 @@ export default function Orders({ mode = "orders" }) {
                 onPurchase={setPurchase}
                 onUpdate={tab === "updates" ? updateData : null}
                 onInlineSave={inlineSave}
+                onInlinePurchaseSave={inlinePurchaseSave}
+                options={options}
               />
             )
           )}

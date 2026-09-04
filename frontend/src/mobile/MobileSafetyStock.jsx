@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { apiGet } from "../api";
 import { useAuth } from "../auth";
-import { Alert, fmt } from "../components/Common";
+import { Alert, fmt, stockDisplay } from "../components/Common";
 import SafetyOrderModal from "../components/SafetyOrderModal";
 import { MobileEmpty, MobileLoading, MobilePage, MobileSearch } from "./MobileCommon";
 
@@ -41,7 +41,7 @@ export default function MobileSafetyStock(){
       <label className="m-safety-select"><input type="checkbox" checked={selected.has(x.id)} onChange={()=>toggle(x.id)}/><span>เลือกเพื่อสร้าง Order</span></label>
       <div className="m-row-between"><div><b>{x.sku}</b><h3>{x.name}</h3></div><span className="m-danger-pill">ต่ำกว่า Min</span></div>
       <p>{x.description||"-"}</p>
-      <div className="m-stock-triplet"><div><span>คงเหลือ</span><b className="text-danger">{fmt(x.stock_qty)}</b></div><div><span>Min</span><b>{fmt(x.min_stock)}</b></div><div><span>ควร Order</span><b>{fmt(x.order_qty)}</b></div></div>
+      <div className="m-stock-triplet"><div><span>คงเหลือ</span><b className="text-danger">{stockDisplay(x)}</b></div><div><span>Min</span><b>{fmt(x.min_stock)}</b></div><div><span>ควร Order</span><b>{fmt(x.order_qty)}</b></div></div>
       <div className="m-part-meta"><span>{x.maker_name||"-"}</span><span>ล่าสุด: {x.last_machine||"-"}</span><span>{x.unit_code}</span></div>
     </article>)}</div>}
 

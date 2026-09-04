@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import * as XLSX from "xlsx";
 import { apiGet } from "../api";
 import { useAuth } from "../auth";
-import { Alert, PageHeader, fmt } from "../components/Common";
+import { Alert, PageHeader, fmt, stockDisplay } from "../components/Common";
 import SafetyOrderModal from "../components/SafetyOrderModal";
 
 export default function SafetyStock(){
@@ -20,7 +20,7 @@ export default function SafetyStock(){
     <PageHeader title="Safety Stock" subtitle="รายการต่ำกว่า Min ที่ยังไม่มี Active Order" actions={<>{auth.can("can_add_order")&&<button className="btn primary" onClick={openOrderReview} disabled={!selected.size}>🛒 สร้าง Order ({selected.size})</button>}<button className="btn ghost" onClick={exportExcel}>Export Excel ({selected.size})</button></>}/>
     <Alert>{error}</Alert><Alert type="success">{success}</Alert>
     <div className="kpi-grid one"><div className="kpi-card danger"><span>รายการที่ต้องสั่ง</span><strong>{fmt(rows.length)}</strong></div></div>
-    <section className="panel"><div className="toolbar"><input className="search-input" value={q} onChange={e=>setQ(e.target.value)} placeholder="ค้นหา Part ID / Part / Maker / Machine..."/><button className="btn ghost" onClick={()=>load(true)}>รีเฟรช</button></div>{loading?<div className="empty">กำลังโหลด...</div>:<div className="table-wrap"><table><thead><tr><th><input type="checkbox" checked={shown.length>0&&shown.every(x=>selected.has(x.id))} onChange={toggleAll}/></th><th>Part ID</th><th>Part Name</th><th>Part Detail</th><th>Maker</th><th>เครื่องจักรล่าสุดที่เบิก</th><th>จำนวนคงเหลือ</th><th>จำนวน Min</th><th>จำนวนที่ Order</th><th>Unit</th></tr></thead><tbody>{shown.map(x=><tr key={x.id}><td><input type="checkbox" checked={selected.has(x.id)} onChange={()=>toggle(x.id)}/></td><td><b>{x.sku}</b></td><td>{x.name}</td><td className="detail-cell">{x.description||"-"}</td><td>{x.maker_name||"-"}</td><td>{x.last_machine||"-"}</td><td className="text-danger"><b>{fmt(x.stock_qty)}</b></td><td>{fmt(x.min_stock)}</td><td><b>{fmt(x.order_qty)}</b></td><td>{x.unit_code}</td></tr>)}</tbody></table></div>}</section>
+    <section className="panel"><div className="toolbar"><input className="search-input" value={q} onChange={e=>setQ(e.target.value)} placeholder="ค้นหา Part ID / Part / Maker / Machine..."/><button className="btn ghost" onClick={()=>load(true)}>รีเฟรช</button></div>{loading?<div className="empty">กำลังโหลด...</div>:<div className="table-wrap"><table><thead><tr><th><input type="checkbox" checked={shown.length>0&&shown.every(x=>selected.has(x.id))} onChange={toggleAll}/></th><th>Part ID</th><th>Part Name</th><th>Part Detail</th><th>Maker</th><th>เครื่องจักรล่าสุดที่เบิก</th><th>จำนวนคงเหลือ</th><th>จำนวน Min</th><th>จำนวนที่ Order</th><th>Unit</th></tr></thead><tbody>{shown.map(x=><tr key={x.id}><td><input type="checkbox" checked={selected.has(x.id)} onChange={()=>toggle(x.id)}/></td><td><b>{x.sku}</b></td><td>{x.name}</td><td className="detail-cell">{x.description||"-"}</td><td>{x.maker_name||"-"}</td><td>{x.last_machine||"-"}</td><td className="text-danger"><b>{stockDisplay(x)}</b></td><td>{fmt(x.min_stock)}</td><td><b>{fmt(x.order_qty)}</b></td><td>{x.unit_code}</td></tr>)}</tbody></table></div>}</section>
     {orderReview&&<SafetyOrderModal rows={selectedRows} employee={auth.employee} onClose={()=>setOrderReview(false)} onSaved={async result=>{setOrderReview(false);setSuccess(`สร้าง Order สำเร็จ ${result.created_count||selectedRows.length} รายการ`);await load(true)}}/>}
   </>
 }

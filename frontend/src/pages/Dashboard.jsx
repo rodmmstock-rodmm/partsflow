@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { apiGet, apiPatch, apiPost, apiUpload } from "../api";
 import { useAuth } from "../auth";
-import { Alert, Modal, PageHeader, PartImage, SearchableSelect, fmt } from "../components/Common";
+import { Alert, Modal, PageHeader, PartImage, SearchableSelect, fmt, stockDisplay, isNoCountSku } from "../components/Common";
 import BarcodeScannerModal from "../components/BarcodeScannerModal";
 import PartDetailModal from "../components/PartDetailModal";
 
@@ -302,7 +302,7 @@ function StockModal({ mode, part, options, employee, onClose, onSaved }) {
             <strong>{part.sku}</strong>
             <h3>{part.name}</h3>
             <p>{part.description || "-"}</p>
-            <small>Stock {fmt(part.stock_qty)} {part.unit_code}</small>
+            <small>Stock {stockDisplay(part)} {part.unit_code}</small>
           </div>
         </div>
         <div className="form-grid">
@@ -384,7 +384,7 @@ function AdjustModal({ part, onClose, onSaved }) {
     <Modal title="ปรับยอด Stock" onClose={onClose}>
       <form onSubmit={save}>
         <div className="metric-inline">
-          <div><span>ยอดในระบบ</span><strong>{fmt(part.stock_qty)}</strong></div>
+          <div><span>ยอดในระบบ</span><strong>{stockDisplay(part)}</strong></div>
           <div><span>ยอดตรวจนับจริง</span><strong>{fmt(actual)}</strong></div>
           <div><span>ผลต่าง</span><strong>{diff > 0 ? "+" : ""}{fmt(diff)}</strong></div>
         </div>
@@ -695,8 +695,8 @@ export default function Dashboard() {
                         <td className="part-name-cell">{part.name}</td>
                         <td className="detail-cell">{part.description || "-"}</td>
                         <td>{part.maker_name || "-"}</td>
-                        <td className={!inactive && Number(part.stock_qty) < Number(part.min_stock) ? "text-danger" : ""}>
-                          <b>{fmt(part.stock_qty)}</b>
+                        <td className={!inactive && !isNoCountSku(part.sku) && Number(part.stock_qty) < Number(part.min_stock) ? "text-danger" : ""}>
+                          <b>{stockDisplay(part)}</b>
                         </td>
                         <td>{part.unit_code}</td>
                         <td>
