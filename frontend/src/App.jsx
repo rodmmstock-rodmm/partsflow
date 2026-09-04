@@ -38,7 +38,7 @@ function DesktopShell() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   async function logout() { await auth.logout(); navigate("/login", { replace: true }); }
   return <div className="app-shell">
-    <button className="hamburger-btn" onClick={() => setSidebarOpen(true)} aria-label="เปิดเมนู">☰</button>
+    {!sidebarOpen && <button className="hamburger-btn" onClick={() => setSidebarOpen(true)} aria-label="เปิดเมนู">☰</button>}
     {sidebarOpen && <div className="sidebar-backdrop" onClick={() => setSidebarOpen(false)} />}
     <aside className={sidebarOpen ? "sidebar open" : "sidebar"}>
       <div className="brand">
