@@ -30,7 +30,6 @@ from .supabase_storage import (
     upload_object,
 )
 from .models import (
-    Category,
     Employee,
     Inventory,
     JobType,
@@ -42,7 +41,6 @@ from .models import (
     Part,
     PartMachine,
     PartSupplier,
-    PurchasePriceHistory,
     Supplier,
     Unit,
 )
@@ -129,8 +127,6 @@ def part_json(part):
         "description": part.description or "",
         "maker_id": str(part.maker_id) if part.maker_id else "",
         "maker_name": part.maker.name if part.maker else "",
-        "category_id": str(part.category_id) if part.category_id else "",
-        "category_name": part.category.name if part.category else "",
         "unit_id": str(part.unit_id) if part.unit_id else "",
         "unit_code": part.unit.code if part.unit else "",
         "supplier_id": str(part.default_supplier_id) if part.default_supplier_id else "",
@@ -286,21 +282,6 @@ def part_detail_json(part):
         for order in orders
     ]
 
-    prices = PurchasePriceHistory.objects.select_related("supplier").filter(
-        part=part
-    ).order_by("-purchase_date", "-created_at")[:30]
-    data["price_history"] = [
-        {
-            "id": str(row.id),
-            "purchase_date": row.purchase_date.isoformat() if row.purchase_date else "",
-            "supplier_name": row.supplier.name if row.supplier else "",
-            "unit_price": float(row.unit_price or 0),
-            "currency": row.currency or "THB",
-            "source_type": row.source_type or "",
-            "source_id": row.source_id or "",
-        }
-        for row in prices
-    ]
     return data
 
 
@@ -315,7 +296,7 @@ def base_parts():
         ],
     )
     return (
-        Part.objects.select_related("maker", "category", "unit", "default_supplier", "location")
+        Part.objects.select_related("maker", "unit", "default_supplier", "location")
         .annotate(
             stock_qty=Coalesce(
                 Sum("inventory__quantity"), Value(Decimal("0")), output_field=QTY_FIELD
@@ -409,7 +390,6 @@ def normalize_warehouse(value):
 
 
 def resolve_part_relations(data, part=None):
-    category_id = str(data.get("category_id", "")).strip()
     maker_name = str(data.get("maker_name", "")).strip()
     unit_code = str(data.get("unit_code", "")).strip()
     location_code = str(data.get("location_code", "")).strip()
@@ -427,7 +407,6 @@ def resolve_part_relations(data, part=None):
             defaults={"name": unit_code, "legacy_source": "WEB", "legacy_id": unit_code},
         )
 
-    category = Category.objects.filter(pk=category_id).first() if category_id else None
     supplier = Supplier.objects.filter(pk=data.get("supplier_id")).first() if data.get("supplier_id") else None
 
     location = None
@@ -447,18 +426,16 @@ def resolve_part_relations(data, part=None):
     elif data.get("location_id"):
         location = Location.objects.filter(pk=data.get("location_id")).first()
 
-    return maker, category, unit, supplier, location
+    return maker, unit, supplier, location
 
 
 def apply_part_fields(part, data):
-    maker, category, unit, supplier, location = resolve_part_relations(data, part)
+    maker, unit, supplier, location = resolve_part_relations(data, part)
     part.sku = str(data.get("sku", part.sku if part.pk else "")).strip()
     part.name = str(data.get("name", part.name if part.pk else "")).strip()
     part.description = str(data.get("description", part.description if part.pk else "")).strip()
     if "maker_name" in data:
         part.maker = maker
-    if "category_id" in data:
-        part.category = category
     if "unit_code" in data:
         part.unit = unit
     if "supplier_id" in data:
@@ -919,10 +896,6 @@ def options(request):
                 }
                 for x in Location.objects.filter(active=True).order_by("code")
             ],
-            "categories": [
-                {"id": str(x.id), "name": x.name}
-                for x in Category.objects.filter(active=True).order_by("name")
-            ],
             "units": [
                 {"id": str(x.id), "code": x.code, "name": x.name}
                 for x in Unit.objects.filter(active=True).order_by("code")
@@ -955,7 +928,12 @@ def safety_stock(request):
         .values_list("part_id", flat=True)
     )
     rows = []
-    for part in base_parts().filter(active=True, min_stock__gt=0).order_by("sku"):
+    for part in (
+        base_parts()
+        .filter(active=True, min_stock__gt=0)
+        .exclude(sku__istartswith="N")
+        .order_by("sku")
+    ):
         stock = Decimal(str(getattr(part, "stock_qty", 0) or 0))
         if stock >= Decimal(str(part.min_stock or 0)):
             continue

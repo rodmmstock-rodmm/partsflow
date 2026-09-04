@@ -762,6 +762,44 @@ def order_detail(request, pk):
 
 
 @csrf_exempt
+@api_view(["POST"])
+@permission_classes([AllowAny])
+def quick_add_order(request):
+    """Create a blank draft Order row for inline (spreadsheet-style) editing.
+
+    Only ORDER NUMBER, DATE and a created timestamp are set. Every other
+    field is left blank so the person can fill it in cell-by-cell in the
+    table. Application-level "required field" checks are intentionally
+    skipped here (the database columns themselves allow blank/null) -
+    those checks still apply normally the moment someone edits a field
+    via update_order_info, so a half-filled draft can't silently pass
+    validation once it's actually a real field being saved.
+    """
+    actor, err = require_permission(request, "can_add_order")
+    if err:
+        return err
+    order = OrderRecord(
+        order_number=generate_order_number(),
+        order_date=timezone.localdate(),
+        recorded_by=actor,
+        source_type="NORMAL",
+        edit_workflow_enabled=True,
+        factory="MM-4",
+        ordered_by=actor,
+    )
+    sync_system_fields(order, validate=False)
+    order.save()
+    audit(
+        actor,
+        "QUICK_ADD_ORDER",
+        "OrderRecord",
+        order.id,
+        {"order_number": order.order_number},
+    )
+    return Response(order_json(order_queryset().get(pk=order.pk)))
+
+
+@csrf_exempt
 @api_view(["PATCH"])
 @permission_classes([AllowAny])
 def update_order_info(request, pk):

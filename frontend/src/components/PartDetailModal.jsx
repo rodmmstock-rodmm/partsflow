@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { apiGet } from "../api";
-import { Alert, Modal, PartImage, fmt, money } from "./Common";
+import { Alert, Modal, PartImage, fmt, money, stockDisplay } from "./Common";
 
 function dateText(value, withTime = false) {
   if (!value) return "-";
@@ -56,7 +56,7 @@ export default function PartDetailModal({ part, onClose }) {
         </div>
         <div className="part-detail-stock">
           <span>Stock คงเหลือ</span>
-          <strong>{fmt(p.stock_qty)}</strong>
+          <strong>{stockDisplay(p)}</strong>
           <small>{p.unit_code || ""} · Min {fmt(p.min_stock)}</small>
         </div>
       </div>
@@ -66,7 +66,6 @@ export default function PartDetailModal({ part, onClose }) {
           <Info label="Warehouse">{p.warehouse_label || p.warehouse || "-"}</Info>
           <Info label="Location">{p.location_code || "-"}</Info>
           <Info label="Maker">{p.maker_name || "-"}</Info>
-          <Info label="Category">{p.category_name || "-"}</Info>
           <Info label="Unit">{p.unit_code || "-"}</Info>
           <Info label="Vendor หลัก">{p.supplier_name || "-"}</Info>
           <Info label="Min Stock">{fmt(p.min_stock)}</Info>
@@ -115,13 +114,6 @@ export default function PartDetailModal({ part, onClose }) {
         {(p.recent_transactions || []).length === 0 ? <div className="empty compact">ยังไม่มี Transaction</div> :
           <div className="detail-table-wrap"><table><thead><tr><th>Date</th><th>Type</th><th>Qty</th><th>Machine</th><th>ผู้เบิก</th><th>ผู้บันทึก</th><th>Remark</th></tr></thead><tbody>
             {p.recent_transactions.map(x => <tr key={x.id}><td>{dateText(x.transaction_date, true)}</td><td>{x.transaction_type}</td><td><b>{fmt(x.quantity)}</b></td><td>{x.machine_code || "-"}</td><td>{x.employee || "-"}</td><td>{x.recorded_by || "-"}</td><td>{x.remark || "-"}</td></tr>)}
-          </tbody></table></div>}
-      </Section>
-
-      <Section title="ประวัติราคา" count={(p.price_history || []).length}>
-        {(p.price_history || []).length === 0 ? <div className="empty compact">ยังไม่มี Price History</div> :
-          <div className="detail-table-wrap"><table><thead><tr><th>Date</th><th>Vendor</th><th>ราคา/หน่วย</th><th>Source</th></tr></thead><tbody>
-            {p.price_history.map(x => <tr key={x.id}><td>{x.purchase_date || "-"}</td><td>{x.supplier_name || "-"}</td><td>{x.currency} {money(x.unit_price)}</td><td>{x.source_type || "-"} {x.source_id || ""}</td></tr>)}
           </tbody></table></div>}
       </Section>
     </div>}
