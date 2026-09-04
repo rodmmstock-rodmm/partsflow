@@ -42,6 +42,7 @@ from .models import (
     PartMachine,
     PartSupplier,
     Supplier,
+    SupplierContact,
     Unit,
 )
 
@@ -713,6 +714,17 @@ def supplier_json(item):
         "lead_time_days": item.lead_time_days or 0,
         "active": item.active,
         "remark": item.remark or "",
+        "contacts": [
+            {
+                "id": str(c.id),
+                "name": c.name,
+                "role": c.role,
+                "phone": c.phone,
+                "email": c.email,
+                "remark": c.remark,
+            }
+            for c in item.contacts.all()
+        ],
     }
 
 
@@ -726,7 +738,7 @@ def suppliers_list(request):
         return err
     if request.method == "GET":
         q = str(request.GET.get("q", "")).strip()
-        qs = Supplier.objects.all().order_by("code")
+        qs = Supplier.objects.all().prefetch_related("contacts").order_by("code")
         if q:
             qs = qs.filter(Q(code__icontains=q) | Q(name__icontains=q))
         return Response({"results": [supplier_json(x) for x in qs[:2000]]})
@@ -782,6 +794,51 @@ def supplier_detail(request, pk):
         return Response({"detail": "Vendor Code นี้มีอยู่แล้ว"}, status=400)
     audit(actor, "UPDATE", "Supplier", item.id, {"before": before, "after": supplier_json(item)})
     return Response(supplier_json(item))
+
+
+@csrf_exempt
+@api_view(["POST"])
+@permission_classes([AllowAny])
+def supplier_contacts_list(request, pk):
+    actor, err = require_permission(request, "can_manage_suppliers")
+    if err:
+        return err
+    supplier = Supplier.objects.filter(pk=pk).first()
+    if not supplier:
+        return Response({"detail": "ไม่พบ Vendor"}, status=404)
+    contact = SupplierContact.objects.create(
+        supplier=supplier,
+        name=str(request.data.get("name", "")).strip(),
+        role=str(request.data.get("role", "")).strip(),
+        phone=str(request.data.get("phone", "")).strip(),
+        email=str(request.data.get("email", "")).strip(),
+        remark=str(request.data.get("remark", "")).strip(),
+    )
+    audit(actor, "CREATE", "SupplierContact", contact.id, {"supplier_id": str(supplier.id)})
+    return Response(supplier_json(supplier), status=201)
+
+
+@csrf_exempt
+@api_view(["PATCH", "DELETE"])
+@permission_classes([AllowAny])
+def supplier_contact_detail(request, pk, contact_pk):
+    actor, err = require_permission(request, "can_manage_suppliers")
+    if err:
+        return err
+    contact = SupplierContact.objects.filter(pk=contact_pk, supplier_id=pk).select_related("supplier").first()
+    if not contact:
+        return Response({"detail": "ไม่พบ Contact"}, status=404)
+    supplier = contact.supplier
+    if request.method == "DELETE":
+        contact.delete()
+        audit(actor, "DELETE", "SupplierContact", contact_pk, {"supplier_id": str(supplier.id)})
+        return Response(supplier_json(supplier))
+    for field in ["name", "role", "phone", "email", "remark"]:
+        if field in request.data:
+            setattr(contact, field, str(request.data.get(field) or "").strip())
+    contact.save()
+    audit(actor, "UPDATE", "SupplierContact", contact.id, {"supplier_id": str(supplier.id)})
+    return Response(supplier_json(supplier))
 
 
 def machine_json(item):

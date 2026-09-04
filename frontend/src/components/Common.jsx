@@ -208,6 +208,22 @@ export function Empty({ text = "ไม่พบข้อมูล" }) {
 
 export const fmt = (v) => Number(v || 0).toLocaleString("th-TH");
 
+// วัน/เดือน/ปี (ค.ศ.) - used everywhere instead of toLocaleDateString("th-TH"),
+// which silently renders the Buddhist Era year (e.g. 2569) instead of AD.
+export function formatDMY(value, withTime = false) {
+  if (!value) return "-";
+  const d = value instanceof Date ? value : new Date(value);
+  if (Number.isNaN(d.getTime())) return String(value);
+  const dd = String(d.getDate()).padStart(2, "0");
+  const mm = String(d.getMonth() + 1).padStart(2, "0");
+  const yyyy = d.getFullYear();
+  const datePart = `${dd}/${mm}/${yyyy}`;
+  if (!withTime) return datePart;
+  const hh = String(d.getHours()).padStart(2, "0");
+  const min = String(d.getMinutes()).padStart(2, "0");
+  return `${datePart} ${hh}:${min}`;
+}
+
 // Items whose Part ID starts with "N" are bulk/uncountable stock (wire,
 // tape, tubing, etc. that gets cut to length) - showing a precise number
 // is misleading, so the stock quantity display is replaced with a prompt

@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import * as XLSX from "xlsx";
 import { apiDelete, apiGet, apiPatch, apiPost } from "../api";
 import { useAuth } from "../auth";
-import { Alert, Modal, PageHeader, SearchableSelect, fmt, money } from "../components/Common";
+import { Alert, Modal, PageHeader, SearchableSelect, fmt, formatDMY, money } from "../components/Common";
 import RFQComposeModal from "../components/RFQComposeModal";
 
 const ORDER_TABS = [
@@ -12,6 +12,13 @@ const ORDER_TABS = [
   ["completed", "Completed Order"],
   ["cancelled", "Cancelled Order"],
   ["deleted", "Deleted Order"],
+];
+
+const STEP_STATUS_OPTIONS = [
+  { value: "WAIT_QUOTATION", label: "รอขอราคา" },
+  { value: "WAIT_CONFIRM", label: "รอ Confirm" },
+  { value: "ORDERING", label: "กำลังสั่งของ" },
+  { value: "COMPLETED", label: "ของมาครบแล้ว" },
 ];
 
 const STATUS = [
@@ -159,6 +166,7 @@ export function OrderInfoModal({
     amount: order?.amount || 1,
     unit: order?.unit || "",
     remark: order?.remark || "",
+    drawing_path: order?.drawing_path || "",
     ordered_by_id: order?.ordered_by_id || employee?.id || "",
   };
 
@@ -214,6 +222,7 @@ export function OrderInfoModal({
         amount: form.amount,
         unit: form.unit,
         remark: form.remark,
+        drawing_path: form.drawing_path,
         ordered_by_id: ordered.id,
         procurement_phase: isQuotationOrder ? "QUOTATION" : "PURCHASE",
       };
@@ -467,6 +476,18 @@ export function OrderInfoModal({
               onChange={(e) => set("remark", e.target.value)}
             />
           </label>
+
+          <label className="field span3">
+            <span>Drawing Path (ที่เก็บไฟล์ในเครื่อง/เซิร์ฟเวอร์)</span>
+            <input
+              value={form.drawing_path}
+              onChange={(e) => set("drawing_path", e.target.value)}
+              placeholder="เช่น \\\\server\\drawings\\project01\\part-A.pdf"
+            />
+            <span className="field-help">
+              ใส่ path ไปยังไฟล์ drawing ที่เก็บไว้ในเครื่อง/เซิร์ฟเวอร์ของบริษัท (ไม่ใช่การอัปโหลดไฟล์ แค่บันทึกที่อยู่ไฟล์ไว้อ้างอิง)
+            </span>
+          </label>
         </div>
 
         <Alert>{error}</Alert>
@@ -551,7 +572,7 @@ export function PurchaseModal({
                 <b>{rfq.rfq_number}</b>
                 <span>{rfq.vendor || "รอระบุ Vendor"}</span>
                 <span>
-                  ส่ง {rfq.sent_at ? new Date(rfq.sent_at).toLocaleString("th-TH") : "-"}
+                  ส่ง {rfq.sent_at ? formatDMY(rfq.sent_at, true) : "-"}
                   {` · ${rfq.sent_by || "-"}`}
                 </span>
                 {rfq.po_balance?.quotation_received_at ? (
@@ -610,7 +631,7 @@ export function PurchaseModal({
                 <div key={rfq.id}>
                   <b>{rfq.rfq_number}</b>
                   <span>{rfq.vendor || "รอระบุ Vendor"}</span>
-                  <span>{rfq.sent_at ? new Date(rfq.sent_at).toLocaleString("th-TH") : "-"}</span>
+                  <span>{rfq.sent_at ? formatDMY(rfq.sent_at, true) : "-"}</span>
                   <span>{rfq.sent_by || "-"}</span>
                   {(rfq.email_link || rfq.gmail_link) && <a href={rfq.email_link || rfq.gmail_link} target="_blank" rel="noreferrer">เปิดอีเมล</a>}
                 </div>
@@ -838,7 +859,7 @@ function DeletedOrderTable({ rows, onRestore, restoringId }) {
               <td>
                 <b>{o.order_number}</b>
               </td>
-              <td>{o.date}</td>
+              <td>{formatDMY(o.date)}</td>
               <td>{o.machine_code || o.machine_name || "-"}</td>
               <td>{o.part_name}</td>
               <td>{fmt(o.amount)}</td>
@@ -846,7 +867,7 @@ function DeletedOrderTable({ rows, onRestore, restoringId }) {
               <td>{o.deleted_by || "-"}</td>
               <td>
                 {o.deleted_at
-                  ? new Date(o.deleted_at).toLocaleString("th-TH")
+                  ? formatDMY(o.deleted_at, true)
                   : "-"}
               </td>
             </tr>
@@ -1048,6 +1069,7 @@ function OrderTable({
             <th>AMOUNT</th>
             <th>UNIT</th>
             <th>REMARK</th>
+            <th>DRAWING</th>
             <th>Quotation</th>
             <th>PO</th>
             <th>Price/Unit</th>
@@ -1114,6 +1136,7 @@ function OrderTable({
                 <td>
                   <EditableCell
                     value={o.date}
+                    display={formatDMY(o.date)}
                     type="date"
                     canEdit={auth.can("can_edit_order_date")}
                     onSave={(val) => onInlineSave(o, "date", val)}
@@ -1167,6 +1190,7 @@ function OrderTable({
                 <td>
                   <EditableCell
                     value={o.pending_data_date}
+                    display={formatDMY(o.pending_data_date)}
                     type="date"
                     canEdit={auth.can("can_edit_order_info")}
                     onSave={(val) => onInlineSave(o, "pending_data_date", val)}
@@ -1234,6 +1258,15 @@ function OrderTable({
                     type="text"
                     canEdit={auth.can("can_edit_order_info")}
                     onSave={(val) => onInlineSave(o, "remark", val)}
+                  />
+                </td>
+                <td style={{ minWidth: 110 }}>
+                  <EditableCell
+                    value={o.drawing_path}
+                    type="text"
+                    placeholder="Path ไฟล์ Drawing"
+                    canEdit={auth.can("can_edit_order_info")}
+                    onSave={(val) => onInlineSave(o, "drawing_path", val)}
                   />
                 </td>
                 <td>
@@ -1307,6 +1340,7 @@ function OrderTable({
                 <td>
                   <EditableCell
                     value={o.issue_pr_date}
+                    display={formatDMY(o.issue_pr_date)}
                     type="date"
                     canEdit={auth.can("can_edit_purchase_info")}
                     onSave={(val) => onInlinePurchaseSave(o, "issue_pr_date", val)}
@@ -1315,6 +1349,7 @@ function OrderTable({
                 <td>
                   <EditableCell
                     value={o.due_date}
+                    display={formatDMY(o.due_date)}
                     type="date"
                     canEdit={auth.can("can_edit_purchase_info")}
                     onSave={(val) => onInlinePurchaseSave(o, "due_date", val)}
@@ -1323,6 +1358,7 @@ function OrderTable({
                 <td>
                   <EditableCell
                     value={o.vendor_confirm_date}
+                    display={formatDMY(o.vendor_confirm_date)}
                     type="date"
                     canEdit={auth.can("can_edit_purchase_info")}
                     onSave={(val) => onInlinePurchaseSave(o, "vendor_confirm_date", val)}
@@ -1330,7 +1366,7 @@ function OrderTable({
                 </td>
                 <td>
                   {o.received_at
-                    ? new Date(o.received_at).toLocaleString("th-TH")
+                    ? formatDMY(o.received_at, true)
                     : "-"}
                 </td>
                 <td style={{ minWidth: 100 }}>
@@ -1820,7 +1856,7 @@ function MonthlyProjectList({ projects, onSelect }) {
                             >
                               <td><b>{project.name}</b></td>
                               <td>{project.owner_name || "-"}</td>
-                              <td>{project.created_at ? new Date(project.created_at).toLocaleDateString("th-TH") : "-"}</td>
+                              <td>{project.created_at ? formatDMY(project.created_at) : "-"}</td>
                               <td>{fmt(project.step_count)}</td>
                               <td>{fmt(project.quotation_items)}</td>
                               <td>{fmt(project.total_items)}</td>
@@ -2574,6 +2610,20 @@ export default function Orders({ mode = "orders" }) {
     }
   }
 
+  async function updateStepStatus(step, status) {
+    if (!selectedProject || !step) return;
+    setError("");
+    try {
+      await apiPatch(
+        `/order-projects/${selectedProject.id}/steps/${step.id}/status/`,
+        { status }
+      );
+      await selectProject(selectedProject, true);
+    } catch (err) {
+      setError(err.message);
+    }
+  }
+
   async function deleteStep(step) {
     if (!selectedProject || !step) return;
     if (
@@ -3001,12 +3051,12 @@ export default function Orders({ mode = "orders" }) {
           <strong>{fmt(kpi.total)}</strong>
         </div>
         <div className="kpi-card danger">
-          <span>งานด่วน</span>
-          <strong>{fmt(kpi.urgent)}</strong>
+          <span>งานด่วนเครื่องหยุด</span>
+          <strong>{fmt(kpi.urgent_stop)}</strong>
         </div>
         <div className="kpi-card warning">
-          <span>งานด่วน + ค้าง DATA</span>
-          <strong>{fmt(kpi.urgent_pending)}</strong>
+          <span>งานด่วนเครื่องไม่หยุด</span>
+          <strong>{fmt(kpi.urgent_no_stop)}</strong>
         </div>
         <div className="kpi-card info">
           <span>งานค้าง DATA</span>
@@ -3474,6 +3524,25 @@ export default function Orders({ mode = "orders" }) {
                             className="page-actions"
                             style={{ flexWrap: "wrap", justifyContent: "flex-end" }}
                           >
+                            {auth.can("can_manage_order_projects") ? (
+                              <select
+                                value={step.status || "WAIT_QUOTATION"}
+                                onChange={(e) =>
+                                  updateStepStatus(step, e.target.value)
+                                }
+                                style={{ fontSize: 11 }}
+                              >
+                                {STEP_STATUS_OPTIONS.map((opt) => (
+                                  <option key={opt.value} value={opt.value}>
+                                    {opt.label}
+                                  </option>
+                                ))}
+                              </select>
+                            ) : (
+                              <span className="status info">
+                                {step.status_label || "รอขอราคา"}
+                              </span>
+                            )}
                             <span className="status info">
                               {phaseRows.length} รายการ
                             </span>

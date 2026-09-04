@@ -110,6 +110,21 @@ class Supplier(LegacyMixin):
         return f"{self.code} - {self.name}"
 
 
+class SupplierContact(UUIDMixin):
+    supplier = models.ForeignKey(Supplier, on_delete=models.CASCADE, related_name="contacts")
+    name = models.CharField(max_length=200, blank=True)
+    role = models.CharField(max_length=120, blank=True)
+    phone = models.CharField(max_length=80, blank=True)
+    email = models.EmailField(blank=True)
+    remark = models.CharField(max_length=250, blank=True)
+
+    class Meta:
+        ordering = ["created_at"]
+
+    def __str__(self):
+        return f"{self.supplier.code} - {self.name or self.email or self.phone}"
+
+
 class Part(LegacyMixin):
     sku = models.CharField(max_length=100, unique=True)
     name = models.CharField(max_length=300)
@@ -409,8 +424,22 @@ class OrderProject(UUIDMixin):
 
 
 class OrderStep(UUIDMixin):
+    STATUS_WAIT_QUOTATION = "WAIT_QUOTATION"
+    STATUS_WAIT_CONFIRM = "WAIT_CONFIRM"
+    STATUS_ORDERING = "ORDERING"
+    STATUS_COMPLETED = "COMPLETED"
+    STATUS_CHOICES = [
+        (STATUS_WAIT_QUOTATION, "รอขอราคา"),
+        (STATUS_WAIT_CONFIRM, "รอ Confirm"),
+        (STATUS_ORDERING, "กำลังสั่งของ"),
+        (STATUS_COMPLETED, "ของมาครบแล้ว"),
+    ]
+
     project = models.ForeignKey(OrderProject, on_delete=models.CASCADE, related_name="steps")
     step_no = models.PositiveIntegerField()
+    status = models.CharField(
+        max_length=20, choices=STATUS_CHOICES, default=STATUS_WAIT_QUOTATION, db_index=True
+    )
     import_filename = models.CharField(max_length=255, blank=True)
     imported_by_employee = models.ForeignKey(
         Employee,
@@ -471,6 +500,7 @@ class OrderRecord(LegacyMixin):
     urgent_status = models.CharField(max_length=120, blank=True)
     pending_data_date = models.DateField(null=True, blank=True)
     remark = models.TextField(blank=True)
+    drawing_path = models.CharField(max_length=500, blank=True)
 
     quotation = models.TextField(blank=True)
     part = models.ForeignKey(Part, null=True, blank=True, on_delete=models.SET_NULL, related_name="order_records")

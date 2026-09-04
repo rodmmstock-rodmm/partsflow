@@ -1,14 +1,9 @@
 import { useEffect, useState } from "react";
 import { apiGet } from "../api";
-import { Alert, Modal, PartImage, fmt, money, stockDisplay } from "./Common";
+import { Alert, Modal, PartImage, fmt, formatDMY, money, stockDisplay } from "./Common";
 
 function dateText(value, withTime = false) {
-  if (!value) return "-";
-  const d = new Date(value);
-  if (Number.isNaN(d.getTime())) return String(value);
-  return d.toLocaleString("th-TH", withTime
-    ? { dateStyle: "medium", timeStyle: "short" }
-    : { dateStyle: "medium" });
+  return formatDMY(value, withTime);
 }
 
 function Info({ label, children }) {
@@ -106,7 +101,7 @@ export default function PartDetailModal({ part, onClose }) {
       <Section title="Order ล่าสุด" count={(p.recent_orders || []).length}>
         {(p.recent_orders || []).length === 0 ? <div className="empty compact">ยังไม่มี Order</div> :
           <div className="detail-table-wrap"><table><thead><tr><th>Date</th><th>Order</th><th>Machine</th><th>Qty</th><th>Status</th><th>PO</th><th>Vendor</th></tr></thead><tbody>
-            {p.recent_orders.map(x => <tr key={x.id}><td>{x.date || "-"}</td><td><b>{x.order_number}</b></td><td>{x.machine_code || x.machine_name || "-"}</td><td>{fmt(x.amount)}</td><td>{x.status}</td><td>{x.po_number || "-"}</td><td>{x.vendor_name || "-"}</td></tr>)}
+            {p.recent_orders.map(x => <tr key={x.id}><td>{formatDMY(x.date)}</td><td><b>{x.order_number}</b></td><td>{x.machine_code || x.machine_name || "-"}</td><td>{fmt(x.amount)}</td><td>{x.status}</td><td>{x.po_number || "-"}</td><td>{x.vendor_name || "-"}</td></tr>)}
           </tbody></table></div>}
       </Section>
 

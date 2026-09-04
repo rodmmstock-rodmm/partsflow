@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { apiDelete, apiDownload, apiGet, apiPatch, apiPost } from "../api";
 import { useAuth } from "../auth";
-import { Alert, Modal, PageHeader, SearchableSelect, fmt, money } from "../components/Common";
+import { Alert, Modal, PageHeader, SearchableSelect, fmt, formatDMY, money } from "../components/Common";
 
 const MESSAGE_LABELS = {
   RFQ_REQUEST: "ขอราคา",
@@ -11,9 +11,7 @@ const MESSAGE_LABELS = {
 };
 
 function localDate(value) {
-  if (!value) return "-";
-  const parsed = new Date(value);
-  return Number.isNaN(parsed.getTime()) ? value : parsed.toLocaleString("th-TH");
+  return formatDMY(value, true);
 }
 
 function inputDateTime(value) {

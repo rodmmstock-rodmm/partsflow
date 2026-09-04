@@ -214,6 +214,7 @@ def order_json(order):
         "urgent_status": order.urgent_status,
         "pending_data_date": order.pending_data_date.isoformat() if order.pending_data_date else "",
         "remark": order.remark,
+        "drawing_path": order.drawing_path,
         "quotation": order.quotation,
         "rfq_count": int(getattr(order, "rfq_count", 0) or 0),
         "part_id": str(order.part_id) if order.part_id else "",
@@ -395,6 +396,9 @@ def apply_order_info(order, data, *, creating=False, allow_order_date=False):
 
     if "remark" in data or creating:
         order.remark = str(data.get("remark") or "").strip()
+
+    if "drawing_path" in data or creating:
+        order.drawing_path = str(data.get("drawing_path") or "").strip()
 
     if "ordered_by_id" in data or creating:
         order.ordered_by = employee_or_none(data.get("ordered_by_id"))
@@ -729,6 +733,8 @@ def orders(request):
         "wait_confirm": wait_confirm_count,
         "urgent": sum(1 for x in active_rows if urgency_class(x) == "urgent"),
         "urgent_pending": sum(1 for x in active_rows if urgency_class(x) == "urgent_pending"),
+        "urgent_stop": sum(1 for x in active_rows if x.urgent_status == "งานด่วนเครื่องหยุด"),
+        "urgent_no_stop": sum(1 for x in active_rows if x.urgent_status == "งานด่วนเครื่องไม่หยุด"),
         "pending": sum(1 for x in active_rows if urgency_class(x) == "pending"),
         "repair": sum(1 for x in active_rows if x.job == "REPAIR"),
         "modify": sum(1 for x in active_rows if x.job == "MODIFY"),
@@ -1622,6 +1628,8 @@ def project_detail(request, pk):
             {
                 "id": str(step.id),
                 "step_no": step.step_no,
+                "status": step.status,
+                "status_label": dict(OrderStep.STATUS_CHOICES).get(step.status, step.status),
                 "import_filename": step.import_filename,
                 "created_at": (
                     timezone.localtime(step.created_at).isoformat()
@@ -1687,6 +1695,8 @@ def create_project_step(request, pk):
             {
                 "id": str(step.id),
                 "step_no": step.step_no,
+                "status": step.status,
+                "status_label": dict(OrderStep.STATUS_CHOICES).get(step.status, step.status),
                 "import_filename": step.import_filename,
                 "orders": [],
                 "project": project_json(project),
@@ -1695,6 +1705,39 @@ def create_project_step(request, pk):
         )
     except IntegrityError as exc:
         return Response({"detail": str(exc)}, status=400)
+
+
+@csrf_exempt
+@api_view(["PATCH"])
+@permission_classes([AllowAny])
+def update_step_status(request, pk, step_pk):
+    actor, err = require_permission(request, "can_manage_order_projects")
+    if err:
+        return err
+    step = OrderStep.objects.filter(pk=step_pk, project_id=pk).first()
+    if not step:
+        return Response({"detail": "ไม่พบ Step"}, status=404)
+    status_value = str(request.data.get("status", "")).strip()
+    valid_statuses = dict(OrderStep.STATUS_CHOICES)
+    if status_value not in valid_statuses:
+        return Response({"detail": "สถานะไม่ถูกต้อง"}, status=400)
+    before = step.status
+    step.status = status_value
+    step.save(update_fields=["status", "updated_at"])
+    audit(
+        actor,
+        "UPDATE_STEP_STATUS",
+        "OrderStep",
+        step.id,
+        {"before": before, "after": status_value},
+    )
+    return Response(
+        {
+            "id": str(step.id),
+            "status": step.status,
+            "status_label": valid_statuses.get(step.status, step.status),
+        }
+    )
 
 
 @csrf_exempt

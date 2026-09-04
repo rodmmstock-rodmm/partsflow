@@ -35,6 +35,8 @@ urlpatterns = [
 
     path("suppliers/", web_api.suppliers_list, name="web-suppliers-list"),
     path("suppliers/<uuid:pk>/", web_api.supplier_detail, name="web-suppliers-detail"),
+    path("suppliers/<uuid:pk>/contacts/", web_api.supplier_contacts_list, name="web-supplier-contacts-list"),
+    path("suppliers/<uuid:pk>/contacts/<uuid:contact_pk>/", web_api.supplier_contact_detail, name="web-supplier-contact-detail"),
     path("machines/", web_api.machines_list, name="web-machines-list"),
     path("machines/<uuid:pk>/", web_api.machine_detail, name="web-machine-detail"),
 
@@ -65,6 +67,7 @@ urlpatterns = [
     path("order-projects/<uuid:pk>/", order_api.project_detail, name="web-order-project-detail"),
     path("order-projects/<uuid:pk>/steps/", order_api.create_project_step, name="web-order-project-step-add"),
     path("order-projects/<uuid:pk>/steps/<uuid:step_pk>/", order_api.delete_project_step, name="web-order-project-step-delete"),
+    path("order-projects/<uuid:pk>/steps/<uuid:step_pk>/status/", order_api.update_step_status, name="web-order-project-step-status"),
     path("order-projects/<uuid:pk>/steps/<uuid:step_pk>/orders/", order_api.create_project_order, name="web-order-project-step-order-add"),
     path("order-projects/<uuid:pk>/steps/<uuid:step_pk>/import/", order_api.import_project_step, name="web-order-project-step-import"),
     path("order-projects/<uuid:pk>/quotation-conversion-preview/", order_api.quotation_conversion_preview, name="web-order-project-quotation-conversion-preview"),
