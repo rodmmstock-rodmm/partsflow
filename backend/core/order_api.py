@@ -1,4 +1,5 @@
 import re
+from datetime import timedelta
 from decimal import Decimal, InvalidOperation
 
 from django.db import IntegrityError, transaction
@@ -682,8 +683,28 @@ def orders(request):
     if status:
         qs = qs.filter(status=status)
 
+    # Default to a rolling 120-day window unless the caller explicitly asks
+    # for a wider/narrower range or is searching by keyword. This is the
+    # single biggest lever for cutting Supabase egress: without it every
+    # page load pulls the full order history (up to 5000 rows) every time.
+    date_from = as_date(request.GET.get("date_from"), "date_from")
+    date_to = as_date(request.GET.get("date_to"), "date_to")
+    show_all = str(request.GET.get("date_range", "")).strip().lower() == "all"
+    if (
+        not date_from
+        and not date_to
+        and not q
+        and not show_all
+        and view != "deleted"
+    ):
+        date_from = timezone.localdate() - timedelta(days=120)
+    if date_from:
+        qs = qs.filter(order_date__gte=date_from)
+    if date_to:
+        qs = qs.filter(order_date__lte=date_to)
+
     order_fields = ("-deleted_at", "-updated_at") if view == "deleted" else ("-order_date", "-created_at")
-    rows = list(qs.order_by(*order_fields)[:5000])
+    rows = list(qs.order_by(*order_fields)[:2000])
     if urgency in {"normal", "urgent", "pending", "urgent_pending"}:
         rows = [row for row in rows if urgency_class(row) == urgency]
 
@@ -715,7 +736,17 @@ def orders(request):
         "pm": sum(1 for x in active_rows if x.job == "PM"),
         "general": sum(1 for x in active_rows if x.job not in job_core),
     }
-    return Response({"count": len(rows), "kpi": kpi, "results": [order_json(x) for x in rows]})
+    return Response(
+        {
+            "count": len(rows),
+            "kpi": kpi,
+            "results": [order_json(x) for x in rows],
+            "date_from": date_from.isoformat() if date_from else None,
+            "date_range_limited": bool(date_from) and not (
+                str(request.GET.get("date_from", "")).strip()
+            ),
+        }
+    )
 
 
 @api_view(["GET"])

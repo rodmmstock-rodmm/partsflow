@@ -864,6 +864,86 @@ function DeletedOrderTable({ rows, onRestore, restoringId }) {
   );
 }
 
+function EditableCell({ value, canEdit, type = "text", onSave, align }) {
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState(value ?? "");
+  const [saving, setSaving] = useState(false);
+  const inputRef = useRef(null);
+
+  useEffect(() => {
+    if (editing && inputRef.current) {
+      inputRef.current.focus();
+      inputRef.current.select();
+    }
+  }, [editing]);
+
+  if (!canEdit) {
+    return <span>{value || (type === "number" ? 0 : "-")}</span>;
+  }
+
+  if (!editing) {
+    return (
+      <span
+        className="editable-cell"
+        style={{
+          cursor: "text",
+          display: "inline-block",
+          minWidth: 24,
+          minHeight: 18,
+          borderBottom: "1px dashed transparent",
+        }}
+        onClick={() => {
+          setDraft(value ?? "");
+          setEditing(true);
+        }}
+        title="คลิกเพื่อแก้ไข"
+      >
+        {value || (type === "number" ? 0 : "") || "-"}
+      </span>
+    );
+  }
+
+  async function commit() {
+    if (saving) return;
+    const original = value ?? "";
+    if (String(draft) === String(original)) {
+      setEditing(false);
+      return;
+    }
+    setSaving(true);
+    const ok = await onSave(draft);
+    setSaving(false);
+    if (ok) setEditing(false);
+  }
+
+  return (
+    <input
+      ref={inputRef}
+      type={type}
+      value={draft}
+      disabled={saving}
+      style={{
+        width: type === "number" ? 70 : 130,
+        padding: "2px 4px",
+        fontSize: 12,
+        border: "1px solid #7c3aed",
+        borderRadius: 4,
+      }}
+      onChange={(e) => setDraft(e.target.value)}
+      onBlur={commit}
+      onKeyDown={(e) => {
+        if (e.key === "Enter") {
+          e.preventDefault();
+          commit();
+        } else if (e.key === "Escape") {
+          setDraft(value ?? "");
+          setEditing(false);
+        }
+      }}
+    />
+  );
+}
+
 function OrderTable({
   rows,
   auth,
@@ -874,6 +954,7 @@ function OrderTable({
   onPurchase,
   onUpdate,
   onUsage,
+  onInlineSave,
 }) {
   const allSelected =
     rows.length > 0 && rows.every((o) => selected.has(o.id));
@@ -906,6 +987,7 @@ function OrderTable({
             <th>MAKER</th>
             <th>AMOUNT</th>
             <th>UNIT</th>
+            <th>REMARK</th>
             <th>Quotation</th>
             <th>PO</th>
             <th>Price/Unit</th>
@@ -980,8 +1062,26 @@ function OrderTable({
                 <td>{o.part_name}</td>
                 <td className="detail-cell">{o.part_detail}</td>
                 <td>{o.maker}</td>
-                <td>{fmt(o.amount)}</td>
+                <td>
+                  <EditableCell
+                    value={o.amount}
+                    type="number"
+                    canEdit={
+                      auth.can("can_edit_order_info") &&
+                      !(o.received_at && o.stock_received)
+                    }
+                    onSave={(val) => onInlineSave(o, "amount", val)}
+                  />
+                </td>
                 <td>{o.unit}</td>
+                <td style={{ minWidth: 90 }}>
+                  <EditableCell
+                    value={o.remark}
+                    type="text"
+                    canEdit={auth.can("can_edit_order_info")}
+                    onSave={(val) => onInlineSave(o, "remark", val)}
+                  />
+                </td>
                 <td>
                   {o.rfq_count ? (
                     <span className="status info">RFQ {fmt(o.rfq_count)}</span>
@@ -1341,7 +1441,7 @@ export function QuotationConversionModal({ project, rows, onClose, onSaved }) {
 }
 
 
-function MonthlyOrderTables({ rows, auth, selected, onToggle, onToggleAll, onEdit, onPurchase, dateBasis = "lifecycle" }) {
+function MonthlyOrderTables({ rows, auth, selected, onToggle, onToggleAll, onEdit, onPurchase, onInlineSave, dateBasis = "lifecycle" }) {
   const [openYears, setOpenYears] = useState({});
   const [openMonths, setOpenMonths] = useState({});
   const groups = useMemo(() => {
@@ -1378,7 +1478,7 @@ function MonthlyOrderTables({ rows, auth, selected, onToggle, onToggleAll, onEdi
     <button className="history-collapse year" onClick={() => setOpenYears((x) => ({ ...x, [y.year]: !x[y.year] }))}><span>{openYears[y.year] ? "▾" : "▸"} ปี {y.year}</span><b>{y.months.reduce((n, m) => n + m.rows.length, 0)} รายการ</b></button>
     {openYears[y.year] && <div className="history-months">{y.months.map((m) => <section className="history-month" key={m.key}>
       <button className="history-collapse month" onClick={() => setOpenMonths((x) => ({ ...x, [m.key]: !x[m.key] }))}><span>{openMonths[m.key] ? "▾" : "▸"} {m.label}</span><b>{m.rows.length} รายการ</b></button>
-      {openMonths[m.key] && <OrderTable rows={m.rows} auth={auth} selected={selected} onToggle={onToggle} onToggleAll={onToggleAll} onEdit={onEdit} onPurchase={onPurchase} />}
+      {openMonths[m.key] && <OrderTable rows={m.rows} auth={auth} selected={selected} onToggle={onToggle} onToggleAll={onToggleAll} onEdit={onEdit} onPurchase={onPurchase} onInlineSave={onInlineSave} />}
     </section>)}</div>}
   </section>)}</div>;
 }
@@ -1816,9 +1916,11 @@ export default function Orders({ mode = "orders" }) {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(true);
   const [q, setQ] = useState("");
+  const [qInput, setQInput] = useState("");
   const [urgency, setUrgency] = useState("all");
   const [job, setJob] = useState("");
   const [status, setStatus] = useState("");
+  const [lastLoadedAt, setLastLoadedAt] = useState(null);
 
   const [editor, setEditor] = useState(null);
   const [purchase, setPurchase] = useState(null);
@@ -1840,6 +1942,8 @@ export default function Orders({ mode = "orders" }) {
   const orderImportFileRef = useRef(null);
   const [orderImportBusy, setOrderImportBusy] = useState(false);
   const [restoringId, setRestoringId] = useState(null);
+  const [showAllDates, setShowAllDates] = useState(false);
+  const [dateRangeInfo, setDateRangeInfo] = useState(null);
 
   async function loadOptions() {
     try {
@@ -1860,9 +1964,16 @@ export default function Orders({ mode = "orders" }) {
         job,
         status,
       });
+      if (showAllDates) params.set("date_range", "all");
       const data = await apiGet(`/orders/?${params}`, { forceRefresh });
       setRows(data.results || []);
       setKpi(data.kpi || {});
+      setLastLoadedAt(new Date());
+      setDateRangeInfo(
+        data.date_range_limited
+          ? { from: data.date_from }
+          : null
+      );
     } catch (err) {
       setError(err.message);
     } finally {
@@ -1918,6 +2029,11 @@ export default function Orders({ mode = "orders" }) {
   }, []);
 
   useEffect(() => {
+    const timer = setTimeout(() => setQ(qInput.trim()), 400);
+    return () => clearTimeout(timer);
+  }, [qInput]);
+
+  useEffect(() => {
     setTab(stepPage ? "step" : "normal");
     setSelected(new Set());
   }, [stepPage]);
@@ -1933,6 +2049,7 @@ export default function Orders({ mode = "orders" }) {
     job,
     status,
     projectDepartment,
+    showAllDates,
   ]);
 
   useEffect(() => {
@@ -2100,6 +2217,22 @@ export default function Orders({ mode = "orders" }) {
       await refresh();
     } catch (err) {
       setError(err.message);
+    }
+  }
+
+  async function inlineSave(order, field, value) {
+    setError("");
+    try {
+      const updated = await apiPatch(`/orders/${order.id}/info/`, {
+        [field]: value,
+      });
+      setRows((current) =>
+        current.map((r) => (r.id === order.id ? updated : r))
+      );
+      return true;
+    } catch (err) {
+      setError(err.message);
+      return false;
     }
   }
 
@@ -2652,6 +2785,64 @@ export default function Orders({ mode = "orders" }) {
       <Alert>{error}</Alert>
       {kpiBlocks}
 
+      {dateRangeInfo && !showAllDates && (
+        <div
+          className="toolbar wrap"
+          style={{
+            padding: "8px 12px",
+            marginBottom: 10,
+            border: "1px solid #fde68a",
+            background: "#fffbeb",
+            borderRadius: 10,
+            fontSize: 13,
+            color: "#92400e",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            gap: 10,
+          }}
+        >
+          <span>
+            แสดงเฉพาะ Order ตั้งแต่ {dateRangeInfo.from} เป็นต้นมา (120 วันล่าสุด)
+            เพื่อลดการใช้งานฐานข้อมูล
+          </span>
+          <button
+            className="btn ghost"
+            style={{ whiteSpace: "nowrap" }}
+            onClick={() => setShowAllDates(true)}
+          >
+            ดูข้อมูลทั้งหมด
+          </button>
+        </div>
+      )}
+      {showAllDates && (
+        <div
+          className="toolbar wrap"
+          style={{
+            padding: "8px 12px",
+            marginBottom: 10,
+            border: "1px solid #bfdbfe",
+            background: "#eff6ff",
+            borderRadius: 10,
+            fontSize: 13,
+            color: "#1e40af",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            gap: 10,
+          }}
+        >
+          <span>กำลังแสดง Order ทั้งหมดทุกช่วงเวลา (ใช้ข้อมูลมากกว่าปกติ)</span>
+          <button
+            className="btn ghost"
+            style={{ whiteSpace: "nowrap" }}
+            onClick={() => setShowAllDates(false)}
+          >
+            กลับไป 120 วันล่าสุด
+          </button>
+        </div>
+      )}
+
       {!stepPage && (
       <div className="tab-row page-tabs">
         {ORDER_TABS.filter(
@@ -2681,8 +2872,8 @@ export default function Orders({ mode = "orders" }) {
           <div className="toolbar wrap">
             <input
               className="search-input"
-              value={q}
-              onChange={(e) => setQ(e.target.value)}
+              value={qInput}
+              onChange={(e) => setQInput(e.target.value)}
               placeholder="ค้นหา Order / Part ID / Part / Machine / ผู้สั่ง..."
             />
 
@@ -2714,6 +2905,11 @@ export default function Orders({ mode = "orders" }) {
             <button className="btn ghost" onClick={() => loadOrders(true)}>
               ค้นหา
             </button>
+            {lastLoadedAt && (
+              <span style={{ fontSize: 12, color: "#94a3b8", alignSelf: "center" }}>
+                อัปเดตล่าสุด {lastLoadedAt.toLocaleTimeString("th-TH", { hour: "2-digit", minute: "2-digit" })}
+              </span>
+            )}
 
             {tab === "normal" &&
               auth.can("can_add_order") &&
@@ -2769,6 +2965,7 @@ export default function Orders({ mode = "orders" }) {
                 onToggleAll={toggleAll}
                 onEdit={(order) => setEditor({ order, project: null })}
                 onPurchase={setPurchase}
+                onInlineSave={inlineSave}
                 dateBasis={tab === "normal" ? "order" : "lifecycle"}
               />
             ) : (
@@ -2781,6 +2978,7 @@ export default function Orders({ mode = "orders" }) {
                 onEdit={(order) => setEditor({ order, project: null })}
                 onPurchase={setPurchase}
                 onUpdate={tab === "updates" ? updateData : null}
+                onInlineSave={inlineSave}
               />
             )
           )}
