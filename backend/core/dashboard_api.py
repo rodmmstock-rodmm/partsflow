@@ -25,7 +25,7 @@ def dashboard(request):
                 Sum("inventory__quantity"), Value(Decimal("0")), output_field=QTY_FIELD
             )
         )
-        .values("id", "min_stock", "stock_qty")
+        .values("id", "min_stock", "stock_qty", "sku")
     )
     open_part_ids = set(
         OrderRecord.objects.filter(
@@ -42,6 +42,8 @@ def dashboard(request):
     low_not_ordered = 0
     low_ordered = 0
     for row in parts:
+        if str(row["sku"] or "").strip().upper().startswith("N"):
+            continue
         if Decimal(str(row["min_stock"] or 0)) <= 0:
             continue
         if Decimal(str(row["stock_qty"] or 0)) < Decimal(str(row["min_stock"] or 0)):

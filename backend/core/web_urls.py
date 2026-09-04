@@ -49,6 +49,7 @@ urlpatterns = [
     path("orders/", order_audit_api.orders, name="web-orders"),
     path("orders/batch/", order_api.create_orders_batch, name="web-orders-batch"),
     path("orders/import/", order_api.import_orders_excel, name="web-orders-import"),
+    path("orders/quick-add/", order_api.quick_add_order, name="web-orders-quick-add"),
     path("orders/detail-by-number/<str:order_number>/", order_audit_api.order_detail_by_number, name="web-order-detail-by-number"),
     path("orders/<uuid:pk>/", order_api.order_detail, name="web-order-detail"),
     path("orders/<uuid:pk>/info/", order_audit_api.update_order_info, name="web-order-info"),
