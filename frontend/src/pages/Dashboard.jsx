@@ -681,11 +681,11 @@ export default function Dashboard() {
                         </td>
                         <td>{part.warehouse_label}</td>
                         <td>{part.location_code || "-"}</td>
-                        <td><b>{part.sku}</b></td>
+                        <td className="mono-cell"><b>{part.sku}</b></td>
                         <td className="part-name-cell">{part.name}</td>
                         <td className="detail-cell">{part.description || "-"}</td>
                         <td>{part.maker_name || "-"}</td>
-                        <td className={!inactive && !isNoCountSku(part.sku) && Number(part.stock_qty) < Number(part.min_stock) ? "text-danger" : ""}>
+                        <td className={`mono-cell ${!inactive && !isNoCountSku(part.sku) && Number(part.stock_qty) < Number(part.min_stock) ? "text-danger" : ""}`}>
                           <b>{stockDisplay(part)}</b>
                         </td>
                         <td>{part.unit_code}</td>

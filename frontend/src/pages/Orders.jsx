@@ -985,7 +985,7 @@ function EditableCell({
         ref={inputRef}
         value={draft}
         disabled={saving}
-        style={{ fontSize: 12, padding: "3px 4px", border: "1px solid #7c3aed", borderRadius: 4 }}
+        style={{ fontSize: 12, padding: "3px 4px", border: "1px solid #C1622B", borderRadius: 4 }}
         onChange={(e) => {
           setDraft(e.target.value);
           commit(e.target.value);
@@ -1014,7 +1014,7 @@ function EditableCell({
         width: type === "number" ? 70 : type === "date" ? 130 : 130,
         padding: "2px 4px",
         fontSize: 12,
-        border: "1px solid #7c3aed",
+        border: "1px solid #C1622B",
         borderRadius: 4,
       }}
       onChange={(e) => setDraft(e.target.value)}
@@ -1104,7 +1104,7 @@ function OrderTable({
             return (
               <tr
                 key={o.id}
-                style={selectedRow ? { background: "#f5f3ff" } : undefined}
+                style={selectedRow ? { background: "#F3DFCF" } : undefined}
               >
                 <td className="sticky-action">
                   <div
@@ -1120,7 +1120,7 @@ function OrderTable({
                       checked={selectedRow}
                       onChange={(e) => onToggle(o.id, e.target.checked)}
                     />
-                    <b style={{ fontSize: 9, color: "#94a3b8" }}>
+                    <b style={{ fontSize: 9, fontFamily: "var(--font-mono)", color: "#8B96A3" }}>
                       {o.order_number}
                     </b>
                   </div>
@@ -1142,7 +1142,7 @@ function OrderTable({
                     )}
                   </div>
                 </td>
-                <td>
+                <td className="mono-cell">
                   <EditableCell
                     value={o.date}
                     display={formatDMY(o.date)}
@@ -1205,7 +1205,7 @@ function OrderTable({
                     onSave={(val) => onInlineSave(o, "pending_data_date", val)}
                   />
                 </td>
-                <td style={{ minWidth: 110 }}>
+                <td className="mono-cell" style={{ minWidth: 110 }}>
                   <EditableCell
                     value={o.part_id}
                     display={<b>{o.item_id || "-"}</b>}
@@ -1249,7 +1249,7 @@ function OrderTable({
                     onSave={(val) => onInlineSave(o, "maker", val)}
                   />
                 </td>
-                <td>
+                <td className="mono-cell">
                   <EditableCell
                     value={o.amount}
                     type="number"
@@ -1497,7 +1497,7 @@ function QuotationTable({
             return (
               <tr
                 key={row.id}
-                style={selected.has(row.id) ? { background: "#f5f3ff" } : undefined}
+                style={selected.has(row.id) ? { background: "#F3DFCF" } : undefined}
               >
                 <td className="sticky-action">
                   <div style={{ display: "flex", gap: 7, alignItems: "center", marginBottom: 6 }}>
@@ -1506,7 +1506,7 @@ function QuotationTable({
                       checked={selected.has(row.id)}
                       onChange={(event) => onToggle(row.id, event.target.checked)}
                     />
-                    <b style={{ fontSize: 9, color: "#94a3b8" }}>
+                    <b style={{ fontSize: 9, color: "#8B96A3" }}>
                       {row.order_number}
                     </b>
                   </div>
@@ -1913,9 +1913,9 @@ function BulkActions({ rows, auth, busy, onRun, onClear, onRfq }) {
       style={{
         padding: 10,
         marginBottom: 12,
-        border: "1px solid #ede9fe",
+        border: "1px solid #F3DFCF",
         borderRadius: 12,
-        background: "#faf5ff",
+        background: "#F3DFCF",
       }}
     >
       <strong style={{ fontSize: 11, marginRight: 4 }}>
@@ -2022,9 +2022,9 @@ function QuotationBulkActions({
       style={{
         padding: 10,
         marginBottom: 12,
-        border: "1px solid #dbeafe",
+        border: "1px solid #E8B896",
         borderRadius: 12,
-        background: "#eff6ff",
+        background: "#F3DFCF",
       }}
     >
       <strong style={{ fontSize: 11, marginRight: 4 }}>
@@ -3116,11 +3116,11 @@ export default function Orders({ mode = "orders" }) {
           style={{
             padding: "8px 12px",
             marginBottom: 10,
-            border: "1px solid #fde68a",
-            background: "#fffbeb",
+            border: "1px solid #E3CE9E",
+            background: "#F3E7CE",
             borderRadius: 10,
             fontSize: 13,
-            color: "#92400e",
+            color: "#8A6620",
             display: "flex",
             alignItems: "center",
             justifyContent: "space-between",
@@ -3146,11 +3146,11 @@ export default function Orders({ mode = "orders" }) {
           style={{
             padding: "8px 12px",
             marginBottom: 10,
-            border: "1px solid #bfdbfe",
-            background: "#eff6ff",
+            border: "1px solid #E8B896",
+            background: "#F3DFCF",
             borderRadius: 10,
             fontSize: 13,
-            color: "#1e40af",
+            color: "#7A3C17",
             display: "flex",
             alignItems: "center",
             justifyContent: "space-between",
@@ -3231,7 +3231,7 @@ export default function Orders({ mode = "orders" }) {
               ค้นหา
             </button>
             {lastLoadedAt && (
-              <span style={{ fontSize: 12, color: "#94a3b8", alignSelf: "center" }}>
+              <span style={{ fontSize: 12, color: "#8B96A3", alignSelf: "center" }}>
                 อัปเดตล่าสุด {lastLoadedAt.toLocaleTimeString("th-TH", { hour: "2-digit", minute: "2-digit" })}
               </span>
             )}
