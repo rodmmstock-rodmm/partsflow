@@ -1061,39 +1061,15 @@ function OrderTable({
                   checked={allSelected}
                   onChange={(e) => onToggleAll(rows, e.target.checked)}
                 />
-                เลือก / Action
+                Order
               </label>
             </th>
-            <th>DATE</th>
-            <th>FACTORY</th>
-            <th>GROUP ORDER</th>
-            <th>MACHINE</th>
-            <th>JOB</th>
-            <th>Urgent</th>
-            <th>วันที่ค้าง</th>
-            <th>Part ID</th>
-            <th>Part Name</th>
-            <th>Part Detail</th>
-            <th>MAKER</th>
-            <th>AMOUNT</th>
-            <th>UNIT</th>
-            <th>REMARK</th>
-            <th>DRAWING</th>
-            <th>Quotation</th>
-            <th>PO</th>
-            <th>Price/Unit</th>
-            <th>Total</th>
-            <th>Vendor</th>
-            <th>Lead Time</th>
-            <th>Ordered By</th>
-            <th>Issue PR</th>
-            <th>Due</th>
-            <th>Vendor Confirm</th>
-            <th>Receive</th>
-            <th>PIC</th>
+            <th>MACHINE / JOB</th>
+            <th>PART</th>
+            <th>PURCHASE</th>
+            <th>TIMELINE</th>
+            <th>NOTE</th>
             <th>STATUS</th>
-            <th>LIFECYCLE</th>
-            <th>Edit Data</th>
             {onUsage && <th>ใช้/ไม่ได้ใช้</th>}
           </tr>
         </thead>
@@ -1124,6 +1100,29 @@ function OrderTable({
                       {o.order_number}
                     </b>
                   </div>
+                  <div className="cell-stack">
+                    <EditableCell
+                      value={o.date}
+                      display={formatDMY(o.date)}
+                      type="date"
+                      canEdit={auth.can("can_edit_order_date")}
+                      onSave={(val) => onInlineSave(o, "date", val)}
+                    />
+                    <div className="stack-sub">
+                      <EditableCell
+                        value={o.factory}
+                        display={o.factory === "MM-11" ? "Phase11" : "Phase4"}
+                        type="select"
+                        options={[
+                          { value: "MM-4", label: "Phase4" },
+                          { value: "MM-11", label: "Phase11" },
+                        ]}
+                        canEdit={auth.can("can_edit_order_info")}
+                        onSave={(val) => onInlineSave(o, "factory", val)}
+                      />
+                      {o.group_order ? ` · ${o.group_order}` : ""}
+                    </div>
+                  </div>
                   <div className="row-actions">
                     {auth.can("can_edit_order_info") && (
                       <button className="mini" onClick={() => onEdit(o)}>
@@ -1142,283 +1141,296 @@ function OrderTable({
                     )}
                   </div>
                 </td>
-                <td className="mono-cell">
-                  <EditableCell
-                    value={o.date}
-                    display={formatDMY(o.date)}
-                    type="date"
-                    canEdit={auth.can("can_edit_order_date")}
-                    onSave={(val) => onInlineSave(o, "date", val)}
-                  />
+
+                <td style={{ minWidth: 130 }}>
+                  <div className="cell-stack">
+                    <EditableCell
+                      value={o.machine_id}
+                      display={<b>{o.machine_name || o.machine_code || "-"}</b>}
+                      type="searchable"
+                      options={options.machines || []}
+                      getLabel={(x) => x.code}
+                      getSearchText={(x) => `${x.code || ""} ${x.name || ""}`}
+                      placeholder="พิมพ์รหัส Machine"
+                      canEdit={auth.can("can_edit_order_info")}
+                      onSave={(val) => onInlineSave(o, "machine_id", val)}
+                    />
+                    <div className="stack-row">
+                      <EditableCell
+                        value={o.job}
+                        display={<span className="status muted">{o.job || "-"}</span>}
+                        type="text"
+                        canEdit={auth.can("can_edit_order_info")}
+                        onSave={(val) => onInlineSave(o, "job", val)}
+                      />
+                      <EditableCell
+                        value={o.urgent_status}
+                        display={
+                          o.urgent_status ? (
+                            <span className="status danger">{o.urgent_status}</span>
+                          ) : (
+                            ""
+                          )
+                        }
+                        type="select"
+                        options={["", ...URGENT]}
+                        canEdit={auth.can("can_edit_order_info")}
+                        onSave={(val) => onInlineSave(o, "urgent_status", val)}
+                      />
+                    </div>
+                    {(o.pending_data_date || auth.can("can_edit_order_info")) && (
+                      <div className="stack-sub">
+                        ค้าง DATA:{" "}
+                        <EditableCell
+                          value={o.pending_data_date}
+                          display={formatDMY(o.pending_data_date)}
+                          type="date"
+                          canEdit={auth.can("can_edit_order_info")}
+                          onSave={(val) => onInlineSave(o, "pending_data_date", val)}
+                        />
+                      </div>
+                    )}
+                  </div>
                 </td>
-                <td>
-                  <EditableCell
-                    value={o.factory}
-                    display={o.factory === "MM-11" ? "Phase11" : "Phase4"}
-                    type="select"
-                    options={[
-                      { value: "MM-4", label: "Phase4" },
-                      { value: "MM-11", label: "Phase11" },
-                    ]}
-                    canEdit={auth.can("can_edit_order_info")}
-                    onSave={(val) => onInlineSave(o, "factory", val)}
-                  />
+
+                <td style={{ minWidth: 220 }}>
+                  <div className="cell-stack">
+                    <div className="stack-row">
+                      <span className="mono-cell">
+                        <EditableCell
+                          value={o.part_id}
+                          display={<b>{o.item_id || "-"}</b>}
+                          initialLabel={o.item_id ? `${o.item_id} · ${o.part_name || ""}` : ""}
+                          type="searchable"
+                          onSearch={async (text) => {
+                            if (!text.trim()) return [];
+                            const data = await apiGet(
+                              `/parts/?q=${encodeURIComponent(text.trim())}&page_size=15`
+                            );
+                            return data.results || [];
+                          }}
+                          getLabel={(x) => `${x.sku} · ${x.name}`}
+                          getSearchText={(x) => `${x.sku || ""} ${x.name || ""}`}
+                          placeholder="พิมพ์ Part ID / ชื่อ"
+                          canEdit={auth.can("can_edit_order_info")}
+                          onSave={(val) => onInlineSave(o, "part_id", val)}
+                        />
+                      </span>
+                      <span className="mono-cell stack-sub">
+                        <EditableCell
+                          value={o.amount}
+                          type="number"
+                          canEdit={
+                            auth.can("can_edit_order_info") &&
+                            !(o.received_at && o.stock_received)
+                          }
+                          onSave={(val) => onInlineSave(o, "amount", val)}
+                        />{" "}
+                        <EditableCell
+                          value={o.unit}
+                          type="text"
+                          canEdit={auth.can("can_edit_order_info") && !o.part_id}
+                          onSave={(val) => onInlineSave(o, "unit", val)}
+                        />
+                      </span>
+                    </div>
+                    <EditableCell
+                      value={o.part_name}
+                      type="text"
+                      canEdit={auth.can("can_edit_order_info") && !o.part_id}
+                      onSave={(val) => onInlineSave(o, "part_name", val)}
+                    />
+                    <div className="stack-sub">
+                      <EditableCell
+                        value={o.part_detail}
+                        type="text"
+                        canEdit={auth.can("can_edit_order_info") && !o.part_id}
+                        onSave={(val) => onInlineSave(o, "part_detail", val)}
+                      />
+                      {" · "}
+                      <EditableCell
+                        value={o.maker}
+                        type="text"
+                        canEdit={auth.can("can_edit_order_info") && !o.part_id}
+                        onSave={(val) => onInlineSave(o, "maker", val)}
+                      />
+                    </div>
+                  </div>
                 </td>
-                <td>{o.group_order || "-"}</td>
-                <td style={{ minWidth: 100 }}>
-                  <EditableCell
-                    value={o.machine_id}
-                    display={o.machine_name || o.machine_code || "-"}
-                    type="searchable"
-                    options={options.machines || []}
-                    getLabel={(x) => x.code}
-                    getSearchText={(x) => `${x.code || ""} ${x.name || ""}`}
-                    placeholder="พิมพ์รหัส Machine"
-                    canEdit={auth.can("can_edit_order_info")}
-                    onSave={(val) => onInlineSave(o, "machine_id", val)}
-                  />
-                </td>
-                <td>
-                  <EditableCell
-                    value={o.job}
-                    display={<b>{o.job || "-"}</b>}
-                    type="text"
-                    canEdit={auth.can("can_edit_order_info")}
-                    onSave={(val) => onInlineSave(o, "job", val)}
-                  />
-                </td>
-                <td>
-                  <EditableCell
-                    value={o.urgent_status}
-                    type="select"
-                    options={["", ...URGENT]}
-                    canEdit={auth.can("can_edit_order_info")}
-                    onSave={(val) => onInlineSave(o, "urgent_status", val)}
-                  />
-                </td>
-                <td>
-                  <EditableCell
-                    value={o.pending_data_date}
-                    display={formatDMY(o.pending_data_date)}
-                    type="date"
-                    canEdit={auth.can("can_edit_order_info")}
-                    onSave={(val) => onInlineSave(o, "pending_data_date", val)}
-                  />
-                </td>
-                <td className="mono-cell" style={{ minWidth: 110 }}>
-                  <EditableCell
-                    value={o.part_id}
-                    display={<b>{o.item_id || "-"}</b>}
-                    initialLabel={o.item_id ? `${o.item_id} · ${o.part_name || ""}` : ""}
-                    type="searchable"
-                    onSearch={async (text) => {
-                      if (!text.trim()) return [];
-                      const data = await apiGet(
-                        `/parts/?q=${encodeURIComponent(text.trim())}&page_size=15`
-                      );
-                      return data.results || [];
-                    }}
-                    getLabel={(x) => `${x.sku} · ${x.name}`}
-                    getSearchText={(x) => `${x.sku || ""} ${x.name || ""}`}
-                    placeholder="พิมพ์ Part ID / ชื่อ"
-                    canEdit={auth.can("can_edit_order_info")}
-                    onSave={(val) => onInlineSave(o, "part_id", val)}
-                  />
-                </td>
-                <td>
-                  <EditableCell
-                    value={o.part_name}
-                    type="text"
-                    canEdit={auth.can("can_edit_order_info") && !o.part_id}
-                    onSave={(val) => onInlineSave(o, "part_name", val)}
-                  />
-                </td>
-                <td className="detail-cell">
-                  <EditableCell
-                    value={o.part_detail}
-                    type="text"
-                    canEdit={auth.can("can_edit_order_info") && !o.part_id}
-                    onSave={(val) => onInlineSave(o, "part_detail", val)}
-                  />
-                </td>
-                <td>
-                  <EditableCell
-                    value={o.maker}
-                    type="text"
-                    canEdit={auth.can("can_edit_order_info") && !o.part_id}
-                    onSave={(val) => onInlineSave(o, "maker", val)}
-                  />
-                </td>
-                <td className="mono-cell">
-                  <EditableCell
-                    value={o.amount}
-                    type="number"
-                    canEdit={
-                      auth.can("can_edit_order_info") &&
-                      !(o.received_at && o.stock_received)
-                    }
-                    onSave={(val) => onInlineSave(o, "amount", val)}
-                  />
-                </td>
-                <td>
-                  <EditableCell
-                    value={o.unit}
-                    type="text"
-                    canEdit={auth.can("can_edit_order_info") && !o.part_id}
-                    onSave={(val) => onInlineSave(o, "unit", val)}
-                  />
-                </td>
-                <td style={{ minWidth: 90 }}>
-                  <EditableCell
-                    value={o.remark}
-                    type="text"
-                    canEdit={auth.can("can_edit_order_info")}
-                    onSave={(val) => onInlineSave(o, "remark", val)}
-                  />
-                </td>
-                <td style={{ minWidth: 110 }}>
-                  <EditableCell
-                    value={o.drawing_path}
-                    type="text"
-                    placeholder="Path ไฟล์ Drawing"
-                    canEdit={auth.can("can_edit_order_info")}
-                    onSave={(val) => onInlineSave(o, "drawing_path", val)}
-                  />
-                </td>
-                <td>
-                  <EditableCell
-                    value={o.quotation}
-                    display={
-                      o.rfq_count ? (
+
+                <td style={{ minWidth: 190 }}>
+                  <div className="cell-stack">
+                    <EditableCell
+                      value={o.vendor_id}
+                      display={<b>{o.vendor_name || "ยังไม่ระบุ Vendor"}</b>}
+                      type="searchable"
+                      options={options.vendors || []}
+                      getLabel={(x) => x.name}
+                      getSearchText={(x) => `${x.code || ""} ${x.name || ""}`}
+                      placeholder="พิมพ์ชื่อ Vendor"
+                      canEdit={auth.can("can_edit_purchase_info")}
+                      onSave={(val) => onInlinePurchaseSave(o, "vendor_id", val)}
+                    />
+                    <div className="stack-sub mono-cell">
+                      PO:{" "}
+                      <EditableCell
+                        value={o.po_number}
+                        type="text"
+                        canEdit={auth.can("can_edit_purchase_info")}
+                        onSave={(val) => onInlinePurchaseSave(o, "po_number", val)}
+                      />
+                    </div>
+                    <div className="stack-sub mono-cell">
+                      {o.rfq_count ? (
                         <span className="status info">RFQ {fmt(o.rfq_count)}</span>
                       ) : (
-                        o.quotation || "-"
-                      )
-                    }
-                    type="text"
-                    canEdit={auth.can("can_edit_purchase_info") && !o.rfq_count}
-                    onSave={(val) => onInlinePurchaseSave(o, "quotation", val)}
-                  />
+                        <EditableCell
+                          value={o.quotation}
+                          display={o.quotation || "-"}
+                          type="text"
+                          canEdit={auth.can("can_edit_purchase_info")}
+                          onSave={(val) => onInlinePurchaseSave(o, "quotation", val)}
+                        />
+                      )}
+                      {" · "}
+                      <EditableCell
+                        value={o.price_per_unit}
+                        display={`${o.currency || "THB"} ${money(o.price_per_unit)}`}
+                        type="number"
+                        canEdit={auth.can("can_edit_purchase_info")}
+                        onSave={(val) => onInlinePurchaseSave(o, "price_per_unit", val)}
+                      />
+                      {" = "}
+                      {o.currency || "THB"} {money(o.price_total)}
+                    </div>
+                    <div className="stack-sub mono-cell">
+                      Lead time:{" "}
+                      <EditableCell
+                        value={o.lead_time_days}
+                        display={o.lead_time_days == null ? "-" : `${o.lead_time_days} วัน`}
+                        type="number"
+                        canEdit={auth.can("can_edit_purchase_info")}
+                        onSave={(val) => onInlinePurchaseSave(o, "lead_time_days", val)}
+                      />
+                    </div>
+                  </div>
                 </td>
-                <td>
-                  <EditableCell
-                    value={o.po_number}
-                    type="text"
-                    canEdit={auth.can("can_edit_purchase_info")}
-                    onSave={(val) => onInlinePurchaseSave(o, "po_number", val)}
-                  />
+
+                <td className="mono-cell" style={{ minWidth: 170 }}>
+                  <div className="cell-stack">
+                    <div className="stack-sub">
+                      สั่งโดย:{" "}
+                      <EditableCell
+                        value={o.ordered_by_id}
+                        display={o.ordered_by || "-"}
+                        type="searchable"
+                        options={options.employees || []}
+                        getLabel={(x) => x.name}
+                        getSearchText={(x) => `${x.employee_code || ""} ${x.name || ""}`}
+                        placeholder="พิมพ์ชื่อพนักงาน"
+                        canEdit={auth.can("can_edit_order_info")}
+                        onSave={(val) => onInlineSave(o, "ordered_by_id", val)}
+                      />
+                    </div>
+                    <div className="stack-sub">
+                      PR:{" "}
+                      <EditableCell
+                        value={o.issue_pr_date}
+                        display={formatDMY(o.issue_pr_date)}
+                        type="date"
+                        canEdit={auth.can("can_edit_purchase_info")}
+                        onSave={(val) => onInlinePurchaseSave(o, "issue_pr_date", val)}
+                      />
+                    </div>
+                    <div className="stack-sub">
+                      Due:{" "}
+                      <EditableCell
+                        value={o.due_date}
+                        display={formatDMY(o.due_date)}
+                        type="date"
+                        canEdit={auth.can("can_edit_purchase_info")}
+                        onSave={(val) => onInlinePurchaseSave(o, "due_date", val)}
+                      />
+                    </div>
+                    <div className="stack-sub">
+                      Confirm:{" "}
+                      <EditableCell
+                        value={o.vendor_confirm_date}
+                        display={formatDMY(o.vendor_confirm_date)}
+                        type="date"
+                        canEdit={auth.can("can_edit_purchase_info")}
+                        onSave={(val) => onInlinePurchaseSave(o, "vendor_confirm_date", val)}
+                      />
+                    </div>
+                    {o.received_at && (
+                      <div className="stack-sub">
+                        รับของ: {formatDMY(o.received_at, true)}
+                      </div>
+                    )}
+                  </div>
                 </td>
-                <td>
-                  <EditableCell
-                    value={o.price_per_unit}
-                    display={`${o.currency || "THB"} ${money(o.price_per_unit)}`}
-                    type="number"
-                    canEdit={auth.can("can_edit_purchase_info")}
-                    onSave={(val) => onInlinePurchaseSave(o, "price_per_unit", val)}
-                  />
+
+                <td style={{ minWidth: 130 }}>
+                  <div className="cell-stack">
+                    <EditableCell
+                      value={o.remark}
+                      display={o.remark || "-"}
+                      type="text"
+                      canEdit={auth.can("can_edit_order_info")}
+                      onSave={(val) => onInlineSave(o, "remark", val)}
+                    />
+                    <div className="stack-sub mono-cell">
+                      📎{" "}
+                      <EditableCell
+                        value={o.drawing_path}
+                        display={o.drawing_path ? "แนบแล้ว" : "แนบไฟล์"}
+                        type="text"
+                        placeholder="Path ไฟล์ Drawing"
+                        canEdit={auth.can("can_edit_order_info")}
+                        onSave={(val) => onInlineSave(o, "drawing_path", val)}
+                      />
+                    </div>
+                  </div>
                 </td>
-                <td>{o.currency || "THB"} {money(o.price_total)}</td>
-                <td style={{ minWidth: 100 }}>
-                  <EditableCell
-                    value={o.vendor_id}
-                    display={o.vendor_name || "-"}
-                    type="searchable"
-                    options={options.vendors || []}
-                    getLabel={(x) => x.name}
-                    getSearchText={(x) => `${x.code || ""} ${x.name || ""}`}
-                    placeholder="พิมพ์ชื่อ Vendor"
-                    canEdit={auth.can("can_edit_purchase_info")}
-                    onSave={(val) => onInlinePurchaseSave(o, "vendor_id", val)}
-                  />
+
+                <td style={{ minWidth: 130 }}>
+                  <div className="cell-stack">
+                    <span className={`status ${statusClass(shownStatus)}`}>
+                      {shownStatus}
+                    </span>
+                    <span
+                      className={`status ${
+                        o.lifecycle_status === "COMPLETED"
+                          ? "success"
+                          : o.lifecycle_status === "CANCELLED"
+                            ? "danger"
+                            : o.lifecycle_status === "WAIT_CONFIRM"
+                              ? "confirm"
+                              : "muted"
+                      }`}
+                    >
+                      {o.lifecycle_status || "ACTIVE"}
+                    </span>
+                    <div className="stack-sub">
+                      PIC:{" "}
+                      <EditableCell
+                        value={o.person_in_charge_id}
+                        display={o.person_in_charge || "-"}
+                        type="searchable"
+                        options={options.employees || []}
+                        getLabel={(x) => x.name}
+                        getSearchText={(x) => `${x.employee_code || ""} ${x.name || ""}`}
+                        placeholder="พิมพ์ชื่อพนักงาน"
+                        canEdit={auth.can("can_edit_purchase_info")}
+                        onSave={(val) => onInlinePurchaseSave(o, "person_in_charge_id", val)}
+                      />
+                    </div>
+                    {o.edit_data_status && (
+                      <div className="stack-sub">{o.edit_data_status}</div>
+                    )}
+                  </div>
                 </td>
-                <td>
-                  <EditableCell
-                    value={o.lead_time_days}
-                    display={o.lead_time_days == null ? "-" : `${o.lead_time_days} DAY`}
-                    type="number"
-                    canEdit={auth.can("can_edit_purchase_info")}
-                    onSave={(val) => onInlinePurchaseSave(o, "lead_time_days", val)}
-                  />
-                </td>
-                <td style={{ minWidth: 100 }}>
-                  <EditableCell
-                    value={o.ordered_by_id}
-                    display={o.ordered_by || "-"}
-                    type="searchable"
-                    options={options.employees || []}
-                    getLabel={(x) => x.name}
-                    getSearchText={(x) => `${x.employee_code || ""} ${x.name || ""}`}
-                    placeholder="พิมพ์ชื่อพนักงาน"
-                    canEdit={auth.can("can_edit_order_info")}
-                    onSave={(val) => onInlineSave(o, "ordered_by_id", val)}
-                  />
-                </td>
-                <td>
-                  <EditableCell
-                    value={o.issue_pr_date}
-                    display={formatDMY(o.issue_pr_date)}
-                    type="date"
-                    canEdit={auth.can("can_edit_purchase_info")}
-                    onSave={(val) => onInlinePurchaseSave(o, "issue_pr_date", val)}
-                  />
-                </td>
-                <td>
-                  <EditableCell
-                    value={o.due_date}
-                    display={formatDMY(o.due_date)}
-                    type="date"
-                    canEdit={auth.can("can_edit_purchase_info")}
-                    onSave={(val) => onInlinePurchaseSave(o, "due_date", val)}
-                  />
-                </td>
-                <td>
-                  <EditableCell
-                    value={o.vendor_confirm_date}
-                    display={formatDMY(o.vendor_confirm_date)}
-                    type="date"
-                    canEdit={auth.can("can_edit_purchase_info")}
-                    onSave={(val) => onInlinePurchaseSave(o, "vendor_confirm_date", val)}
-                  />
-                </td>
-                <td>
-                  {o.received_at
-                    ? formatDMY(o.received_at, true)
-                    : "-"}
-                </td>
-                <td style={{ minWidth: 100 }}>
-                  <EditableCell
-                    value={o.person_in_charge_id}
-                    display={o.person_in_charge || "-"}
-                    type="searchable"
-                    options={options.employees || []}
-                    getLabel={(x) => x.name}
-                    getSearchText={(x) => `${x.employee_code || ""} ${x.name || ""}`}
-                    placeholder="พิมพ์ชื่อพนักงาน"
-                    canEdit={auth.can("can_edit_purchase_info")}
-                    onSave={(val) => onInlinePurchaseSave(o, "person_in_charge_id", val)}
-                  />
-                </td>
-                <td>
-                  <span className={`status ${statusClass(shownStatus)}`}>
-                    {shownStatus}
-                  </span>
-                </td>
-                <td>
-                  <span
-                    className={`status ${
-                      o.lifecycle_status === "COMPLETED"
-                        ? "success"
-                        : o.lifecycle_status === "CANCELLED"
-                          ? "danger"
-                          : o.lifecycle_status === "WAIT_CONFIRM"
-                            ? "confirm"
-                            : "muted"
-                    }`}
-                  >
-                    {o.lifecycle_status || "ACTIVE"}
-                  </span>
-                </td>
-                <td>{o.edit_data_status || "-"}</td>
+
                 {onUsage && (
                   <td>
                     <select
