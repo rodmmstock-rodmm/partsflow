@@ -2672,6 +2672,26 @@ export default function Orders({ mode = "orders" }) {
     }
   }
 
+  async function confirmStep(step) {
+    if (!selectedProject || !step) return;
+    if (
+      !window.confirm(
+        `ยืนยันว่าราคาที่ได้โอเค ให้เริ่มสั่งซื้อ Step ${step.step_no} ได้เลยใช่ไหม?`
+      )
+    )
+      return;
+    setError("");
+    try {
+      await apiPost(
+        `/order-projects/${selectedProject.id}/steps/${step.id}/confirm/`,
+        {}
+      );
+      await selectProject(selectedProject, true);
+    } catch (err) {
+      setError(err.message);
+    }
+  }
+
   async function deleteStep(step) {
     if (!selectedProject || !step) return;
     if (
@@ -3581,12 +3601,30 @@ export default function Orders({ mode = "orders" }) {
                           <div>
                             <h2>Step {step.step_no}</h2>
                             <p>{step.import_filename || "Manual Step"}</p>
+                            {step.confirmed_by && (
+                              <p style={{ marginTop: 2 }}>
+                                ยืนยันโดย <b>{step.confirmed_by}</b>
+                                {step.confirmed_at
+                                  ? ` เมื่อ ${formatDMY(step.confirmed_at, true)}`
+                                  : ""}
+                              </p>
+                            )}
                           </div>
 
                           <div
                             className="page-actions"
                             style={{ flexWrap: "wrap", justifyContent: "flex-end" }}
                           >
+                            {step.status === "WAIT_CONFIRM" &&
+                              (auth.can("can_confirm_order_step") ||
+                                auth.can("can_manage_order_projects")) && (
+                                <button
+                                  className="btn success"
+                                  onClick={() => confirmStep(step)}
+                                >
+                                  ✓ ยืนยันสั่งของ
+                                </button>
+                              )}
                             {auth.can("can_manage_order_projects") ? (
                               <select
                                 value={step.status || "WAIT_QUOTATION"}

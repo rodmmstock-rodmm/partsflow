@@ -1583,7 +1583,7 @@ def project_detail(request, pk):
         return Response({"ok": True})
 
     steps = []
-    for step in project.steps.order_by("step_no"):
+    for step in project.steps.select_related("confirmed_by_employee").order_by("step_no"):
         step_orders = list(
             order_queryset()
             .filter(
@@ -1642,6 +1642,14 @@ def project_detail(request, pk):
                 "status": step.status,
                 "status_label": dict(OrderStep.STATUS_CHOICES).get(step.status, step.status),
                 "import_filename": step.import_filename,
+                "confirmed_by": (
+                    step.confirmed_by_employee.name
+                    if step.confirmed_by_employee else ""
+                ),
+                "confirmed_at": (
+                    timezone.localtime(step.confirmed_at).isoformat()
+                    if step.confirmed_at else ""
+                ),
                 "created_at": (
                     timezone.localtime(step.created_at).isoformat()
                 ),
@@ -1716,6 +1724,63 @@ def create_project_step(request, pk):
         )
     except IntegrityError as exc:
         return Response({"detail": str(exc)}, status=400)
+
+
+@csrf_exempt
+@api_view(["POST"])
+@permission_classes([AllowAny])
+def confirm_step(request, pk, step_pk):
+    """Dedicated one-click confirmation for a Step, separate from the admin
+    status dropdown. Anyone with can_confirm_order_step (a lighter-weight
+    permission than can_manage_order_projects) can use this to move a Step
+    from WAIT_CONFIRM -> ORDERING once they're happy with the quoted price,
+    without needing full project-management rights.
+    """
+    actor, err = require_permission(request)
+    if err:
+        return err
+    perms = permissions_for(actor)
+    if not (
+        perms.get("can_confirm_order_step")
+        or perms.get("can_manage_order_projects")
+    ):
+        return Response({"detail": "คุณไม่มีสิทธิ์ใช้งานส่วนนี้"}, status=403)
+
+    step = OrderStep.objects.filter(pk=step_pk, project_id=pk).first()
+    if not step:
+        return Response({"detail": "ไม่พบ Step"}, status=404)
+    if step.status != OrderStep.STATUS_WAIT_CONFIRM:
+        return Response(
+            {"detail": "Step นี้ไม่ได้อยู่ในสถานะรอ Confirm"}, status=400
+        )
+
+    step.status = OrderStep.STATUS_ORDERING
+    step.confirmed_by_employee = actor
+    step.confirmed_at = timezone.now()
+    step.save(
+        update_fields=[
+            "status",
+            "confirmed_by_employee",
+            "confirmed_at",
+            "updated_at",
+        ]
+    )
+    audit(
+        actor,
+        "CONFIRM_STEP",
+        "OrderStep",
+        step.id,
+        {"confirmed_by": actor.name},
+    )
+    return Response(
+        {
+            "id": str(step.id),
+            "status": step.status,
+            "status_label": dict(OrderStep.STATUS_CHOICES).get(step.status),
+            "confirmed_by": actor.name,
+            "confirmed_at": timezone.localtime(step.confirmed_at).isoformat(),
+        }
+    )
 
 
 @csrf_exempt

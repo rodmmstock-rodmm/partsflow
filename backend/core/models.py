@@ -313,6 +313,7 @@ class RoleAccess(UUIDMixin):
     can_delete_order = models.BooleanField(default=False)
     can_update_edit_data = models.BooleanField(default=False)
     can_manage_order_projects = models.BooleanField(default=False)
+    can_confirm_order_step = models.BooleanField(default=False)
     can_create_order_from_quotation = models.BooleanField(default=False)
     can_view_deleted_orders = models.BooleanField(default=False)
 
@@ -448,6 +449,14 @@ class OrderStep(UUIDMixin):
         on_delete=models.SET_NULL,
         related_name="imported_order_steps",
     )
+    confirmed_by_employee = models.ForeignKey(
+        Employee,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="confirmed_order_steps",
+    )
+    confirmed_at = models.DateTimeField(null=True, blank=True)
 
     class Meta:
         ordering = ["project", "step_no"]
