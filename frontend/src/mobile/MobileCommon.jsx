@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { apiGet, apiPost } from "../api";
 import { Alert, Modal, PartImage, SearchableSelect, fmt, isNoCountSku, stockDisplay } from "../components/Common";
+import { useOptions } from "../optionsContext";
 
 export function MobilePage({ title, subtitle, actions, children }) {
   return <div className="m-page">
@@ -31,14 +32,14 @@ export function MobileStockModal({ mode, part, employee, onClose, onSaved }) {
   const [requesterId,setRequesterId]=useState("");
   const [machineId,setMachineId]=useState("");
   const [note,setNote]=useState("");
-  const [options,setOptions]=useState({employees:[],machines:[]});
+  const {options}=useOptions();
   const [error,setError]=useState("");
   const [busy,setBusy]=useState(false);
   const [loading,setLoading]=useState(issue);
 
   useEffect(()=>{
     if(!issue)return;
-    apiGet("/options/").then(o=>setOptions(o||{})).catch(e=>setError(e.message)).finally(()=>setLoading(false));
+    setLoading(false);
   },[issue]);
 
   const after=useMemo(()=>{

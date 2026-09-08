@@ -4,6 +4,7 @@ import { apiDelete, apiGet, apiPatch, apiPost } from "../api";
 import { useAuth } from "../auth";
 import { Alert, Modal, PageHeader, SearchableSelect, fmt, formatDMY, money } from "../components/Common";
 import RFQComposeModal from "../components/RFQComposeModal";
+import { useOptions } from "../optionsContext";
 
 const ORDER_TABS = [
   ["normal", "Order Normal"],
@@ -2186,7 +2187,7 @@ export default function Orders({ mode = "orders" }) {
   const auth = useAuth();
   const stepPage = mode === "steps";
   const [tab, setTab] = useState(stepPage ? "step" : "normal");
-  const [options, setOptions] = useState({});
+  const { options } = useOptions();
   const [rows, setRows] = useState([]);
   const [kpi, setKpi] = useState({});
   const [error, setError] = useState("");
@@ -2220,14 +2221,6 @@ export default function Orders({ mode = "orders" }) {
   const [restoringId, setRestoringId] = useState(null);
   const [showAllDates, setShowAllDates] = useState(false);
   const [dateRangeInfo, setDateRangeInfo] = useState(null);
-
-  async function loadOptions() {
-    try {
-      setOptions(await apiGet("/options/"));
-    } catch (err) {
-      setError(err.message);
-    }
-  }
 
   async function loadOrders(forceRefresh = false) {
     if (tab === "step") return;
@@ -2299,10 +2292,6 @@ export default function Orders({ mode = "orders" }) {
       setError(err.message);
     }
   }
-
-  useEffect(() => {
-    loadOptions();
-  }, []);
 
   useEffect(() => {
     const timer = setTimeout(() => setQ(qInput.trim()), 400);

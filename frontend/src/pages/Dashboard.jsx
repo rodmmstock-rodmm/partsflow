@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { apiGet, apiPatch, apiPost, apiUpload } from "../api";
 import { useAuth } from "../auth";
 import { Alert, Modal, PageHeader, PartImage, SearchableSelect, fmt, stockDisplay, isNoCountSku } from "../components/Common";
+import { useOptions } from "../optionsContext";
 import BarcodeScannerModal from "../components/BarcodeScannerModal";
 import PartDetailModal from "../components/PartDetailModal";
 
@@ -416,7 +417,7 @@ export default function Dashboard() {
   const [tableScrollWidth, setTableScrollWidth] = useState(0);
   const [kpi, setKpi] = useState({});
   const [parts, setParts] = useState([]);
-  const [options, setOptions] = useState(null);
+  const { options } = useOptions();
   const [q, setQ] = useState("");
   const [debouncedQ, setDebouncedQ] = useState("");
   const [warehouse, setWarehouse] = useState("");
@@ -432,7 +433,7 @@ export default function Dashboard() {
   });
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(true);
-  const [optionsLoading, setOptionsLoading] = useState(false);
+  const optionsLoading = false;
   const [partModal, setPartModal] = useState(null);
   const [stockModal, setStockModal] = useState(null);
   const [adjust, setAdjust] = useState(null);
@@ -482,18 +483,7 @@ export default function Dashboard() {
   }
 
   async function ensureOptions() {
-    if (options) return options;
-    setOptionsLoading(true);
-    try {
-      const loaded = await apiGet("/options/");
-      setOptions(loaded || {});
-      return loaded || {};
-    } catch (err) {
-      setError(err.message);
-      return null;
-    } finally {
-      setOptionsLoading(false);
-    }
+    return options || {};
   }
 
   async function openAddPart() {
