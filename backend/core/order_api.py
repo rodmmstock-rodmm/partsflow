@@ -1374,6 +1374,10 @@ def project_json(project):
         "created_at": timezone.localtime(project.created_at).isoformat(),
         "active": project.active,
         "step_count": project.steps.count(),
+        "step_status_summary": {
+            row["status"]: row["n"]
+            for row in project.steps.values("status").annotate(n=Count("id"))
+        },
         "total_items": len(orders),
         "quotation_items": len(quotation_orders),
         "quotation_waiting": sum(

@@ -1885,7 +1885,29 @@ function MonthlyProjectList({ projects, onSelect }) {
                               <td><b>{project.name}</b></td>
                               <td>{project.owner_name || "-"}</td>
                               <td>{project.created_at ? formatDMY(project.created_at) : "-"}</td>
-                              <td>{fmt(project.step_count)}</td>
+                              <td>
+                                {project.step_status_summary &&
+                                Object.keys(project.step_status_summary).length ? (
+                                  <div style={{ display: "flex", gap: 4, flexWrap: "wrap" }}>
+                                    {STEP_STATUS_OPTIONS.map((opt) => {
+                                      const n = project.step_status_summary[opt.value];
+                                      if (!n) return null;
+                                      return (
+                                        <span
+                                          key={opt.value}
+                                          className="status muted"
+                                          title={opt.label}
+                                          style={{ fontSize: 9 }}
+                                        >
+                                          {opt.label} {n}
+                                        </span>
+                                      );
+                                    })}
+                                  </div>
+                                ) : (
+                                  fmt(project.step_count)
+                                )}
+                              </td>
                               <td>{fmt(project.quotation_items)}</td>
                               <td>{fmt(project.total_items)}</td>
                             </tr>
@@ -2237,6 +2259,7 @@ export default function Orders({ mode = "orders" }) {
   const [projectDepartment, setProjectDepartment] = useState("MODIFY");
   const [projectPhase, setProjectPhase] = useState("quotation");
   const [projectSearch, setProjectSearch] = useState("");
+  const [stepStatusFilter, setStepStatusFilter] = useState("");
   const [conversionRows, setConversionRows] = useState(null);
 
   const [selected, setSelected] = useState(() => new Set());
@@ -2382,13 +2405,22 @@ export default function Orders({ mode = "orders" }) {
 
   const shownProjects = useMemo(() => {
     const needle = projectSearch.trim().toLowerCase();
-    if (!needle) return projects;
-    return projects.filter((project) =>
-      `${project.name} ${project.owner_name || ""}`
-        .toLowerCase()
-        .includes(needle)
-    );
-  }, [projects, projectSearch]);
+    let list = projects;
+    if (needle) {
+      list = list.filter((project) =>
+        `${project.name} ${project.owner_name || ""}`
+          .toLowerCase()
+          .includes(needle)
+      );
+    }
+    if (stepStatusFilter) {
+      list = list.filter(
+        (project) =>
+          Number(project.step_status_summary?.[stepStatusFilter] || 0) > 0
+      );
+    }
+    return list;
+  }, [projects, projectSearch, stepStatusFilter]);
 
   const allVisibleOrders = useMemo(() => {
     if (tab !== "step") return rows;
@@ -3378,6 +3410,21 @@ export default function Orders({ mode = "orders" }) {
                   onChange={(e) => setProjectSearch(e.target.value)}
                   placeholder="ค้นหา Project / เจ้าของ Project..."
                 />
+              </div>
+
+              <div className="tab-row" style={{ marginBottom: 14 }}>
+                {[
+                  ["", "ทั้งหมด"],
+                  ...STEP_STATUS_OPTIONS.map((o) => [o.value, o.label]),
+                ].map(([value, label]) => (
+                  <button
+                    key={value || "all"}
+                    className={`tab ${stepStatusFilter === value ? "active" : ""}`}
+                    onClick={() => setStepStatusFilter(value)}
+                  >
+                    {label}
+                  </button>
+                ))}
               </div>
 
               <MonthlyProjectList

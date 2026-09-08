@@ -1,6 +1,6 @@
 from django.urls import path
 
-from . import appsheet_api, auth_api, dashboard_api, drive_oauth, fast_order_api, order_api, order_audit_api, rfq_api, role_api, spare_set_api, stock_api, web_api
+from . import auth_api, dashboard_api, drive_oauth, fast_order_api, order_api, order_audit_api, rfq_api, role_api, spare_set_api, stock_api, web_api
 
 urlpatterns = [
     path("auth/login/", auth_api.login_view),
@@ -41,10 +41,6 @@ urlpatterns = [
     path("fast-orders/", fast_order_api.fast_orders, name="web-fast-orders"),
     path("fast-orders/<uuid:pk>/", fast_order_api.fast_order_detail, name="web-fast-order-detail"),
     path("fast-orders/<uuid:pk>/order/", fast_order_api.fast_order_create_normal, name="web-fast-order-create-normal"),
-
-    path("appsheet/health/", appsheet_api.appsheet_health, name="appsheet-health"),
-    path("appsheet/parts/", appsheet_api.appsheet_parts, name="appsheet-parts"),
-    path("appsheet/stock/", appsheet_api.appsheet_stock, name="appsheet-stock"),
 
     path("orders/", order_audit_api.orders, name="web-orders"),
     path("orders/batch/", order_api.create_orders_batch, name="web-orders-batch"),
