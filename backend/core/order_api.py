@@ -376,14 +376,21 @@ def apply_order_info(order, data, *, creating=False, allow_order_date=False):
         if "unit" in data or creating:
             order.unit_text = str(data.get("unit") or "").strip()
 
-    if not order.part_name:
-        raise ValueError("Part Name จำเป็นต้องใส่")
-    if not order.part_detail:
-        raise ValueError("Part Detail จำเป็นต้องใส่")
-    if not order.maker_text:
-        raise ValueError("MAKER จำเป็นต้องใส่")
-    if not order.unit_text:
-        raise ValueError("Unit จำเป็นต้องใส่")
+    # These four fields only need to be complete together when an Order is
+    # first submitted via the full "+ เพิ่ม Order ปกติ" form. A quick-add
+    # blank row is filled in one field at a time via inline editing, so an
+    # inline PATCH that only touches (say) machine_id or amount must not
+    # get blocked by part_detail/maker/unit still being empty - those are
+    # edited in separate requests, not this one.
+    if creating:
+        if not order.part_name:
+            raise ValueError("Part Name จำเป็นต้องใส่")
+        if not order.part_detail:
+            raise ValueError("Part Detail จำเป็นต้องใส่")
+        if not order.maker_text:
+            raise ValueError("MAKER จำเป็นต้องใส่")
+        if not order.unit_text:
+            raise ValueError("Unit จำเป็นต้องใส่")
 
     if "amount" in data or creating:
         try:
