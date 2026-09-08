@@ -1,10 +1,10 @@
 {
   "ok": false,
   "job_status": "failure",
-  "run_id": "34177154324",
-  "source_sha": "d588907d16ff50a4432a62d07f98c7d55d05d02a",
+  "run_id": "34179777307",
+  "source_sha": "0e7d0175c35fbe54762d975f6cf0e9ad648e0fd3",
   "artifact_name": "PartsFlow-Local-Windows",
   "zip_sha256": "",
   "zip_size": 0,
-  "built_at_utc": "2026-09-08T01:40:39.4816531Z"
+  "built_at_utc": "2026-09-08T02:27:05.7977572Z"
 }
