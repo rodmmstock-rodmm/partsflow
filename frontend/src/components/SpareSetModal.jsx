@@ -1,6 +1,196 @@
 import { useMemo, useState } from "react";
-import { apiPatch, apiPost } from "../api";
+import { apiGet, apiPatch, apiPost } from "../api";
 import { Alert, Modal, SearchableSelect } from "./Common";
-const partLabel=p=>`${p.sku} · ${p.name}`,machineLabel=m=>m.code;
-const findPart=(xs,v)=>{const t=String(v||"").trim().toLowerCase();return(xs||[]).find(p=>partLabel(p).toLowerCase()===t||String(p.sku).toLowerCase()===t)};
-export default function SpareSetModal({spareSet,options,onClose,onSaved}){const edit=!!spareSet?.id,machines=options.machines||[],parts=options.parts||[];const initialItems=(spareSet?.items||[]).map(x=>({partText:`${x.sku} · ${x.name}`,part_id:x.part_id,quantity:x.quantity||1,remark:x.remark||""}));const[form,setForm]=useState({machine_id:spareSet?.machine_id||"",name:spareSet?.name||"",description:spareSet?.description||"",active:spareSet?.active!==false,items:initialItems.length?initialItems:[{partText:"",part_id:"",quantity:1,remark:""}]});const[busy,setBusy]=useState(false),[error,setError]=useState("");const duplicateIds=useMemo(()=>{const seen=new Set(),dup=new Set();form.items.forEach(x=>{if(!x.part_id)return;seen.has(x.part_id)?dup.add(x.part_id):seen.add(x.part_id)});return dup},[form.items]);const set=(k,v)=>setForm(x=>({...x,[k]:v}));const updateItem=(i,p)=>setForm(x=>({...x,items:x.items.map((r,n)=>n===i?{...r,...p}:r)}));const changePart=(i,v)=>{const p=findPart(parts,v);updateItem(i,{partText:v,part_id:p?.id||""})};const addItem=()=>setForm(x=>({...x,items:[...x.items,{partText:"",part_id:"",quantity:1,remark:""}]}));const removeItem=i=>setForm(x=>({...x,items:x.items.filter((_,n)=>n!==i)}));async function save(e){e.preventDefault();setError("");if(!form.machine_id)return setError("กรุณาเลือกเครื่องจักร");if(!form.name.trim())return setError("กรุณาระบุชื่อ Set");if(form.items.some(x=>!x.part_id))return setError("กรุณาเลือกอะไหล่จากรายการให้ครบ");if(duplicateIds.size)return setError("มีอะไหล่ซ้ำใน Set");if(form.items.some(x=>Number(x.quantity)<=0))return setError("จำนวนต่อ Set ต้องมากกว่า 0");const payload={machine_id:form.machine_id,name:form.name.trim(),description:form.description.trim(),active:!!form.active,items:form.items.map(x=>({part_id:x.part_id,quantity:x.quantity,remark:x.remark||""}))};setBusy(true);try{onSaved(edit?await apiPatch(`/spare-sets/${spareSet.id}/`,payload):await apiPost("/spare-sets/",payload))}catch(err){setError(err.message)}finally{setBusy(false)}}return <Modal title={edit?"แก้ไข Machine Spare Set":"สร้าง Machine Spare Set"} onClose={onClose} wide><form onSubmit={save}><div className="form-grid three"><label className="field span2"><span>Machine *</span><SearchableSelect required value={form.machine_id} options={machines} onChange={value=>set("machine_id",value)} getLabel={machineLabel} getSearchText={m=>`${m.code||""} ${m.name||""} ${m.location||""}`} placeholder="พิมพ์รหัส Machine"/><small className="field-help">พิมพ์ค้นหา แล้วเลือกเครื่องจักรจากรายการ</small></label><label className="check"><input type="checkbox" checked={form.active} onChange={e=>set("active",e.target.checked)}/> Active</label><label className="field span3"><span>ชื่อ Set *</span><input value={form.name} onChange={e=>set("name",e.target.value)} required/></label><label className="field span3"><span>รายละเอียด Set</span><textarea rows="2" value={form.description} onChange={e=>set("description",e.target.value)}/></label></div><div className="section-head spare-set-items-head"><div><h2>รายการอะไหล่ใน Set</h2><p>เลือกอะไหล่และกำหนดจำนวนที่ใช้ต่อ 1 Set</p></div><button type="button" className="btn ghost" onClick={addItem}>+ เพิ่มอะไหล่</button></div><div className="spare-set-editor-list">{form.items.map((row,index)=><div className={`spare-set-editor-row ${row.part_id&&duplicateIds.has(row.part_id)?"duplicate":""}`} key={index}><div className="spare-set-editor-no">{index+1}</div><label className="field spare-set-part-field"><span>อะไหล่ *</span><input list="spare-set-parts" value={row.partText} onChange={e=>changePart(index,e.target.value)} placeholder="Part ID · Part Name"/></label><label className="field"><span>จำนวน / Set *</span><input type="number" min="0.01" step="0.01" value={row.quantity} onChange={e=>updateItem(index,{quantity:e.target.value})}/></label><label className="field"><span>Remark</span><input value={row.remark} onChange={e=>updateItem(index,{remark:e.target.value})}/></label><button type="button" className="mini danger spare-set-remove" onClick={()=>removeItem(index)} disabled={form.items.length===1}>ลบ</button></div>)}</div><datalist id="spare-set-parts">{parts.map(p=><option key={p.id} value={partLabel(p)}/>)}</datalist><Alert>{error}</Alert><div className="modal-actions"><button type="button" className="btn ghost" onClick={onClose}>ยกเลิก</button><button className="btn primary" disabled={busy}>{busy?"กำลังบันทึก...":"บันทึก Set"}</button></div></form></Modal>}
+
+const partLabel = (p) => `${p.sku} · ${p.name}`;
+const machineLabel = (m) => m.code;
+
+export default function SpareSetModal({ spareSet, options, onClose, onSaved }) {
+  const edit = !!spareSet?.id;
+  const machines = options.machines || [];
+  const initialItems = (spareSet?.items || []).map((x) => ({
+    partText: `${x.sku} · ${x.name}`,
+    part_id: x.part_id,
+    quantity: x.quantity || 1,
+    remark: x.remark || "",
+  }));
+  const [form, setForm] = useState({
+    machine_id: spareSet?.machine_id || "",
+    name: spareSet?.name || "",
+    description: spareSet?.description || "",
+    active: spareSet?.active !== false,
+    items: initialItems.length
+      ? initialItems
+      : [{ partText: "", part_id: "", quantity: 1, remark: "" }],
+  });
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
+
+  const duplicateIds = useMemo(() => {
+    const seen = new Set();
+    const dup = new Set();
+    form.items.forEach((x) => {
+      if (!x.part_id) return;
+      seen.has(x.part_id) ? dup.add(x.part_id) : seen.add(x.part_id);
+    });
+    return dup;
+  }, [form.items]);
+
+  const set = (k, v) => setForm((x) => ({ ...x, [k]: v }));
+  const updateItem = (i, p) =>
+    setForm((x) => ({
+      ...x,
+      items: x.items.map((r, n) => (n === i ? { ...r, ...p } : r)),
+    }));
+  const choosePart = (i, part) =>
+    updateItem(i, {
+      partText: part ? partLabel(part) : "",
+      part_id: part?.id || "",
+    });
+  const addItem = () =>
+    setForm((x) => ({
+      ...x,
+      items: [...x.items, { partText: "", part_id: "", quantity: 1, remark: "" }],
+    }));
+  const removeItem = (i) =>
+    setForm((x) => ({ ...x, items: x.items.filter((_, n) => n !== i) }));
+
+  async function searchParts(text) {
+    if (!text.trim()) return [];
+    const data = await apiGet(`/parts/?q=${encodeURIComponent(text.trim())}&page_size=15`);
+    return data.results || [];
+  }
+
+  async function save(e) {
+    e.preventDefault();
+    setError("");
+    if (!form.machine_id) return setError("กรุณาเลือกเครื่องจักร");
+    if (!form.name.trim()) return setError("กรุณาระบุชื่อ Set");
+    if (form.items.some((x) => !x.part_id))
+      return setError("กรุณาเลือกอะไหล่จากรายการให้ครบ");
+    if (duplicateIds.size) return setError("มีอะไหล่ซ้ำใน Set");
+    if (form.items.some((x) => Number(x.quantity) <= 0))
+      return setError("จำนวนต่อ Set ต้องมากกว่า 0");
+    const payload = {
+      machine_id: form.machine_id,
+      name: form.name.trim(),
+      description: form.description.trim(),
+      active: !!form.active,
+      items: form.items.map((x) => ({
+        part_id: x.part_id,
+        quantity: x.quantity,
+        remark: x.remark || "",
+      })),
+    };
+    setBusy(true);
+    try {
+      onSaved(
+        edit
+          ? await apiPatch(`/spare-sets/${spareSet.id}/`, payload)
+          : await apiPost("/spare-sets/", payload)
+      );
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <Modal title={edit ? "แก้ไข Machine Spare Set" : "สร้าง Machine Spare Set"} onClose={onClose} wide>
+      <form onSubmit={save}>
+        <div className="form-grid three">
+          <label className="field span2">
+            <span>Machine *</span>
+            <SearchableSelect
+              required
+              value={form.machine_id}
+              options={machines}
+              onChange={(value) => set("machine_id", value)}
+              getLabel={machineLabel}
+              getSearchText={(m) => `${m.code || ""} ${m.name || ""} ${m.location || ""}`}
+              placeholder="พิมพ์รหัส Machine"
+            />
+            <small className="field-help">พิมพ์ค้นหา แล้วเลือกเครื่องจักรจากรายการ</small>
+          </label>
+          <label className="check">
+            <input type="checkbox" checked={form.active} onChange={(e) => set("active", e.target.checked)} /> Active
+          </label>
+          <label className="field span3">
+            <span>ชื่อ Set *</span>
+            <input value={form.name} onChange={(e) => set("name", e.target.value)} required />
+          </label>
+          <label className="field span3">
+            <span>รายละเอียด Set</span>
+            <textarea rows="2" value={form.description} onChange={(e) => set("description", e.target.value)} />
+          </label>
+        </div>
+
+        <div className="section-head spare-set-items-head">
+          <div>
+            <h2>รายการอะไหล่ใน Set</h2>
+            <p>เลือกอะไหล่และกำหนดจำนวนที่ใช้ต่อ 1 Set</p>
+          </div>
+          <button type="button" className="btn ghost" onClick={addItem}>
+            + เพิ่มอะไหล่
+          </button>
+        </div>
+
+        <div className="spare-set-editor-list">
+          {form.items.map((row, index) => (
+            <div
+              className={`spare-set-editor-row ${row.part_id && duplicateIds.has(row.part_id) ? "duplicate" : ""}`}
+              key={index}
+            >
+              <div className="spare-set-editor-no">{index + 1}</div>
+              <label className="field spare-set-part-field">
+                <span>อะไหล่ *</span>
+                <SearchableSelect
+                  value={row.part_id}
+                  initialLabel={row.partText}
+                  onSearch={searchParts}
+                  onChange={(_, part) => choosePart(index, part)}
+                  getLabel={partLabel}
+                  getSearchText={(p) => `${p.sku || ""} ${p.name || ""}`}
+                  placeholder="พิมพ์ Part ID หรือชื่อ Part"
+                />
+              </label>
+              <label className="field">
+                <span>จำนวน / Set *</span>
+                <input
+                  type="number"
+                  min="0.01"
+                  step="0.01"
+                  value={row.quantity}
+                  onChange={(e) => updateItem(index, { quantity: e.target.value })}
+                />
+              </label>
+              <label className="field">
+                <span>Remark</span>
+                <input value={row.remark} onChange={(e) => updateItem(index, { remark: e.target.value })} />
+              </label>
+              <button
+                type="button"
+                className="mini danger spare-set-remove"
+                onClick={() => removeItem(index)}
+                disabled={form.items.length === 1}
+              >
+                ลบ
+              </button>
+            </div>
+          ))}
+        </div>
+
+        <Alert>{error}</Alert>
+        <div className="modal-actions">
+          <button type="button" className="btn ghost" onClick={onClose}>
+            ยกเลิก
+          </button>
+          <button className="btn primary" disabled={busy}>
+            {busy ? "กำลังบันทึก..." : "บันทึก Set"}
+          </button>
+        </div>
+      </form>
+    </Modal>
+  );
+}

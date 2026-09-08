@@ -943,7 +943,6 @@ def options(request):
             ],
             "machines": [machine_json(x) for x in Machine.objects.filter(active=True).order_by("code")],
             "vendors": [supplier_json(x) for x in Supplier.objects.filter(active=True).order_by("code")],
-            "parts": [part_json(x) for x in base_parts().filter(active=True).order_by("sku")],
             "locations": [
                 {
                     "id": str(x.id),

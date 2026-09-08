@@ -176,12 +176,11 @@ export function OrderInfoModal({
   const [busy, setBusy] = useState(false);
   const set = (k, v) => setForm((x) => ({ ...x, [k]: v }));
 
-  function partChange(value) {
-    const part = findLabel(options.parts, value, "part");
+  function partChange(part) {
     if (part) {
       setForm((x) => ({
         ...x,
-        partText: value,
+        partText: `${part.sku} · ${part.name}`,
         part_id: part.id,
         part_name: part.name,
         part_detail: part.description || "",
@@ -189,7 +188,7 @@ export function OrderInfoModal({
         unit: part.unit_code || "",
       }));
     } else {
-      setForm((x) => ({ ...x, partText: value, part_id: "" }));
+      setForm((x) => ({ ...x, partText: "", part_id: "" }));
     }
   }
 
@@ -378,17 +377,22 @@ export function OrderInfoModal({
 
           <label className="field span3">
             <span>Part ID (ไม่บังคับ)</span>
-            <input
+            <SearchableSelect
               disabled={stockLocked}
-              list="ord-parts"
-              value={form.partText}
-              onChange={(e) => partChange(e.target.value)}
+              value={form.part_id}
+              initialLabel={form.partText}
+              onSearch={async (text) => {
+                if (!text.trim()) return [];
+                const data = await apiGet(
+                  `/parts/?q=${encodeURIComponent(text.trim())}&page_size=15`
+                );
+                return data.results || [];
+              }}
+              onChange={(_, part) => partChange(part)}
+              getLabel={(x) => `${x.sku} · ${x.name}`}
+              getSearchText={(x) => `${x.sku || ""} ${x.name || ""}`}
+              placeholder="พิมพ์ Part ID หรือชื่อ Part"
             />
-            <datalist id="ord-parts">
-              {(options.parts || []).map((x) => (
-                <option key={x.id} value={`${x.sku} · ${x.name}`} />
-              ))}
-            </datalist>
           </label>
 
           <label className="field">
@@ -892,6 +896,8 @@ function EditableCell({
   canEdit,
   type = "text",
   options,
+  onSearch,
+  initialLabel,
   getLabel,
   getSearchText,
   placeholder,
@@ -959,6 +965,8 @@ function EditableCell({
         <SearchableSelect
           value={draft}
           options={options || []}
+          onSearch={onSearch}
+          initialLabel={initialLabel}
           onChange={(val) => {
             setDraft(val);
             commit(val);
@@ -1201,8 +1209,15 @@ function OrderTable({
                   <EditableCell
                     value={o.part_id}
                     display={<b>{o.item_id || "-"}</b>}
+                    initialLabel={o.item_id ? `${o.item_id} · ${o.part_name || ""}` : ""}
                     type="searchable"
-                    options={options.parts || []}
+                    onSearch={async (text) => {
+                      if (!text.trim()) return [];
+                      const data = await apiGet(
+                        `/parts/?q=${encodeURIComponent(text.trim())}&page_size=15`
+                      );
+                      return data.results || [];
+                    }}
                     getLabel={(x) => `${x.sku} · ${x.name}`}
                     getSearchText={(x) => `${x.sku || ""} ${x.name || ""}`}
                     placeholder="พิมพ์ Part ID / ชื่อ"

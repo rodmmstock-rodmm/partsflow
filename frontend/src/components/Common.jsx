@@ -66,7 +66,9 @@ export function SearchInput({ value, onChange, placeholder = "ค้นหา...
 }
 
 export function SearchableSelect({
-  options = [],
+  options: staticOptions = [],
+  onSearch,
+  initialLabel = "",
   value = "",
   onChange,
   getLabel = (option) => option?.name || "",
@@ -77,28 +79,66 @@ export function SearchableSelect({
   emptyText = "ไม่พบข้อมูล",
   className = "",
 }) {
+  const remote = typeof onSearch === "function";
+  const [remoteOptions, setRemoteOptions] = useState([]);
+  const [searching, setSearching] = useState(false);
+  const options = remote ? remoteOptions : staticOptions;
   const selected = options.find((option) => String(option.id) === String(value));
-  const [query, setQuery] = useState(selected ? getLabel(selected) : "");
+  const [query, setQuery] = useState(() => {
+    if (selected) return getLabel(selected);
+    if (remote && value) return initialLabel;
+    return "";
+  });
   const [open, setOpen] = useState(false);
   const [activeIndex, setActiveIndex] = useState(0);
   const closeTimer = useRef(null);
+  const searchTimer = useRef(null);
 
   useEffect(() => {
-    if (!open) setQuery(selected ? getLabel(selected) : "");
+    if (!open) {
+      if (selected) setQuery(getLabel(selected));
+      else if (remote && value) setQuery(initialLabel);
+      else if (!remote) setQuery("");
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [value, selected, open]);
 
   useEffect(() => () => window.clearTimeout(closeTimer.current), []);
+  useEffect(() => () => window.clearTimeout(searchTimer.current), []);
+
+  // Remote mode: debounce the typed text and ask the backend for matches,
+  // instead of requiring the entire list (e.g. every Part in the system)
+  // to already be loaded client-side just so this field can filter it.
+  useEffect(() => {
+    if (!remote || !open) return;
+    window.clearTimeout(searchTimer.current);
+    searchTimer.current = window.setTimeout(async () => {
+      setSearching(true);
+      try {
+        const results = await onSearch(query.trim());
+        setRemoteOptions(results || []);
+      } catch {
+        setRemoteOptions([]);
+      } finally {
+        setSearching(false);
+      }
+    }, 300);
+    return () => window.clearTimeout(searchTimer.current);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [remote, open, query]);
 
   const needle = query.trim().toLowerCase();
-  const filtered = options
-    .filter((option) => {
-      if (!needle || (selected && query === getLabel(selected))) return true;
-      const text = getSearchText
-        ? getSearchText(option)
-        : `${getLabel(option)} ${option?.code || ""} ${option?.email || ""}`;
-      return String(text || "").toLowerCase().includes(needle);
-    })
-    .slice(0, 80);
+  const filtered = remote
+    ? options
+    : options
+        .filter((option) => {
+          if (!needle || (selected && query === getLabel(selected))) return true;
+          const text = getSearchText
+            ? getSearchText(option)
+            : `${getLabel(option)} ${option?.code || ""} ${option?.email || ""}`;
+          return String(text || "").toLowerCase().includes(needle);
+        })
+        .slice(0, 80);
 
   function choose(option) {
     window.clearTimeout(closeTimer.current);
@@ -129,7 +169,7 @@ export function SearchableSelect({
       choose(filtered[activeIndex]);
     } else if (event.key === "Escape") {
       setOpen(false);
-      setQuery(selected ? getLabel(selected) : "");
+      setQuery(selected ? getLabel(selected) : remote && value ? initialLabel : "");
     }
   }
 
@@ -148,7 +188,7 @@ export function SearchableSelect({
         onBlur={() => {
           closeTimer.current = window.setTimeout(() => {
             setOpen(false);
-            setQuery(selected ? getLabel(selected) : "");
+            setQuery(selected ? getLabel(selected) : remote && value ? initialLabel : "");
           }, 150);
         }}
         onChange={(event) => clearSelection(event.target.value)}
@@ -169,7 +209,9 @@ export function SearchableSelect({
       )}
       {open && !disabled && (
         <div className="searchable-menu" role="listbox">
-          {filtered.length ? filtered.map((option, index) => (
+          {searching ? (
+            <span className="searchable-empty">กำลังค้นหา...</span>
+          ) : filtered.length ? filtered.map((option, index) => (
             <button
               type="button"
               role="option"
@@ -182,7 +224,7 @@ export function SearchableSelect({
             >
               {getLabel(option)}
             </button>
-          )) : <span className="searchable-empty">{emptyText}</span>}
+          )) : <span className="searchable-empty">{remote && !needle ? "พิมพ์เพื่อค้นหา..." : emptyText}</span>}
         </div>
       )}
     </div>
