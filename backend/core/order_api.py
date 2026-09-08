@@ -863,6 +863,37 @@ def update_order_info(request, pk):
         return Response({"detail": str(exc)}, status=400)
 
 
+def maybe_auto_wait_confirm_step(step, actor=None):
+    """Auto-advance a Step from "รอขอราคา" to "รอ Confirm" the moment every
+    non-cancelled Order in it has a price filled in - so a technician sees
+    it queued for their confirmation right away, without waiting for an
+    Admin to notice and flip the status dropdown by hand.
+
+    Deliberately only fires FROM WAIT_QUOTATION. If an Admin has already
+    moved the Step further along (or back), this never overrides that.
+    """
+    if not step or step.status != OrderStep.STATUS_WAIT_QUOTATION:
+        return
+    orders = step.orders.filter(is_deleted=False).exclude(
+        lifecycle_status=OrderRecord.LIFECYCLE_CANCELLED
+    )
+    if not orders.exists():
+        return
+    if orders.filter(
+        Q(price_per_unit__isnull=True) | Q(price_per_unit=0)
+    ).exists():
+        return
+    step.status = OrderStep.STATUS_WAIT_CONFIRM
+    step.save(update_fields=["status", "updated_at"])
+    audit(
+        actor,
+        "AUTO_WAIT_CONFIRM_STEP",
+        "OrderStep",
+        step.id,
+        {"reason": "ทุก Order ใน Step กรอกราคาครบแล้ว"},
+    )
+
+
 @csrf_exempt
 @api_view(["PATCH"])
 @permission_classes([AllowAny])
@@ -883,6 +914,8 @@ def update_purchase_info(request, pk):
         with transaction.atomic():
             apply_purchase_info(order, request.data)
             order.save()
+            if order.step_id:
+                maybe_auto_wait_confirm_step(order.step, actor=actor)
             after = order_json(order_queryset().get(pk=pk))
             audit(actor, "UPDATE_PURCHASE_INFO", "OrderRecord", order.id, {"before": before, "after": after})
         return Response(after)

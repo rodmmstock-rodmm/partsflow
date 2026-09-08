@@ -3626,19 +3626,30 @@ export default function Orders({ mode = "orders" }) {
                                 </button>
                               )}
                             {auth.can("can_manage_order_projects") ? (
-                              <select
-                                value={step.status || "WAIT_QUOTATION"}
-                                onChange={(e) =>
-                                  updateStepStatus(step, e.target.value)
-                                }
-                                style={{ fontSize: 11 }}
+                              <label
+                                style={{
+                                  display: "flex",
+                                  alignItems: "center",
+                                  gap: 5,
+                                  fontSize: 10,
+                                  color: "var(--muted)",
+                                }}
                               >
-                                {STEP_STATUS_OPTIONS.map((opt) => (
-                                  <option key={opt.value} value={opt.value}>
-                                    {opt.label}
-                                  </option>
-                                ))}
-                              </select>
+                                เปลี่ยนสถานะ:
+                                <select
+                                  value={step.status || "WAIT_QUOTATION"}
+                                  onChange={(e) =>
+                                    updateStepStatus(step, e.target.value)
+                                  }
+                                  style={{ fontSize: 11 }}
+                                >
+                                  {STEP_STATUS_OPTIONS.map((opt) => (
+                                    <option key={opt.value} value={opt.value}>
+                                      {opt.label}
+                                    </option>
+                                  ))}
+                                </select>
+                              </label>
                             ) : (
                               <span className="status info">
                                 {step.status_label || "รอขอราคา"}
