@@ -49,6 +49,56 @@ from .models import (
 QTY_FIELD = DecimalField(max_digits=18, decimal_places=2)
 
 
+@api_view(["GET"])
+@permission_classes([AllowAny])
+def health_check(request):
+    """Read-only readiness/diagnostic probe for CI smoke tests and uptime
+    monitors.
+
+    Replaces the old /api/production-check/ + /api/production-repair/
+    pair, which was removed for exposing a hardcoded repair key once the
+    repo went public. This endpoint is intentionally read-only - it can
+    report status but cannot modify anything, so there is nothing here
+    worth protecting with a secret key.
+    """
+    from django.db import connection
+    from django.db.migrations.recorder import MigrationRecorder
+
+    try:
+        Employee.objects.exists()
+        db_ok = True
+    except Exception:
+        db_ok = False
+
+    applied = set(
+        MigrationRecorder.Migration.objects.filter(app="core").values_list(
+            "name", flat=True
+        )
+    )
+    table_names = connection.introspection.table_names()
+
+    return Response(
+        {
+            "status": "ok" if db_ok else "degraded",
+            "database_vendor": connection.vendor,
+            "migration_0014_applied": any(
+                name.startswith("0014_") for name in applied
+            ),
+            "migration_0016_applied": any(
+                name.startswith("0016_") for name in applied
+            ),
+            "rfq_tables_present": all(
+                t in table_names
+                for t in ["core_orderrfq", "core_orderrfqitem", "core_pobalance"]
+            ),
+            "imported_order_count": OrderRecord.objects.filter(
+                legacy_source="EXCEL_ORDER_2026"
+            ).count(),
+        },
+        status=200 if db_ok else 503,
+    )
+
+
 def image_path_version(value):
     """Stable cache version that changes only when image_path changes."""
     raw = str(value or "").strip().encode("utf-8")
