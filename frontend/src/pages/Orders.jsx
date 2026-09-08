@@ -3706,6 +3706,9 @@ export default function Orders({ mode = "orders" }) {
                               setEditor({ order, project: projectDetail.project })
                             }
                             onPurchase={setPurchase}
+                            onInlineSave={inlineSave}
+                            onInlinePurchaseSave={inlinePurchaseSave}
+                            options={options}
                           />
                         )}
                       </div>
