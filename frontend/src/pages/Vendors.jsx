@@ -277,7 +277,7 @@ export default function Vendors() {
             <tbody>
               {shown.map((x) => (
                 <tr key={x.id}>
-                  <td>
+                  <td className="mono-cell">
                     <b>{x.code}</b>
                   </td>
                   <td>{x.name}</td>
