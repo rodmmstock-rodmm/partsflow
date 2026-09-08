@@ -7,6 +7,8 @@ urlpatterns = [
     path("auth/me/", auth_api.me_view),
     path("auth/logout/", auth_api.logout_view),
 
+    path("health/", web_api.health_check, name="web-health-check"),
+
     path("drive/oauth/status/", drive_oauth.oauth_status, name="drive-oauth-status"),
     path("drive/oauth/start/", drive_oauth.oauth_start, name="drive-oauth-start"),
     path("drive/oauth/callback/", drive_oauth.oauth_callback, name="drive-oauth-callback"),
