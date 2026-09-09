@@ -1460,6 +1460,91 @@ const QUOTATION_STAGE_LABELS = {
   CREATED_TO_ORDER_STEP: "สร้าง Order ครบแล้ว",
 };
 
+function MinimalStepOrderTable({
+  rows,
+  selected,
+  onToggle,
+  onToggleAll,
+  onEdit,
+  onPurchase,
+  canEditPurchase,
+}) {
+  const allSelected = rows.length > 0 && rows.every((row) => selected.has(row.id));
+  if (!rows.length) {
+    return <div className="empty compact">ยังไม่มีรายการใน Step นี้</div>;
+  }
+  return (
+    <div className="table-wrap">
+      <table className="order-table minimal">
+        <thead>
+          <tr>
+            <th>
+              <input
+                type="checkbox"
+                checked={allSelected}
+                onChange={(e) => onToggleAll(rows, e.target.checked)}
+              />
+            </th>
+            <th>PART</th>
+            <th>MACHINE</th>
+            <th>QTY</th>
+            <th>VENDOR / ราคา</th>
+            <th>STATUS</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          {rows.map((o) => (
+            <tr key={o.id}>
+              <td>
+                <input
+                  type="checkbox"
+                  checked={selected.has(o.id)}
+                  onChange={(e) => onToggle(o.id, e.target.checked)}
+                />
+              </td>
+              <td>
+                <b>{o.part_name || o.item_id || "-"}</b>
+                {o.item_id && <div className="stack-sub mono-cell">{o.item_id}</div>}
+              </td>
+              <td className="mono-cell">{o.machine_name || o.machine_code || "-"}</td>
+              <td className="mono-cell">
+                {fmt(o.amount)} {o.unit}
+              </td>
+              <td className="mono-cell">
+                {o.vendor_name || <span className="stack-sub">ยังไม่ระบุ</span>}
+                {o.price_per_unit ? (
+                  <div className="stack-sub">
+                    {o.currency || "THB"} {money(o.price_per_unit)} × {fmt(o.amount)} ={" "}
+                    {money(o.price_total)}
+                  </div>
+                ) : null}
+              </td>
+              <td>
+                <span className={`status ${statusClass(displayOrderStatus(o))}`}>
+                  {displayOrderStatus(o)}
+                </span>
+              </td>
+              <td>
+                <div className="row-actions">
+                  <button className="mini" onClick={() => onEdit(o)}>
+                    ข้อมูล
+                  </button>
+                  {canEditPurchase && (
+                    <button className="mini" onClick={() => onPurchase(o)}>
+                      Purchase
+                    </button>
+                  )}
+                </div>
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
 function QuotationTable({
   rows,
   auth,
@@ -2260,6 +2345,7 @@ export default function Orders({ mode = "orders" }) {
   const [projectPhase, setProjectPhase] = useState("quotation");
   const [projectSearch, setProjectSearch] = useState("");
   const [stepStatusFilter, setStepStatusFilter] = useState("");
+  const [expandedSteps, setExpandedSteps] = useState(new Set());
   const [conversionRows, setConversionRows] = useState(null);
 
   const [selected, setSelected] = useState(() => new Set());
@@ -3617,7 +3703,11 @@ export default function Orders({ mode = "orders" }) {
                           >
                             {step.status === "WAIT_CONFIRM" &&
                               (auth.can("can_confirm_order_step") ||
-                                auth.can("can_manage_order_projects")) && (
+                                auth.can("can_manage_order_projects") ||
+                                (auth.employee?.department &&
+                                  projectDetail?.project?.department &&
+                                  auth.employee.department.trim().toUpperCase() ===
+                                    projectDetail.project.department.trim().toUpperCase())) && (
                                 <button
                                   className="btn success"
                                   onClick={() => confirmStep(step)}
@@ -3694,7 +3784,53 @@ export default function Orders({ mode = "orders" }) {
                             )}
                           </div>
                         </div>
-                        {projectPhase === "quotation" ? (
+
+                        <button
+                          type="button"
+                          className="step-toggle"
+                          onClick={() =>
+                            setExpandedSteps((current) => {
+                              const next = new Set(current);
+                              if (next.has(step.id)) next.delete(step.id);
+                              else next.add(step.id);
+                              return next;
+                            })
+                          }
+                        >
+                          <span>
+                            {expandedSteps.has(step.id) ? "▾" : "▸"}{" "}
+                            {phaseRows.length} รายการ
+                            {phaseRows.length ? (
+                              <>
+                                {" · มูลค่ารวม "}
+                                {phaseRows[0]?.currency || "THB"}{" "}
+                                {money(
+                                  phaseRows.reduce(
+                                    (sum, o) => sum + Number(o.price_total || 0),
+                                    0
+                                  )
+                                )}
+                                {" · Vendor "}
+                                {
+                                  new Set(
+                                    phaseRows.map((o) => o.vendor_name).filter(Boolean)
+                                  ).size
+                                }{" "}
+                                ราย
+                              </>
+                            ) : (
+                              " · ยังไม่มีรายการ"
+                            )}
+                          </span>
+                          <span className="stack-sub">
+                            {expandedSteps.has(step.id)
+                              ? "ซ่อนรายการ"
+                              : "แสดงรายการ"}
+                          </span>
+                        </button>
+
+                        {expandedSteps.has(step.id) &&
+                          (projectPhase === "quotation" ? (
                           <QuotationTable
                             rows={phaseRows}
                             auth={auth}
@@ -3707,9 +3843,8 @@ export default function Orders({ mode = "orders" }) {
                             onQuotation={setPurchase}
                           />
                         ) : (
-                          <OrderTable
+                          <MinimalStepOrderTable
                             rows={phaseRows}
-                            auth={auth}
                             selected={selected}
                             onToggle={toggleSelected}
                             onToggleAll={toggleAll}
@@ -3717,11 +3852,9 @@ export default function Orders({ mode = "orders" }) {
                               setEditor({ order, project: projectDetail.project })
                             }
                             onPurchase={setPurchase}
-                            onInlineSave={inlineSave}
-                            onInlinePurchaseSave={inlinePurchaseSave}
-                            options={options}
+                            canEditPurchase={auth.can("can_edit_purchase_info")}
                           />
-                        )}
+                        ))}
                       </div>
                     );})
                   ) : (
