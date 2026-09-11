@@ -1,9 +1,10 @@
 import { useEffect, useMemo, useState } from "react";
 import { apiDelete, apiGet, apiPost } from "../api";
 import { useAuth } from "../auth";
-import { Alert, Modal, fmt, formatDMY, money } from "../components/Common";
+import { Alert, fmt } from "../components/Common";
 import { OrderInfoModal, PurchaseModal } from "../pages/Orders";
 import RFQComposeModal from "../components/RFQComposeModal";
+import { openOrderDetailByNumber } from "../orderDetailEnhancer";
 import { MobileEmpty, MobileLoading, MobilePage, MobileSearch } from "./MobileCommon";
 
 const TABS = [
@@ -41,84 +42,6 @@ function isAdmin(employee) {
   );
 }
 
-function MobileOrderDetail({ order, auth, admin, tab, busy, onClose, onEdit, onPurchase, onAction }) {
-  return (
-    <Modal title={`รายละเอียด Order · ${order.order_number}`} onClose={onClose}>
-      <div className="m-order-detail-v9">
-        <div className="m-order-detail-hero-v9">
-          <span>{order.item_id || "-"}</span>
-          <h3>{order.part_name || "-"}</h3>
-          <p>{order.part_detail || "-"}</p>
-          <b>{fmt(order.amount)} {order.unit || ""}</b>
-          <strong>{orderStatus(order)}</strong>
-        </div>
-
-        <div className="m-order-detail-grid-v9">
-          <div><span>วันที่</span><b>{formatDMY(order.date)}</b></div>
-          <div><span>Factory</span><b>{order.factory === "MM-11" ? "Phase11" : "Phase4"}</b></div>
-          <div><span>Machine</span><b>{order.machine_name || order.machine_code || "-"}</b></div>
-          <div><span>Job</span><b>{order.job || "-"}</b></div>
-          <div><span>Maker</span><b>{order.maker || "-"}</b></div>
-          <div><span>Vendor</span><b>{order.vendor_name || "-"}</b></div>
-          <div><span>PO</span><b>{order.po_number || "-"}</b></div>
-          <div><span>RFQ</span><b>{order.rfq_count ? `RFQ ${fmt(order.rfq_count)}` : (order.quotation || "-")}</b></div>
-          <div><span>ราคาต่อหน่วย</span><b>{order.price_per_unit ? `${order.currency || "THB"} ${money(order.price_per_unit)}` : "-"}</b></div>
-          <div><span>ราคารวม</span><b>{order.price_total ? `${order.currency || "THB"} ${money(order.price_total)}` : "-"}</b></div>
-          <div><span>Issue PR</span><b>{formatDMY(order.issue_pr_date)}</b></div>
-          <div><span>Due date</span><b>{formatDMY(order.due_date)}</b></div>
-          <div><span>PIC</span><b>{order.person_in_charge || "-"}</b></div>
-          <div><span>ผู้สั่ง</span><b>{order.ordered_by || "-"}</b></div>
-        </div>
-
-        {order.remark && <div className="m-order-note-v9"><span>Remark</span><p>{order.remark}</p></div>}
-
-        {admin && (
-          <div className="m-order-admin-v9">
-            <b>Admin · Workflow / Internal</b>
-            <span>Workflow: {order.status || "-"}</span>
-            <span>Lifecycle: {order.lifecycle_status || "-"}</span>
-            <span>Edit status: {order.edit_data_status || "-"}</span>
-            <span>Group: {order.group_order || "-"}</span>
-          </div>
-        )}
-
-        <div className="m-order-actions">
-          {tab === "updates" && auth.can("can_update_edit_data") && (
-            <button onClick={() => onAction(order, "update")} disabled={!!busy}>Update Data</button>
-          )}
-          {auth.can("can_edit_order_info") && ["ACTIVE", "WAIT_CONFIRM"].includes(order.lifecycle_status) && (
-            <button onClick={() => onEdit(order)}>แก้ Order</button>
-          )}
-          {auth.can("can_edit_purchase_info") && ["ACTIVE", "WAIT_CONFIRM"].includes(order.lifecycle_status) && (
-            <button onClick={() => onPurchase(order)}>Purchase</button>
-          )}
-          {order.lifecycle_status === "ACTIVE" && auth.can("can_edit_purchase_info") && (
-            <button onClick={() => onAction(order, "wait")} disabled={!!busy}>Wait Confirm</button>
-          )}
-          {order.lifecycle_status === "WAIT_CONFIRM" && auth.can("can_edit_purchase_info") && (
-            <button onClick={() => onAction(order, "cancelwait")} disabled={!!busy}>ยกเลิก Wait</button>
-          )}
-          {["ACTIVE", "WAIT_CONFIRM"].includes(order.lifecycle_status) && auth.can("can_receive_order") && (
-            <button className="receive" onClick={() => onAction(order, "receive")} disabled={!!busy}>รับของ</button>
-          )}
-          {["ACTIVE", "WAIT_CONFIRM"].includes(order.lifecycle_status) && auth.can("can_cancel_order") && (
-            <button className="danger" onClick={() => onAction(order, "cancel")} disabled={!!busy}>ยกเลิก</button>
-          )}
-          {order.lifecycle_status === "CANCELLED" && auth.can("can_cancel_order") && (
-            <button onClick={() => onAction(order, "restore")} disabled={!!busy}>คืนรายการ</button>
-          )}
-          {tab === "deleted" && auth.can("can_view_deleted_orders") && (
-            <button onClick={() => onAction(order, "restore_deleted")} disabled={!!busy}>กู้คืน</button>
-          )}
-          {auth.can("can_delete_order") && tab !== "deleted" && (
-            <button className="danger" onClick={() => onAction(order, "delete")} disabled={!!busy}>ลบ</button>
-          )}
-        </div>
-      </div>
-    </Modal>
-  );
-}
-
 export default function MobileOrders() {
   const auth = useAuth();
   const now = new Date();
@@ -137,7 +60,6 @@ export default function MobileOrders() {
   const [busy, setBusy] = useState("");
   const [editor, setEditor] = useState(null);
   const [purchase, setPurchase] = useState(null);
-  const [detail, setDetail] = useState(null);
   const [selected, setSelected] = useState(() => new Set());
   const [rfqCompose, setRfqCompose] = useState(false);
   const range = useMemo(() => monthRange(year, month), [year, month]);
@@ -177,7 +99,6 @@ export default function MobileOrders() {
 
   useEffect(() => {
     setSelected(new Set());
-    setDetail(null);
     load();
   }, [tab, status, job, urgency, range.from, range.to]);
 
@@ -227,7 +148,6 @@ export default function MobileOrders() {
       if (action === "restore_deleted") await apiPost(`/orders/${row.id}/restore/`, {});
       if (action === "delete") await apiDelete(`/orders/${row.id}/delete/`);
       if (action === "update") await apiPost(`/orders/${row.id}/update-data/`, {});
-      setDetail(null);
       await load(true);
     } catch (err) {
       setError(err.message);
@@ -358,26 +278,45 @@ export default function MobileOrders() {
               </div>
               <div className="m-order-main-v9">
                 <span>จำนวน <b>{fmt(order.amount)} {order.unit || ""}</b></span>
-                <button onClick={() => setDetail(order)}>รายละเอียด</button>
+                <button onClick={() => openOrderDetailByNumber(order.order_number, admin)}>รายละเอียด</button>
+              </div>
+              <div className="m-order-actions">
+                {tab === "updates" && auth.can("can_update_edit_data") && (
+                  <button onClick={() => act(order, "update")} disabled={!!busy}>Update Data</button>
+                )}
+                {auth.can("can_edit_order_info") && ["ACTIVE", "WAIT_CONFIRM"].includes(order.lifecycle_status) && (
+                  <button onClick={() => setEditor({ order })}>แก้ Order</button>
+                )}
+                {auth.can("can_edit_purchase_info") && ["ACTIVE", "WAIT_CONFIRM"].includes(order.lifecycle_status) && (
+                  <button onClick={() => setPurchase(order)}>Purchase</button>
+                )}
+                {order.lifecycle_status === "ACTIVE" && auth.can("can_edit_purchase_info") && (
+                  <button onClick={() => act(order, "wait")} disabled={!!busy}>Wait Confirm</button>
+                )}
+                {order.lifecycle_status === "WAIT_CONFIRM" && auth.can("can_edit_purchase_info") && (
+                  <button onClick={() => act(order, "cancelwait")} disabled={!!busy}>ยกเลิก Wait</button>
+                )}
+                {["ACTIVE", "WAIT_CONFIRM"].includes(order.lifecycle_status) && auth.can("can_receive_order") && (
+                  <button className="receive" onClick={() => act(order, "receive")} disabled={!!busy}>รับของ</button>
+                )}
+                {["ACTIVE", "WAIT_CONFIRM"].includes(order.lifecycle_status) && auth.can("can_cancel_order") && (
+                  <button className="danger" onClick={() => act(order, "cancel")} disabled={!!busy}>ยกเลิก</button>
+                )}
+                {order.lifecycle_status === "CANCELLED" && auth.can("can_cancel_order") && (
+                  <button onClick={() => act(order, "restore")} disabled={!!busy}>คืนรายการ</button>
+                )}
+                {tab === "deleted" && auth.can("can_view_deleted_orders") && (
+                  <button onClick={() => act(order, "restore_deleted")} disabled={!!busy}>กู้คืน</button>
+                )}
+                {auth.can("can_delete_order") && tab !== "deleted" && (
+                  <button className="danger" onClick={() => act(order, "delete")} disabled={!!busy}>ลบ</button>
+                )}
               </div>
             </article>
           ))}
         </div>
       )}
 
-      {detail && (
-        <MobileOrderDetail
-          order={detail}
-          auth={auth}
-          admin={admin}
-          tab={tab}
-          busy={busy}
-          onClose={() => setDetail(null)}
-          onEdit={(order) => { setDetail(null); setEditor({ order }); }}
-          onPurchase={(order) => { setDetail(null); setPurchase(order); }}
-          onAction={act}
-        />
-      )}
       {editor && (
         <OrderInfoModal
           order={editor.order}
