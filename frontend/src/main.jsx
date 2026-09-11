@@ -12,6 +12,33 @@ import "./order-focus-v8.css";
 import "./order-v9.css";
 import "./order-v9-refine.css";
 
+function DesignLabLayoutStyle() {
+  return (
+    <style>{`
+      @media (min-width: 768px) {
+        .hamburger-btn,
+        .sidebar-backdrop,
+        .sidebar-close {
+          display: none !important;
+        }
+
+        .sidebar,
+        .sidebar.open {
+          transform: translateX(0) !important;
+          box-shadow: 8px 0 28px rgba(27, 36, 48, 0.035);
+        }
+
+        .main-content {
+          margin-left: 256px !important;
+          padding: 32px !important;
+          max-width: none !important;
+          width: calc(100% - 256px);
+        }
+      }
+    `}</style>
+  );
+}
+
 function DesignLabBadge() {
   return (
     <div
@@ -45,6 +72,7 @@ function DesignLabBadge() {
 ReactDOM.createRoot(document.getElementById("root")).render(
   <React.StrictMode>
     <BrowserRouter>
+      <DesignLabLayoutStyle />
       <DesignLabBadge />
       <AuthProvider>
         <OptionsProvider>
