@@ -137,6 +137,14 @@ jobs:
             Write-Host "Nothing to commit, skipping push."
             exit 0
           }
+          # The build steps (npm ci, pyinstaller, etc.) can leave other
+          # already-tracked files showing as modified without us ever
+          # staging them (e.g. line-ending normalization on Windows).
+          # `git rebase` refuses to run with ANY unstaged changes present,
+          # even to files unrelated to this commit, so discard those now -
+          # our real change (local-build-status.json) is already safely
+          # committed above and untouched by this.
+          git checkout -- .
           # The build can take several minutes, so main may have moved on
           # while this job was running. Rebase onto the latest main before
           # pushing so a concurrent push elsewhere doesn't reject this one.
