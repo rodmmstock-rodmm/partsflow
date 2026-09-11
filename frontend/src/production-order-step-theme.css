@@ -1,0 +1,139 @@
+/* Production Order Step theme alignment.
+   Keep layout/workflow intact; only align residual brown/orange UI chrome with the approved purple/cool PartsFlow palette. */
+
+/* Desktop Order Step shell */
+.order-step-workspace>.page-header{
+  border-color:#e2e8f0;
+  background:linear-gradient(135deg,#fff 0%,#f8fafc 100%);
+  box-shadow:0 4px 18px rgba(15,23,42,.05);
+}
+.order-step-workspace>.page-header p{color:#64748b}
+.order-step-workspace>.panel,
+.order-step-workspace .project-head,
+.order-step-workspace .project-content>.panel,
+.order-step-workspace .project-content>.page-tabs{
+  border-color:#e2e8f0;
+}
+
+/* Department selector */
+.order-step-workspace .department-card{
+  border-color:#e2e8f0;
+  background:#fff;
+}
+.order-step-workspace .department-card:hover{
+  border-color:#c4b5fd;
+  background:#faf5ff;
+  box-shadow:0 5px 14px rgba(109,40,217,.07);
+}
+.order-step-workspace .department-card.active{
+  border-color:#a78bfa;
+  background:#f5f3ff;
+  color:#6d28d9;
+  box-shadow:0 0 0 2px rgba(167,139,250,.14),0 5px 14px rgba(109,40,217,.06);
+}
+.order-step-workspace .department-card.active strong{color:#6d28d9}
+.order-step-workspace .department-card.active span,
+.order-step-workspace .department-card.active small{color:#7c3aed}
+
+/* Project list / selected project */
+.order-step-workspace .project-item{
+  background:#f8fafc;
+  color:#475569;
+}
+.order-step-workspace .project-item:hover{
+  background:#faf5ff;
+  color:#6d28d9;
+}
+.order-step-workspace .project-item.active{
+  background:#f5f3ff;
+  color:#6d28d9;
+  box-shadow:inset 0 0 0 1px #ddd6fe;
+}
+.order-step-workspace .project-item.active span{color:#7c3aed}
+
+/* Project header / back button / tabs */
+.order-step-workspace .project-head{
+  background:#fff;
+  box-shadow:0 3px 15px rgba(15,23,42,.04);
+}
+.order-step-workspace .project-head>.page-actions>.btn:first-child{
+  border-color:#c4b5fd!important;
+  background:#f5f3ff!important;
+  color:#6d28d9!important;
+  box-shadow:0 3px 9px rgba(124,58,237,.08)!important;
+}
+.order-step-workspace .project-head>.page-actions>.btn:first-child:hover{
+  background:#ede9fe!important;
+}
+.order-step-workspace .project-content>.page-tabs .tab{
+  color:#64748b;
+}
+.order-step-workspace .project-content>.page-tabs .tab:hover{
+  background:#f5f3ff;
+  color:#6d28d9;
+}
+.order-step-workspace .project-content>.page-tabs .tab.active{
+  background:linear-gradient(135deg,#7c3aed,#a78bfa);
+  color:#fff;
+  box-shadow:0 3px 9px rgba(124,58,237,.18);
+}
+
+/* Steps */
+.order-step-workspace .step-toggle{
+  border-color:#e2e8f0;
+  background:#f8fafc;
+}
+.order-step-workspace .step-toggle:hover{
+  border-color:#ddd6fe;
+  background:#f5f3ff;
+}
+.order-step-workspace .step-toggle .stack-sub{color:#7c3aed}
+.order-step-workspace .section-head h2,
+.order-step-workspace .project-head h1{color:#1e293b}
+
+/* Old inline brown editing borders and selected-row tint used by legacy Order Step component. */
+.order-step-workspace input[style*="#C1622B"],
+.order-step-workspace select[style*="#C1622B"]{
+  border-color:#a78bfa!important;
+  box-shadow:0 0 0 2px rgba(167,139,250,.10)!important;
+}
+.order-step-workspace tr[style*="#F3DFCF"]{
+  background:#f5f3ff!important;
+}
+.order-step-workspace .mono-cell[style*="#8B96A3"]{color:#94a3b8!important}
+
+/* Mobile Order Step */
+@media(max-width:767px){
+  .m-project-card{
+    border-color:#e2e8f0;
+    background:#fff;
+  }
+  .m-project-card:hover,
+  .m-project-card:active{
+    border-color:#c4b5fd;
+    background:#faf5ff;
+  }
+  .m-project-card strong{color:#6d28d9}
+  .m-project-card span,
+  .m-project-card small{color:#94a3b8}
+
+  .m-project-summary>div{
+    border-color:#e2e8f0;
+    background:#fff;
+  }
+  .m-step{
+    border-color:#e2e8f0;
+    background:#fff;
+  }
+  .m-step>header b{color:#6d28d9}
+  .m-step>header span{color:#94a3b8}
+  .m-step-order{background:#f8fafc}
+  .m-step-order .m-row-between>span,
+  .m-step-order small{color:#64748b}
+
+  .m-back-btn{
+    border-color:#ddd6fe;
+    background:#f5f3ff;
+    color:#6d28d9;
+  }
+}
