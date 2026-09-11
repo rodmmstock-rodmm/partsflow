@@ -94,6 +94,56 @@ export function clearAuthToken() {
   clearApiCache();
 }
 
+async function parseJsonResponse(response) {
+  let data = null;
+  try {
+    data = await response.json();
+  } catch {
+    data = null;
+  }
+  if (!response.ok) {
+    throw new Error(data?.detail || data?.error || `HTTP ${response.status}`);
+  }
+  return data;
+}
+
+function wait(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+// Login deliberately uses a CORS-safelisted form content type instead of JSON.
+// This avoids an unnecessary OPTIONS preflight on iOS/Safari. It also retries
+// once because the free Render backend can be waking from idle when a user logs in.
+export async function apiLogin(employeeCode) {
+  const body = new URLSearchParams();
+  body.set("employee_code", String(employeeCode || "").trim());
+
+  const request = () => fetch(`${API_BASE}/auth/login/`, {
+    method: "POST",
+    body,
+    cache: "no-store",
+    credentials: "omit",
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded;charset=UTF-8",
+      Accept: "application/json",
+    },
+  });
+
+  let response;
+  try {
+    response = await request();
+  } catch (firstError) {
+    await wait(1500);
+    try {
+      response = await request();
+    } catch {
+      throw new Error("เชื่อมต่อ Server ไม่สำเร็จ กรุณาลองใหม่อีกครั้ง");
+    }
+  }
+
+  return parseJsonResponse(response);
+}
+
 async function apiRequest(path, options = {}) {
   const token = getAuthToken();
   const headers = {
@@ -111,17 +161,7 @@ async function apiRequest(path, options = {}) {
     headers,
   });
 
-  let data = null;
-  try {
-    data = await response.json();
-  } catch {
-    data = null;
-  }
-
-  if (!response.ok) {
-    throw new Error(data?.detail || data?.error || `HTTP ${response.status}`);
-  }
-  return data;
+  return parseJsonResponse(response);
 }
 
 export async function apiGet(path, options = {}) {
@@ -171,15 +211,7 @@ export async function apiUpload(path, formData) {
     cache: "no-store",
   });
 
-  let data = null;
-  try {
-    data = await response.json();
-  } catch {
-    data = null;
-  }
-  if (!response.ok) {
-    throw new Error(data?.detail || data?.error || `HTTP ${response.status}`);
-  }
+  const data = await parseJsonResponse(response);
   invalidateApiCache();
   return data;
 }
