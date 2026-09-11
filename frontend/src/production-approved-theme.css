@@ -165,6 +165,14 @@ input[type="date"][style*="#c1622b"]{
 .order-table-v9 td:nth-child(8){display:none!important}
 
 @media(max-width:767px){
+  /* iOS/Safari auto-zooms focused form controls below 16px. Keep controls at 16px
+     on mobile so typing does not zoom the whole page. Do not disable pinch zoom. */
+  input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="file"]),
+  select,
+  textarea{
+    font-size:16px!important;
+  }
+
   .m-order-card{border-color:#e2e8f0}
   .m-order-card .m-row-between{border-bottom-color:#f1f5f9}
   .m-order-card .m-info-grid span{background:#f8fafc}
