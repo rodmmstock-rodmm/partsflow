@@ -13,6 +13,7 @@ import "./searchable-select.css";
 import "./order-focus-v8.css";
 import "./order-v9.css";
 import "./order-v9-refine.css";
+import "./design-lab-legacy-theme.css";
 
 const DESIGN_LAB_JOB_CARDS = ["REPAIR", "MODIFY", "AUTOMATION", "PM", "GENERAL"];
 
