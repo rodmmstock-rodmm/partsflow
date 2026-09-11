@@ -1,0 +1,171 @@
+/* Final production palette pass.
+   Loaded last so legacy hard-coded brown/orange UI chrome cannot leak through.
+   Semantic success/danger/warning colors intentionally remain distinct. */
+
+:root{
+  --brand:#7c3aed;
+  --brand2:#a78bfa;
+  --brand-soft:#f5f3ff;
+  --bg:#f8fafc;
+  --panel:#fff;
+  --border:#e2e8f0;
+  --border-soft:#f1f5f9;
+  --text:#1e293b;
+  --muted:#94a3b8;
+  --sub:#64748b;
+}
+
+html,body,.app-shell,.mobile-app-shell{background:#f8fafc;color:#1e293b}
+
+/* Core chrome */
+.nav-link:hover{background:#f5f3ff!important;color:#6d28d9!important}
+.nav-link.active,.mobile-link.active{background:linear-gradient(135deg,#7c3aed,#a78bfa)!important;color:#fff!important;box-shadow:0 4px 14px rgba(124,58,237,.24)!important}
+.btn.primary{background:#7c3aed!important;color:#fff!important}
+.btn.primary:hover{background:#6d28d9!important}
+.btn.ghost{background:#f1f5f9!important;color:#475569!important}
+.mini:not(.success):not(.danger):not(.warning),.mini.link{background:#f5f3ff!important;color:#6d28d9!important}
+.tab{background:#f1f5f9!important;color:#64748b!important}
+.tab.active{background:linear-gradient(135deg,#7c3aed,#a78bfa)!important;color:#fff!important}
+.status.muted{background:#f1f5f9!important;color:#64748b!important}
+.section-label,.permission-group h4{color:#7c3aed!important}
+
+/* Forms */
+.search-input,.toolbar input,.toolbar select,.panel input,.panel select,.panel textarea,.field input,.field select,.field textarea,.purchase-field input,.purchase-field select,.po-inline-form input,.po-inline-form select{
+  border-color:#e2e8f0!important;background:#fff!important;color:#334155!important;
+}
+.search-input:focus,.toolbar input:focus,.toolbar select:focus,.panel input:focus,.panel select:focus,.panel textarea:focus,.field input:focus,.field select:focus,.field textarea:focus,.purchase-field input:focus,.purchase-field select:focus,.po-inline-form input:focus,.po-inline-form select:focus{
+  border-color:#a78bfa!important;box-shadow:0 0 0 3px rgba(167,139,250,.18)!important;outline:none!important;
+}
+input[type="date"]{border-color:#e2e8f0!important;background:#fff!important;color:#334155!important}
+input[type="date"]:hover{border-color:#c4b5fd!important}
+input[type="date"]:focus,input[type="date"]:focus-visible{border-color:#a78bfa!important;box-shadow:0 0 0 3px rgba(167,139,250,.18)!important;outline:none!important}
+
+/* Tables / neutral surfaces */
+.table-scroll-top,thead,th,.table-thumb,.metric-inline>div,.system-box{background:#f8fafc!important}
+th{border-bottom-color:#e2e8f0!important;color:#64748b!important}
+td{border-bottom-color:#f1f5f9!important;color:#64748b!important}
+tbody tr:hover{background:#fafafa!important}
+tbody tr:hover .sticky-action{background:#fafafa!important}
+.sticky-action{border-right-color:#f1f5f9!important}
+.panel,.role-card,.project-sidebar,.login-card{border-color:#f1f5f9!important}
+.field>span,.purchase-field>label,.permission-row,.log-detail,.part-preview p{color:#64748b!important}
+.sidebar-user strong,.mobile-user strong,.section-head h2,.confirm-box dd{color:#334155!important}
+.login-screen{background:#f8fafc!important}
+
+/* Common purple accent surfaces */
+.part-preview,.project-item.active{background:#f5f3ff!important}
+.part-preview small,.project-item.active,.project-item.active span{color:#6d28d9!important}
+.project-item{background:#f8fafc!important;color:#475569!important}
+.project-item:hover{background:#faf5ff!important;color:#6d28d9!important}
+.project-item.active{box-shadow:inset 0 0 0 1px #ddd6fe!important}
+.step-toggle{background:#f8fafc!important;border-color:#e2e8f0!important}
+.step-toggle:hover{background:#f5f3ff!important;border-color:#ddd6fe!important}
+.step-toggle .stack-sub{color:#7c3aed!important}
+
+/* History */
+.history-year{border-color:#e2e8f0!important;background:#fff!important}
+.history-collapse.year{background:#f8fafc!important;color:#6d28d9!important}
+.history-collapse.year:hover{background:#f5f3ff!important}
+.history-collapse.year b{background:#f5f3ff!important;color:#7c3aed!important}
+.history-month{border-color:#f1f5f9!important;background:#fff!important}
+.history-collapse.month{background:#fff!important;color:#475569!important}
+.history-collapse.month:hover{background:#f8fafc!important;color:#6d28d9!important}
+.history-table thead th{background:#f8fafc!important;color:#64748b!important}
+.history-table td:first-child b{color:#6d28d9!important}
+.history-table td:first-child small{color:#94a3b8!important}
+
+/* Department / Order Step */
+.department-card{border-color:#e2e8f0!important;background:#fff!important}
+.department-card:hover{border-color:#c4b5fd!important;background:#faf5ff!important;box-shadow:0 5px 14px rgba(109,40,217,.06)!important}
+.department-card.active{border-color:#a78bfa!important;background:#f5f3ff!important;color:#6d28d9!important;box-shadow:0 0 0 2px rgba(167,139,250,.12),0 5px 14px rgba(109,40,217,.05)!important}
+.department-card.active strong,.department-card.active span,.department-card.active small{color:#6d28d9!important}
+
+/* Detail / spare set */
+.part-detail-stock{border-top-color:#ddd6fe!important}
+.m-spare-items>div,.part-detail-note{background:#f8fafc!important}
+.m-spare-items b{color:#6d28d9!important}
+
+/* PO / RFQ / email workflow */
+.quotation-rfq-list>div{background:#f8fafc!important;border-color:#e2e8f0!important}
+.quotation-rfq-list>div>b{color:#6d28d9!important}
+.quotation-rfq-list a{color:#6d28d9!important}
+.cc-rule-list>span{background:#f5f3ff!important;color:#64748b!important}
+.cc-rule-list b{color:#6d28d9!important}
+.po-detail-head{border-color:#ddd6fe!important;background:#f8fafc!important}
+.attachment-list button{border-color:#c4b5fd!important;background:#f8fafc!important}
+.attachment-list span{color:#6d28d9!important}
+.po-mail-addresses span{background:#f8fafc!important;color:#64748b!important}
+.mail-event:before{background:#7c3aed!important}
+.mail-event.inbound:before{background:var(--success)!important}
+.mail-event>a{color:#6d28d9!important}
+.mail-files button,.mail-files span{background:#f5f3ff!important;color:#6d28d9!important}
+
+/* Keep warning-highlighted legacy quotation semantic yellow. */
+.quotation-rfq-list .legacy-quotation{background:var(--warning-soft)!important;border-color:#fde68a!important}
+.quotation-rfq-list .legacy-quotation b{color:#a16207!important}
+
+/* Mobile complete palette */
+@media(max-width:767px){
+  .m-topbar{border-bottom-color:#e2e8f0!important;background:rgba(255,255,255,.97)!important}
+  .m-topbar>button{background:#f1f5f9!important;color:#64748b!important}
+  .m-brand span,.m-page-head p,.m-row-between small,.m-pagination span,.m-loading,.m-empty{color:#94a3b8!important}
+  .m-bottom-nav{border-color:#e2e8f0!important}
+  .m-bottom-nav a{color:#94a3b8!important}
+  .m-bottom-nav a.active{background:linear-gradient(135deg,#7c3aed,#a78bfa)!important;color:#fff!important;box-shadow:0 5px 14px rgba(124,58,237,.24)!important}
+  .m-page-head h1{color:#1e293b!important}
+  .m-icon-action,.m-back-btn{border-color:#ddd6fe!important;background:#f5f3ff!important;color:#6d28d9!important}
+
+  .m-search{border-color:#e2e8f0!important;background:#fff!important}
+  .m-search>span{color:#94a3b8!important}
+  .m-search button{background:#f1f5f9!important;color:#64748b!important}
+  .m-filter-row>select,.m-full-select{border-color:#e2e8f0!important;color:#475569!important}
+  .m-segment{background:#f1f5f9!important}
+  .m-segment button{color:#64748b!important}
+  .m-segment button.active{background:#fff!important;color:#6d28d9!important;box-shadow:0 2px 6px rgba(124,58,237,.10)!important}
+
+  .m-kpi-row>div,.m-part-card,.m-history-card,.m-safety-card,.m-master-card,.m-role-card,.m-order-card,.m-fast-card,.m-project-card,.m-project-summary>div,.m-step,.m-spare-set-card,.m-dashboard-spare-set{
+    border-color:#e2e8f0!important;background:#fff!important;
+  }
+  .m-card-thumb,.m-part-meta span{background:#f1f5f9!important}
+  .m-card-code,.m-row-between b,.m-fast-card>b,.m-fast-card b,.m-order-item>b,.m-project-card strong,.m-step>header b,.m-dashboard-spare-set>span,.m-spare-items b{
+    color:#6d28d9!important;
+  }
+  .m-card-main h3,.m-row-between h3,.m-master-card h3,.m-role-card h3,.m-fast-card h3,.m-order-item h3,.m-step-order h3,.m-project-card b,.m-spare-set-card h3,.m-dashboard-spare-set b{
+    color:#1e293b!important;
+  }
+  .m-card-main p,.m-safety-card p,.m-history-card p,.m-order-item p,.m-step-order p,.m-fast-card p,.m-spare-set-card p{
+    color:#64748b!important;
+  }
+  .m-stock-line{border-top-color:#f1f5f9!important}
+  .m-pagination button{border-color:#e2e8f0!important;color:#64748b!important}
+
+  .m-part-hero,.m-quick-summary,.m-factory,.m-permission-chips span,.m-detail-button,.m-dashboard-spare-set>span{
+    background:#f5f3ff!important;color:#6d28d9!important;
+  }
+  .m-part-hero b,.m-part-hero small,.m-quick-summary b,.m-quick-summary span{color:#6d28d9!important}
+  .m-stock-preview>div,.m-note,.m-stock-triplet>div,.m-step-order,.m-spare-items>div{background:#f8fafc!important}
+
+  .m-tx.adjust{background:#f5f3ff!important;color:#6d28d9!important}
+  .m-order-life{background:#f1f5f9!important;color:#64748b!important}
+  .m-order-actions{border-top-color:#f1f5f9!important}
+  .m-order-actions button,.m-card-actions button:not(.danger),.m-fast-actions>button:not(.m-fast-button):not(.danger),.m-project-actions button:not(.danger),.m-step-head-actions button:not(.danger){
+    background:#f5f3ff!important;color:#6d28d9!important;
+  }
+  .m-fast-button,.m-save-button,.m-safety-order-btn{background:#7c3aed!important;color:#fff!important}
+  .m-role-groups details{border-color:#f1f5f9!important;background:#f8fafc!important}
+  .m-role-groups summary{color:#6d28d9!important}
+  .m-permission-row{border-top-color:#f1f5f9!important;color:#64748b!important}
+  .m-permission-row input,.m-safety-select input,.m-rfq-check input{accent-color:#7c3aed!important}
+
+  .m-safety-select-all{background:#f1f5f9!important;color:#64748b!important}
+  .m-safety-card.selected,.m-order-card.selected{border-color:#c4b5fd!important;box-shadow:0 0 0 2px rgba(124,58,237,.10)!important}
+  .m-safety-select,.m-rfq-check{background:#f5f3ff!important;color:#6d28d9!important}
+
+  .m-rfq-selection{border-color:#c4b5fd!important;background:#f5f3ff!important;box-shadow:0 4px 12px rgba(124,58,237,.08)!important}
+  .m-rfq-selection b{color:#6d28d9!important}
+  .m-rfq-selection button{background:#ede9fe!important;color:#6d28d9!important}
+  .m-rfq-selection button:first-of-type{background:#7c3aed!important;color:#fff!important}
+
+  /* Prevent iOS focus zoom while preserving pinch zoom. */
+  input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="file"]),select,textarea{font-size:16px!important}
+}
