@@ -36,7 +36,7 @@ urlpatterns = [
     path("suppliers/<uuid:pk>/contacts/", web_api.supplier_contacts_list, name="web-supplier-contacts-list"),
     path("suppliers/<uuid:pk>/contacts/<uuid:contact_pk>/", web_api.supplier_contact_detail, name="web-supplier-contact-detail"),
     path("machines/", web_api.machines_list, name="web-machines-list"),
-    path("machines/<uuid:pk>/", web_api.machine_detail, name="web-machines-detail"),
+    path("machines/<uuid:pk>/", web_api.machine_detail, name="web-machine-detail"),
 
     path("fast-orders/", fast_order_api.fast_orders, name="web-fast-orders"),
     path("fast-orders/<uuid:pk>/", fast_order_api.fast_order_detail, name="web-fast-order-detail"),
