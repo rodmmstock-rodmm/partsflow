@@ -12,9 +12,40 @@ import "./order-focus-v8.css";
 import "./order-v9.css";
 import "./order-v9-refine.css";
 
+function DesignLabBadge() {
+  return (
+    <div
+      title="Prototype only · ใช้ Mock Data · ไม่เชื่อม Production Database"
+      style={{
+        position: "fixed",
+        top: 10,
+        right: 10,
+        zIndex: 99999,
+        display: "flex",
+        alignItems: "center",
+        gap: 7,
+        padding: "7px 10px",
+        border: "1px solid #d98a54",
+        borderRadius: 999,
+        background: "rgba(255,249,242,.96)",
+        color: "#7a3c17",
+        boxShadow: "0 4px 16px rgba(72,44,20,.14)",
+        fontSize: 10,
+        fontWeight: 700,
+        letterSpacing: ".04em",
+        backdropFilter: "blur(8px)",
+      }}
+    >
+      <span style={{ width: 7, height: 7, borderRadius: "50%", background: "#c1622b" }} />
+      DESIGN LAB · MOCK DATA
+    </div>
+  );
+}
+
 ReactDOM.createRoot(document.getElementById("root")).render(
   <React.StrictMode>
     <BrowserRouter>
+      <DesignLabBadge />
       <AuthProvider>
         <OptionsProvider>
           <App />
