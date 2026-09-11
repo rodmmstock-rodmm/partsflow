@@ -1,0 +1,121 @@
+/* Production UI approved from PartsFlow Design Lab.
+   Restore the original purple/cool palette while retaining the current layout and features. */
+:root{
+  --brand:#7c3aed;
+  --brand2:#a78bfa;
+  --brand-soft:#f5f3ff;
+  --bg:#f8fafc;
+  --panel:#fff;
+  --border:#e2e8f0;
+  --border-soft:#f1f5f9;
+  --text:#1e293b;
+  --muted:#94a3b8;
+  --sub:#64748b;
+  --danger:#e11d48;
+  --danger-soft:#fff1f2;
+  --success:#059669;
+  --success-soft:#ecfdf5;
+  --warning:#d97706;
+  --warning-soft:#fffbeb;
+  --info:#0284c7;
+  --info-soft:#f0f9ff;
+}
+
+html,body{background:var(--bg);color:var(--text)}
+.brand-logo,.login-logo{background:linear-gradient(135deg,var(--brand),var(--brand2))}
+.nav-link:hover{background:var(--brand-soft);color:#6d28d9}
+.nav-link.active{background:linear-gradient(135deg,var(--brand),var(--brand2));box-shadow:0 4px 14px rgba(124,58,237,.28)}
+.btn.primary{background:var(--brand)}
+.btn.primary:hover{background:#6d28d9}
+.btn.ghost{background:#f1f5f9;color:#475569}
+.mini{background:var(--brand-soft);color:#6d28d9}
+.tab{background:#f1f5f9;color:#64748b}
+.tab.active{background:linear-gradient(135deg,var(--brand),var(--brand2));color:#fff}
+.status.muted{background:#f1f5f9;color:#64748b}
+.step-toggle{background:#f8fafc}
+.step-toggle:hover{background:var(--brand-soft)}
+.search-input,.toolbar input,.toolbar select,.panel input,.panel select,.panel textarea,.field input,.field select,.field textarea,.purchase-field input,.purchase-field select{color:#334155}
+.field input:focus,.field select:focus,.field textarea:focus,.toolbar input:focus,.toolbar select:focus,.purchase-field input:focus,.purchase-field select:focus{border-color:#c4b5fd;box-shadow:0 0 0 3px rgba(196,181,253,.25)}
+.table-scroll-top,thead,th,.table-thumb,.metric-inline>div,.system-box,.project-item,.login-screen{background:#f8fafc}
+td{color:#64748b}
+tbody tr:hover{background:#fafafa}
+tbody tr:hover .sticky-action{background:#fafafa}
+.part-preview small,.project-item.active{color:#6d28d9}
+.project-item.active{background:var(--brand-soft);box-shadow:inset 0 0 0 1px #ddd6fe}
+.section-head h2,.sidebar-user strong,.mobile-user strong,.confirm-box dd{color:#334155}
+.permission-row,.log-detail,.field>span,.purchase-field>label,.part-preview p{color:#64748b}
+.mobile-link.active{background:linear-gradient(135deg,var(--brand),var(--brand2));color:#fff}
+
+/* Approved desktop navigation: persistent sidebar, no hamburger/overlay. */
+@media (min-width:768px){
+  .hamburger-btn,.sidebar-backdrop,.sidebar-close{display:none!important}
+  .sidebar,.sidebar.open{transform:translateX(0)!important;box-shadow:8px 0 28px rgba(15,23,42,.035)}
+  .main-content{margin-left:256px!important;padding:32px!important;max-width:none!important;width:calc(100% - 256px)}
+}
+
+/* Order workspace — original purple/cool treatment, current V9 structure retained. */
+.orders-workspace{
+  --order-surface:#fff;
+  --order-soft:#f8fafc;
+  --order-line:#e2e8f0;
+  --order-brand:#7c3aed;
+  --order-brand-dark:#6d28d9;
+}
+.orders-workspace>.page-header{border-color:#e2e8f0;background:linear-gradient(135deg,#fff 0%,#f8fafc 100%);box-shadow:0 4px 18px rgba(15,23,42,.05)}
+.orders-workspace>.page-header p{color:#64748b}
+.orders-workspace>.page-header .btn.primary{box-shadow:0 5px 14px rgba(124,58,237,.2)}
+.orders-workspace>.page-tabs .tab:hover{background:#f5f3ff;color:#6d28d9}
+.orders-workspace>.page-tabs .tab.active{background:linear-gradient(135deg,var(--brand),var(--brand2));box-shadow:0 3px 9px rgba(124,58,237,.2)}
+.orders-workspace>.panel>.toolbar.wrap:first-child{border-color:#e2e8f0;background:#f8fafc}
+.orders-workspace .history-year{border-color:#e2e8f0}
+.orders-workspace .history-collapse.year{background:#f8fafc;color:#6d28d9}
+.orders-workspace .order-table thead th{background:#f8fafc;color:#64748b}
+.orders-workspace .order-table tbody tr:hover{background:#fafafa;box-shadow:inset 3px 0 0 #c4b5fd}
+
+.order-step-workspace{--step-brand:#7c3aed;--step-line:#e2e8f0}
+.order-step-workspace .department-card.active{box-shadow:0 0 0 2px rgba(124,58,237,.11),0 5px 14px rgba(109,40,217,.05)}
+.order-step-workspace .project-head>.page-actions>.btn:first-child{border-color:#c4b5fd;background:#f5f3ff;color:#6d28d9;box-shadow:0 3px 9px rgba(124,58,237,.08)}
+.order-step-workspace .project-head>.page-actions>.btn:first-child:hover{background:#ede9fe}
+.order-step-workspace .step-toggle{background:#f8fafc}
+
+.order-nav-v9{border-color:#e2e8f0;box-shadow:0 2px 10px rgba(15,23,42,.04)}
+.order-status-tabs-v9 button{color:#64748b}
+.order-status-tabs-v9 button:hover{background:#f5f3ff;color:#6d28d9}
+.order-status-tabs-v9 button.active{background:linear-gradient(135deg,var(--brand),var(--brand2));box-shadow:0 3px 9px rgba(124,58,237,.18)}
+.order-month-head-v9 button{border-color:#e2e8f0;color:#6d28d9}
+.order-month-tabs-v9 button{background:#f8fafc;color:#64748b}
+.order-month-tabs-v9 button:hover{border-color:#c4b5fd;background:#fafafa;color:#6d28d9}
+.order-month-tabs-v9 button.active{border-color:#a78bfa;background:#f5f3ff;color:#6d28d9;box-shadow:0 0 0 2px rgba(167,139,250,.10)}
+.order-month-tabs-v9 button small{color:#7c3aed}
+.bulk-v9{border-color:#c4b5fd;background:#f5f3ff}
+.order-table-v9 th{background:#f8fafc}
+.order-table-v9 tbody tr:hover{background:#fafafa}
+.order-table-v9 tbody tr.selected{background:#f5f3ff}
+.part-main-v9>b{color:#6d28d9}
+.urgent-badge-v9{border-color:#fecdd3;background:#fff1f2;color:#be123c}
+.order-detail-hero-v9{border-color:#e2e8f0;background:#f8fafc}
+.order-detail-grid-v9 h3,.order-admin-v9 h3{color:#6d28d9}
+.order-detail-note-v9{background:#f8fafc}
+.order-admin-v9{border-color:#c4b5fd;background:#faf5ff}
+
+/* Approved: Lifecycle remains functional internally but is not shown in the Order list. */
+.order-table-v9 th:nth-child(8),
+.order-table-v9 td:nth-child(8){display:none!important}
+
+@media(max-width:767px){
+  .m-order-card{border-color:#e2e8f0}
+  .m-order-card .m-row-between{border-bottom-color:#f1f5f9}
+  .m-order-card .m-info-grid span{background:#f8fafc}
+  .m-segment.wide{background:#f1f5f9}
+  .m-month-nav-v9{border-color:#e2e8f0}
+  .m-month-nav-v9>div:first-child button{border-color:#e2e8f0;background:#f8fafc;color:#6d28d9}
+  .m-month-tabs-v9 button{background:#f8fafc;color:#64748b}
+  .m-month-tabs-v9 button.active{border-color:#a78bfa;background:#f5f3ff;color:#6d28d9}
+  .m-month-tabs-v9 button small{color:#7c3aed}
+  .m-order-main-v9{border-top-color:#f1f5f9}
+  .m-order-detail-hero-v9{border-color:#e2e8f0;background:#f8fafc}
+  .m-order-detail-hero-v9>span,.m-order-detail-hero-v9>strong{color:#6d28d9}
+  .m-order-detail-grid-v9>div,.m-order-note-v9{background:#f8fafc}
+  .m-order-admin-v9{border-color:#c4b5fd;background:#faf5ff}
+  .m-order-admin-v9>b{color:#6d28d9}
+}
