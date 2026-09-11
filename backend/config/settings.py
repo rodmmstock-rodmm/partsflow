@@ -85,7 +85,6 @@ USE_TZ = True
 
 STATIC_URL = "/static/"
 STATIC_ROOT = BASE_DIR / "staticfiles"
-STATICFILES_DIRS = [BASE_DIR / "static"]
 STORAGES = {
     "staticfiles": {
         "BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage",
@@ -97,10 +96,9 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 CORS_ALLOWED_ORIGINS = env_list("CORS_ALLOWED_ORIGINS")
 CSRF_TRUSTED_ORIGINS = env_list("CSRF_TRUSTED_ORIGINS")
 
-# Keep the current Render static frontend explicitly trusted during migration.
-# The primary production path is same-origin through this Django service.
+# Vercel is the production frontend; Render serves the API only.
 PRODUCTION_FRONTEND_ORIGINS = [
-    "https://partsflow-production-web.onrender.com",
+    "https://rodmmstock-rodmm-partsflow.vercel.app",
 ]
 for origin in PRODUCTION_FRONTEND_ORIGINS:
     if origin not in CORS_ALLOWED_ORIGINS:
