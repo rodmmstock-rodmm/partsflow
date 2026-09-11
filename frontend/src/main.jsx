@@ -1,7 +1,9 @@
 import React from "react";
 import ReactDOM from "react-dom/client";
-import { BrowserRouter } from "react-router-dom";
+import { createPortal } from "react-dom";
+import { BrowserRouter, useLocation } from "react-router-dom";
 import App from "./App";
+import { apiGet } from "./api";
 import { AuthProvider } from "./auth";
 import { OptionsProvider } from "./optionsContext";
 import { installOrderSelectedExcelExport } from "./orderSelectedExcelExport";
@@ -11,6 +13,8 @@ import "./searchable-select.css";
 import "./order-focus-v8.css";
 import "./order-v9.css";
 import "./order-v9-refine.css";
+
+const DESIGN_LAB_JOB_CARDS = ["REPAIR", "MODIFY", "AUTOMATION", "PM", "GENERAL"];
 
 function DesignLabLayoutStyle() {
   return (
@@ -36,6 +40,107 @@ function DesignLabLayoutStyle() {
         }
       }
     `}</style>
+  );
+}
+
+function DesignLabOrderJobKpi() {
+  const { pathname } = useLocation();
+  const [host, setHost] = React.useState(null);
+  const [counts, setCounts] = React.useState(() =>
+    Object.fromEntries(DESIGN_LAB_JOB_CARDS.map((job) => [job, 0]))
+  );
+
+  React.useEffect(() => {
+    if (pathname !== "/orders") {
+      document.getElementById("design-lab-job-kpi-host")?.remove();
+      setHost(null);
+      return undefined;
+    }
+
+    let stopped = false;
+    const root = document.getElementById("root");
+
+    const syncHost = () => {
+      if (stopped) return;
+      const target = document.querySelector(".order-kpi-v9");
+      let node = document.getElementById("design-lab-job-kpi-host");
+
+      if (!target) {
+        node?.remove();
+        setHost(null);
+        return;
+      }
+
+      if (!node) {
+        node = document.createElement("div");
+        node.id = "design-lab-job-kpi-host";
+      }
+
+      if (target.nextElementSibling !== node) {
+        target.insertAdjacentElement("afterend", node);
+      }
+      setHost(node);
+    };
+
+    syncHost();
+    const observer = new MutationObserver(syncHost);
+    if (root) observer.observe(root, { childList: true, subtree: true });
+
+    return () => {
+      stopped = true;
+      observer.disconnect();
+      document.getElementById("design-lab-job-kpi-host")?.remove();
+      setHost(null);
+    };
+  }, [pathname]);
+
+  React.useEffect(() => {
+    if (pathname !== "/orders") return undefined;
+    let active = true;
+
+    async function loadJobCounts() {
+      try {
+        const datasets = await Promise.all([
+          apiGet("/orders/?view=normal", { cache: false, forceRefresh: true }),
+          apiGet("/orders/?view=completed", { cache: false, forceRefresh: true }),
+          apiGet("/orders/?view=cancelled", { cache: false, forceRefresh: true }),
+        ]);
+
+        const unique = new Map();
+        datasets.forEach((data) => {
+          (data?.results || []).forEach((order) => unique.set(String(order.id), order));
+        });
+
+        const next = Object.fromEntries(DESIGN_LAB_JOB_CARDS.map((job) => [job, 0]));
+        unique.forEach((order) => {
+          const job = String(order?.job || "").trim().toUpperCase();
+          if (Object.prototype.hasOwnProperty.call(next, job)) next[job] += 1;
+        });
+
+        if (active) setCounts(next);
+      } catch {
+        // Design Lab stays usable even if a mock response is temporarily unavailable.
+      }
+    }
+
+    loadJobCounts();
+    return () => {
+      active = false;
+    };
+  }, [pathname]);
+
+  if (pathname !== "/orders" || !host) return null;
+
+  return createPortal(
+    <div className="kpi-grid five compact">
+      {DESIGN_LAB_JOB_CARDS.map((job) => (
+        <div className="kpi-card" key={job}>
+          <span>{job}</span>
+          <strong>{Number(counts[job] || 0).toLocaleString("th-TH")}</strong>
+        </div>
+      ))}
+    </div>,
+    host
   );
 }
 
@@ -74,6 +179,7 @@ ReactDOM.createRoot(document.getElementById("root")).render(
     <BrowserRouter>
       <DesignLabLayoutStyle />
       <DesignLabBadge />
+      <DesignLabOrderJobKpi />
       <AuthProvider>
         <OptionsProvider>
           <App />
