@@ -7,6 +7,11 @@
   display:none!important;
 }
 
+/* Detail opens from the Order row/card itself; do not render a dead duplicate button. */
+.order-actions-v9 > .mini.primary:first-child{
+  display:none!important;
+}
+
 .order-table-v9 .part-main-v9{
   min-width:240px;
 }
@@ -100,7 +105,7 @@
   .m-order-main-v9{
     display:flex;
     align-items:center;
-    justify-content:space-between;
+    justify-content:flex-start;
     gap:8px;
     padding-top:8px;
     border-top:1px solid #f0ece5;
@@ -115,15 +120,8 @@
     color:#1b2430;
     font-size:11px;
   }
-  .m-order-main-v9 button{
-    min-height:34px;
-    padding:7px 12px;
-    border:0;
-    border-radius:9px;
-    background:#c1622b;
-    color:#fff;
-    font-size:10px;
-    font-weight:700;
+  .m-order-main-v9 > button{
+    display:none!important;
   }
   .m-order-detail-v9{
     display:grid;
