@@ -1,10 +1,10 @@
 {
   "ok": true,
   "job_status": "success",
-  "run_id": "34570417095",
-  "source_sha": "c00d55b8818f5c69a0a29bad30c887b2bb31661c",
+  "run_id": "34572411630",
+  "source_sha": "c7564a3c019b5c749e80c4db566fa70bcb99ee53",
   "artifact_name": "PartsFlow-Local-Windows",
-  "zip_sha256": "565a9a1f4613b1f679de13ac00b956d7304d7b7e4213d6cac473c0c76af90e0a",
-  "zip_size": 26041522,
-  "built_at_utc": "2026-09-11T06:35:47.0132135Z"
+  "zip_sha256": "3a9b60c55b168e981261cb05492c4f3a17db5276cd5c2f105416dd6d45c4d54a",
+  "zip_size": 26041761,
+  "built_at_utc": "2026-09-11T07:02:50.8385936Z"
 }
