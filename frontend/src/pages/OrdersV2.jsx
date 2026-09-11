@@ -2,9 +2,10 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import * as XLSX from "xlsx";
 import { apiDelete, apiGet, apiPost } from "../api";
 import { useAuth } from "../auth";
-import { Alert, Modal, PageHeader, fmt, formatDMY, money } from "../components/Common";
+import { Alert, PageHeader, fmt, formatDMY } from "../components/Common";
 import RFQComposeModal from "../components/RFQComposeModal";
 import { useOptions } from "../optionsContext";
+import { openOrderDetailByNumber } from "../orderDetailEnhancer";
 import { OrderInfoModal, PurchaseModal } from "./Orders";
 
 const ORDER_TABS = [
@@ -72,91 +73,50 @@ function excelDate(value){
   return text.slice(0,10);
 }
 
-function OrderDetailModal({ order, admin, auth, onClose, onEdit, onPurchase, onUpdate }){
-  const status=displayStatus(order);
-  return <Modal title={`รายละเอียด Order · ${order.order_number}`} onClose={onClose} wide>
-    <div className="order-detail-v9">
-      <section className="order-detail-hero-v9">
-        <div><span>PART ID</span><b>{order.item_id || "-"}</b></div>
-        <div className="wide"><span>อะไหล่</span><b>{order.part_name || "-"}</b><small>{order.part_detail || "-"}</small></div>
-        <div><span>จำนวน</span><b>{fmt(order.amount)} {order.unit || ""}</b></div>
-        <div><span>สถานะ</span><b><span className={`status ${statusClass(status)}`}>{status}</span></b></div>
-      </section>
-
-      <div className="order-detail-grid-v9">
-        <section>
-          <h3>ข้อมูล Order</h3>
-          <dl>
-            <dt>วันที่</dt><dd>{formatDMY(order.date)}</dd>
-            <dt>Factory</dt><dd>{order.factory === "MM-11" ? "Phase11" : "Phase4"}</dd>
-            <dt>Machine</dt><dd>{order.machine_name || order.machine_code || "-"}</dd>
-            <dt>Job</dt><dd>{order.job || "-"}</dd>
-            <dt>Maker</dt><dd>{order.maker || "-"}</dd>
-            <dt>ผู้สั่ง</dt><dd>{order.ordered_by || "-"}</dd>
-            <dt>งานด่วน</dt><dd>{order.urgent_status || "-"}</dd>
-            <dt>วันที่งานค้าง</dt><dd>{formatDMY(order.pending_data_date)}</dd>
-          </dl>
-        </section>
-        <section>
-          <h3>ข้อมูลการสั่งซื้อ</h3>
-          <dl>
-            <dt>Vendor</dt><dd>{order.vendor_name || "-"}</dd>
-            <dt>PO</dt><dd>{order.po_number || "-"}</dd>
-            <dt>RFQ</dt><dd>{order.rfq_count ? `${fmt(order.rfq_count)} รายการ` : (order.quotation || "-")}</dd>
-            <dt>ราคาต่อหน่วย</dt><dd>{order.price_per_unit ? `${order.currency || "THB"} ${money(order.price_per_unit)}` : "-"}</dd>
-            <dt>ราคารวม</dt><dd>{order.price_total ? `${order.currency || "THB"} ${money(order.price_total)}` : "-"}</dd>
-            <dt>Lead time</dt><dd>{order.lead_time_days == null ? "-" : `${order.lead_time_days} วัน`}</dd>
-            <dt>Issue PR</dt><dd>{formatDMY(order.issue_pr_date)}</dd>
-            <dt>Due date</dt><dd>{formatDMY(order.due_date)}</dd>
-            <dt>Vendor confirm</dt><dd>{formatDMY(order.vendor_confirm_date)}</dd>
-            <dt>PIC</dt><dd>{order.person_in_charge || "-"}</dd>
-          </dl>
-        </section>
-      </div>
-
-      {(order.remark || order.drawing_path) && <section className="order-detail-note-v9">
-        {order.remark && <div><span>Remark</span><p>{order.remark}</p></div>}
-        {order.drawing_path && <div><span>Drawing Path</span><p className="mono-cell">{order.drawing_path}</p></div>}
-      </section>}
-
-      {admin && <section className="order-admin-v9">
-        <h3>Admin · Workflow / Internal</h3>
-        <div>
-          <span>Workflow <b>{order.status || "-"}</b></span>
-          <span>Lifecycle <b>{order.lifecycle_status || "-"}</b></span>
-          <span>Edit status <b>{order.edit_data_status || "-"}</b></span>
-          <span>Group order <b>{order.group_order || "-"}</b></span>
-          <span>Source <b>{order.source_type || "-"}</b></span>
-          <span>Project <b>{order.project_name || "-"}</b></span>
-        </div>
-      </section>}
-
-      <div className="modal-actions">
-        {onUpdate && auth.can("can_update_edit_data") && <button className="btn primary" onClick={()=>onUpdate(order)}>อัปเดตข้อมูล</button>}
-        {auth.can("can_edit_order_info") && <button className="btn ghost" onClick={()=>onEdit(order)}>แก้ข้อมูล Order</button>}
-        {auth.can("can_edit_purchase_info") && <button className="btn ghost" onClick={()=>onPurchase(order)}>Purchase</button>}
-        <button className="btn ghost" onClick={onClose}>ปิด</button>
-      </div>
-    </div>
-  </Modal>;
-}
-
-function CompactOrderTable({ rows, selected, onToggle, onToggleAll, onDetail, admin, tab, auth, onRestore }){
+function CompactOrderTable({
+  rows,
+  selected,
+  onToggle,
+  onToggleAll,
+  onDetail,
+  onEdit,
+  onPurchase,
+  onUpdate,
+  admin,
+  tab,
+  auth,
+  onRestore,
+}){
   const all=rows.length>0 && rows.every(x=>selected.has(x.id));
   if(!rows.length) return <div className="empty">ไม่พบ Order ในเดือนนี้</div>;
   return <div className="table-wrap order-table-v9-wrap"><table className="order-table-v9">
     <thead><tr>
       <th><input type="checkbox" checked={all} onChange={e=>onToggleAll(rows,e.target.checked)} /></th>
-      <th>ORDER</th><th>อะไหล่ที่สั่ง</th><th>จำนวน</th><th>สถานะการสั่ง</th>{admin&&<th>Lifecycle</th>}<th></th>
+      <th>ORDER</th>
+      <th>อะไหล่ที่สั่ง</th>
+      <th>จำนวน</th>
+      <th>สถานะงานด่วน</th>
+      <th>วันที่ค้าง DATA</th>
+      <th>สถานะการสั่ง</th>
+      {admin&&<th>Lifecycle</th>}
+      <th></th>
     </tr></thead>
     <tbody>{rows.map(o=>{const s=displayStatus(o); return <tr key={o.id} className={selected.has(o.id)?"selected":""}>
       <td><input type="checkbox" checked={selected.has(o.id)} onChange={e=>onToggle(o.id,e.target.checked)} /></td>
-      <td><b className="mono-cell">{o.order_number}</b><small>{formatDMY(o.date)} · {o.factory === "MM-11" ? "Phase11" : "Phase4"}</small></td>
-      <td className="part-main-v9"><b>{o.item_id || "-"}</b><strong>{o.part_name || "-"}</strong><small>{o.part_detail || "-"}</small></td>
+      <td><b className="mono-cell">{o.order_number}</b></td>
+      <td className="part-main-v9"><b>{o.item_id || "-"}</b><strong>{o.part_name || "-"}</strong></td>
       <td><b>{fmt(o.amount)} {o.unit || ""}</b></td>
+      <td className="urgent-cell-v9">{o.urgent_status ? <span className="urgent-badge-v9">{o.urgent_status}</span> : <span className="muted-text-v9">-</span>}</td>
+      <td className="pending-date-v9">{o.pending_data_date ? formatDMY(o.pending_data_date) : "-"}</td>
       <td><span className={`status ${statusClass(s)}`}>{s}</span></td>
       {admin&&<td><span className="status muted">{o.lifecycle_status || "ACTIVE"}</span></td>}
-      <td className="order-actions-v9"><button className="mini primary" onClick={()=>onDetail(o)}>รายละเอียด</button>{tab==="deleted"&&auth.can("can_view_deleted_orders")&&<button className="mini" onClick={()=>onRestore(o)}>กู้คืน</button>}</td>
+      <td className="order-actions-v9">
+        <button className="mini primary" onClick={()=>onDetail(o)}>รายละเอียด</button>
+        {tab==="updates"&&auth.can("can_update_edit_data")&&<button className="mini" onClick={()=>onUpdate(o)}>อัปเดตข้อมูล</button>}
+        {["normal","confirm"].includes(tab)&&auth.can("can_edit_order_info")&&<button className="mini" onClick={()=>onEdit(o)}>แก้ Order</button>}
+        {["normal","confirm"].includes(tab)&&auth.can("can_edit_purchase_info")&&<button className="mini" onClick={()=>onPurchase(o)}>Purchase</button>}
+        {tab==="deleted"&&auth.can("can_view_deleted_orders")&&<button className="mini" onClick={()=>onRestore(o)}>กู้คืน</button>}
+      </td>
     </tr>;})}</tbody>
   </table></div>;
 }
@@ -202,7 +162,6 @@ export default function OrdersV2(){
   const [lastLoadedAt,setLastLoadedAt]=useState(null);
   const [selected,setSelected]=useState(()=>new Set());
   const [bulkBusy,setBulkBusy]=useState(false);
-  const [detail,setDetail]=useState(null);
   const [editor,setEditor]=useState(null);
   const [purchase,setPurchase]=useState(null);
   const [rfqCompose,setRfqCompose]=useState(false);
@@ -258,11 +217,11 @@ export default function OrdersV2(){
   }
   async function updateData(order){
     if(!window.confirm(`ยืนยันอัปเดตข้อมูล ${order.order_number}?`)) return;
-    try{await apiPost(`/orders/${order.id}/update-data/`,{});setDetail(null);await load(true);}catch(e){setError(e.message);}
+    try{await apiPost(`/orders/${order.id}/update-data/`,{});await load(true);}catch(e){setError(e.message);}
   }
 
   function downloadTemplate(){
-    const example={"ORDER NUMBER":"",DATE:range.from,FACTORY:"Phase4","MACHINE NAME":"",JOB:"REPAIR","URGENT STATUS":"","PENDING DATA DATE":"","PART ID":"","PART NAME":"","PART DETAIL":"",MAKER:"",AMOUNT:1,UNIT:"EA",REMARK:"","ORDERED BY":auth.employee?.name||"",QUOTATION:"","PO NUMBER":"","PRICE PER UNIT":"",CURRENCY:"THB","VENDOR ORDER":"","LEAD TIME":"","ISSUE PR DATE":"","DUE DATE":"","VENDOR CONFIRM DATE":"","PERSON IN CHARGE OF ORDER":""};
+    const example={"ORDER NUMBER":"",DATE:range.from,FACTORY:"Phase4","MACHINE NAME":"",JOB:"REPAIR","URGENT STATUS":"","PENDING DATA DATE":"","PART ID":"","PART NAME":"","PART DETAIL":"",MAKER:"",AMOUNT:1,UNIT:"EA",REMARK:"","ORDERED BY":auth.employee?.name||"",QUOTATION:"","PO NUMBER":"","PRICE PER UNIT":"","CURRENCY":"THB","VENDOR ORDER":"","LEAD TIME":"","ISSUE PR DATE":"","DUE DATE":"","VENDOR CONFIRM DATE":"","PERSON IN CHARGE OF ORDER":""};
     const ws=XLSX.utils.json_to_sheet([example]); const wb=XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb,ws,"Import Template"); XLSX.writeFile(wb,"orders_import_template.xlsx");
   }
   async function importExcel(file){
@@ -317,10 +276,22 @@ export default function OrdersV2(){
       </div>
 
       {tab!=="deleted"&&<BulkBar rows={selectedRows} auth={auth} busy={bulkBusy} onRun={runBulk} onClear={()=>setSelected(new Set())} onRfq={()=>setRfqCompose(true)}/>}      
-      {loading?<div className="empty">กำลังโหลด {MONTHS_TH[month]} {year}...</div>:<CompactOrderTable rows={rows} selected={selected} onToggle={toggle} onToggleAll={toggleAll} onDetail={setDetail} admin={admin} tab={tab} auth={auth} onRestore={restoreOrder}/>}      
+      {loading?<div className="empty">กำลังโหลด {MONTHS_TH[month]} {year}...</div>:<CompactOrderTable
+        rows={rows}
+        selected={selected}
+        onToggle={toggle}
+        onToggleAll={toggleAll}
+        onDetail={o=>openOrderDetailByNumber(o.order_number,admin)}
+        onEdit={o=>setEditor({order:o})}
+        onPurchase={o=>setPurchase(o)}
+        onUpdate={updateData}
+        admin={admin}
+        tab={tab}
+        auth={auth}
+        onRestore={restoreOrder}
+      />}
     </section>
 
-    {detail&&<OrderDetailModal order={detail} admin={admin} auth={auth} onClose={()=>setDetail(null)} onEdit={o=>{setDetail(null);setEditor({order:o});}} onPurchase={o=>{setDetail(null);setPurchase(o);}} onUpdate={tab==="updates"?updateData:null}/>}    
     {editor&&<OrderInfoModal order={editor.order} project={null} step={null} options={options} employee={auth.employee} canEditOrderDate={auth.can("can_edit_order_date")} onClose={()=>setEditor(null)} onSaved={()=>{setEditor(null);load(true);}}/>}
     {purchase&&<PurchaseModal order={purchase} options={options} onClose={()=>setPurchase(null)} onChanged={r=>{setPurchase(r);load(true);}}/>}
     {rfqCompose&&<RFQComposeModal orders={selectedRows} options={options} onClose={()=>setRfqCompose(false)} onRecorded={()=>{setRfqCompose(false);setSelected(new Set());load(true);}}/>}
