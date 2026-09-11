@@ -1,6 +1,6 @@
 from django.urls import path
 
-from . import auth_api, dashboard_api, drive_oauth, fast_order_api, order_api, order_audit_api, rfq_api, role_api, spare_set_api, stock_api, web_api
+from . import auth_api, dashboard_api, drive_oauth, fast_order_api, order_api, order_audit_api, order_step_api, rfq_api, role_api, spare_set_api, stock_api, web_api
 
 urlpatterns = [
     path("auth/login/", auth_api.login_view),
@@ -36,7 +36,7 @@ urlpatterns = [
     path("suppliers/<uuid:pk>/contacts/", web_api.supplier_contacts_list, name="web-supplier-contacts-list"),
     path("suppliers/<uuid:pk>/contacts/<uuid:contact_pk>/", web_api.supplier_contact_detail, name="web-supplier-contact-detail"),
     path("machines/", web_api.machines_list, name="web-machines-list"),
-    path("machines/<uuid:pk>/", web_api.machine_detail, name="web-machine-detail"),
+    path("machines/<uuid:pk>/", web_api.machine_detail, name="web-machines-detail"),
 
     path("fast-orders/", fast_order_api.fast_orders, name="web-fast-orders"),
     path("fast-orders/<uuid:pk>/", fast_order_api.fast_order_detail, name="web-fast-order-detail"),
@@ -62,7 +62,7 @@ urlpatterns = [
     path("order-projects/<uuid:pk>/steps/", order_api.create_project_step, name="web-order-project-step-add"),
     path("order-projects/<uuid:pk>/steps/<uuid:step_pk>/", order_api.delete_project_step, name="web-order-project-step-delete"),
     path("order-projects/<uuid:pk>/steps/<uuid:step_pk>/status/", order_api.update_step_status, name="web-order-project-step-status"),
-    path("order-projects/<uuid:pk>/steps/<uuid:step_pk>/confirm/", order_api.confirm_step, name="web-order-project-step-confirm"),
+    path("order-projects/<uuid:pk>/steps/<uuid:step_pk>/confirm/", order_step_api.confirm_step, name="web-order-project-step-confirm"),
     path("order-projects/<uuid:pk>/steps/<uuid:step_pk>/orders/", order_api.create_project_order, name="web-order-project-step-order-add"),
     path("order-projects/<uuid:pk>/steps/<uuid:step_pk>/import/", order_api.import_project_step, name="web-order-project-step-import"),
     path("order-projects/<uuid:pk>/quotation-conversion-preview/", order_api.quotation_conversion_preview, name="web-order-project-quotation-conversion-preview"),
