@@ -4,7 +4,7 @@ const INSTALLED_KEY = "__partsflowOrderDetailEnhancerInstalled";
 const MODAL_ID = "partsflow-order-detail-modal";
 const STYLE_ID = "partsflow-order-detail-style";
 const ORDER_TARGET_SELECTOR =
-  "table.order-table tbody tr, article.m-order-card, article.m-step-order";
+  "table.order-table tbody tr, table.order-table-v9 tbody tr, article.m-order-card, article.m-step-order";
 const INTERACTIVE_SELECTOR =
   "button,input,select,textarea,a,label,summary,details";
 
@@ -177,6 +177,10 @@ function dateTimeValue(value) {
   });
 }
 
+function isAdminRole(role) {
+  return ["admin", "administrator"].includes(cleanText(role).toLowerCase());
+}
+
 function el(tag, className, text) {
   const node = document.createElement(tag);
   if (className) node.className = className;
@@ -286,7 +290,7 @@ function closeModal() {
   document.getElementById(MODAL_ID)?.remove();
 }
 
-function showOrderDetail(data) {
+function showOrderDetail(data, showWorkflow) {
   closeModal();
   ensureStyles();
 
@@ -314,7 +318,9 @@ function showOrderDetail(data) {
 
   card.appendChild(section("1. Order Information", ORDER_FIELDS, data));
   card.appendChild(section("2. Purchase Information", PURCHASE_FIELDS, data));
-  card.appendChild(section("3. Workflow / Lifecycle", WORKFLOW_FIELDS, data));
+  if (showWorkflow) {
+    card.appendChild(section("3. Workflow / Lifecycle", WORKFLOW_FIELDS, data));
+  }
 
   const actions = el("div", "modal-actions");
   const done = el("button", "btn ghost", "ปิด");
@@ -329,7 +335,35 @@ function showOrderDetail(data) {
   document.body.appendChild(backdrop);
 }
 
+export async function openOrderDetailByNumber(orderNumber, showWorkflow = null) {
+  const cleanOrderNumber = cleanText(orderNumber);
+  if (!cleanOrderNumber) return;
+  try {
+    const data = await apiGet(
+      `/orders/detail-by-number/${encodeURIComponent(cleanOrderNumber)}/`,
+      { forceRefresh: true, cache: false }
+    );
+
+    let allowWorkflow = showWorkflow;
+    if (allowWorkflow === null || allowWorkflow === undefined) {
+      try {
+        const me = await apiGet("/auth/me/");
+        allowWorkflow = isAdminRole(me?.employee?.role);
+      } catch {
+        allowWorkflow = false;
+      }
+    }
+
+    showOrderDetail(data, !!allowWorkflow);
+  } catch (error) {
+    window.alert(`เปิดรายละเอียด Order ไม่สำเร็จ: ${error.message}`);
+  }
+}
+
 function orderNumberFromTarget(target) {
+  if (target.matches("table.order-table-v9 tbody tr")) {
+    return cleanText(target.querySelector("td:nth-child(2) b")?.textContent);
+  }
   if (target.matches("table.order-table tbody tr")) {
     return cleanText(target.querySelector("td:first-child b")?.textContent);
   }
@@ -342,15 +376,7 @@ function orderNumberFromTarget(target) {
 async function openTarget(target) {
   const orderNumber = orderNumberFromTarget(target);
   if (!orderNumber) return;
-  try {
-    const data = await apiGet(
-      `/orders/detail-by-number/${encodeURIComponent(orderNumber)}/`,
-      { forceRefresh: true, cache: false }
-    );
-    showOrderDetail(data);
-  } catch (error) {
-    window.alert(`เปิดรายละเอียด Order ไม่สำเร็จ: ${error.message}`);
-  }
+  await openOrderDetailByNumber(orderNumber);
 }
 
 function syncOrderTargets() {
@@ -421,4 +447,3 @@ export function installOrderDetailEnhancer() {
 
   syncEnhancements();
 }
-
