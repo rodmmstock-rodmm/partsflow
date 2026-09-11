@@ -1,16 +1,41 @@
 /* PartsFlow V9 refinement — keep list focused on ordered part + ordering status */
+.order-table-v9{
+  min-width:1120px;
+}
 .order-table-v9 td > small,
 .order-table-v9 .part-main-v9 > small{
   display:none!important;
 }
 
 .order-table-v9 .part-main-v9{
-  min-width:260px;
+  min-width:240px;
 }
 .order-table-v9 .part-main-v9 > strong{
   margin-top:3px;
   font-size:12px;
 }
+.urgent-cell-v9{
+  min-width:150px;
+  max-width:190px;
+}
+.urgent-badge-v9{
+  display:inline-block;
+  padding:5px 8px;
+  border:1px solid #efd2bc;
+  border-radius:8px;
+  background:#fff5ec;
+  color:#9a4c1f;
+  font-size:9px;
+  font-weight:700;
+  line-height:1.35;
+}
+.pending-date-v9{
+  min-width:105px;
+  white-space:nowrap!important;
+  font-family:var(--font-mono);
+  font-size:10px;
+}
+.muted-text-v9{color:var(--muted)}
 
 @media(max-width:767px){
   .m-month-nav-v9{
