@@ -8,6 +8,7 @@ import {
 
 import {
   apiGet,
+  apiLogin,
   apiPost,
   clearAuthToken,
   getAuthToken,
@@ -44,10 +45,7 @@ export function AuthProvider({ children }) {
   }, []);
 
   async function login(code) {
-    const data = await apiPost(
-      "/auth/login/",
-      { employee_code: code }
-    );
+    const data = await apiLogin(code);
 
     if (!data.token) {
       throw new Error(
