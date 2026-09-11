@@ -46,11 +46,73 @@ tbody tr:hover .sticky-action{background:#fafafa}
 .permission-row,.log-detail,.field>span,.purchase-field>label,.part-preview p{color:#64748b}
 .mobile-link.active{background:linear-gradient(135deg,var(--brand),var(--brand2));color:#fff}
 
+/* Date fields: remove residual brown/orange borders from legacy components. */
+input[type="date"]{
+  border-color:#e2e8f0!important;
+  background:#fff!important;
+  color:#334155!important;
+}
+input[type="date"]:hover{
+  border-color:#c4b5fd!important;
+}
+input[type="date"]:focus,
+input[type="date"]:focus-visible{
+  outline:none!important;
+  border-color:#a78bfa!important;
+  box-shadow:0 0 0 3px rgba(167,139,250,.18)!important;
+}
+input[type="date"][style*="#C1622B"],
+input[type="date"][style*="#c1622b"]{
+  border-color:#a78bfa!important;
+}
+
 /* Approved desktop navigation: persistent sidebar, no hamburger/overlay. */
 @media (min-width:768px){
   .hamburger-btn,.sidebar-backdrop,.sidebar-close{display:none!important}
   .sidebar,.sidebar.open{transform:translateX(0)!important;box-shadow:8px 0 28px rgba(15,23,42,.035)}
   .main-content{margin-left:256px!important;padding:32px!important;max-width:none!important;width:calc(100% - 256px)}
+}
+
+/* History workspace */
+.history-year{
+  border-color:#e2e8f0!important;
+  background:#fff;
+}
+.history-collapse.year{
+  background:#f8fafc!important;
+  color:#6d28d9!important;
+}
+.history-collapse.year:hover{
+  background:#f5f3ff!important;
+}
+.history-collapse.year b{
+  background:#f5f3ff!important;
+  color:#7c3aed!important;
+}
+.history-month{
+  border-color:#f1f5f9!important;
+}
+.history-collapse.month{
+  background:#fff!important;
+  color:#475569!important;
+}
+.history-collapse.month:hover{
+  background:#f8fafc!important;
+  color:#6d28d9!important;
+}
+.history-table thead th{
+  background:#f8fafc!important;
+  color:#64748b!important;
+}
+.history-table tbody tr:hover{
+  background:#fafafa!important;
+  box-shadow:inset 3px 0 0 #c4b5fd;
+}
+.history-table td:first-child b{
+  color:#6d28d9;
+}
+.history-table td:first-child small{
+  color:#94a3b8;
 }
 
 /* Order workspace — original purple/cool treatment, current V9 structure retained. */
@@ -118,4 +180,8 @@ tbody tr:hover .sticky-action{background:#fafafa}
   .m-order-detail-grid-v9>div,.m-order-note-v9{background:#f8fafc}
   .m-order-admin-v9{border-color:#c4b5fd;background:#faf5ff}
   .m-order-admin-v9>b{color:#6d28d9}
+
+  .m-history-card{border-color:#e2e8f0!important}
+  .m-history-card .m-row-between b{color:#6d28d9!important}
+  .m-history-card .m-row-between small{color:#94a3b8!important}
 }
