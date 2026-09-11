@@ -9,6 +9,7 @@ import { installOrderDetailEnhancer } from "./orderDetailEnhancer";
 import "./styles.css";
 import "./searchable-select.css";
 import "./order-focus-v8.css";
+import "./order-v9.css";
 
 ReactDOM.createRoot(document.getElementById("root")).render(
   <React.StrictMode>
