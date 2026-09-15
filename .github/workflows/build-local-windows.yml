@@ -10,7 +10,7 @@ on:
       - '.github/workflows/build-local-windows.yml'
 
 permissions:
-  contents: write
+  contents: read
 
 jobs:
   build:
@@ -110,61 +110,18 @@ jobs:
           path: PartsFlow-Local-Windows.zip
           retention-days: 30
 
-      - name: Publish build result marker
+      - name: Publish build summary
         if: always()
         shell: pwsh
         run: |
           $zipExists = Test-Path PartsFlow-Local-Windows.zip
-          $hash = if ($zipExists) { (Get-FileHash PartsFlow-Local-Windows.zip -Algorithm SHA256).Hash.ToLower() } else { '' }
+          $hash = if ($zipExists) { (Get-FileHash PartsFlow-Local-Windows.zip -Algorithm SHA256).Hash.ToLower() } else { 'n/a' }
           $size = if ($zipExists) { (Get-Item PartsFlow-Local-Windows.zip).Length } else { 0 }
-          $ok = '${{ job.status }}' -eq 'success'
-          $status = [ordered]@{
-            ok = $ok
-            job_status = '${{ job.status }}'
-            run_id = '${{ github.run_id }}'
-            source_sha = '${{ github.sha }}'
-            artifact_name = 'PartsFlow-Local-Windows'
-            zip_sha256 = $hash
-            zip_size = $size
-            built_at_utc = (Get-Date).ToUniversalTime().ToString('o')
-          } | ConvertTo-Json
-          Set-Content -Path local-build-status.json -Value $status -Encoding UTF8
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add local-build-status.json
-          git commit -m "build: record PartsFlow Local Windows result" 2>$null
-          if ($LASTEXITCODE -ne 0) {
-            Write-Host "Nothing to commit, skipping push."
-            exit 0
-          }
-          # The build steps (npm ci, pyinstaller, etc.) can leave other
-          # already-tracked files showing as modified without us ever
-          # staging them (e.g. line-ending normalization on Windows).
-          # `git rebase` refuses to run with ANY unstaged changes present,
-          # even to files unrelated to this commit, so discard those now -
-          # our real change (local-build-status.json) is already safely
-          # committed above and untouched by this.
-          git checkout -- .
-          # The build can take several minutes, so main may have moved on
-          # while this job was running. Rebase onto the latest main before
-          # pushing so a concurrent push elsewhere doesn't reject this one.
-          $pushed = $false
-          for ($i = 0; $i -lt 3; $i++) {
-            git fetch origin main
-            git rebase origin/main
-            if ($LASTEXITCODE -ne 0) {
-              git rebase --abort
-              Write-Host "Rebase conflict on attempt $($i+1), retrying..."
-              Start-Sleep -Seconds 5
-              continue
-            }
-            git push
-            if ($LASTEXITCODE -eq 0) { $pushed = $true; break }
-            Write-Host "Push attempt $($i+1) failed, retrying..."
-            Start-Sleep -Seconds 5
-          }
-          if (-not $pushed) {
-            # This marker file is informational only - never fail an
-            # otherwise-successful EXE build over it.
-            Write-Host "::warning::Could not push local-build-status.json after retries - leaving it for a future run."
-          }
+          @"
+          ## PartsFlow Local Windows
+          - Status: ${{ job.status }}
+          - Source SHA: ${{ github.sha }}
+          - Artifact: PartsFlow-Local-Windows
+          - ZIP SHA256: $hash
+          - ZIP size: $size bytes
+          "@ | Add-Content -Path $env:GITHUB_STEP_SUMMARY
