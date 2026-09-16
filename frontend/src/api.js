@@ -1,9 +1,13 @@
-// Development uses the same-origin Vite proxy. Production defaults to the
-// Render backend, while packaged Local Edition builds can override this with
-// VITE_API_BASE_URL=/api so the browser talks to the bundled Django server.
+// Development uses the same-origin Vite proxy. Production on Vercel always
+// talks directly to the Render backend so stale Vercel env vars cannot route
+// requests back to /api and trigger a static-host 405. Packaged Local Edition
+// builds can still override VITE_API_BASE_URL=/api.
 const PRODUCTION_API_BASE = "https://partsflow-backend.onrender.com/api";
 const ENV_API_BASE = (import.meta.env.VITE_API_BASE_URL || "").trim();
-const API_BASE = import.meta.env.DEV ? "/api" : (ENV_API_BASE || PRODUCTION_API_BASE);
+const IS_VERCEL_HOST = typeof window !== "undefined" && window.location.hostname.endsWith(".vercel.app");
+const API_BASE = import.meta.env.DEV
+  ? "/api"
+  : (IS_VERCEL_HOST ? PRODUCTION_API_BASE : (ENV_API_BASE || PRODUCTION_API_BASE));
 
 const TOKEN_KEY = "partsflow_auth_token";
 
