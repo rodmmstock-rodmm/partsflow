@@ -25,7 +25,7 @@ jobs:
           python-version: '3.12'
 
       - name: Setup Node
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v5
         with:
           node-version: '20'
           cache: npm
@@ -44,6 +44,12 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           pip install -r local/requirements-local.txt
+
+      - name: Test Normal Order vendor purchase rules
+        shell: pwsh
+        run: |
+          cd backend
+          python manage.py test core.tests.test_order_vendor_flow --verbosity 2
 
       - name: Build standalone EXE
         shell: pwsh
