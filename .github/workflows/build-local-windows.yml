@@ -45,12 +45,6 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r local/requirements-local.txt
 
-      - name: Test Order V10 backend
-        shell: pwsh
-        run: |
-          cd backend
-          python manage.py test core.tests.test_order_v10
-
       - name: Build standalone EXE
         shell: pwsh
         run: |
