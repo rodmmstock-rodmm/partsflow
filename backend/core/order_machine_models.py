@@ -10,7 +10,7 @@ class OrderMachine(UUIDMixin):
     """Machine selections attached to one Order.
 
     ``OrderRecord.machine`` remains the primary/legacy machine so existing
-    stock, project, RFQ and reporting code keeps working unchanged.  This
+    stock, project, RFQ and reporting code keeps working unchanged. This
     model stores the complete ordered list when one Order applies to multiple
     machines.
     """
@@ -66,14 +66,31 @@ def new_order_number(instance):
     return candidate
 
 
+def _uses_legacy_generated_number(instance):
+    """Return True only for numbers created by the old PartsFlow generator.
+
+    Excel import can intentionally supply/re-use its own ORDER NUMBER. Those
+    explicit numbers must be preserved. Old automatic PURCHASE rows used ORD-
+    and PRJ- prefixes, so only those (or a blank value) are replaced with the
+    new JOB/date/time format.
+    """
+
+    number = str(instance.order_number or "").strip().upper()
+    return (
+        not number
+        or number.startswith("ORD-")
+        or number.startswith("PRJ-")
+    )
+
+
 @receiver(pre_save, sender=OrderRecord)
 def assign_generated_order_number(sender, instance, **kwargs):
-    # Quotation-only rows intentionally keep their QTN number.  Every newly
-    # created real PURCHASE Order receives the new JOB/time number. Existing
-    # Orders are never renumbered during an edit.
+    # Quotation-only QTN rows and explicit Excel/import numbers remain intact.
+    # Existing Orders are never renumbered during an edit.
     if (
         instance._state.adding
         and instance.procurement_phase == OrderRecord.PROCUREMENT_PURCHASE
+        and _uses_legacy_generated_number(instance)
     ):
         instance.order_number = new_order_number(instance)
 
