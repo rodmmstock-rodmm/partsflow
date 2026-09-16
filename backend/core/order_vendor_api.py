@@ -12,6 +12,8 @@ from .order_vendor_models import OrderVendor
 
 
 _ORIGINAL_QUOTATION_IS_READY = None
+_ORIGINAL_COMPUTE_STATUS = None
+_ORIGINAL_APPLY_PURCHASE_INFO = None
 
 
 def _order(pk):
@@ -131,6 +133,7 @@ def order_vendor_detail(request, pk, vendor_pk):
         return Response({"detail": "ไม่พบ Vendor ใน Order นี้"}, status=404)
 
     with transaction.atomic():
+        cleared_vendor_order = order.vendor_id == row.vendor_id
         detail = {
             "order_id": str(order.id),
             "order_number": order.order_number,
@@ -138,30 +141,83 @@ def order_vendor_detail(request, pk, vendor_pk):
             "vendor_code": row.vendor.code,
             "vendor_name": row.vendor.name,
             "added_at": timezone.localtime(row.created_at).isoformat(),
+            "cleared_vendor_order": cleared_vendor_order,
         }
         row.delete()
+        if cleared_vendor_order:
+            order.vendor = None
+            order.save(update_fields=["vendor", "updated_at"])
         audit(actor, "REMOVE_ORDER_VENDOR", "OrderVendor", vendor_pk, detail)
         _refresh_order_status(order)
 
-    return Response({"success": True})
+    return Response({"success": True, "cleared_vendor_order": cleared_vendor_order})
 
 
 def install():
-    """Make normal Order status use the vendor shortlist instead of RFQ rows."""
-    global _ORIGINAL_QUOTATION_IS_READY
+    """Install Normal Order vendor-shortlist purchase workflow rules."""
+    global _ORIGINAL_QUOTATION_IS_READY, _ORIGINAL_COMPUTE_STATUS, _ORIGINAL_APPLY_PURCHASE_INFO
     from . import order_api
 
-    if getattr(order_api.quotation_is_ready, "_order_vendor_flow", False):
+    if getattr(order_api.quotation_is_ready, "_order_vendor_flow_v2", False):
         return
 
     _ORIGINAL_QUOTATION_IS_READY = order_api.quotation_is_ready
+    _ORIGINAL_COMPUTE_STATUS = order_api.compute_status
+    _ORIGINAL_APPLY_PURCHASE_INFO = order_api.apply_purchase_info
 
     def quotation_is_ready(order):
         if order.source_type == "NORMAL":
-            if bool((order.quotation or "").strip()):
-                return True
+            # Normal Order quotation is represented only by the Vendor shortlist.
             return bool(order.pk and order.vendor_candidates.exists())
         return _ORIGINAL_QUOTATION_IS_READY(order)
 
-    quotation_is_ready._order_vendor_flow = True
+    def compute_status(order, validate=True):
+        status = _ORIGINAL_COMPUTE_STATUS(order, validate=validate)
+        if order.source_type != "NORMAL":
+            return status
+        if status == OrderRecord.STATUS_COMPLETE:
+            return status
+
+        quotation_ready = quotation_is_ready(order)
+        vendor_ready = bool(
+            order.vendor_id
+            and order.pk
+            and order.vendor_candidates.filter(vendor_id=order.vendor_id).exists()
+        )
+        # price_per_unit historically defaults to zero, so > 0 is the only
+        # reliable way to distinguish an entered price from an untouched field.
+        price_ready = bool(order.price_per_unit and order.price_per_unit > 0)
+        lead_time_ready = order.lead_time_days is not None
+        purchase_ready = vendor_ready and price_ready and lead_time_ready
+        po_group = [
+            bool((order.po_number or "").strip()),
+            bool(order.issue_pr_date),
+            bool(order.due_date),
+        ]
+
+        if quotation_ready and purchase_ready:
+            if all(po_group):
+                return OrderRecord.STATUS_ITEM
+            return OrderRecord.STATUS_ISSUE_PR
+        if quotation_ready:
+            return OrderRecord.STATUS_QUOTE
+        return OrderRecord.STATUS_NEW
+
+    def apply_purchase_info(order, data):
+        if order.source_type == "NORMAL" and "vendor_id" in data:
+            vendor_id = str(data.get("vendor_id") or "").strip()
+            if vendor_id and not (
+                order.pk
+                and order.vendor_candidates.filter(vendor_id=vendor_id).exists()
+            ):
+                raise ValueError(
+                    "VENDOR ORDER ต้องเลือกจาก Vendor ที่อยู่ใน ORDER QUOTATION เท่านั้น"
+                )
+        return _ORIGINAL_APPLY_PURCHASE_INFO(order, data)
+
+    quotation_is_ready._order_vendor_flow_v2 = True
+    compute_status._order_vendor_flow_v2 = True
+    apply_purchase_info._order_vendor_flow_v2 = True
     order_api.quotation_is_ready = quotation_is_ready
+    order_api.compute_status = compute_status
+    order_api.apply_purchase_info = apply_purchase_info

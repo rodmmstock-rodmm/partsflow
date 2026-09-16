@@ -1,4 +1,5 @@
 from datetime import date
+from decimal import Decimal
 
 from django.test import TestCase
 
@@ -37,12 +38,44 @@ class OrderVendorFlowTests(TestCase):
         self.assertIsNotNone(second.created_at)
         self.assertEqual(order.vendor_candidates.count(), 2)
 
-    def test_normal_order_quotation_readiness_uses_vendor_candidates(self):
+    def test_normal_order_quotation_readiness_uses_vendor_candidates_only(self):
         order = self.make_normal_order()
+        order.quotation = "LEGACY-QTN"
+        order.save(update_fields=["quotation"])
         self.assertFalse(order_api.quotation_is_ready(order))
 
         OrderVendor.objects.create(order=order, vendor=self.vendor_a)
         self.assertTrue(order_api.quotation_is_ready(order))
+
+    def test_vendor_order_must_exist_in_order_quotation(self):
+        order = self.make_normal_order()
+        OrderVendor.objects.create(order=order, vendor=self.vendor_a)
+
+        with self.assertRaisesMessage(ValueError, "ORDER QUOTATION"):
+            order_api.apply_purchase_info(order, {"vendor_id": str(self.vendor_b.id)})
+
+        order_api.apply_purchase_info(order, {"vendor_id": str(self.vendor_a.id)})
+        self.assertEqual(order.vendor_id, self.vendor_a.id)
+
+    def test_wait_issue_pr_requires_vendor_price_and_lead_time(self):
+        order = self.make_normal_order()
+        OrderVendor.objects.create(order=order, vendor=self.vendor_a)
+        order.vendor = self.vendor_a
+
+        order.price_per_unit = Decimal("0")
+        order.lead_time_days = None
+        self.assertEqual(order_api.compute_status(order), OrderRecord.STATUS_QUOTE)
+
+        order.price_per_unit = Decimal("125.50")
+        self.assertEqual(order_api.compute_status(order), OrderRecord.STATUS_QUOTE)
+
+        order.lead_time_days = 7
+        self.assertEqual(order_api.compute_status(order), OrderRecord.STATUS_ISSUE_PR)
+
+        order.po_number = "PO-001"
+        order.issue_pr_date = date.today()
+        order.due_date = date.today()
+        self.assertEqual(order_api.compute_status(order), OrderRecord.STATUS_ITEM)
 
     def test_rfq_guard_rejects_normal_order_and_accepts_project_step(self):
         normal = self.make_normal_order()

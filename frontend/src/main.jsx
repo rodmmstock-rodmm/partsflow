@@ -7,6 +7,7 @@ import { OptionsProvider } from "./optionsContext";
 import ProductionApprovedUi from "./ProductionApprovedUi";
 import { installOrderSelectedExcelExport } from "./orderSelectedExcelExport";
 import { installOrderDetailEnhancer } from "./orderDetailEnhancer";
+import { installDrawingPathEnhancer } from "./drawingPathEnhancer";
 import "./styles.css";
 import "./searchable-select.css";
 import "./order-focus-v8.css";
@@ -32,3 +33,4 @@ ReactDOM.createRoot(document.getElementById("root")).render(
 
 installOrderSelectedExcelExport();
 installOrderDetailEnhancer();
+installDrawingPathEnhancer();

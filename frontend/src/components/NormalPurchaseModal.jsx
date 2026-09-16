@@ -41,6 +41,19 @@ export default function NormalPurchaseModal({ order, options, onClose, onChanged
     return (options.vendors || []).filter((item) => !used.has(String(item.id)));
   }, [options.vendors, quotationVendors]);
 
+  const vendorOrderOptions = useMemo(() => quotationVendors.map((row) => {
+    const master = (options.vendors || []).find(
+      (item) => String(item.id) === String(row.vendor_id)
+    );
+    return master || {
+      id: row.vendor_id,
+      code: row.vendor_code,
+      name: row.vendor_name,
+      email: row.vendor_email || "",
+      contact_person: row.vendor_contact || "",
+    };
+  }), [options.vendors, quotationVendors]);
+
   async function refreshOrder() {
     try {
       const result = await apiGet(`/orders/${order.id}/`, { cache: false, forceRefresh: true });
@@ -115,8 +128,12 @@ export default function NormalPurchaseModal({ order, options, onClose, onChanged
     }
   }
 
-  const vendor = (options.vendors || []).find((item) => item.id === local.vendor_id);
+  const vendor = vendorOrderOptions.find(
+    (item) => String(item.id) === String(local.vendor_id || "")
+  );
   const person = (options.employees || []).find((item) => item.id === local.person_in_charge_id);
+  const hasPrice = Number(local.price_per_unit || 0) > 0;
+  const hasLeadTime = local.lead_time_days !== null && local.lead_time_days !== undefined && local.lead_time_days !== "";
 
   return (
     <Modal title={`Purchase Information · ${order.order_number}`} onClose={onClose} wide>
@@ -176,14 +193,20 @@ export default function NormalPurchaseModal({ order, options, onClose, onChanged
           <div>
             <SearchableSelect
               value={local.vendor_id || ""}
-              options={options.vendors || []}
+              options={vendorOrderOptions}
               onChange={(value) => set("vendor_id", value)}
-              getLabel={(item) => `${item.code ? `${item.code} · ` : ""}${item.name}`}
+              getLabel={vendorLabel}
               getSearchText={(item) => `${item.code || ""} ${item.name || ""} ${item.email || ""} ${item.contact_person || ""}`}
-              placeholder="พิมพ์ชื่อหรือรหัส Vendor"
+              placeholder={quotationVendors.length ? "เลือก Vendor จาก ORDER QUOTATION" : "เพิ่ม Vendor ใน ORDER QUOTATION ก่อน"}
+              disabled={quotationLoading || !quotationVendors.length}
             />
+            <span className="field-help">เลือกได้เฉพาะ Vendor ที่อยู่ใน ORDER QUOTATION ของ Order นี้</span>
           </div>
-          <button className="mini" onClick={() => saveField("vendor", { vendor_id: local.vendor_id })}>
+          <button
+            className="mini"
+            disabled={quotationLoading || !quotationVendors.length || !local.vendor_id}
+            onClick={() => saveField("vendor", { vendor_id: local.vendor_id })}
+          >
             {busy === "vendor" ? "..." : vendor ? "แก้ไข" : "+ เพิ่ม"}
           </button>
         </div>
@@ -206,18 +229,23 @@ export default function NormalPurchaseModal({ order, options, onClose, onChanged
         </div>
 
         <div className="purchase-field">
-          <label>PRICE PER UNIT</label>
+          <label>PRICE PER UNIT *</label>
           <div className="input-suffix">
             <input
               type="number"
-              min="0"
+              min="0.0001"
               step="0.01"
-              value={local.price_per_unit || 0}
+              value={local.price_per_unit ?? ""}
               onChange={(e) => set("price_per_unit", e.target.value)}
+              placeholder="ระบุราคา"
             />
             <b>{local.currency || "THB"}</b>
           </div>
-          <button className="mini" onClick={() => saveField("price", { price_per_unit: local.price_per_unit })}>
+          <button
+            className="mini"
+            disabled={!hasPrice}
+            onClick={() => saveField("price", { price_per_unit: local.price_per_unit })}
+          >
             {busy === "price" ? "..." : "บันทึก"}
           </button>
         </div>
@@ -231,14 +259,25 @@ export default function NormalPurchaseModal({ order, options, onClose, onChanged
         </div>
 
         <div className="purchase-field">
-          <label>LEAD TIME</label>
+          <label>LEAD TIME *</label>
           <div className="input-suffix">
-            <input type="number" min="0" value={local.lead_time_days ?? ""} onChange={(e) => set("lead_time_days", e.target.value)} />
+            <input
+              type="number"
+              min="0"
+              value={local.lead_time_days ?? ""}
+              onChange={(e) => set("lead_time_days", e.target.value)}
+              placeholder="ระบุ Lead Time"
+            />
             <b>DAY</b>
           </div>
-          <button className="mini" onClick={() => saveField("lead", { lead_time_days: local.lead_time_days })}>
+          <button
+            className="mini"
+            disabled={!hasLeadTime}
+            onClick={() => saveField("lead", { lead_time_days: local.lead_time_days })}
+          >
             {busy === "lead" ? "..." : "บันทึก"}
           </button>
+          <span className="field-help">สถานะจะเป็น Wait Issue P/R เมื่อมี VENDOR ORDER, Price Per Unit และ Lead Time ครบ</span>
         </div>
 
         <div className="purchase-field">
