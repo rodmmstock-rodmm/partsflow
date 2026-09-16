@@ -4,10 +4,10 @@ import { apiDelete, apiGet, apiPost } from "../api";
 import { useAuth } from "../auth";
 import { Alert, PageHeader, fmt, formatDMY } from "../components/Common";
 import MultiMachineOrderInfoModal from "../components/MultiMachineOrderInfoModal";
-import RFQComposeModal from "../components/RFQComposeModal";
+import NormalPurchaseModal from "../components/NormalPurchaseModal";
+import OrderVendorModal from "../components/OrderVendorModal";
 import { useOptions } from "../optionsContext";
 import { openOrderDetailByNumber } from "../orderDetailEnhancer";
-import { PurchaseModal } from "./Orders";
 
 const ORDER_TABS = [
   ["normal", "Order Normal"],
@@ -111,6 +111,7 @@ function CompactOrderTable({
   onToggleAll,
   onDetail,
   onEdit,
+  onVendors,
   onPurchase,
   onUpdate,
   tab,
@@ -145,6 +146,7 @@ function CompactOrderTable({
         <button className="mini primary" onClick={()=>onDetail(o)}>รายละเอียด</button>
         {tab==="updates"&&auth.can("can_update_edit_data")&&<button className="mini" onClick={()=>onUpdate(o)}>อัปเดตข้อมูล</button>}
         {["normal","confirm"].includes(tab)&&auth.can("can_edit_order_info")&&<button className="mini" onClick={()=>onEdit(o)}>แก้ Order</button>}
+        {["normal","confirm"].includes(tab)&&auth.can("can_edit_purchase_info")&&<button className="mini" onClick={()=>onVendors(o)}>Vendor</button>}
         {["normal","confirm"].includes(tab)&&auth.can("can_edit_purchase_info")&&<button className="mini" onClick={()=>onPurchase(o)}>Purchase</button>}
         {tab==="deleted"&&auth.can("can_view_deleted_orders")&&<button className="mini" onClick={()=>onRestore(o)}>กู้คืน</button>}
         {tab==="deleted"&&auth.can("can_view_deleted_orders")&&auth.can("can_delete_order")&&<button className="mini danger" onClick={()=>onPermanentDelete(o)}>ลบถาวร</button>}
@@ -153,7 +155,7 @@ function CompactOrderTable({
   </table></div>;
 }
 
-function BulkBar({ rows, auth, busy, onRun, onClear, onRfq }){
+function BulkBar({ rows, auth, busy, onRun, onClear }){
   if(!rows.length) return null;
   const canWait=rows.some(x=>x.lifecycle_status==="ACTIVE");
   const canCancelWait=rows.some(x=>x.lifecycle_status==="WAIT_CONFIRM");
@@ -161,7 +163,6 @@ function BulkBar({ rows, auth, busy, onRun, onClear, onRfq }){
   const canRestore=rows.some(x=>x.lifecycle_status==="CANCELLED");
   return <div className="bulk-v9"><b>เลือกแล้ว {rows.length} รายการ</b>
     {auth.can("can_edit_purchase_info")&&<>
-      <button className="btn primary" disabled={busy||!canAct} onClick={onRfq}>บันทึกขอราคา</button>
       <button className="btn warning" disabled={busy||!canWait} onClick={()=>onRun("wait_confirm")}>รอ Confirm</button>
       <button className="btn ghost" disabled={busy||!canCancelWait} onClick={()=>onRun("cancel_wait_confirm")}>ยกเลิก Wait</button>
     </>}
@@ -195,8 +196,8 @@ export default function OrdersV2(){
   const [selected,setSelected]=useState(()=>new Set());
   const [bulkBusy,setBulkBusy]=useState(false);
   const [editor,setEditor]=useState(null);
+  const [vendorOrder,setVendorOrder]=useState(null);
   const [purchase,setPurchase]=useState(null);
-  const [rfqCompose,setRfqCompose]=useState(false);
   const [importBusy,setImportBusy]=useState(false);
   const [exportBusy,setExportBusy]=useState(false);
   const fileRef=useRef(null);
@@ -271,16 +272,7 @@ export default function OrdersV2(){
     if(!selectedRows.length){setError("กรุณาเลือกรายการ Order ที่ต้องการ Export");return;}
     setExportBusy(true); setError("");
     try{
-      const rfqGroups=await Promise.all(selectedRows.map(async order=>{
-        try{
-          const data=await apiGet(`/rfqs/?order_id=${order.id}&full=true`,{cache:false,forceRefresh:true});
-          return data.results||[];
-        }catch{
-          return [];
-        }
-      }));
-      const exportRows=selectedRows.map((o,index)=>{
-        const rfqNumbers=[...new Set((rfqGroups[index]||[]).map(r=>r.rfq_number).filter(Boolean))];
+      const exportRows=selectedRows.map((o)=>{
         const vendor=o.vendor_code&&o.vendor_name?`${o.vendor_code} · ${o.vendor_name}`:(o.vendor_name||o.vendor_code||"");
         return {
           "ORDER NUMBER":o.order_number||"",
@@ -299,7 +291,7 @@ export default function OrdersV2(){
           REMARK:o.remark||"",
           "DRAWING PATH":o.drawing_path||"",
           "ORDERED BY":o.ordered_by||"",
-          QUOTATION:rfqNumbers.join(", ")||o.quotation||"",
+          QUOTATION:o.quotation||"",
           "VENDOR ORDER":vendor,
           "PO NUMBER":o.po_number||"",
           "PRICE PER UNIT":o.price_per_unit??"",
@@ -386,7 +378,7 @@ export default function OrdersV2(){
         {lastLoadedAt&&<span>อัปเดต {lastLoadedAt.toLocaleTimeString("th-TH",{hour:"2-digit",minute:"2-digit"})}</span>}
       </div>
 
-      {tab!=="deleted"&&<BulkBar rows={selectedRows} auth={auth} busy={bulkBusy} onRun={runBulk} onClear={()=>setSelected(new Set())} onRfq={()=>setRfqCompose(true)}/>}      
+      {tab!=="deleted"&&<BulkBar rows={selectedRows} auth={auth} busy={bulkBusy} onRun={runBulk} onClear={()=>setSelected(new Set())}/>}      
       {loading?<div className="empty">กำลังโหลด {MONTHS_TH[month]} {year}...</div>:<CompactOrderTable
         rows={rows}
         selected={selected}
@@ -394,6 +386,7 @@ export default function OrdersV2(){
         onToggleAll={toggleAll}
         onDetail={o=>openOrderDetailByNumber(o.order_number,admin)}
         onEdit={o=>setEditor({order:o})}
+        onVendors={o=>setVendorOrder(o)}
         onPurchase={o=>setPurchase(o)}
         onUpdate={updateData}
         tab={tab}
@@ -404,7 +397,7 @@ export default function OrdersV2(){
     </section>
 
     {editor&&<MultiMachineOrderInfoModal order={editor.order} options={options} employee={auth.employee} canEditOrderDate={auth.can("can_edit_order_date")} onClose={()=>setEditor(null)} onSaved={()=>{setEditor(null);load(true);}}/>}
-    {purchase&&<PurchaseModal order={purchase} options={options} onClose={()=>setPurchase(null)} onChanged={r=>{setPurchase(r);load(true);}}/>}
-    {rfqCompose&&<RFQComposeModal orders={selectedRows} options={options} onClose={()=>setRfqCompose(false)} onRecorded={()=>{setRfqCompose(false);setSelected(new Set());load(true);}}/>}
+    {vendorOrder&&<OrderVendorModal order={vendorOrder} options={options} onClose={()=>setVendorOrder(null)} onChanged={()=>load(true)}/>}
+    {purchase&&<NormalPurchaseModal order={purchase} options={options} onClose={()=>setPurchase(null)} onChanged={r=>{setPurchase(r);load(true);}}/>}
   </>;
 }

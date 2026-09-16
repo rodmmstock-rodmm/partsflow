@@ -7,12 +7,13 @@ class CoreConfig(AppConfig):
 
     def import_models(self):
         super().import_models()
-        # OrderMachine lives in a small extension module so the legacy
-        # models.py file and all existing OrderRecord integrations can remain
-        # backward-compatible.
+        # Order extensions live in small modules so the legacy models.py file
+        # and existing integrations remain backward-compatible.
         from . import order_machine_models  # noqa: F401
+        from . import order_vendor_models  # noqa: F401
 
     def ready(self):
-        # Install the compatibility wrapper after all models have been loaded.
-        from . import order_multi_api
+        # Install compatibility wrappers after all models have been loaded.
+        from . import order_multi_api, order_vendor_api
         order_multi_api.install()
+        order_vendor_api.install()

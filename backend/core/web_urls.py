@@ -1,6 +1,6 @@
 from django.urls import path
 
-from . import auth_api, dashboard_api, drive_oauth, fast_order_api, order_api, order_audit_api, order_delete_api, order_step_api, rfq_api, role_api, spare_set_api, stock_api, web_api
+from . import auth_api, dashboard_api, drive_oauth, fast_order_api, order_api, order_audit_api, order_delete_api, order_step_api, order_vendor_api, rfq_api, rfq_step_guard, role_api, spare_set_api, stock_api, web_api
 
 urlpatterns = [
     path("auth/login/", auth_api.login_view),
@@ -50,6 +50,8 @@ urlpatterns = [
     path("orders/<uuid:pk>/", order_api.order_detail, name="web-order-detail"),
     path("orders/<uuid:pk>/info/", order_audit_api.update_order_info, name="web-order-info"),
     path("orders/<uuid:pk>/purchase/", order_audit_api.update_purchase_info, name="web-order-purchase"),
+    path("orders/<uuid:pk>/vendors/", order_vendor_api.order_vendors, name="web-order-vendors"),
+    path("orders/<uuid:pk>/vendors/<uuid:vendor_pk>/", order_vendor_api.order_vendor_detail, name="web-order-vendor-detail"),
     path("orders/<uuid:pk>/receive/", order_audit_api.receive_order, name="web-order-receive"),
     path("orders/<uuid:pk>/wait-confirm/", order_audit_api.wait_confirm_order, name="web-order-wait-confirm"),
     path("orders/<uuid:pk>/cancel/", order_audit_api.cancel_order, name="web-order-cancel"),
@@ -69,12 +71,12 @@ urlpatterns = [
     path("order-projects/<uuid:pk>/quotation-conversion-preview/", order_api.quotation_conversion_preview, name="web-order-project-quotation-conversion-preview"),
     path("order-projects/<uuid:pk>/quotation-convert/", order_api.convert_quotation_to_orders, name="web-order-project-quotation-convert"),
 
-    path("rfqs/preview/", rfq_api.rfq_preview, name="web-rfq-preview"),
-    path("rfqs/record/", rfq_api.record_rfq, name="web-rfq-record"),
+    path("rfqs/preview/", rfq_step_guard.rfq_preview, name="web-rfq-preview"),
+    path("rfqs/record/", rfq_step_guard.record_rfq, name="web-rfq-record"),
     path("rfqs/send/", rfq_api.disabled_send_rfq, name="web-rfq-send-disabled"),
-    path("rfqs/", rfq_api.rfq_list, name="web-rfq-list"),
-    path("rfqs/<uuid:pk>/vendor/", rfq_api.rfq_vendor, name="web-rfq-vendor"),
-    path("rfqs/<uuid:pk>/follow-up/", rfq_api.record_follow_up, name="web-rfq-follow-up"),
+    path("rfqs/", rfq_step_guard.rfq_list, name="web-rfq-list"),
+    path("rfqs/<uuid:pk>/vendor/", rfq_step_guard.rfq_vendor, name="web-rfq-vendor"),
+    path("rfqs/<uuid:pk>/follow-up/", rfq_step_guard.record_follow_up, name="web-rfq-follow-up"),
     path("po-balances/", rfq_api.po_balance_list, name="web-po-balance-list"),
     path("po-balances/<uuid:pk>/", rfq_api.po_balance_detail, name="web-po-balance-detail"),
     path("rfq-attachments/<uuid:pk>/download/", rfq_api.download_attachment, name="web-rfq-attachment-download"),
