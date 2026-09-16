@@ -116,6 +116,7 @@ function CompactOrderTable({
   tab,
   auth,
   onRestore,
+  onPermanentDelete,
 }){
   const all=rows.length>0 && rows.every(x=>selected.has(x.id));
   if(!rows.length) return <div className="empty">ไม่พบ Order ในเดือนนี้</div>;
@@ -146,6 +147,7 @@ function CompactOrderTable({
         {["normal","confirm"].includes(tab)&&auth.can("can_edit_order_info")&&<button className="mini" onClick={()=>onEdit(o)}>แก้ Order</button>}
         {["normal","confirm"].includes(tab)&&auth.can("can_edit_purchase_info")&&<button className="mini" onClick={()=>onPurchase(o)}>Purchase</button>}
         {tab==="deleted"&&auth.can("can_view_deleted_orders")&&<button className="mini" onClick={()=>onRestore(o)}>กู้คืน</button>}
+        {tab==="deleted"&&auth.can("can_view_deleted_orders")&&auth.can("can_delete_order")&&<button className="mini danger" onClick={()=>onPermanentDelete(o)}>ลบถาวร</button>}
       </td>
     </tr>;})}</tbody>
   </table></div>;
@@ -245,6 +247,20 @@ export default function OrdersV2(){
   async function restoreOrder(order){
     if(!window.confirm(`กู้คืน Order ${order.order_number}?`)) return;
     try{await apiPost(`/orders/${order.id}/restore/`,{});await load(true);}catch(e){setError(e.message);}
+  }
+  async function permanentDeleteOrder(order){
+    if(!window.confirm(`ลบ Order ${order.order_number} ออกจากฐานข้อมูลถาวร?\n\nการกระทำนี้ไม่สามารถกู้คืนได้`)) return;
+    const typed=window.prompt(`เพื่อยืนยันอีกครั้ง กรุณาพิมพ์ Order Number\n${order.order_number}`,"");
+    if(typed===null) return;
+    if(String(typed).trim()!==String(order.order_number||"").trim()){
+      setError("Order Number ที่พิมพ์ไม่ตรง ยกเลิกการลบถาวร");
+      return;
+    }
+    try{
+      await apiDelete(`/orders/${order.id}/permanent-delete/`);
+      setSelected(cur=>{const next=new Set(cur);next.delete(order.id);return next;});
+      await load(true);
+    }catch(e){setError(e.message);}
   }
   async function updateData(order){
     if(!window.confirm(`ยืนยันอัปเดตข้อมูล ${order.order_number}?`)) return;
@@ -383,6 +399,7 @@ export default function OrdersV2(){
         tab={tab}
         auth={auth}
         onRestore={restoreOrder}
+        onPermanentDelete={permanentDeleteOrder}
       />}
     </section>
 

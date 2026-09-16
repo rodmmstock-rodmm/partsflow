@@ -1,6 +1,6 @@
 from django.urls import path
 
-from . import auth_api, dashboard_api, drive_oauth, fast_order_api, order_api, order_audit_api, order_step_api, rfq_api, role_api, spare_set_api, stock_api, web_api
+from . import auth_api, dashboard_api, drive_oauth, fast_order_api, order_api, order_audit_api, order_delete_api, order_step_api, rfq_api, role_api, spare_set_api, stock_api, web_api
 
 urlpatterns = [
     path("auth/login/", auth_api.login_view),
@@ -55,6 +55,7 @@ urlpatterns = [
     path("orders/<uuid:pk>/cancel/", order_audit_api.cancel_order, name="web-order-cancel"),
     path("orders/<uuid:pk>/delete/", order_api.delete_order, name="web-order-delete"),
     path("orders/<uuid:pk>/restore/", order_api.restore_order, name="web-order-restore"),
+    path("orders/<uuid:pk>/permanent-delete/", order_delete_api.permanent_delete_order, name="web-order-permanent-delete"),
     path("orders/<uuid:pk>/update-data/", order_audit_api.update_edit_data, name="web-order-update-data"),
     path("orders/<uuid:pk>/usage/", order_audit_api.update_usage, name="web-order-usage"),
     path("order-projects/", order_api.projects, name="web-order-projects"),
