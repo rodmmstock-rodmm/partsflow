@@ -27,6 +27,36 @@ const URGENCY = [
   ["normal", "รายการทั่วไป"],
 ];
 
+const ORDER_EXPORT_HEADERS = [
+  "ORDER NUMBER",
+  "DATE",
+  "FACTORY",
+  "MACHINE NAME",
+  "JOB",
+  "URGENT STATUS",
+  "PENDING DATA DATE",
+  "PART ID",
+  "PART NAME",
+  "PART DETAIL",
+  "MAKER",
+  "AMOUNT",
+  "UNIT",
+  "REMARK",
+  "DRAWING PATH",
+  "ORDERED BY",
+  "QUOTATION",
+  "VENDOR ORDER",
+  "PO NUMBER",
+  "PRICE PER UNIT",
+  "PRICE TOTAL",
+  "CURRENCY",
+  "LEAD TIME",
+  "ISSUE PR DATE",
+  "DUE DATE",
+  "VENDOR CONFIRM DATE",
+  "PERSON IN CHARGE OF ORDER",
+];
+
 function pad(n){ return String(n).padStart(2,"0"); }
 function monthRange(year, month){
   const last = new Date(year, month + 1, 0).getDate();
@@ -166,6 +196,7 @@ export default function OrdersV2(){
   const [purchase,setPurchase]=useState(null);
   const [rfqCompose,setRfqCompose]=useState(false);
   const [importBusy,setImportBusy]=useState(false);
+  const [exportBusy,setExportBusy]=useState(false);
   const fileRef=useRef(null);
   const admin=isAdmin(auth.employee);
   const range=useMemo(()=>monthRange(year,month),[year,month]);
@@ -220,6 +251,65 @@ export default function OrdersV2(){
     try{await apiPost(`/orders/${order.id}/update-data/`,{});await load(true);}catch(e){setError(e.message);}
   }
 
+  async function exportSelectedOrders(){
+    if(!selectedRows.length){setError("กรุณาเลือกรายการ Order ที่ต้องการ Export");return;}
+    setExportBusy(true); setError("");
+    try{
+      const rfqGroups=await Promise.all(selectedRows.map(async order=>{
+        try{
+          const data=await apiGet(`/rfqs/?order_id=${order.id}&full=true`,{cache:false,forceRefresh:true});
+          return data.results||[];
+        }catch{
+          return [];
+        }
+      }));
+      const exportRows=selectedRows.map((o,index)=>{
+        const rfqNumbers=[...new Set((rfqGroups[index]||[]).map(r=>r.rfq_number).filter(Boolean))];
+        const vendor=o.vendor_code&&o.vendor_name?`${o.vendor_code} · ${o.vendor_name}`:(o.vendor_name||o.vendor_code||"");
+        return {
+          "ORDER NUMBER":o.order_number||"",
+          DATE:o.date||"",
+          FACTORY:o.factory||"",
+          "MACHINE NAME":o.machine_codes||o.machine_code||o.machine_names||o.machine_name||"",
+          JOB:o.job||"",
+          "URGENT STATUS":o.urgent_status||"",
+          "PENDING DATA DATE":o.pending_data_date||"",
+          "PART ID":o.item_id||"",
+          "PART NAME":o.part_name||"",
+          "PART DETAIL":o.part_detail||"",
+          MAKER:o.maker||"",
+          AMOUNT:o.amount??"",
+          UNIT:o.unit||"",
+          REMARK:o.remark||"",
+          "DRAWING PATH":o.drawing_path||"",
+          "ORDERED BY":o.ordered_by||"",
+          QUOTATION:rfqNumbers.join(", ")||o.quotation||"",
+          "VENDOR ORDER":vendor,
+          "PO NUMBER":o.po_number||"",
+          "PRICE PER UNIT":o.price_per_unit??"",
+          "PRICE TOTAL":o.price_total??(Number(o.amount||0)*Number(o.price_per_unit||0)),
+          CURRENCY:o.currency||"THB",
+          "LEAD TIME":o.lead_time_days??"",
+          "ISSUE PR DATE":o.issue_pr_date||"",
+          "DUE DATE":o.due_date||"",
+          "VENDOR CONFIRM DATE":o.vendor_confirm_date||"",
+          "PERSON IN CHARGE OF ORDER":o.person_in_charge||"",
+        };
+      });
+      const ws=XLSX.utils.json_to_sheet(exportRows,{header:ORDER_EXPORT_HEADERS});
+      ws["!cols"]=ORDER_EXPORT_HEADERS.map(header=>({wch:Math.min(Math.max(header.length+2,14),34)}));
+      const wb=XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb,ws,"Orders");
+      const stamp=new Date();
+      const filename=`orders_export_${stamp.getFullYear()}${pad(stamp.getMonth()+1)}${pad(stamp.getDate())}_${pad(stamp.getHours())}${pad(stamp.getMinutes())}${pad(stamp.getSeconds())}.xlsx`;
+      XLSX.writeFile(wb,filename);
+    }catch(e){
+      setError(`Export ไม่สำเร็จ: ${e.message}`);
+    }finally{
+      setExportBusy(false);
+    }
+  }
+
   function downloadTemplate(){
     const example={"ORDER NUMBER":"",DATE:range.from,FACTORY:"Phase4","MACHINE NAME":"",JOB:"REPAIR","URGENT STATUS":"","PENDING DATA DATE":"","PART ID":"","PART NAME":"","PART DETAIL":"",MAKER:"",AMOUNT:1,UNIT:"EA",REMARK:"","ORDERED BY":auth.employee?.name||"",QUOTATION:"","PO NUMBER":"","PRICE PER UNIT":"","CURRENCY":"THB","VENDOR ORDER":"","LEAD TIME":"","ISSUE PR DATE":"","DUE DATE":"","VENDOR CONFIRM DATE":"","PERSON IN CHARGE OF ORDER":""};
     const ws=XLSX.utils.json_to_sheet([example]); const wb=XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb,ws,"Import Template"); XLSX.writeFile(wb,"orders_import_template.xlsx");
@@ -241,7 +331,15 @@ export default function OrdersV2(){
   }
 
   return <>
-    <PageHeader title="Order" subtitle={`แสดงข้อมูล ${MONTHS_TH[month]} ${year} · โหลดเฉพาะเดือนที่เลือก`} actions={tab==="normal"&&auth.can("can_add_order")?<button className="btn primary" onClick={()=>setEditor({order:null})}>+ เพิ่ม Order</button>:null}/>
+    <PageHeader
+      title="Order"
+      subtitle={`แสดงข้อมูล ${MONTHS_TH[month]} ${year} · โหลดเฉพาะเดือนที่เลือก`}
+      actions={tab==="normal"&&auth.can("can_add_order")?<>
+        <button className="btn primary" onClick={()=>setEditor({order:null})}>+ เพิ่ม Order</button>
+        {auth.can("can_delete_order")&&<button className="btn ghost" disabled={importBusy} onClick={()=>fileRef.current?.click()}>{importBusy?"กำลัง Import...":"⬆ Import Excel"}</button>}
+        <input hidden ref={fileRef} type="file" accept=".xlsx,.xls" onChange={e=>importExcel(e.target.files?.[0])}/>
+      </>:null}
+    />
     <Alert>{error}</Alert>
 
     {tab!=="deleted"&&<div className="kpi-grid five order-kpi-v9">
@@ -267,11 +365,8 @@ export default function OrdersV2(){
           <select value={status} onChange={e=>setStatus(e.target.value)}><option value="">STATUS: ทั้งหมด</option>{STATUS.map(x=><option key={x}>{x}</option>)}</select>
         </>}
         <button className="btn ghost" onClick={()=>load(true)}>↻ รีเฟรช</button>
-        {tab==="normal"&&auth.can("can_add_order")&&auth.can("can_delete_order")&&<>
-          <button className="btn ghost" onClick={downloadTemplate}>⬇ Template</button>
-          <button className="btn ghost" disabled={importBusy} onClick={()=>fileRef.current?.click()}>{importBusy?"กำลัง Import...":"⬆ Import Excel"}</button>
-          <input hidden ref={fileRef} type="file" accept=".xlsx,.xls" onChange={e=>importExcel(e.target.files?.[0])}/>
-        </>}
+        {tab==="normal"&&auth.can("can_add_order")&&auth.can("can_delete_order")&&<button className="btn ghost" onClick={downloadTemplate}>⬇ Template</button>}
+        <button className="btn ghost" disabled={!selectedRows.length||exportBusy} onClick={exportSelectedOrders}>{exportBusy?"กำลัง Export...":`⬇ Export Order${selectedRows.length?` (${selectedRows.length})`:""}`}</button>
         {lastLoadedAt&&<span>อัปเดต {lastLoadedAt.toLocaleTimeString("th-TH",{hour:"2-digit",minute:"2-digit"})}</span>}
       </div>
 
