@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { apiPatch } from "../api";
+import { useEffect, useMemo, useState } from "react";
+import { apiDelete, apiGet, apiPatch, apiPost } from "../api";
 import { Alert, Modal, SearchableSelect, money } from "./Common";
 
 function displayOrderStatus(order) {
@@ -7,11 +7,99 @@ function displayOrderStatus(order) {
   return order?.display_status || order?.status || "New Order";
 }
 
+function vendorLabel(item) {
+  if (!item) return "";
+  return `${item.code ? `${item.code} · ` : ""}${item.name}`;
+}
+
+function formatAddedAt(value) {
+  if (!value) return "-";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return value;
+  return date.toLocaleString("th-TH", {
+    timeZone: "Asia/Bangkok",
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}
+
 export default function NormalPurchaseModal({ order, options, onClose, onChanged }) {
   const [local, setLocal] = useState({ ...order });
   const [error, setError] = useState("");
   const [busy, setBusy] = useState("");
+  const [quotationVendors, setQuotationVendors] = useState([]);
+  const [quotationVendorId, setQuotationVendorId] = useState("");
+  const [quotationLoading, setQuotationLoading] = useState(true);
+  const [quotationBusy, setQuotationBusy] = useState(false);
   const set = (key, value) => setLocal((current) => ({ ...current, [key]: value }));
+
+  const availableQuotationVendors = useMemo(() => {
+    const used = new Set(quotationVendors.map((row) => String(row.vendor_id)));
+    return (options.vendors || []).filter((item) => !used.has(String(item.id)));
+  }, [options.vendors, quotationVendors]);
+
+  async function refreshOrder() {
+    try {
+      const result = await apiGet(`/orders/${order.id}/`, { cache: false, forceRefresh: true });
+      setLocal(result);
+      onChanged?.(result);
+    } catch {
+      onChanged?.(local);
+    }
+  }
+
+  async function loadQuotationVendors() {
+    setQuotationLoading(true);
+    try {
+      const data = await apiGet(`/orders/${order.id}/vendors/`, { cache: false, forceRefresh: true });
+      setQuotationVendors(data.results || []);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setQuotationLoading(false);
+    }
+  }
+
+  useEffect(() => {
+    loadQuotationVendors();
+  }, [order.id]);
+
+  async function addQuotationVendor() {
+    if (!quotationVendorId) {
+      setError("กรุณาเลือก Vendor สำหรับ Order Quotation");
+      return;
+    }
+    setQuotationBusy(true);
+    setError("");
+    try {
+      await apiPost(`/orders/${order.id}/vendors/`, { vendor_id: quotationVendorId });
+      setQuotationVendorId("");
+      await loadQuotationVendors();
+      await refreshOrder();
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setQuotationBusy(false);
+    }
+  }
+
+  async function removeQuotationVendor(row) {
+    if (!window.confirm(`นำ ${row.vendor_code} · ${row.vendor_name} ออกจาก Order Quotation นี้?`)) return;
+    setQuotationBusy(true);
+    setError("");
+    try {
+      await apiDelete(`/orders/${order.id}/vendors/${row.id}/`);
+      await loadQuotationVendors();
+      await refreshOrder();
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setQuotationBusy(false);
+    }
+  }
 
   async function saveField(key, payload) {
     setBusy(key);
@@ -34,10 +122,55 @@ export default function NormalPurchaseModal({ order, options, onClose, onChanged
     <Modal title={`Purchase Information · ${order.order_number}`} onClose={onClose} wide>
       <div className="section-label">2. Purchase Information</div>
       <p className="helper">
-        Normal Order ใช้รายชื่อ Vendor หลายรายแยกจากหน้านี้ แล้วเลือก Vendor ที่สั่งจริงใน VENDOR ORDER
+        เพิ่ม Vendor ที่กำลังขอราคาไว้ใน ORDER QUOTATION ได้หลายราย แล้วเลือก Vendor ที่สั่งจริงใน VENDOR ORDER ด้านล่าง
       </p>
 
       <div className="purchase-list">
+        <div className="purchase-field quotation-history">
+          <label>ORDER QUOTATION · Vendor ที่ขอราคา</label>
+          <div>
+            <SearchableSelect
+              value={quotationVendorId}
+              options={availableQuotationVendors}
+              onChange={setQuotationVendorId}
+              getLabel={vendorLabel}
+              getSearchText={(item) => `${item.code || ""} ${item.name || ""} ${item.email || ""} ${item.contact_person || ""}`}
+              placeholder="พิมพ์ชื่อหรือรหัส Vendor"
+            />
+            <div className="quotation-rfq-list">
+              {quotationLoading ? (
+                <span>กำลังโหลด Vendor...</span>
+              ) : quotationVendors.length ? (
+                quotationVendors.map((row) => (
+                  <div key={row.id}>
+                    <b>{row.vendor_code ? `${row.vendor_code} · ` : ""}{row.vendor_name}</b>
+                    <span>เพิ่มเมื่อ {formatAddedAt(row.added_at)}</span>
+                    <span>เพิ่มโดย {row.added_by || "-"}</span>
+                    <button
+                      className="mini danger"
+                      type="button"
+                      disabled={quotationBusy}
+                      onClick={() => removeQuotationVendor(row)}
+                    >
+                      ลบ
+                    </button>
+                  </div>
+                ))
+              ) : (
+                <span>ยังไม่มี Vendor ใน Order Quotation</span>
+              )}
+            </div>
+          </div>
+          <button
+            className="mini primary"
+            type="button"
+            disabled={quotationBusy || !quotationVendorId}
+            onClick={addQuotationVendor}
+          >
+            {quotationBusy ? "..." : "+ เพิ่ม Vendor"}
+          </button>
+        </div>
+
         <div className="purchase-field">
           <label>VENDOR ORDER</label>
           <div>
