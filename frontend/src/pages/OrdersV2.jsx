@@ -5,7 +5,6 @@ import { useAuth } from "../auth";
 import { Alert, PageHeader, fmt, formatDMY } from "../components/Common";
 import MultiMachineOrderInfoModal from "../components/MultiMachineOrderInfoModal";
 import NormalPurchaseModal from "../components/NormalPurchaseModal";
-import OrderVendorModal from "../components/OrderVendorModal";
 import { useOptions } from "../optionsContext";
 import { openOrderDetailByNumber } from "../orderDetailEnhancer";
 
@@ -111,7 +110,6 @@ function CompactOrderTable({
   onToggleAll,
   onDetail,
   onEdit,
-  onVendors,
   onPurchase,
   onUpdate,
   tab,
@@ -146,7 +144,6 @@ function CompactOrderTable({
         <button className="mini primary" onClick={()=>onDetail(o)}>รายละเอียด</button>
         {tab==="updates"&&auth.can("can_update_edit_data")&&<button className="mini" onClick={()=>onUpdate(o)}>อัปเดตข้อมูล</button>}
         {["normal","confirm"].includes(tab)&&auth.can("can_edit_order_info")&&<button className="mini" onClick={()=>onEdit(o)}>แก้ Order</button>}
-        {["normal","confirm"].includes(tab)&&auth.can("can_edit_purchase_info")&&<button className="mini" onClick={()=>onVendors(o)}>Vendor</button>}
         {["normal","confirm"].includes(tab)&&auth.can("can_edit_purchase_info")&&<button className="mini" onClick={()=>onPurchase(o)}>Purchase</button>}
         {tab==="deleted"&&auth.can("can_view_deleted_orders")&&<button className="mini" onClick={()=>onRestore(o)}>กู้คืน</button>}
         {tab==="deleted"&&auth.can("can_view_deleted_orders")&&auth.can("can_delete_order")&&<button className="mini danger" onClick={()=>onPermanentDelete(o)}>ลบถาวร</button>}
@@ -196,7 +193,6 @@ export default function OrdersV2(){
   const [selected,setSelected]=useState(()=>new Set());
   const [bulkBusy,setBulkBusy]=useState(false);
   const [editor,setEditor]=useState(null);
-  const [vendorOrder,setVendorOrder]=useState(null);
   const [purchase,setPurchase]=useState(null);
   const [importBusy,setImportBusy]=useState(false);
   const [exportBusy,setExportBusy]=useState(false);
@@ -386,7 +382,6 @@ export default function OrdersV2(){
         onToggleAll={toggleAll}
         onDetail={o=>openOrderDetailByNumber(o.order_number,admin)}
         onEdit={o=>setEditor({order:o})}
-        onVendors={o=>setVendorOrder(o)}
         onPurchase={o=>setPurchase(o)}
         onUpdate={updateData}
         tab={tab}
@@ -397,7 +392,6 @@ export default function OrdersV2(){
     </section>
 
     {editor&&<MultiMachineOrderInfoModal order={editor.order} options={options} employee={auth.employee} canEditOrderDate={auth.can("can_edit_order_date")} onClose={()=>setEditor(null)} onSaved={()=>{setEditor(null);load(true);}}/>}
-    {vendorOrder&&<OrderVendorModal order={vendorOrder} options={options} onClose={()=>setVendorOrder(null)} onChanged={()=>load(true)}/>}
     {purchase&&<NormalPurchaseModal order={purchase} options={options} onClose={()=>setPurchase(null)} onChanged={r=>{setPurchase(r);load(true);}}/>}
   </>;
 }
