@@ -45,6 +45,12 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r local/requirements-local.txt
 
+      - name: Test permanent Order delete
+        shell: pwsh
+        run: |
+          cd backend
+          python manage.py test core.tests.test_order_permanent_delete --verbosity 2
+
       - name: Build standalone EXE
         shell: pwsh
         run: |
