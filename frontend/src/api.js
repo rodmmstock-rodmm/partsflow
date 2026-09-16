@@ -1,9 +1,10 @@
-// Development uses the same-origin Vite proxy. Production defaults to the
-// Render backend, while packaged Local Edition builds can override this with
-// VITE_API_BASE_URL=/api so the browser talks to the bundled Django server.
-const PRODUCTION_API_BASE = "https://partsflow-backend.onrender.com/api";
-const ENV_API_BASE = (import.meta.env.VITE_API_BASE_URL || "").trim();
-const API_BASE = import.meta.env.DEV ? "/api" : (ENV_API_BASE || PRODUCTION_API_BASE);
+// PartsFlow uses a same-origin API path in every browser build.
+// - Development: Vite proxies /api to Django.
+// - Vercel Production: vercel.json proxies /api to the Render backend.
+// - Local Edition: the bundled Django server owns /api directly.
+// Keeping the browser on one origin avoids Safari/CORS failures and keeps the
+// backend hostname out of the client runtime.
+const API_BASE = "/api";
 
 const TOKEN_KEY = "partsflow_auth_token";
 
@@ -111,9 +112,9 @@ function wait(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-// Login deliberately uses a CORS-safelisted form content type instead of JSON.
-// This avoids an unnecessary OPTIONS preflight on iOS/Safari. It also retries
-// once because the free Render backend can be waking from idle when a user logs in.
+// Login uses a safelisted form content type and retries once because the free
+// Render backend can be waking from idle. The request itself stays same-origin
+// in Production and is proxied by Vercel to Render.
 export async function apiLogin(employeeCode) {
   const body = new URLSearchParams();
   body.set("employee_code", String(employeeCode || "").trim());
