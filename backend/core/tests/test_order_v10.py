@@ -1,4 +1,3 @@
-import re
 from datetime import date
 
 from django.test import TestCase
@@ -13,7 +12,9 @@ class OrderV10Tests(TestCase):
 
     def make_order(self, job="REPAIR", **extra):
         data = {
-            "order_number": "TEMP",
+            # ORD-* represents the old PartsFlow automatic number and should be
+            # replaced by the new JOB/date/time number when the row is created.
+            "order_number": "ORD-TEST",
             "order_date": date.today(),
             "machine": self.machine_a,
             "job": job,
@@ -55,9 +56,13 @@ class OrderV10Tests(TestCase):
         )
         self.assertEqual(order.order_number, "QTN-KEEP-ME")
 
+    def test_explicit_import_order_number_is_preserved(self):
+        order = self.make_order(job="REPAIR", order_number="EXCEL-123")
+        self.assertEqual(order.order_number, "EXCEL-123")
+
     def test_multi_machine_selection_keeps_first_as_primary(self):
         order = OrderRecord(
-            order_number="TEMP",
+            order_number="ORD-TEST-MULTI",
             order_date=date.today(),
             machine=self.machine_a,
             job="REPAIR",
