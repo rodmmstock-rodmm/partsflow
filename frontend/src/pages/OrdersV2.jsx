@@ -3,10 +3,11 @@ import * as XLSX from "xlsx";
 import { apiDelete, apiGet, apiPost } from "../api";
 import { useAuth } from "../auth";
 import { Alert, PageHeader, fmt, formatDMY } from "../components/Common";
+import MultiMachineOrderInfoModal from "../components/MultiMachineOrderInfoModal";
 import RFQComposeModal from "../components/RFQComposeModal";
 import { useOptions } from "../optionsContext";
 import { openOrderDetailByNumber } from "../orderDetailEnhancer";
-import { OrderInfoModal, PurchaseModal } from "./Orders";
+import { PurchaseModal } from "./Orders";
 
 const ORDER_TABS = [
   ["normal", "Order Normal"],
@@ -82,7 +83,6 @@ function CompactOrderTable({
   onEdit,
   onPurchase,
   onUpdate,
-  admin,
   tab,
   auth,
   onRestore,
@@ -93,23 +93,23 @@ function CompactOrderTable({
     <thead><tr>
       <th><input type="checkbox" checked={all} onChange={e=>onToggleAll(rows,e.target.checked)} /></th>
       <th>ORDER</th>
+      <th>DATE</th>
       <th>อะไหล่ที่สั่ง</th>
       <th>จำนวน</th>
       <th>สถานะงานด่วน</th>
       <th>วันที่ค้าง DATA</th>
       <th>สถานะการสั่ง</th>
-      {admin&&<th>Lifecycle</th>}
       <th></th>
     </tr></thead>
     <tbody>{rows.map(o=>{const s=displayStatus(o); return <tr key={o.id} className={selected.has(o.id)?"selected":""}>
       <td><input type="checkbox" checked={selected.has(o.id)} onChange={e=>onToggle(o.id,e.target.checked)} /></td>
       <td><b className="mono-cell">{o.order_number}</b></td>
+      <td className="mono-cell">{o.date ? formatDMY(o.date) : "-"}</td>
       <td className="part-main-v9"><b>{o.item_id || "-"}</b><strong>{o.part_name || "-"}</strong></td>
       <td><b>{fmt(o.amount)} {o.unit || ""}</b></td>
       <td className="urgent-cell-v9">{o.urgent_status ? <span className="urgent-badge-v9">{o.urgent_status}</span> : <span className="muted-text-v9">-</span>}</td>
       <td className="pending-date-v9">{o.pending_data_date ? formatDMY(o.pending_data_date) : "-"}</td>
       <td><span className={`status ${statusClass(s)}`}>{s}</span></td>
-      {admin&&<td><span className="status muted">{o.lifecycle_status || "ACTIVE"}</span></td>}
       <td className="order-actions-v9">
         <button className="mini primary" onClick={()=>onDetail(o)}>รายละเอียด</button>
         {tab==="updates"&&auth.can("can_update_edit_data")&&<button className="mini" onClick={()=>onUpdate(o)}>อัปเดตข้อมูล</button>}
@@ -245,7 +245,7 @@ export default function OrdersV2(){
     <Alert>{error}</Alert>
 
     {tab!=="deleted"&&<div className="kpi-grid five order-kpi-v9">
-      <div className="kpi-card"><span>Order เดือนนี้</span><strong>{fmt(kpi.total)}</strong></div>
+      <div className="kpi-card"><span>Order ที่กำลังสั่ง</span><strong>{fmt(kpi.total)}</strong></div>
       <div className="kpi-card danger"><span>ด่วนเครื่องหยุด</span><strong>{fmt(kpi.urgent_stop)}</strong></div>
       <div className="kpi-card warning"><span>ด่วนเครื่องไม่หยุด</span><strong>{fmt(kpi.urgent_no_stop)}</strong></div>
       <div className="kpi-card info"><span>งานค้าง DATA</span><strong>{fmt(kpi.pending)}</strong></div>
@@ -285,14 +285,13 @@ export default function OrdersV2(){
         onEdit={o=>setEditor({order:o})}
         onPurchase={o=>setPurchase(o)}
         onUpdate={updateData}
-        admin={admin}
         tab={tab}
         auth={auth}
         onRestore={restoreOrder}
       />}
     </section>
 
-    {editor&&<OrderInfoModal order={editor.order} project={null} step={null} options={options} employee={auth.employee} canEditOrderDate={auth.can("can_edit_order_date")} onClose={()=>setEditor(null)} onSaved={()=>{setEditor(null);load(true);}}/>}
+    {editor&&<MultiMachineOrderInfoModal order={editor.order} options={options} employee={auth.employee} canEditOrderDate={auth.can("can_edit_order_date")} onClose={()=>setEditor(null)} onSaved={()=>{setEditor(null);load(true);}}/>}
     {purchase&&<PurchaseModal order={purchase} options={options} onClose={()=>setPurchase(null)} onChanged={r=>{setPurchase(r);load(true);}}/>}
     {rfqCompose&&<RFQComposeModal orders={selectedRows} options={options} onClose={()=>setRfqCompose(false)} onRecorded={()=>{setRfqCompose(false);setSelected(new Set());load(true);}}/>}
   </>;
