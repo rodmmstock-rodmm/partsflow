@@ -1,8 +1,9 @@
 import { useEffect, useMemo, useState } from "react";
 import { apiDelete, apiGet, apiPost } from "../api";
 import { useAuth } from "../auth";
-import { Alert, fmt } from "../components/Common";
-import { OrderInfoModal, PurchaseModal } from "../pages/Orders";
+import { Alert, fmt, formatDMY } from "../components/Common";
+import MultiMachineOrderInfoModal from "../components/MultiMachineOrderInfoModal";
+import { PurchaseModal } from "../pages/Orders";
 import RFQComposeModal from "../components/RFQComposeModal";
 import { openOrderDetailByNumber } from "../orderDetailEnhancer";
 import { MobileEmpty, MobileLoading, MobilePage, MobileSearch } from "./MobileCommon";
@@ -104,7 +105,7 @@ export default function MobileOrders() {
 
   const shown = useMemo(
     () => rows.filter((order) =>
-      !q || `${order.order_number} ${order.item_id} ${order.part_name}`
+      !q || `${order.order_number} ${order.item_id} ${order.part_name} ${order.machine_codes || order.machine_code || ""}`
         .toLowerCase()
         .includes(q.toLowerCase())
     ),
@@ -172,7 +173,7 @@ export default function MobileOrders() {
       <Alert>{error}</Alert>
 
       <div className="m-kpi-row">
-        <div><span>เดือนนี้</span><b>{fmt(kpi.total || rows.length)}</b></div>
+        <div><span>Order ที่กำลังสั่ง</span><b>{fmt(kpi.total ?? rows.length)}</b></div>
         <div className="warning"><span>เร่งด่วน</span><b>{fmt(kpi.urgent || 0)}</b></div>
         <div className="danger"><span>ค้าง DATA</span><b>{fmt(kpi.pending || 0)}</b></div>
       </div>
@@ -218,7 +219,7 @@ export default function MobileOrders() {
         </div>
       </div>
 
-      <MobileSearch value={q} onChange={setQ} placeholder="Order / Part ID / Part..." />
+      <MobileSearch value={q} onChange={setQ} placeholder="Order / Part ID / Part / Machine..." />
 
       {tab === "normal" && (
         <div className="m-filter-row m-filter-row-wide">
@@ -272,6 +273,10 @@ export default function MobileOrders() {
                   {orderStatus(order)}
                 </span>
               </div>
+              <div className="m-info-grid order-v10-mobile-meta">
+                <span>DATE<b>{order.date ? formatDMY(order.date) : "-"}</b></span>
+                <span>MACHINE<b>{order.machine_codes || order.machine_code || "-"}</b></span>
+              </div>
               <div className="m-order-item">
                 <b>{order.item_id || "-"}</b>
                 <h3>{order.part_name || "-"}</h3>
@@ -318,10 +323,8 @@ export default function MobileOrders() {
       )}
 
       {editor && (
-        <OrderInfoModal
+        <MultiMachineOrderInfoModal
           order={editor.order}
-          project={null}
-          step={null}
           options={options}
           employee={auth.employee}
           canEditOrderDate={auth.can("can_edit_order_date")}
