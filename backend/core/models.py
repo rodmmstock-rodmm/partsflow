@@ -509,6 +509,7 @@ class OrderRecord(LegacyMixin):
     urgent_status = models.CharField(max_length=120, blank=True)
     pending_data_date = models.DateField(null=True, blank=True)
     remark = models.TextField(blank=True)
+    wait_confirm_remark = models.TextField(blank=True)
     drawing_path = models.CharField(max_length=500, blank=True)
 
     quotation = models.TextField(blank=True)
@@ -913,3 +914,4 @@ class AuditLog(models.Model):
 
     class Meta:
         ordering = ["-created_at"]
+

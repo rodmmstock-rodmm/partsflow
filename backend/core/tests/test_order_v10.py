@@ -9,7 +9,11 @@ from core.models import Employee, Machine, OrderRecord, RoleAccess
 
 class OrderV10Tests(TestCase):
     def setUp(self):
-        RoleAccess.objects.create(role_name="PURCHASING", can_view_orders=True)
+        RoleAccess.objects.create(
+            role_name="PURCHASING",
+            can_view_orders=True,
+            can_edit_purchase_info=True,
+        )
         self.employee = Employee.objects.create(
             employee_code="P-V10",
             name="Purchasing V10",
@@ -117,3 +121,27 @@ class OrderV10Tests(TestCase):
             response.data["monthly_active_counts"],
             [2, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0],
         )
+
+    def test_wait_confirm_remark_is_saved_and_returned(self):
+        order = self.make_order(remark="หมายเหตุเดิมของ Order")
+        remark = "รอผู้จัดการอนุมัติราคา"
+
+        response = self.client.post(
+            f"/api/orders/{order.id}/wait-confirm/",
+            {
+                "wait_confirm": True,
+                "wait_confirm_remark": remark,
+            },
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, 200)
+        order.refresh_from_db()
+        self.assertTrue(order.wait_confirm)
+        self.assertEqual(
+            order.lifecycle_status,
+            OrderRecord.LIFECYCLE_WAIT_CONFIRM,
+        )
+        self.assertEqual(order.wait_confirm_remark, remark)
+        self.assertEqual(order.remark, "หมายเหตุเดิมของ Order")
+        self.assertEqual(response.data["wait_confirm_remark"], remark)

@@ -24,6 +24,7 @@ TRACKED_FIELDS = (
     "amount",
     "unit",
     "remark",
+    "wait_confirm_remark",
     "ordered_by",
     "quotation",
     "po_number",
@@ -77,6 +78,7 @@ def _snapshot(order):
         "amount": data.get("amount"),
         "unit": data.get("unit") or "",
         "remark": data.get("remark") or "",
+        "wait_confirm_remark": data.get("wait_confirm_remark") or "",
         "ordered_by": data.get("ordered_by") or "",
         "quotation": data.get("quotation") or "",
         "po_number": data.get("po_number") or "",
@@ -337,3 +339,4 @@ def update_usage(request, pk):
     return _run_mutation(
         request, pk, order_api.update_usage, "UPDATE_USAGE"
     )
+

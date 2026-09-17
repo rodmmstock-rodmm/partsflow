@@ -135,8 +135,23 @@ export default function MobileOrders() {
     if (busy) return;
     let ok = true;
     let reason = "";
+    let waitConfirmRemark = "";
     if (action === "receive") ok = confirm(`ยืนยันรับ ${row.order_number}?`);
-    if (action === "wait") ok = confirm(`เปลี่ยน ${row.order_number} เป็น Wait Confirm?`);
+    if (action === "wait") {
+      ok = confirm(`เปลี่ยน ${row.order_number} เป็น Wait Confirm?`);
+      if (ok) {
+        const input = prompt(
+          "Remark สำหรับการเปลี่ยนเป็น Wait Confirm (ไม่บังคับ)",
+          row.wait_confirm_remark || ""
+        );
+        if (input === null) return;
+        waitConfirmRemark = input.trim();
+        if (waitConfirmRemark.length > 1000) {
+          setError("Wait Confirm Remark ต้องไม่เกิน 1,000 ตัวอักษร");
+          return;
+        }
+      }
+    }
     if (action === "cancelwait") ok = confirm(`ยกเลิก Wait Confirm ${row.order_number}?`);
     if (action === "cancel") {
       ok = confirm(`ยกเลิก ${row.order_number}?`);
@@ -152,7 +167,12 @@ export default function MobileOrders() {
     setError("");
     try {
       if (action === "receive") await apiPost(`/orders/${row.id}/receive/`, {});
-      if (action === "wait") await apiPost(`/orders/${row.id}/wait-confirm/`, { wait_confirm: true });
+      if (action === "wait") {
+        await apiPost(`/orders/${row.id}/wait-confirm/`, {
+          wait_confirm: true,
+          wait_confirm_remark: waitConfirmRemark,
+        });
+      }
       if (action === "cancelwait") await apiPost(`/orders/${row.id}/wait-confirm/`, { wait_confirm: false });
       if (action === "cancel") await apiPost(`/orders/${row.id}/cancel/`, { cancel: true, reason });
       if (action === "restore") await apiPost(`/orders/${row.id}/cancel/`, { cancel: false });
@@ -284,6 +304,12 @@ export default function MobileOrders() {
                   {orderStatus(order)}
                 </span>
               </div>
+              {order.lifecycle_status === "WAIT_CONFIRM" && order.wait_confirm_remark && (
+                <p className="m-wait-confirm-remark">
+                  <b>Remark</b>
+                  <span>{order.wait_confirm_remark}</span>
+                </p>
+              )}
               <div className="m-info-grid order-v10-mobile-meta">
                 <span>DATE<b>{order.date ? formatDMY(order.date) : "-"}</b></span>
                 <span>MACHINE<b>{order.machine_codes || order.machine_code || "-"}</b></span>
@@ -362,3 +388,4 @@ export default function MobileOrders() {
     </MobilePage>
   );
 }
+

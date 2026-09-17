@@ -108,6 +108,12 @@ const WORKFLOW_FIELDS = [
     value: (d) => d.lifecycle_status,
   },
   {
+    key: "wait_confirm_remark",
+    label: "WAIT CONFIRM REMARK",
+    value: (d) => d.wait_confirm_remark,
+    wide: true,
+  },
+  {
     key: "edit_data_status",
     label: "EDIT DATA",
     value: (d) => d.edit_data_status,
@@ -447,3 +453,4 @@ export function installOrderDetailEnhancer() {
 
   syncEnhancements();
 }
+

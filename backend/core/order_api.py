@@ -214,6 +214,7 @@ def order_json(order):
         "urgent_status": order.urgent_status,
         "pending_data_date": order.pending_data_date.isoformat() if order.pending_data_date else "",
         "remark": order.remark,
+        "wait_confirm_remark": order.wait_confirm_remark,
         "drawing_path": order.drawing_path,
         "quotation": order.quotation,
         "rfq_count": int(getattr(order, "rfq_count", 0) or 0),
@@ -1161,13 +1162,25 @@ def wait_confirm_order(request, pk):
                 )
 
             target = bool(request.data.get("wait_confirm", True))
+            wait_confirm_remark = str(
+                request.data.get("wait_confirm_remark") or ""
+            ).strip()
+            if len(wait_confirm_remark) > 1000:
+                return Response(
+                    {"detail": "Wait Confirm Remark ต้องไม่เกิน 1,000 ตัวอักษร"},
+                    status=400,
+                )
+
             before = {
                 "wait_confirm": order.wait_confirm,
+                "wait_confirm_remark": order.wait_confirm_remark,
                 "lifecycle_status": order.lifecycle_status,
                 "status": order.status,
             }
 
             order.wait_confirm = target
+            if target:
+                order.wait_confirm_remark = wait_confirm_remark
             order.lifecycle_status = (
                 OrderRecord.LIFECYCLE_WAIT_CONFIRM
                 if target
@@ -1177,6 +1190,7 @@ def wait_confirm_order(request, pk):
             sync_system_fields(order, validate=False)
             order.save(update_fields=[
                 "wait_confirm",
+                "wait_confirm_remark",
                 "lifecycle_status",
                 "status",
                 "group_order",
@@ -1194,6 +1208,7 @@ def wait_confirm_order(request, pk):
                     "before": before,
                     "after": {
                         "wait_confirm": order.wait_confirm,
+                        "wait_confirm_remark": order.wait_confirm_remark,
                         "lifecycle_status": order.lifecycle_status,
                         "status": order.status,
                     },
@@ -2914,3 +2929,4 @@ def update_usage(request, pk):
     order.save(update_fields=["usage_status", "updated_at"])
     audit(actor, "UPDATE_USAGE", "OrderRecord", order.id, {"old": before, "new": status})
     return Response(order_json(order_queryset().get(pk=pk)))
+

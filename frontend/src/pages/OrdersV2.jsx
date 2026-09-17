@@ -139,7 +139,10 @@ function CompactOrderTable({
       <td><b>{fmt(o.amount)} {o.unit || ""}</b></td>
       <td className="urgent-cell-v9">{o.urgent_status ? <span className="urgent-badge-v9">{o.urgent_status}</span> : <span className="muted-text-v9">-</span>}</td>
       <td className="pending-date-v9">{o.pending_data_date ? formatDMY(o.pending_data_date) : "-"}</td>
-      <td><span className={`status ${statusClass(s)}`}>{s}</span></td>
+      <td className="order-status-v11">
+        <span className={`status ${statusClass(s)}`}>{s}</span>
+        {o.lifecycle_status==="WAIT_CONFIRM"&&o.wait_confirm_remark&&<small title={o.wait_confirm_remark}>Remark: {o.wait_confirm_remark}</small>}
+      </td>
       <td className="order-actions-v9">
         <button className="mini primary" onClick={()=>onDetail(o)}>รายละเอียด</button>
         {tab==="updates"&&auth.can("can_update_edit_data")&&<button className="mini" onClick={()=>onUpdate(o)}>อัปเดตข้อมูล</button>}
@@ -233,10 +236,17 @@ export default function OrdersV2(){
     const list=targets(action); if(!list.length){setError("รายการที่เลือกไม่มีรายการที่รองรับ Action นี้");return;}
     const labels={wait_confirm:"เปลี่ยนเป็น Wait Confirm",cancel_wait_confirm:"ยกเลิก Wait Confirm",receive:"รับของ",cancel:"ยกเลิก Order",restore:"คืนรายการ",delete:"ลบ"};
     if(!window.confirm(`ยืนยัน ${labels[action]} ${list.length} รายการ?`)) return;
+    let waitConfirmRemark="";
+    if(action==="wait_confirm"){
+      const input=window.prompt(`Remark สำหรับการเปลี่ยนเป็น Wait Confirm ${list.length} รายการ (ไม่บังคับ)`,"");
+      if(input===null) return;
+      waitConfirmRemark=input.trim();
+      if(waitConfirmRemark.length>1000){setError("Wait Confirm Remark ต้องไม่เกิน 1,000 ตัวอักษร");return;}
+    }
     const reason=action==="cancel"?(window.prompt("เหตุผลการยกเลิก (ไม่บังคับ)","")||""):"";
     setBulkBusy(true); setError(""); const fail=[];
     for(const o of list){try{
-      if(action==="wait_confirm") await apiPost(`/orders/${o.id}/wait-confirm/`,{wait_confirm:true});
+      if(action==="wait_confirm") await apiPost(`/orders/${o.id}/wait-confirm/`,{wait_confirm:true,wait_confirm_remark:waitConfirmRemark});
       if(action==="cancel_wait_confirm") await apiPost(`/orders/${o.id}/wait-confirm/`,{wait_confirm:false});
       if(action==="receive") await apiPost(`/orders/${o.id}/receive/`,{});
       if(action==="cancel") await apiPost(`/orders/${o.id}/cancel/`,{cancel:true,reason});
@@ -400,3 +410,4 @@ export default function OrdersV2(){
     {purchase&&<NormalPurchaseModal order={purchase} options={options} onClose={()=>setPurchase(null)} onChanged={r=>{setPurchase(r);load(true);}}/>}
   </>;
 }
+
