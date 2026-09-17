@@ -169,8 +169,10 @@ function orderQuotationValue(data) {
     : [];
   const quotationLines = vendors
     .map((vendor, index) => {
-      const label = joinCodeName(vendor.vendor_code, vendor.vendor_name);
-      return label ? `${index + 1}. ${label}` : "";
+      const vendorName = cleanText(vendor.vendor_name);
+      const addedDate = dateValue(vendor.added_at);
+      if (!vendorName) return "";
+      return `${index + 1}. ${vendorName}${addedDate ? ` · ${addedDate}` : ""}`;
     })
     .filter(Boolean);
   if (quotationLines.length) return quotationLines.join("\n");
@@ -199,6 +201,17 @@ function dateTimeValue(value) {
   return date.toLocaleString("th-TH", {
     dateStyle: "short",
     timeStyle: "medium",
+  });
+}
+
+function dateValue(value) {
+  if (!value) return "";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return String(value);
+  return date.toLocaleDateString("th-TH", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
   });
 }
 
