@@ -57,6 +57,24 @@ class OrderVendorFlowTests(TestCase):
         order_api.apply_purchase_info(order, {"vendor_id": str(self.vendor_a.id)})
         self.assertEqual(order.vendor_id, self.vendor_a.id)
 
+    def test_vendor_order_can_be_cleared_without_removing_quotation_vendor(self):
+        order = self.make_normal_order()
+        OrderVendor.objects.create(order=order, vendor=self.vendor_a)
+        order.vendor = self.vendor_a
+        order.price_per_unit = Decimal("125.50")
+        order.lead_time_days = 7
+        order.save()
+
+        order_api.apply_purchase_info(order, {"vendor_id": ""})
+        order.save()
+        order.refresh_from_db()
+
+        self.assertIsNone(order.vendor_id)
+        self.assertTrue(
+            order.vendor_candidates.filter(vendor=self.vendor_a).exists()
+        )
+        self.assertEqual(order.status, OrderRecord.STATUS_QUOTE)
+
     def test_wait_issue_pr_requires_vendor_price_and_lead_time(self):
         order = self.make_normal_order()
         OrderVendor.objects.create(order=order, vendor=self.vendor_a)
@@ -99,3 +117,4 @@ class OrderVendorFlowTests(TestCase):
             unit_text="EA",
         )
         self.assertTrue(_valid_step_orders([str(project_order.id)]))
+

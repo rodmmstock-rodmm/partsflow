@@ -31,6 +31,7 @@ export default function NormalPurchaseModal({ order, options, onClose, onChanged
   const [error, setError] = useState("");
   const [busy, setBusy] = useState("");
   const [quotationVendors, setQuotationVendors] = useState([]);
+  const [savedVendorId, setSavedVendorId] = useState(order.vendor_id || "");
   const [quotationVendorId, setQuotationVendorId] = useState("");
   const [quotationLoading, setQuotationLoading] = useState(true);
   const [quotationBusy, setQuotationBusy] = useState(false);
@@ -58,6 +59,7 @@ export default function NormalPurchaseModal({ order, options, onClose, onChanged
     try {
       const result = await apiGet(`/orders/${order.id}/`, { cache: false, forceRefresh: true });
       setLocal(result);
+      setSavedVendorId(result.vendor_id || "");
       onChanged?.(result);
     } catch {
       onChanged?.(local);
@@ -120,6 +122,7 @@ export default function NormalPurchaseModal({ order, options, onClose, onChanged
     try {
       const result = await apiPatch(`/orders/${order.id}/purchase/`, payload);
       setLocal(result);
+      setSavedVendorId(result.vendor_id || "");
       onChanged?.(result);
     } catch (err) {
       setError(err.message);
@@ -131,7 +134,21 @@ export default function NormalPurchaseModal({ order, options, onClose, onChanged
   const vendor = vendorOrderOptions.find(
     (item) => String(item.id) === String(local.vendor_id || "")
   );
+  const savedVendor = vendorOrderOptions.find(
+    (item) => String(item.id) === String(savedVendorId)
+  );
   const person = (options.employees || []).find((item) => item.id === local.person_in_charge_id);
+
+  async function removeVendorOrder() {
+    if (!savedVendorId || busy) return;
+    const label = savedVendor
+      ? vendorLabel(savedVendor)
+      : [local.vendor_code, local.vendor_name].filter(Boolean).join(" · ") || "Vendor ที่เลือก";
+    if (!window.confirm(
+      `ลบ ${label} ออกจาก VENDOR ORDER?\n\nVendor รายนี้จะยังอยู่ใน ORDER QUOTATION`
+    )) return;
+    await saveField("vendor", { vendor_id: "" });
+  }
   const hasPrice = Number(local.price_per_unit || 0) > 0;
   const hasLeadTime = local.lead_time_days !== null && local.lead_time_days !== undefined && local.lead_time_days !== "";
 
@@ -200,15 +217,30 @@ export default function NormalPurchaseModal({ order, options, onClose, onChanged
               placeholder={quotationVendors.length ? "เลือก Vendor จาก ORDER QUOTATION" : "เพิ่ม Vendor ใน ORDER QUOTATION ก่อน"}
               disabled={quotationLoading || !quotationVendors.length}
             />
-            <span className="field-help">เลือกได้เฉพาะ Vendor ที่อยู่ใน ORDER QUOTATION ของ Order นี้</span>
+            <span className="field-help">
+              เลือกได้เฉพาะ Vendor ที่อยู่ใน ORDER QUOTATION · การลบ Vendor Order จะไม่ลบประวัติการขอราคา
+            </span>
           </div>
-          <button
-            className="mini"
-            disabled={quotationLoading || !quotationVendors.length || !local.vendor_id}
-            onClick={() => saveField("vendor", { vendor_id: local.vendor_id })}
-          >
-            {busy === "vendor" ? "..." : vendor ? "แก้ไข" : "+ เพิ่ม"}
-          </button>
+          <div className="purchase-vendor-actions">
+            <button
+              className="mini"
+              type="button"
+              disabled={!!busy || quotationLoading || !quotationVendors.length || !local.vendor_id}
+              onClick={() => saveField("vendor", { vendor_id: local.vendor_id })}
+            >
+              {busy === "vendor" ? "..." : vendor ? "แก้ไข" : "+ เพิ่ม"}
+            </button>
+            {savedVendorId && (
+              <button
+                className="mini danger"
+                type="button"
+                disabled={!!busy}
+                onClick={removeVendorOrder}
+              >
+                {busy === "vendor" ? "..." : "ลบ Vendor Order"}
+              </button>
+            )}
+          </div>
         </div>
 
         <div className="purchase-field po-group">
@@ -319,3 +351,4 @@ export default function NormalPurchaseModal({ order, options, onClose, onChanged
     </Modal>
   );
 }
+

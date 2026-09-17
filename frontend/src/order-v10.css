@@ -122,3 +122,20 @@
   overflow-wrap:anywhere;
 }
 
+/* Purchase Vendor Order actions ------------------------------------------- */
+.purchase-vendor-actions{
+  display:flex;
+  align-items:center;
+  justify-content:flex-end;
+  gap:6px;
+  flex-wrap:wrap;
+}
+.purchase-vendor-actions .mini{
+  margin:0;
+}
+@media(max-width:900px){
+  .purchase-vendor-actions{
+    justify-content:flex-start;
+  }
+}
+
