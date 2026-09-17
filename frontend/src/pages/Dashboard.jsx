@@ -572,16 +572,26 @@ export default function Dashboard() {
           <span>จำนวนรายการอะไหล่</span>
           <strong>{fmt(kpi.parts)}</strong>
         </div>
-        <div className="kpi-card danger">
+        <button
+          type="button"
+          className="kpi-card danger kpi-card-link"
+          onClick={() => navigate("/safety-stock")}
+          aria-label="เปิดหน้า Safety Stock"
+        >
           <span>Safety Stock</span>
           <strong>{fmt(kpi.safety_stock)}</strong>
           <small>ต่ำกว่า Min และยังไม่ได้สั่ง</small>
-        </div>
-        <div className="kpi-card warning">
+        </button>
+        <button
+          type="button"
+          className="kpi-card warning kpi-card-link"
+          onClick={() => navigate("/orders")}
+          aria-label="เปิดหน้า Order สำหรับ Safety Stock ที่กำลังสั่ง"
+        >
           <span>Safety Stock currently Order</span>
           <strong>{fmt(kpi.safety_stock_ordered)}</strong>
           <small>ต่ำกว่า Min แต่มี Order อยู่</small>
-        </div>
+        </button>
       </div>
 
       <div className="tab-row page-tabs">
