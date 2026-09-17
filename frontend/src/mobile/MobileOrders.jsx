@@ -50,6 +50,7 @@ export default function MobileOrders() {
   const [month, setMonth] = useState(now.getMonth());
   const [rows, setRows] = useState([]);
   const [kpi, setKpi] = useState({});
+  const [monthlyActiveCounts, setMonthlyActiveCounts] = useState(null);
   const [options, setOptions] = useState({});
   const [q, setQ] = useState("");
   const [status, setStatus] = useState("");
@@ -78,13 +79,18 @@ export default function MobileOrders() {
         status,
         date_from: range.from,
         date_to: range.to,
+        summary_year: String(year),
       });
       const data = await apiGet(`/orders/?${p}`, { forceRefresh: force, cache: false });
       setRows(data.results || []);
       setKpi(data.kpi || {});
+      setMonthlyActiveCounts(
+        Array.isArray(data.monthly_active_counts) ? data.monthly_active_counts : null
+      );
     } catch (err) {
       setRows([]);
       setKpi({});
+      setMonthlyActiveCounts(null);
       setError(err.message);
     }
 
@@ -97,6 +103,10 @@ export default function MobileOrders() {
       setLoading(false);
     }
   }
+
+  useEffect(() => {
+    setMonthlyActiveCounts(null);
+  }, [year]);
 
   useEffect(() => {
     setSelected(new Set());
@@ -213,6 +223,7 @@ export default function MobileOrders() {
               onClick={() => setMonth(index)}
             >
               {label}
+              {Array.isArray(monthlyActiveCounts) && ` (${fmt(monthlyActiveCounts[index] || 0)})`}
               {year === now.getFullYear() && index === now.getMonth() && <small>ปัจจุบัน</small>}
             </button>
           ))}

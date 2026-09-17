@@ -700,6 +700,14 @@ def orders(request):
     # page load pulls the full order history (up to 5000 rows) every time.
     date_from = as_date(request.GET.get("date_from"), "date_from")
     date_to = as_date(request.GET.get("date_to"), "date_to")
+    summary_year_value = str(request.GET.get("summary_year", "")).strip()
+    try:
+        summary_year = int(summary_year_value) if summary_year_value else None
+    except ValueError:
+        return Response({"detail": "summary_year ไม่ถูกต้อง"}, status=400)
+    if summary_year is not None and not 2000 <= summary_year <= 2100:
+        return Response({"detail": "summary_year ไม่ถูกต้อง"}, status=400)
+
     show_all = str(request.GET.get("date_range", "")).strip().lower() == "all"
     if (
         not date_from
@@ -709,6 +717,9 @@ def orders(request):
         and view != "deleted"
     ):
         date_from = timezone.localdate() - timedelta(days=120)
+    if summary_year is None:
+        summary_year = date_from.year if date_from else timezone.localdate().year
+
     if date_from:
         qs = qs.filter(order_date__gte=date_from)
     if date_to:
@@ -734,6 +745,11 @@ def orders(request):
     wait_confirm_count = sum(
         1 for x in active_rows if x.lifecycle_status == OrderRecord.LIFECYCLE_WAIT_CONFIRM
     )
+    monthly_active_counts = [0] * 12
+    for order in active_only_rows:
+        if order.order_date and order.order_date.year == summary_year:
+            monthly_active_counts[order.order_date.month - 1] += 1
+
     job_core = {"REPAIR", "MODIFY", "AUTOMATION", "PM"}
     kpi = {
         "total": len(active_only_rows),
@@ -753,6 +769,8 @@ def orders(request):
         {
             "count": len(rows),
             "kpi": kpi,
+            "summary_year": summary_year,
+            "monthly_active_counts": monthly_active_counts,
             "results": [order_json(x) for x in rows],
             "date_from": date_from.isoformat() if date_from else None,
             "date_range_limited": bool(date_from) and not (

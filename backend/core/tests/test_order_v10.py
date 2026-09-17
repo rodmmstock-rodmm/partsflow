@@ -1,12 +1,24 @@
 from datetime import date
 
 from django.test import TestCase
+from rest_framework.test import APIClient
 
-from core.models import Machine, OrderRecord
+from core.auth_api import create_auth_token
+from core.models import Employee, Machine, OrderRecord, RoleAccess
 
 
 class OrderV10Tests(TestCase):
     def setUp(self):
+        RoleAccess.objects.create(role_name="PURCHASING", can_view_orders=True)
+        self.employee = Employee.objects.create(
+            employee_code="P-V10",
+            name="Purchasing V10",
+            role="PURCHASING",
+        )
+        self.client = APIClient()
+        self.client.credentials(
+            HTTP_AUTHORIZATION=f"Bearer {create_auth_token(self.employee)}"
+        )
         self.machine_a = Machine.objects.create(code="MC-A", name="Machine A")
         self.machine_b = Machine.objects.create(code="MC-B", name="Machine B")
 
@@ -78,4 +90,30 @@ class OrderV10Tests(TestCase):
         self.assertEqual(
             list(order.machine_selections.values_list("machine_id", flat=True)),
             [self.machine_a.id, self.machine_b.id],
+        )
+
+    def test_order_response_includes_active_count_for_each_month(self):
+        self.make_order(order_date=date(2026, 1, 5))
+        self.make_order(order_date=date(2026, 1, 20))
+        self.make_order(order_date=date(2026, 9, 1))
+        self.make_order(
+            order_date=date(2026, 1, 25),
+            lifecycle_status=OrderRecord.LIFECYCLE_WAIT_CONFIRM,
+        )
+        self.make_order(order_date=date(2025, 1, 5))
+
+        response = self.client.get(
+            "/api/orders/",
+            {
+                "date_from": "2026-09-01",
+                "date_to": "2026-09-30",
+                "summary_year": "2026",
+            },
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data["summary_year"], 2026)
+        self.assertEqual(
+            response.data["monthly_active_counts"],
+            [2, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0],
         )

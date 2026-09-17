@@ -182,6 +182,7 @@ export default function OrdersV2(){
   const [month,setMonth]=useState(now.getMonth());
   const [rows,setRows]=useState([]);
   const [kpi,setKpi]=useState({});
+  const [monthlyActiveCounts,setMonthlyActiveCounts]=useState(null);
   const [loading,setLoading]=useState(true);
   const [error,setError]=useState("");
   const [qInput,setQInput]=useState("");
@@ -206,12 +207,16 @@ export default function OrdersV2(){
   async function load(force=false){
     setLoading(true); setError("");
     try{
-      const p=new URLSearchParams({view:tab,q,urgency,job,status,date_from:range.from,date_to:range.to});
+      const p=new URLSearchParams({view:tab,q,urgency,job,status,date_from:range.from,date_to:range.to,summary_year:String(year)});
       const data=await apiGet(`/orders/?${p}`,{forceRefresh:force,cache:false});
-      setRows(data.results||[]); setKpi(data.kpi||{}); setLastLoadedAt(new Date());
-    }catch(e){setError(e.message);setRows([]);setKpi({});}
+      setRows(data.results||[]);
+      setKpi(data.kpi||{});
+      setMonthlyActiveCounts(Array.isArray(data.monthly_active_counts)?data.monthly_active_counts:null);
+      setLastLoadedAt(new Date());
+    }catch(e){setError(e.message);setRows([]);setKpi({});setMonthlyActiveCounts(null);}
     finally{setLoading(false);}
   }
+  useEffect(()=>{setMonthlyActiveCounts(null);},[year]);
   useEffect(()=>{setSelected(new Set());load();},[tab,q,urgency,job,status,range.from,range.to]);
 
   function toggle(id,checked){setSelected(cur=>{const next=new Set(cur);checked?next.add(id):next.delete(id);return next;});}
@@ -357,7 +362,7 @@ export default function OrdersV2(){
     <div className="order-nav-v9">
       <div className="order-status-tabs-v9">{ORDER_TABS.filter(([key])=>(key!=="updates"||auth.can("can_view_order_updates"))&&(key!=="deleted"||auth.can("can_view_deleted_orders"))).map(([key,label])=><button key={key} className={tab===key?"active":""} onClick={()=>{setTab(key);setQInput("");setQ("");setSelected(new Set());}}>{label}</button>)}</div>
       <div className="order-month-head-v9"><button onClick={()=>setYear(y=>y-1)}>‹</button><b>{year}</b><button onClick={()=>setYear(y=>y+1)}>›</button><span>เลือกเดือนเพื่อโหลดข้อมูล</span></div>
-      <div className="order-month-tabs-v9">{MONTHS_TH.map((label,i)=><button key={label} className={month===i?"active":""} onClick={()=>setMonth(i)}><span>{label}</span>{year===now.getFullYear()&&i===now.getMonth()&&<small>ปัจจุบัน</small>}</button>)}</div>
+      <div className="order-month-tabs-v9">{MONTHS_TH.map((label,i)=><button key={label} className={month===i?"active":""} onClick={()=>setMonth(i)}><span>{label}{Array.isArray(monthlyActiveCounts)?` (${fmt(monthlyActiveCounts[i]||0)})`:""}</span>{year===now.getFullYear()&&i===now.getMonth()&&<small>ปัจจุบัน</small>}</button>)}</div>
     </div>
 
     <section className="panel order-panel-v9">
