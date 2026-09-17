@@ -327,10 +327,10 @@ export default function MobileOrders() {
                   <button onClick={() => act(order, "update")} disabled={!!busy}>Update Data</button>
                 )}
                 {auth.can("can_edit_order_info") && ["ACTIVE", "WAIT_CONFIRM"].includes(order.lifecycle_status) && (
-                  <button onClick={() => setEditor({ order })}>แก้ Order</button>
+                  <button className="order-edit-action" onClick={() => setEditor({ order })}>แก้ไข order</button>
                 )}
                 {auth.can("can_edit_purchase_info") && ["ACTIVE", "WAIT_CONFIRM"].includes(order.lifecycle_status) && (
-                  <button onClick={() => setPurchase(order)}>Purchase</button>
+                  <button className="order-purchase-action" onClick={() => setPurchase(order)}>Purchase</button>
                 )}
                 {order.lifecycle_status === "ACTIVE" && auth.can("can_edit_purchase_info") && (
                   <button onClick={() => act(order, "wait")} disabled={!!busy}>Wait Confirm</button>

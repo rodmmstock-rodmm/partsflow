@@ -146,8 +146,8 @@ function CompactOrderTable({
       <td className="order-actions-v9">
         <button className="mini primary" onClick={()=>onDetail(o)}>รายละเอียด</button>
         {tab==="updates"&&auth.can("can_update_edit_data")&&<button className="mini" onClick={()=>onUpdate(o)}>อัปเดตข้อมูล</button>}
-        {["normal","confirm"].includes(tab)&&auth.can("can_edit_order_info")&&<button className="mini" onClick={()=>onEdit(o)}>แก้ Order</button>}
-        {["normal","confirm"].includes(tab)&&auth.can("can_edit_purchase_info")&&<button className="mini" onClick={()=>onPurchase(o)}>Purchase</button>}
+        {["normal","confirm"].includes(tab)&&auth.can("can_edit_order_info")&&<button className="mini order-edit-action" onClick={()=>onEdit(o)}>แก้ไข order</button>}
+        {["normal","confirm"].includes(tab)&&auth.can("can_edit_purchase_info")&&<button className="mini order-purchase-action" onClick={()=>onPurchase(o)}>Purchase</button>}
         {tab==="deleted"&&auth.can("can_view_deleted_orders")&&<button className="mini" onClick={()=>onRestore(o)}>กู้คืน</button>}
         {tab==="deleted"&&auth.can("can_view_deleted_orders")&&auth.can("can_delete_order")&&<button className="mini danger" onClick={()=>onPermanentDelete(o)}>ลบถาวร</button>}
       </td>

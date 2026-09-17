@@ -139,3 +139,12 @@
   }
 }
 
+/* Keep Order info and Purchase actions visually separate. */
+.order-edit-action + .order-purchase-action{
+  margin-left:8px;
+}
+@media(max-width:767px){
+  .order-edit-action + .order-purchase-action{
+    margin-left:6px;
+  }
+}
