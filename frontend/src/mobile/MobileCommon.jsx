@@ -83,3 +83,40 @@ export function MobileStockModal({ mode, part, employee, onClose, onSaved }) {
     </form>
   </Modal>;
 }
+
+export function MobileAdjustModal({ part, employee, onClose, onSaved }) {
+  const [actual,setActual]=useState(part.stock_qty??0);
+  const [reason,setReason]=useState("");
+  const [error,setError]=useState("");
+  const [busy,setBusy]=useState(false);
+  const current=Number(part.stock_qty||0);
+  const actualNumber=Number(actual);
+  const difference=Number.isFinite(actualNumber)?actualNumber-current:0;
+
+  async function submit(e){
+    e.preventDefault();setError("");
+    if(actual===""||!Number.isFinite(actualNumber)||actualNumber<0){setError("ยอดตรวจนับจริงต้องไม่น้อยกว่า 0");return;}
+    if(difference===0){setError("ยอดตรวจนับจริงเท่ากับยอดในระบบ ไม่มีรายการให้ปรับ");return;}
+    if(!reason.trim()){setError("กรุณาระบุเหตุผลในการปรับยอด");return;}
+    setBusy(true);
+    try{
+      await apiPost("/stock/adjust/",{part_id:part.id,actual_quantity:actualNumber,reason:reason.trim()});
+      onSaved?.();
+    }catch(err){setError(err.message)}finally{setBusy(false)}
+  }
+
+  return <Modal title="ปรับยอด Stock" onClose={onClose}>
+    <form className="m-stock-form" onSubmit={submit}>
+      <div className="m-part-hero">
+        <div className="m-part-image"><PartImage src={part.image_url||part.image_path} fallbackSrc={part.image_fallback_url} alt={part.name}/></div>
+        <div><b>{part.sku}</b><h3>{part.name}</h3><p>{part.description||"-"}</p><small>{part.location_code||"ไม่ระบุ Location"}</small></div>
+      </div>
+      <div className="m-stock-preview"><div><span>ยอดในระบบ</span><strong>{stockDisplay(part)} {part.unit_code}</strong></div><div><span>ผลต่าง</span><strong className={difference<0?"text-danger":""}>{difference>0?"+":""}{fmt(difference)} {part.unit_code}</strong></div></div>
+      <label className="field"><span>ยอดตรวจนับจริง *</span><input inputMode="decimal" type="number" min="0" step="any" required value={actual} onChange={e=>setActual(e.target.value)}/></label>
+      <label className="field"><span>เหตุผลในการปรับยอด *</span><textarea rows="3" required value={reason} onChange={e=>setReason(e.target.value)}/></label>
+      <label className="field"><span>ผู้บันทึก</span><input readOnly value={employee?.name||""}/></label>
+      <Alert>{error}</Alert>
+      <button type="submit" className="m-confirm-btn adjust" disabled={busy}>{busy?"กำลังบันทึก...":"ยืนยันการปรับยอด"}</button>
+    </form>
+  </Modal>;
+}
