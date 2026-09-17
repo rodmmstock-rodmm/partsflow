@@ -3,7 +3,7 @@ from decimal import Decimal
 
 from django.test import TestCase
 
-from core import order_api
+from core import order_api, order_vendor_api
 from core.models import Machine, OrderProject, OrderRecord, OrderStep, Supplier
 from core.order_vendor_models import OrderVendor
 from core.rfq_step_guard import _valid_step_orders
@@ -37,6 +37,23 @@ class OrderVendorFlowTests(TestCase):
         self.assertIsNotNone(first.created_at)
         self.assertIsNotNone(second.created_at)
         self.assertEqual(order.vendor_candidates.count(), 2)
+
+    def test_order_quotation_data_serializes_vendor_candidates_for_detail(self):
+        order = self.make_normal_order()
+        OrderVendor.objects.create(order=order, vendor=self.vendor_a)
+        OrderVendor.objects.create(order=order, vendor=self.vendor_b)
+
+        payload = order_vendor_api.order_quotation_data(order)
+
+        self.assertEqual(payload["count"], 2)
+        self.assertEqual(
+            [row["vendor_code"] for row in payload["results"]],
+            ["V-A", "V-B"],
+        )
+        self.assertEqual(
+            [row["vendor_name"] for row in payload["results"]],
+            ["Vendor A", "Vendor B"],
+        )
 
     def test_normal_order_quotation_readiness_uses_vendor_candidates_only(self):
         order = self.make_normal_order()

@@ -52,7 +52,12 @@ const ORDER_FIELDS = [
 ];
 
 const PURCHASE_FIELDS = [
-  { key: "quotation", label: "QUOTATION", value: (d) => d.quotation },
+  {
+    key: "quotation",
+    label: "QUOTATION",
+    value: (d) => orderQuotationValue(d),
+    wide: true,
+  },
   { key: "po_number", label: "PO NUMBER", value: (d) => d.po_number },
   {
     key: "price_per_unit",
@@ -156,6 +161,20 @@ function joinCodeName(code, name) {
   const n = cleanText(name);
   if (c && n) return `${c} · ${n}`;
   return c || n;
+}
+
+function orderQuotationValue(data) {
+  const vendors = Array.isArray(data && data.order_quotation_vendors)
+    ? data.order_quotation_vendors
+    : [];
+  const quotationLines = vendors
+    .map((vendor, index) => {
+      const label = joinCodeName(vendor.vendor_code, vendor.vendor_name);
+      return label ? `${index + 1}. ${label}` : "";
+    })
+    .filter(Boolean);
+  if (quotationLines.length) return quotationLines.join("\n");
+  return data ? data.quotation : "";
 }
 
 function displayValue(value) {

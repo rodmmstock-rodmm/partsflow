@@ -4,7 +4,7 @@ from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 
-from . import order_api
+from . import order_api, order_vendor_api
 from .audit_utils import audit
 from .auth_api import current_employee, permissions_for, require_permission
 from .models import AuditLog
@@ -236,6 +236,12 @@ def order_detail_by_number(request, order_number):
         return Response({"detail": "ไม่พบ Order"}, status=404)
 
     data = order_api.order_json(order)
+    quotation_data = {"count": 0, "results": []}
+    if order.source_type == "NORMAL":
+        quotation_data = order_vendor_api.order_quotation_data(order)
+    data["order_quotation_count"] = quotation_data["count"]
+    data["order_quotation_vendors"] = quotation_data["results"]
+
     source = _import_source_map([order.id]).get(str(order.id))
     _apply_import_source(data, source)
     data["recorded_by_code"] = (

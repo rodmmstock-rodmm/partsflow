@@ -40,6 +40,17 @@ def _row_json(row):
     }
 
 
+def order_quotation_data(order):
+    rows = (
+        OrderVendor.objects
+        .select_related("vendor", "added_by_employee")
+        .filter(order=order)
+        .order_by("created_at", "vendor__code")
+    )
+    results = [_row_json(row) for row in rows]
+    return {"count": len(results), "results": results}
+
+
 def _refresh_order_status(order):
     # Import locally to avoid a model-import cycle during Django startup.
     from . import order_api
@@ -72,8 +83,7 @@ def order_vendors(request, pk):
         return Response({"detail": "ไม่พบ Normal Order ที่เลือก"}, status=404)
 
     if request.method == "GET":
-        rows = OrderVendor.objects.select_related("vendor", "added_by_employee").filter(order=order)
-        return Response({"results": [_row_json(row) for row in rows]})
+        return Response(order_quotation_data(order))
 
     vendor_id = str(request.data.get("vendor_id") or "").strip()
     if not vendor_id:
