@@ -11,6 +11,21 @@ const API_BASE = import.meta.env.DEV
 
 const TOKEN_KEY = "partsflow_auth_token";
 
+export function isMobileClient() {
+  if (typeof window === "undefined" || typeof navigator === "undefined") {
+    return false;
+  }
+  const userAgent = navigator.userAgent || "";
+  const mobileUserAgent =
+    navigator.userAgentData?.mobile === true ||
+    /Android|iPhone|iPad|iPod|Mobile/i.test(userAgent) ||
+    (/Macintosh/i.test(userAgent) && navigator.maxTouchPoints > 1);
+  const mobileViewport =
+    typeof window.matchMedia === "function" &&
+    window.matchMedia("(max-width: 767px)").matches;
+  return mobileUserAgent || mobileViewport;
+}
+
 // -----------------------------------------------------------------------------
 // Lightweight client-side API cache
 // -----------------------------------------------------------------------------
@@ -78,16 +93,58 @@ export function clearApiCache() {
 
 export function getAuthToken() {
   try {
-    return sessionStorage.getItem(TOKEN_KEY) || "";
+    const token = sessionStorage.getItem(TOKEN_KEY);
+    if (token) return token;
+  } catch {
+    // Try persistent mobile storage below.
+  }
+  try {
+    return localStorage.getItem(TOKEN_KEY) || "";
   } catch {
     return "";
   }
 }
 
-export function setAuthToken(token) {
+export function setAuthToken(token, persistent = isMobileClient()) {
+  if (!token) {
+    try {
+      sessionStorage.removeItem(TOKEN_KEY);
+    } catch {
+      // Ignore storage errors.
+    }
+    try {
+      localStorage.removeItem(TOKEN_KEY);
+    } catch {
+      // Ignore storage errors.
+    }
+    return;
+  }
+
+  if (persistent) {
+    let stored = false;
+    try {
+      localStorage.setItem(TOKEN_KEY, token);
+      stored = true;
+    } catch {
+      // Fall back to session storage when persistent storage is unavailable.
+    }
+    if (stored) {
+      try {
+        sessionStorage.removeItem(TOKEN_KEY);
+      } catch {
+        // Ignore storage errors.
+      }
+      return;
+    }
+  }
+
   try {
-    if (token) sessionStorage.setItem(TOKEN_KEY, token);
-    else sessionStorage.removeItem(TOKEN_KEY);
+    sessionStorage.setItem(TOKEN_KEY, token);
+  } catch {
+    // Ignore storage errors.
+  }
+  try {
+    localStorage.removeItem(TOKEN_KEY);
   } catch {
     // Ignore storage errors.
   }
@@ -121,6 +178,7 @@ function wait(ms) {
 export async function apiLogin(employeeCode) {
   const body = new URLSearchParams();
   body.set("employee_code", String(employeeCode || "").trim());
+  body.set("remember_mobile", isMobileClient() ? "1" : "0");
 
   const request = () => fetch(`${API_BASE}/auth/login/`, {
     method: "POST",
@@ -166,6 +224,11 @@ async function apiRequest(path, options = {}) {
   });
 
   return parseJsonResponse(response);
+}
+
+export async function apiAuthMe() {
+  const query = isMobileClient() ? "?remember_mobile=1" : "";
+  return apiRequest("/auth/me/" + query);
 }
 
 export async function apiGet(path, options = {}) {

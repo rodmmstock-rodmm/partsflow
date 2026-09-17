@@ -7,7 +7,7 @@ import {
 } from "react";
 
 import {
-  apiGet,
+  apiAuthMe,
   apiLogin,
   apiPost,
   clearAuthToken,
@@ -22,7 +22,10 @@ export function AuthProvider({ children }) {
   const [loading, setLoading] = useState(true);
 
   async function refresh() {
-    const data = await apiGet("/auth/me/");
+    const data = await apiAuthMe();
+    if (data.token) {
+      setAuthToken(data.token, data.remember_mobile === true);
+    }
     setEmployee(data.employee);
     return data.employee;
   }
@@ -53,7 +56,7 @@ export function AuthProvider({ children }) {
       );
     }
 
-    setAuthToken(data.token);
+    setAuthToken(data.token, data.remember_mobile === true);
     setEmployee(data.employee);
 
     return data.employee;

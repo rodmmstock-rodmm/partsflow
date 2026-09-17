@@ -45,6 +45,10 @@ PERMISSION_FIELDS = [
 TOKEN_SALT = "partsflow.employee.auth"
 TOKEN_MAX_AGE = 60 * 60 * 8
 
+
+def _is_truthy(value):
+    return str(value or "").strip().lower() in {"1", "true", "yes", "on"}
+
 def permissions_for(employee):
     role = RoleAccess.objects.filter(
         role_name__iexact=(employee.role or ""), active=True
@@ -66,9 +70,12 @@ def permissions_for(employee):
     )
     return defaults
 
-def create_auth_token(employee):
+def create_auth_token(employee, remember_mobile=False):
     return signing.dumps(
-        {"employee_id": str(employee.id)},
+        {
+            "employee_id": str(employee.id),
+            "remember_mobile": bool(remember_mobile),
+        },
         salt=TOKEN_SALT,
         compress=True,
     )
@@ -90,8 +97,13 @@ def employee_from_bearer(request):
         data = signing.loads(
             token,
             salt=TOKEN_SALT,
-            max_age=TOKEN_MAX_AGE,
         )
+        if not data.get("remember_mobile"):
+            data = signing.loads(
+                token,
+                salt=TOKEN_SALT,
+                max_age=TOKEN_MAX_AGE,
+            )
     except (signing.BadSignature, signing.SignatureExpired):
         return None
 
@@ -159,13 +171,15 @@ def login_view(request):
     request.session["partsflow_employee_id"] = str(employee.id)
     request.session.set_expiry(TOKEN_MAX_AGE)
 
-    token = create_auth_token(employee)
+    remember_mobile = _is_truthy(request.data.get("remember_mobile"))
+    token = create_auth_token(employee, remember_mobile=remember_mobile)
 
     return Response(
         {
             "authenticated": True,
             "token": token,
-            "expires_in": TOKEN_MAX_AGE,
+            "remember_mobile": remember_mobile,
+            "expires_in": None if remember_mobile else TOKEN_MAX_AGE,
             "employee": payload(employee),
         }
     )
@@ -180,9 +194,16 @@ def me_view(request):
             status=401,
         )
 
-    return Response(
-        {"authenticated": True, "employee": payload(employee)}
-    )
+    data = {"authenticated": True, "employee": payload(employee)}
+    if _is_truthy(request.query_params.get("remember_mobile")):
+        data.update(
+            {
+                "token": create_auth_token(employee, remember_mobile=True),
+                "remember_mobile": True,
+                "expires_in": None,
+            }
+        )
+    return Response(data)
 
 @csrf_exempt
 @api_view(["POST"])
