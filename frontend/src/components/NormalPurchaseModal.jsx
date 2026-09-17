@@ -243,23 +243,6 @@ export default function NormalPurchaseModal({ order, options, onClose, onChanged
           </div>
         </div>
 
-        <div className="purchase-field po-group">
-          <label>PO / ISSUE PR / DUE DATE</label>
-          <input placeholder="PO Number" value={local.po_number || ""} onChange={(e) => set("po_number", e.target.value)} />
-          <input type="date" value={local.issue_pr_date || ""} onChange={(e) => set("issue_pr_date", e.target.value)} />
-          <input type="date" value={local.due_date || ""} onChange={(e) => set("due_date", e.target.value)} />
-          <button
-            className="mini"
-            onClick={() => saveField("po", {
-              po_number: local.po_number,
-              issue_pr_date: local.issue_pr_date,
-              due_date: local.due_date,
-            })}
-          >
-            {busy === "po" ? "..." : "บันทึก 3 ช่อง"}
-          </button>
-        </div>
-
         <div className="purchase-field">
           <label>PRICE PER UNIT *</label>
           <div className="input-suffix">
@@ -310,6 +293,23 @@ export default function NormalPurchaseModal({ order, options, onClose, onChanged
             {busy === "lead" ? "..." : "บันทึก"}
           </button>
           <span className="field-help">สถานะจะเป็น Wait Issue P/R เมื่อมี VENDOR ORDER, Price Per Unit และ Lead Time ครบ</span>
+        </div>
+
+        <div className="purchase-field po-group">
+          <label>PO / ISSUE PR / DUE DATE</label>
+          <input placeholder="PO Number" value={local.po_number || ""} onChange={(e) => set("po_number", e.target.value)} />
+          <input type="date" value={local.issue_pr_date || ""} onChange={(e) => set("issue_pr_date", e.target.value)} />
+          <input type="date" value={local.due_date || ""} onChange={(e) => set("due_date", e.target.value)} />
+          <button
+            className="mini"
+            onClick={() => saveField("po", {
+              po_number: local.po_number,
+              issue_pr_date: local.issue_pr_date,
+              due_date: local.due_date,
+            })}
+          >
+            {busy === "po" ? "..." : "บันทึก 3 ช่อง"}
+          </button>
         </div>
 
         <div className="purchase-field">
