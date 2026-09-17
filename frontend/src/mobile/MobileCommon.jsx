@@ -21,13 +21,14 @@ export function MobileLoading({ text="กำลังโหลด..." }) { retur
 export function MobileEmpty({ text="ไม่พบข้อมูล" }) { return <div className="m-empty">{text}</div>; }
 
 export function StockBadge({ row }) {
-  if (isNoCountSku(row.sku)) return <span className="m-stock-badge normal">เช็คหน้างาน</span>;
+  if (isNoCountSku(row.sku)) return <span className="m-stock-badge normal">normal</span>;
   const cls=row.stock_status||((Number(row.stock_qty||0)<=0)?"out":(Number(row.stock_qty||0)<Number(row.min_stock||0)?"low":"normal"));
   return <span className={`m-stock-badge ${cls}`}>{row.stock_status_label||cls}</span>;
 }
 
 export function MobileStockModal({ mode, part, employee, onClose, onSaved }) {
   const issue=mode==="issue";
+  const noCount=isNoCountSku(part.sku);
   const [qty,setQty]=useState(1);
   const [requesterId,setRequesterId]=useState("");
   const [machineId,setMachineId]=useState("");
@@ -44,14 +45,14 @@ export function MobileStockModal({ mode, part, employee, onClose, onSaved }) {
 
   const after=useMemo(()=>{
     const stock=Number(part.stock_qty||0), amount=Number(qty||0);
-    return issue?stock-amount:stock+amount;
-  },[part.stock_qty,qty,issue]);
+    return issue?(noCount?stock:stock-amount):stock+amount;
+  },[part.stock_qty,qty,issue,noCount]);
 
   async function submit(e){
     e.preventDefault(); setError("");
     const amount=Number(qty);
     if(!Number.isInteger(amount)||amount<=0){setError("จำนวนต้องเป็นจำนวนเต็มมากกว่า 0");return;}
-    if(issue&&amount>Number(part.stock_qty||0)){setError("จำนวนเบิกมากกว่าสต็อกคงเหลือ");return;}
+    if(issue&&!noCount&&amount>Number(part.stock_qty||0)){setError("จำนวนเบิกมากกว่าสต็อกคงเหลือ");return;}
     if(issue&&!requesterId){setError("กรุณาเลือกผู้เบิกจากรายการ");return;}
     if(issue&&!machineId){setError("กรุณาเลือกเครื่องจักรจากรายการ");return;}
     setBusy(true);
@@ -69,7 +70,7 @@ export function MobileStockModal({ mode, part, employee, onClose, onSaved }) {
         <div className="m-part-image"><PartImage src={part.image_url||part.image_path} fallbackSrc={part.image_fallback_url} alt={part.name}/></div>
         <div><b>{part.sku}</b><h3>{part.name}</h3><p>{part.description||"-"}</p><small>{part.location_code||"ไม่ระบุ Location"}</small></div>
       </div>
-      <div className="m-stock-preview"><div><span>คงเหลือ</span><strong>{fmt(part.stock_qty)} {part.unit_code}</strong></div><div><span>หลังทำรายการ</span><strong className={after<0?"text-danger":""}>{fmt(after)} {part.unit_code}</strong></div></div>
+      <div className="m-stock-preview"><div><span>คงเหลือ</span><strong>{stockDisplay(part)} {part.unit_code}</strong></div><div><span>หลังทำรายการ</span><strong className={!noCount&&after<0?"text-danger":""}>{noCount?"เช็คหน้างาน":fmt(after)} {part.unit_code}</strong></div></div>
       <label className="field"><span>จำนวน *</span><input inputMode="numeric" type="number" min="1" step="1" required value={qty} onChange={e=>setQty(e.target.value)}/></label>
       {issue&&<>
         <label className="field"><span>ผู้เบิก *</span><SearchableSelect required value={requesterId} options={(options.employees||[]).filter(x=>x.active!==false)} onChange={setRequesterId} disabled={loading} getLabel={x=>x.name} getSearchText={x=>`${x.employee_code||""} ${x.name||""} ${x.department||""}`} placeholder="พิมพ์ชื่อพนักงาน"/></label>

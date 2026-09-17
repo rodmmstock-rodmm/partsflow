@@ -77,6 +77,11 @@ def stock_total(rows):
     return sum((Decimal(str(row.quantity or 0)) for row in rows), Decimal("0"))
 
 
+def is_no_count_part(part):
+    """Part IDs starting with N are issued without decrementing inventory."""
+    return str(getattr(part, "sku", "") or "").strip().upper().startswith("N")
+
+
 def tx_no(prefix):
     return f"{prefix}-{timezone.now().strftime('%Y%m%d%H%M%S%f')}"
 
@@ -126,7 +131,10 @@ def issue_stock(request):
 
         with transaction.atomic():
             rows = locked_inventory(part)
-            before, after = add_stock_to_first_row(rows, -qty)
+            if is_no_count_part(part):
+                before = after = stock_total(rows)
+            else:
+                before, after = add_stock_to_first_row(rows, -qty)
             ref_id = tx_reference_id()
             tx = StockTransaction.objects.create(
                 legacy_source="WEB",

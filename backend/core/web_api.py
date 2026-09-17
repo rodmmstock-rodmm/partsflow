@@ -152,7 +152,9 @@ def image_payload(part):
 
 
 def part_stock_status(part, stock_qty):
-    """Dashboard status priority: Ordering > Out > Low > Normal."""
+    """Dashboard status priority: N-prefix > Ordering > Out > Low > Normal."""
+    if str(part.sku or "").strip().upper().startswith("N"):
+        return {"stock_status": "normal", "stock_status_label": "normal"}
     if bool(getattr(part, "active_ordering", False)):
         return {"stock_status": "ordering_now", "stock_status_label": "ordering now"}
     stock = Decimal(str(stock_qty or 0))
