@@ -3,7 +3,7 @@ import { apiDelete, apiGet, apiPost } from "../api";
 import { useAuth } from "../auth";
 import { Alert, fmt, formatDMY } from "../components/Common";
 import MultiMachineOrderInfoModal from "../components/MultiMachineOrderInfoModal";
-import { PurchaseModal } from "../pages/Orders";
+import NormalPurchaseModal from "../components/NormalPurchaseModal";
 import RFQComposeModal from "../components/RFQComposeModal";
 import { openOrderDetailByNumber } from "../orderDetailEnhancer";
 import { MobileEmpty, MobileLoading, MobilePage, MobileSearch } from "./MobileCommon";
@@ -370,7 +370,7 @@ export default function MobileOrders() {
         />
       )}
       {purchase && (
-        <PurchaseModal
+        <NormalPurchaseModal
           order={purchase}
           options={options}
           onClose={() => setPurchase(null)}
