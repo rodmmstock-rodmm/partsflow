@@ -152,29 +152,35 @@
 
 /* Order date dd/mm/yyyy with native picker ------------------------------- */
 .order-date-input{
-  display:grid;
-  grid-template-columns:minmax(0,1fr) 42px;
-  gap:7px;
-  align-items:stretch;
+  position:relative;
+  width:100%;
+}
+.order-date-input>input[type="text"]{
+  width:100%;
+  padding-right:46px;
 }
 .order-date-picker{
-  position:relative;
+  position:absolute;
+  top:1px;
+  right:1px;
+  bottom:1px;
+  width:40px;
   display:grid;
   place-items:center;
-  min-height:38px;
-  border:1px solid var(--border);
-  border-radius:var(--radius-s);
+  border:0;
+  border-left:1px solid var(--border);
+  border-radius:0 calc(var(--radius-s) - 1px) calc(var(--radius-s) - 1px) 0;
   background:#fff;
   color:#5b6b7c;
   overflow:hidden;
 }
 .order-date-picker:hover{
-  border-color:#e8b896;
   background:#fffaf6;
+  color:#9a4c1f;
 }
 .order-date-picker:focus-within{
-  border-color:#e8b896;
-  box-shadow:0 0 0 3px rgba(232,184,150,.25);
+  background:#fff7ed;
+  color:#9a4c1f;
 }
 .order-date-picker svg{
   width:18px;
@@ -194,8 +200,10 @@
   min-height:0;
   margin:0;
   padding:0;
-  border:0;
+  border:0!important;
+  border-radius:0;
   opacity:0;
+  box-shadow:none!important;
   cursor:pointer;
 }
 .order-date-picker>input[type="date"]::-webkit-calendar-picker-indicator{

@@ -51,6 +51,7 @@ export default function MultiMachineOrderInfoModal({
   const stockLocked = !!order?.received_at && !!order?.stock_received;
   const today = new Date().toISOString().slice(0, 10);
   const initialDate = order?.date || today;
+  const initialPendingDataDate = order?.pending_data_date || "";
 
   const initialMachineIds = Array.isArray(order?.machine_ids) && order.machine_ids.length
     ? order.machine_ids.map(String)
@@ -64,7 +65,7 @@ export default function MultiMachineOrderInfoModal({
     machine_ids: initialMachineIds,
     job: order?.job || "",
     urgent_status: order?.urgent_status || "",
-    pending_data_date: order?.pending_data_date || "",
+    pending_data_date: initialPendingDataDate,
     partText: order?.part_id ? `${order.item_id} · ${order.part_name}` : "",
     part_id: order?.part_id || "",
     part_name: order?.part_name || "",
@@ -77,6 +78,9 @@ export default function MultiMachineOrderInfoModal({
     ordered_by_id: order?.ordered_by_id || employee?.id || "",
   });
   const [dateText, setDateText] = useState(isoToDMY(initialDate));
+  const [pendingDataDateText, setPendingDataDateText] = useState(
+    isoToDMY(initialPendingDataDate)
+  );
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
 
@@ -89,6 +93,15 @@ export default function MultiMachineOrderInfoModal({
   const changeDateFromPicker = (value) => {
     setDateText(isoToDMY(value));
     set("date", value);
+  };
+  const changePendingDataDate = (value) => {
+    const displayValue = maskDMY(value);
+    setPendingDataDateText(displayValue);
+    set("pending_data_date", dmyToISO(displayValue));
+  };
+  const changePendingDataDateFromPicker = (value) => {
+    setPendingDataDateText(isoToDMY(value));
+    set("pending_data_date", value);
   };
   const machines = options?.machines || [];
   const selectedMachines = useMemo(
@@ -140,6 +153,9 @@ export default function MultiMachineOrderInfoModal({
     try {
       if (!form.date) {
         throw new Error("กรุณากรอก DATE รูปแบบ dd/mm/yyyy ให้ถูกต้อง");
+      }
+      if (pendingDataDateText && !form.pending_data_date) {
+        throw new Error("กรุณากรอกวันที่งานค้างรูปแบบ dd/mm/yyyy ให้ถูกต้อง");
       }
       if (!form.machine_ids.length) {
         throw new Error("กรุณาเลือก MACHINE NAME อย่างน้อย 1 รายการ");
@@ -303,14 +319,33 @@ export default function MultiMachineOrderInfoModal({
             </select>
           </label>
 
-          <label className="field">
+          <div className="field">
             <span>วันที่งานค้าง</span>
-            <input
-              type="date"
-              value={form.pending_data_date}
-              onChange={(event) => set("pending_data_date", event.target.value)}
-            />
-          </label>
+            <div className="order-date-input">
+              <input
+                type="text"
+                inputMode="numeric"
+                autoComplete="off"
+                placeholder="dd/mm/yyyy"
+                maxLength={10}
+                value={pendingDataDateText}
+                onChange={(event) => changePendingDataDate(event.target.value)}
+                aria-label="วันที่งานค้าง รูปแบบ dd/mm/yyyy"
+              />
+              <span className="order-date-picker" title="เลือกวันที่งานค้าง">
+                <svg viewBox="0 0 24 24" aria-hidden="true">
+                  <rect x="3" y="5" width="18" height="16" rx="2" />
+                  <path d="M8 3v4M16 3v4M3 10h18" />
+                </svg>
+                <input
+                  type="date"
+                  value={form.pending_data_date}
+                  onChange={(event) => changePendingDataDateFromPicker(event.target.value)}
+                  aria-label="เลือกวันที่งานค้างจากปฏิทิน"
+                />
+              </span>
+            </div>
+          </div>
 
           <div />
 
