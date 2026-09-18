@@ -13,6 +13,13 @@ def env_list(name):
     return [x.strip() for x in os.getenv(name, "").split(",") if x.strip()]
 
 
+def env_int(name, default):
+    try:
+        return int(os.getenv(name, default))
+    except (TypeError, ValueError):
+        return default
+
+
 ALLOWED_HOSTS = env_list("ALLOWED_HOSTS")
 
 railway_hostname = os.getenv("RAILWAY_PUBLIC_DOMAIN", "").strip()
@@ -111,8 +118,33 @@ CORS_ALLOW_ALL_ORIGINS = DEBUG and not CORS_ALLOWED_ORIGINS
 REST_FRAMEWORK = {
     "DEFAULT_PERMISSION_CLASSES": [
         "rest_framework.permissions.IsAuthenticatedOrReadOnly"
-    ]
+    ],
+    "DEFAULT_PAGINATION_CLASS": "core.pagination.StandardPageNumberPagination",
+    "PAGE_SIZE": 50,
 }
+
+# A single Render instance uses the in-process cache without any extra cost.
+# If REDIS_URL is configured later (for multi-instance deployments), Django
+# automatically switches to the shared Redis cache.
+REDIS_URL = os.getenv("REDIS_URL", "").strip()
+if REDIS_URL:
+    CACHES = {
+        "default": {
+            "BACKEND": "django.core.cache.backends.redis.RedisCache",
+            "LOCATION": REDIS_URL,
+            "TIMEOUT": 300,
+        }
+    }
+else:
+    CACHES = {
+        "default": {
+            "BACKEND": "django.core.cache.backends.locmem.LocMemCache",
+            "LOCATION": "partsflow-local-cache-v1",
+            "TIMEOUT": 300,
+        }
+    }
+
+OPTIONS_CACHE_TTL = max(60, env_int("OPTIONS_CACHE_TTL", 600))
 
 SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
 USE_X_FORWARDED_HOST = True

@@ -40,6 +40,7 @@ function normalizePath(path) {
 
 function getCacheTtl(path) {
   const p = normalizePath(path).toLowerCase();
+  if (p.includes("/options/")) return 10 * 60 * 1000;
   if (
     p.includes("/suppliers") ||
     p.includes("/vendor") ||

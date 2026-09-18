@@ -1,13 +1,13 @@
 from decimal import Decimal
 
-from django.db.models import DecimalField, Sum, Value
+from django.db.models import DecimalField, Exists, F, OuterRef, Subquery, Sum, Value
 from django.db.models.functions import Coalesce
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 
 from .auth_api import require_permission
-from .models import OrderRecord, Part
+from .models import Inventory, OrderRecord, Part
 
 QTY_FIELD = DecimalField(max_digits=18, decimal_places=2)
 
@@ -18,45 +18,46 @@ def dashboard(request):
     _, err = require_permission(request, "can_view_dashboard")
     if err:
         return err
-    parts = list(
-        Part.objects.filter(active=True)
+
+    # Keep the calculation in Postgres. The previous implementation sent every
+    # active Part row to Render and counted it in Python, which multiplied DB
+    # egress on every dashboard refresh.
+    inventory_total = (
+        Inventory.objects.filter(part_id=OuterRef("pk"))
+        .order_by()
+        .values("part_id")
+        .annotate(total=Sum("quantity"))
+        .values("total")[:1]
+    )
+    active_order = OrderRecord.objects.filter(
+        part_id=OuterRef("pk"),
+        is_deleted=False,
+        procurement_phase=OrderRecord.PROCUREMENT_PURCHASE,
+        lifecycle_status__in=[
+            OrderRecord.LIFECYCLE_ACTIVE,
+            OrderRecord.LIFECYCLE_WAIT_CONFIRM,
+        ],
+    )
+    low_parts = (
+        Part.objects.filter(active=True, min_stock__gt=0)
+        .exclude(sku__istartswith="N")
         .annotate(
             stock_qty=Coalesce(
-                Sum("inventory__quantity"), Value(Decimal("0")), output_field=QTY_FIELD
-            )
+                Subquery(inventory_total, output_field=QTY_FIELD),
+                Value(Decimal("0")),
+                output_field=QTY_FIELD,
+            ),
+            active_ordering=Exists(active_order),
         )
-        .values("id", "min_stock", "stock_qty", "sku")
+        .filter(stock_qty__lt=F("min_stock"))
     )
-    open_part_ids = set(
-        OrderRecord.objects.filter(
-            is_deleted=False,
-            procurement_phase=OrderRecord.PROCUREMENT_PURCHASE,
-            lifecycle_status__in=[
-                OrderRecord.LIFECYCLE_ACTIVE,
-                OrderRecord.LIFECYCLE_WAIT_CONFIRM,
-            ],
-        )
-        .exclude(part_id=None)
-        .values_list("part_id", flat=True)
-    )
-    low_not_ordered = 0
-    low_ordered = 0
-    for row in parts:
-        if str(row["sku"] or "").strip().upper().startswith("N"):
-            continue
-        if Decimal(str(row["min_stock"] or 0)) <= 0:
-            continue
-        if Decimal(str(row["stock_qty"] or 0)) < Decimal(str(row["min_stock"] or 0)):
-            if row["id"] in open_part_ids:
-                low_ordered += 1
-            else:
-                low_not_ordered += 1
+
     return Response(
         {
             "kpi": {
-                "parts": len(parts),
-                "safety_stock": low_not_ordered,
-                "safety_stock_ordered": low_ordered,
+                "parts": Part.objects.filter(active=True).count(),
+                "safety_stock": low_parts.filter(active_ordering=False).count(),
+                "safety_stock_ordered": low_parts.filter(active_ordering=True).count(),
             }
         }
     )

@@ -3,7 +3,7 @@ import hashlib
 import re
 
 from django.db import IntegrityError
-from django.db.models import Count, DecimalField, Exists, F, Max, OuterRef, Q, Sum, Value
+from django.db.models import Count, DecimalField, Exists, F, Max, OuterRef, Prefetch, Q, Sum, Value
 from django.db.models.functions import Coalesce
 from django.http import HttpResponse
 from django.utils import timezone
@@ -14,6 +14,7 @@ from rest_framework.response import Response
 
 from .audit_utils import audit
 from .auth_api import require_permission
+from .cache_utils import get_cached_options, set_cached_options
 from .drive_images import (
     DriveImageConfigError,
     DriveImageNotFound,
@@ -44,6 +45,12 @@ from .models import (
     Supplier,
     SupplierContact,
     Unit,
+)
+from .pagination import StandardPageNumberPagination
+from .serializers import (
+    PART_LIST_ONLY_FIELDS,
+    PartDetailSerializer,
+    PartListSerializer,
 )
 
 QTY_FIELD = DecimalField(max_digits=18, decimal_places=2)
@@ -167,47 +174,10 @@ def part_stock_status(part, stock_qty):
 
 
 def part_json(part):
-    stock_qty = getattr(part, "stock_qty", None)
-    if stock_qty is None:
-        stock_qty = part.inventory.aggregate(
-            total=Coalesce(Sum("quantity"), Value(Decimal("0")), output_field=QTY_FIELD)
-        )["total"]
-    wcode = warehouse_code(part)
-    return {
-        "id": str(part.id),
-        "sku": part.sku,
-        "name": part.name,
-        "description": part.description or "",
-        "maker_id": str(part.maker_id) if part.maker_id else "",
-        "maker_name": part.maker.name if part.maker else "",
-        "unit_id": str(part.unit_id) if part.unit_id else "",
-        "unit_code": part.unit.code if part.unit else "",
-        "supplier_id": str(part.default_supplier_id) if part.default_supplier_id else "",
-        "supplier_code": part.default_supplier.code if part.default_supplier else "",
-        "supplier_name": part.default_supplier.name if part.default_supplier else "",
-        "location_id": str(part.location_id) if part.location_id else "",
-        "location_code": part.location.code if part.location else "",
-        "warehouse": wcode,
-        "warehouse_label": warehouse_label(wcode),
-        "image_path": part.image_path or "",
-        **image_payload(part),
-        "min_stock": float(part.min_stock or 0),
-        "max_stock": float(part.max_stock or 0),
-        "reorder_qty": float(part.reorder_qty or 0),
-        "vendor_lead_time_days": part.vendor_lead_time_days or 0,
-        "purchasing_lead_time_days": part.purchasing_lead_time_days or 0,
-        "total_lead_time_days": part.total_lead_time_days or 0,
-        "last_purchase_price": float(part.last_purchase_price or 0),
-        "critical": part.critical,
-        "active": part.active,
-        "remark": part.remark or "",
-        "stock_qty": float(stock_qty or 0),
-        **part_stock_status(part, stock_qty),
-    }
+    return PartListSerializer(part).data
 
 
-def part_detail_json(part):
-    data = part_json(part)
+def extend_part_detail_data(part, data):
 
     inventory_rows = list(
         part.inventory.select_related("location").order_by("location__code")
@@ -399,6 +369,10 @@ def part_detail_json(part):
     return data
 
 
+def part_detail_json(part):
+    return PartDetailSerializer(part).data
+
+
 def base_parts():
     active_order = OrderRecord.objects.filter(
         part_id=OuterRef("pk"),
@@ -435,20 +409,7 @@ def parts_list(request):
         active_raw = str(request.GET.get("active", "true")).strip().lower()
         is_active = active_raw not in {"0", "false", "inactive", "no"}
 
-        # Server-side pagination prevents thousands of Part rows from being
-        # serialized/rendered at once. Keep sensible limits even if a client
-        # sends unexpected values.
-        try:
-            page = max(1, int(request.GET.get("page", 1) or 1))
-        except (TypeError, ValueError):
-            page = 1
-        try:
-            page_size = int(request.GET.get("page_size", 50) or 50)
-        except (TypeError, ValueError):
-            page_size = 50
-        page_size = min(max(page_size, 10), 100)
-
-        qs = base_parts().filter(active=is_active)
+        qs = base_parts().only(*PART_LIST_ONLY_FIELDS).filter(active=is_active)
 
         if q:
             qs = qs.filter(
@@ -473,25 +434,10 @@ def parts_list(request):
             qs = qs.exclude(phase11)
 
         qs = qs.order_by("sku")
-        count = qs.count()
-        total_pages = max(1, (count + page_size - 1) // page_size)
-        if page > total_pages:
-            page = total_pages
-
-        start = (page - 1) * page_size
-        rows = [part_json(p) for p in qs[start : start + page_size]]
-
-        return Response(
-            {
-                "count": count,
-                "page": page,
-                "page_size": page_size,
-                "total_pages": total_pages,
-                "has_next": page < total_pages,
-                "has_previous": page > 1,
-                "results": rows,
-            }
-        )
+        paginator = StandardPageNumberPagination()
+        page_rows = paginator.paginate_queryset(qs, request)
+        rows = PartListSerializer(page_rows, many=True).data
+        return paginator.get_paginated_response(rows)
 
     return create_part(actor, request.data)
 
@@ -1045,37 +991,74 @@ def options(request):
     _, err = require_permission(request)
     if err:
         return err
+
+    cached = get_cached_options()
+    if cached is not None:
+        return Response(cached)
+
     defaults = ["SPARE", "REPAIR", "MODIFY", "AUTOMATION", "PM", "GENERAL"]
     for code in defaults:
         JobType.objects.get_or_create(code=code, defaults={"name": code})
-    return Response(
-        {
-            "employees": [
-                {"id": str(e.id), "employee_code": e.employee_code, "name": e.name, "department": e.department or "", "role": e.role or ""}
-                for e in Employee.objects.filter(active=True).order_by("employee_code")
-            ],
-            "machines": [machine_json(x) for x in Machine.objects.filter(active=True).order_by("code")],
-            "vendors": [supplier_json(x) for x in Supplier.objects.filter(active=True).order_by("code")],
-            "locations": [
-                {
-                    "id": str(x.id),
-                    "code": x.code,
-                    "name": x.name or "",
-                    "warehouse": (x.warehouse or "MM-4"),
-                }
-                for x in Location.objects.filter(active=True).order_by("code")
-            ],
-            "units": [
-                {"id": str(x.id), "code": x.code, "name": x.name}
-                for x in Unit.objects.filter(active=True).order_by("code")
-            ],
-            "jobs": [x.code for x in JobType.objects.filter(active=True).order_by("code")],
-            "warehouses": [
-                {"value": "MM-4", "label": "Phase4"},
-                {"value": "MM-11", "label": "Phase11"},
-            ],
-        }
-    )
+
+    employees = Employee.objects.filter(active=True).only(
+        "id", "employee_code", "name", "department", "role", "active"
+    ).order_by("employee_code")
+    machines = Machine.objects.filter(active=True).only(
+        "id", "code", "name", "dept_code", "work_code", "location",
+        "machine_type", "active", "remark"
+    ).order_by("code")
+    contact_rows = SupplierContact.objects.only(
+        "id", "supplier_id", "name", "role", "phone", "email", "remark",
+        "created_at"
+    ).order_by("created_at")
+    vendors = Supplier.objects.filter(active=True).only(
+        "id", "code", "name", "contact", "phone", "email",
+        "lead_time_days", "active", "remark"
+    ).prefetch_related(Prefetch("contacts", queryset=contact_rows)).order_by("code")
+    locations = Location.objects.filter(active=True).only(
+        "id", "code", "name", "warehouse", "active"
+    ).order_by("code")
+    units = Unit.objects.filter(active=True).only(
+        "id", "code", "name", "active"
+    ).order_by("code")
+    jobs = JobType.objects.filter(active=True).only(
+        "id", "code", "active"
+    ).order_by("code")
+
+    payload = {
+        "employees": [
+            {
+                "id": str(e.id),
+                "employee_code": e.employee_code,
+                "name": e.name,
+                "department": e.department or "",
+                "role": e.role or "",
+            }
+            for e in employees
+        ],
+        "machines": [machine_json(x) for x in machines],
+        "vendors": [supplier_json(x) for x in vendors],
+        "locations": [
+            {
+                "id": str(x.id),
+                "code": x.code,
+                "name": x.name or "",
+                "warehouse": x.warehouse or "MM-4",
+            }
+            for x in locations
+        ],
+        "units": [
+            {"id": str(x.id), "code": x.code, "name": x.name}
+            for x in units
+        ],
+        "jobs": [x.code for x in jobs],
+        "warehouses": [
+            {"value": "MM-4", "label": "Phase4"},
+            {"value": "MM-11", "label": "Phase11"},
+        ],
+    }
+    set_cached_options(payload)
+    return Response(payload)
 
 
 @api_view(["GET"])

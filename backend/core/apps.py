@@ -15,5 +15,7 @@ class CoreConfig(AppConfig):
     def ready(self):
         # Install compatibility wrappers after all models have been loaded.
         from . import order_multi_api, order_vendor_api
+        from . import signals  # noqa: F401
+
         order_multi_api.install()
         order_vendor_api.install()

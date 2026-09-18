@@ -1,4 +1,3 @@
-import re
 from decimal import Decimal, InvalidOperation
 
 from django.db import transaction
@@ -12,6 +11,14 @@ from rest_framework.response import Response
 from .audit_utils import audit
 from .auth_api import require_permission
 from .models import Employee, Inventory, Machine, Part, StockTransaction
+from .pagination import StockTransactionPagination
+from .serializers import (
+    STOCK_TRANSACTION_LIST_ONLY_FIELDS,
+    StockTransactionDetailSerializer,
+    StockTransactionListSerializer,
+    transaction_recorder_name,
+    transaction_type_group,
+)
 
 
 def to_decimal(value, label, allow_zero=False):
@@ -309,12 +316,7 @@ def adjust_stock(request):
 
 
 def type_group(tx_type):
-    value = (tx_type or "").upper()
-    if value in {"IN", "RECEIVE", "RETURN", "TRANSFER_IN"}:
-        return "IN"
-    if value in {"OUT", "ISSUE", "TRANSFER_OUT"}:
-        return "OUT"
-    return "ADJUSTMENT"
+    return transaction_type_group(tx_type)
 
 
 def inventory_effect(tx):
@@ -334,43 +336,15 @@ def transaction_affects_current_inventory(tx):
 
 
 def recorder_name(tx):
-    if tx.recorded_by_employee:
-        return tx.recorded_by_employee.name
-    if tx.created_by:
-        return tx.created_by.get_full_name() or tx.created_by.username
-    note = tx.remark or ""
-    for pattern in [r"RECORDED\s*BY\s*:\s*([^|;\n]+)", r"ผู้บันทึก\s*:\s*([^|;\n]+)"]:
-        match = re.search(pattern, note, re.IGNORECASE)
-        if match:
-            return match.group(1).strip()
-    return ""
+    return transaction_recorder_name(tx)
 
 
 def history_json(tx):
-    part = tx.part
-    return {
-        "id": str(tx.id),
-        "date": timezone.localtime(tx.transaction_date).strftime("%d/%m/%Y"),
-        "time": timezone.localtime(tx.transaction_date).strftime("%H:%M:%S"),
-        "transaction_date": tx.transaction_date.isoformat(),
-        "type": type_group(tx.transaction_type),
-        "transaction_type": tx.transaction_type,
-        "item_id": part.sku,
-        "part_name": part.name,
-        "part_detail": part.description or "",
-        "maker": part.maker.name if part.maker else "",
-        "location": tx.location.code if tx.location else (part.location.code if part.location else ""),
-        "machine": tx.machine.code if tx.machine else "",
-        "requester_id": str(tx.employee_id) if tx.employee_id else "",
-        "requester": tx.employee.name if tx.employee else "",
-        "recorder_id": str(tx.recorded_by_employee_id) if tx.recorded_by_employee_id else "",
-        "recorder": recorder_name(tx),
-        "quantity": float(tx.quantity or 0),
-        "unit": part.unit.code if part.unit else "",
-        "remark": tx.remark or "",
-        "is_void": tx.is_void,
-        "legacy_source": tx.legacy_source or "",
-    }
+    return StockTransactionListSerializer(tx).data
+
+
+def history_detail_json(tx):
+    return StockTransactionDetailSerializer(tx).data
 
 
 @api_view(["GET"])
@@ -395,12 +369,19 @@ def history_list(request):
         "employee",
         "recorded_by_employee",
         "created_by",
-    ).filter(is_void=False)
+    ).only(*STOCK_TRANSACTION_LIST_ONLY_FIELDS).filter(is_void=False)
 
     if q:
         qs = qs.filter(
-            part__sku__icontains=q
-        ) | qs.filter(part__name__icontains=q) | qs.filter(part__description__icontains=q)
+            Q(part__sku__icontains=q)
+            | Q(part__name__icontains=q)
+            | Q(part__description__icontains=q)
+            | Q(part__maker__name__icontains=q)
+            | Q(machine__code__icontains=q)
+            | Q(employee__name__icontains=q)
+            | Q(recorded_by_employee__name__icontains=q)
+            | Q(remark__icontains=q)
+        )
     if requester_id:
         qs = qs.filter(employee_id=requester_id)
     if recorder_id:
@@ -417,8 +398,25 @@ def history_list(request):
     elif tx_type in {"ADJUST", "ADJUSTMENT"}:
         qs = qs.filter(transaction_type="ADJUSTMENT")
 
-    qs = qs.order_by("-transaction_date")[:3000]
-    return Response({"results": [history_json(tx) for tx in qs]})
+    qs = qs.order_by("-transaction_date")
+    paginator = StockTransactionPagination()
+    page_rows = paginator.paginate_queryset(qs, request)
+    rows = StockTransactionListSerializer(page_rows, many=True).data
+    return paginator.get_paginated_response(rows)
+
+
+def detail_transaction_queryset():
+    return StockTransaction.objects.select_related(
+        "part",
+        "part__maker",
+        "part__unit",
+        "part__location",
+        "location",
+        "machine",
+        "employee",
+        "recorded_by_employee",
+        "created_by",
+    )
 
 
 @csrf_exempt
@@ -428,13 +426,13 @@ def history_update(request, pk):
     actor, err = require_permission(request, "can_edit_history")
     if err:
         return err
-    tx = StockTransaction.objects.select_related("part").filter(pk=pk, is_void=False).first()
+    tx = detail_transaction_queryset().filter(pk=pk, is_void=False).first()
     if not tx:
         return Response({"detail": "ไม่พบรายการประวัติ"}, status=404)
     if (tx.reference_type or "").upper() == "ORDER":
         return Response({"detail": "รายการนี้มาจากการรับของใน Order กรุณาแก้ไขจากหน้า Order เพื่อรักษาความถูกต้องของ Stock"}, status=400)
 
-    before = history_json(tx)
+    before = history_detail_json(tx)
     try:
         with transaction.atomic():
             old_effect = inventory_effect(tx)
@@ -461,7 +459,7 @@ def history_update(request, pk):
                     rows = locked_inventory(tx.part)
                     add_stock_to_first_row(rows, delta)
 
-            after = history_json(tx)
+            after = history_detail_json(tx)
             audit(actor, "UPDATE", "StockTransaction", tx.id, {"before": before, "after": after})
         return Response(after)
     except ValueError as exc:
@@ -475,7 +473,7 @@ def history_delete(request, pk):
     actor, err = require_permission(request, "can_delete_history")
     if err:
         return err
-    tx = StockTransaction.objects.select_related("part").filter(pk=pk, is_void=False).first()
+    tx = detail_transaction_queryset().filter(pk=pk, is_void=False).first()
     if not tx:
         return Response({"detail": "ไม่พบรายการประวัติ"}, status=404)
     if (tx.reference_type or "").upper() == "ORDER":
