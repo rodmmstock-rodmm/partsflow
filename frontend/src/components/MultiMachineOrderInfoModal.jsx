@@ -8,6 +8,37 @@ const URGENT = [
   "งานด่วน + ค้าง DATA",
 ];
 
+function isoToDMY(value) {
+  const match = String(value || "").match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  return match ? `${match[3]}/${match[2]}/${match[1]}` : "";
+}
+
+function maskDMY(value) {
+  const digits = String(value || "").replace(/\D/g, "").slice(0, 8);
+  if (digits.length <= 2) return digits;
+  if (digits.length <= 4) return `${digits.slice(0, 2)}/${digits.slice(2)}`;
+  return `${digits.slice(0, 2)}/${digits.slice(2, 4)}/${digits.slice(4)}`;
+}
+
+function dmyToISO(value) {
+  const match = String(value || "").match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
+  if (!match) return "";
+
+  const day = Number(match[1]);
+  const month = Number(match[2]);
+  const year = Number(match[3]);
+  const date = new Date(Date.UTC(year, month - 1, day));
+  if (
+    date.getUTCFullYear() !== year ||
+    date.getUTCMonth() !== month - 1 ||
+    date.getUTCDate() !== day
+  ) {
+    return "";
+  }
+
+  return `${match[3]}-${match[2]}-${match[1]}`;
+}
+
 export default function MultiMachineOrderInfoModal({
   order,
   options,
@@ -19,6 +50,7 @@ export default function MultiMachineOrderInfoModal({
   const edit = !!order?.id;
   const stockLocked = !!order?.received_at && !!order?.stock_received;
   const today = new Date().toISOString().slice(0, 10);
+  const initialDate = order?.date || today;
 
   const initialMachineIds = Array.isArray(order?.machine_ids) && order.machine_ids.length
     ? order.machine_ids.map(String)
@@ -27,7 +59,7 @@ export default function MultiMachineOrderInfoModal({
       : [];
 
   const [form, setForm] = useState({
-    date: order?.date || today,
+    date: initialDate,
     factory: order?.factory || "MM-4",
     machine_ids: initialMachineIds,
     job: order?.job || "",
@@ -44,10 +76,16 @@ export default function MultiMachineOrderInfoModal({
     drawing_path: order?.drawing_path || "",
     ordered_by_id: order?.ordered_by_id || employee?.id || "",
   });
+  const [dateText, setDateText] = useState(isoToDMY(initialDate));
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
 
   const set = (key, value) => setForm((current) => ({ ...current, [key]: value }));
+  const changeDate = (value) => {
+    const displayValue = maskDMY(value);
+    setDateText(displayValue);
+    set("date", dmyToISO(displayValue));
+  };
   const machines = options?.machines || [];
   const selectedMachines = useMemo(
     () => form.machine_ids
@@ -96,6 +134,9 @@ export default function MultiMachineOrderInfoModal({
     setBusy(true);
     setError("");
     try {
+      if (!form.date) {
+        throw new Error("กรุณากรอก DATE รูปแบบ dd/mm/yyyy ให้ถูกต้อง");
+      }
       if (!form.machine_ids.length) {
         throw new Error("กรุณาเลือก MACHINE NAME อย่างน้อย 1 รายการ");
       }
@@ -160,10 +201,15 @@ export default function MultiMachineOrderInfoModal({
           <label className="field">
             <span>DATE *</span>
             <input
-              type="date"
+              type="text"
+              inputMode="numeric"
+              autoComplete="off"
+              placeholder="dd/mm/yyyy"
+              maxLength={10}
               readOnly={!canEditOrderDate}
-              value={form.date}
-              onChange={(event) => set("date", event.target.value)}
+              value={dateText}
+              onChange={(event) => changeDate(event.target.value)}
+              aria-label="DATE รูปแบบ dd/mm/yyyy"
             />
           </label>
 
