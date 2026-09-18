@@ -26,7 +26,7 @@ const blankPart = {
   remark: "",
 };
 
-function PartModal({ part, options, onClose, onSaved }) {
+export function PartModal({ part, options, onClose, onSaved }) {
   const [form, setForm] = useState(part ? { ...blankPart, ...part } : blankPart);
   const [partId, setPartId] = useState(part?.id || "");
   const [imageFile, setImageFile] = useState(null);
