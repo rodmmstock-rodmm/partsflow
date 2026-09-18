@@ -86,6 +86,10 @@ export default function MultiMachineOrderInfoModal({
     setDateText(displayValue);
     set("date", dmyToISO(displayValue));
   };
+  const changeDateFromPicker = (value) => {
+    setDateText(isoToDMY(value));
+    set("date", value);
+  };
   const machines = options?.machines || [];
   const selectedMachines = useMemo(
     () => form.machine_ids
@@ -198,20 +202,38 @@ export default function MultiMachineOrderInfoModal({
         )}
 
         <div className="form-grid three">
-          <label className="field">
+          <div className="field">
             <span>DATE *</span>
-            <input
-              type="text"
-              inputMode="numeric"
-              autoComplete="off"
-              placeholder="dd/mm/yyyy"
-              maxLength={10}
-              readOnly={!canEditOrderDate}
-              value={dateText}
-              onChange={(event) => changeDate(event.target.value)}
-              aria-label="DATE รูปแบบ dd/mm/yyyy"
-            />
-          </label>
+            <div className="order-date-input">
+              <input
+                type="text"
+                inputMode="numeric"
+                autoComplete="off"
+                placeholder="dd/mm/yyyy"
+                maxLength={10}
+                readOnly={!canEditOrderDate}
+                value={dateText}
+                onChange={(event) => changeDate(event.target.value)}
+                aria-label="DATE รูปแบบ dd/mm/yyyy"
+              />
+              <span
+                className={`order-date-picker${!canEditOrderDate ? " is-disabled" : ""}`}
+                title="เลือกวันที่"
+              >
+                <svg viewBox="0 0 24 24" aria-hidden="true">
+                  <rect x="3" y="5" width="18" height="16" rx="2" />
+                  <path d="M8 3v4M16 3v4M3 10h18" />
+                </svg>
+                <input
+                  type="date"
+                  disabled={!canEditOrderDate}
+                  value={form.date}
+                  onChange={(event) => changeDateFromPicker(event.target.value)}
+                  aria-label="เลือกวันที่จากปฏิทิน"
+                />
+              </span>
+            </div>
+          </div>
 
           <label className="field">
             <span>FACTORY *</span>
