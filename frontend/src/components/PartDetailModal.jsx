@@ -78,9 +78,9 @@ export default function PartDetailModal({ part, onClose }) {
       </Section>
 
       <Section title="เครื่องจักรที่ใช้อะไหล่นี้" count={(p.machines || []).length}>
-        {(p.machines || []).length === 0 ? <div className="empty compact">ยังไม่ได้ผูก Machine</div> :
-          <div className="detail-table-wrap"><table><thead><tr><th>Machine</th><th>ชื่อเครื่อง</th><th>Qty / Machine</th><th>Position</th><th>Critical</th></tr></thead><tbody>
-            {p.machines.map(x => <tr key={x.id}><td><b>{x.code}</b></td><td>{x.name}</td><td>{fmt(x.quantity_per_machine)}</td><td>{x.position || "-"}</td><td>{x.is_critical ? "Yes" : "-"}</td></tr>)}
+        {(p.machines || []).length === 0 ? <div className="empty compact">ยังไม่มี Machine ที่ผูกไว้หรือเคยเบิกอะไหล่นี้</div> :
+          <div className="detail-table-wrap"><table><thead><tr><th>Machine Code</th><th>ชื่อเครื่อง</th><th>ประวัติการเบิก</th><th>Qty / Machine</th><th>Position</th><th>Critical</th></tr></thead><tbody>
+            {p.machines.map(x => <tr key={x.id}><td><b>{x.code}</b></td><td>{x.name}</td><td>{x.from_issue_history ? <><b>{fmt(x.issue_count)} ครั้ง</b><br/><small>รวม {fmt(x.total_issued)} {p.unit_code}{x.last_issued_at ? ` · ล่าสุด ${dateText(x.last_issued_at)}` : ""}</small></> : "-"}</td><td>{x.linked === false ? "-" : fmt(x.quantity_per_machine)}</td><td>{x.position || "-"}</td><td>{x.is_critical ? "Yes" : "-"}</td></tr>)}
           </tbody></table></div>}
       </Section>
 

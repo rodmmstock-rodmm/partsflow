@@ -208,18 +208,7 @@ export function PartModal({ part, options, onClose, onSaved }) {
             <span>เลือกรูปจากเครื่อง / โทรศัพท์</span>
             <input type="file" accept="image/jpeg,image/png,image/webp,image/gif" onChange={chooseImage} />
             <small className="field-help">
-              JPG / PNG / WEBP / GIF ไม่เกิน 10 MB · เมื่อเลือกรูปใหม่ รูปใหม่จะมีสิทธิ์เหนือ Image Path ด้านล่าง
-            </small>
-          </label>
-          <label className="field span3">
-            <span>Image URL / Google Drive Path (ทางเลือก)</span>
-            <input
-              value={form.image_path || ""}
-              onChange={(e) => set("image_path", e.target.value)}
-              placeholder="เช่น DATA1_Images/filename.jpg หรือ URL รูป"
-            />
-            <small className="field-help">
-              ใช้สำหรับรูปเดิมหรือกรณีต้องการระบุ Path เอง · การ Upload จากฟอร์มจะเก็บรูปใน Supabase Storage
+              JPG / PNG / WEBP / GIF ไม่เกิน 10 MB · เมื่อเลือกรูปใหม่ รูปปัจจุบันจะถูกแทนที่หลังบันทึก
             </small>
           </label>
           <div className="field span3">

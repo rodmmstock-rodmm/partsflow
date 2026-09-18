@@ -3,7 +3,7 @@ import hashlib
 import re
 
 from django.db import IntegrityError
-from django.db.models import DecimalField, Exists, F, OuterRef, Q, Sum, Value
+from django.db.models import Count, DecimalField, Exists, F, Max, OuterRef, Q, Sum, Value
 from django.db.models.functions import Coalesce
 from django.http import HttpResponse
 from django.utils import timezone
@@ -224,11 +224,13 @@ def part_detail_json(part):
         for row in inventory_rows
     ]
 
-    machine_links = PartMachine.objects.select_related("machine").filter(
-        part=part
-    ).order_by("machine__code")
-    data["machines"] = [
-        {
+    # Keep manually linked machines and add every machine that has actually
+    # issued this part. The union is built at read time so edited/voided stock
+    # history is reflected immediately without duplicating PartMachine rows.
+    machine_links = PartMachine.objects.select_related("machine").filter(part=part)
+    machine_rows = {}
+    for link in machine_links:
+        machine_rows[link.machine_id] = {
             "id": str(link.id),
             "machine_id": str(link.machine_id),
             "code": link.machine.code,
@@ -238,9 +240,68 @@ def part_detail_json(part):
             "is_critical": link.is_critical,
             "position": link.position or "",
             "remark": link.remark or "",
+            "linked": True,
+            "from_issue_history": False,
+            "issue_count": 0,
+            "total_issued": 0.0,
+            "last_issued_at": "",
         }
-        for link in machine_links
-    ]
+
+    issued_machines = (
+        part.transactions.filter(
+            is_void=False,
+            transaction_type__in=["ISSUE", "OUT"],
+            machine__isnull=False,
+        )
+        .values(
+            "machine_id",
+            "machine__code",
+            "machine__name",
+            "machine__location",
+        )
+        .annotate(
+            issue_count=Count("id"),
+            total_issued=Coalesce(
+                Sum("quantity"),
+                Value(Decimal("0")),
+                output_field=QTY_FIELD,
+            ),
+            last_issued_at=Max("transaction_date"),
+        )
+    )
+    for issued in issued_machines:
+        machine_id = issued["machine_id"]
+        history = {
+            "from_issue_history": True,
+            "issue_count": issued["issue_count"],
+            "total_issued": float(issued["total_issued"] or 0),
+            "last_issued_at": (
+                timezone.localtime(issued["last_issued_at"]).isoformat()
+                if issued["last_issued_at"]
+                else ""
+            ),
+        }
+        if machine_id in machine_rows:
+            machine_rows[machine_id].update(history)
+            continue
+        machine_rows[machine_id] = {
+            "id": f"history-{machine_id}",
+            "machine_id": str(machine_id),
+            "code": issued["machine__code"],
+            "name": issued["machine__name"],
+            "location": issued["machine__location"] or "",
+            "quantity_per_machine": None,
+            "is_critical": False,
+            "position": "",
+            "remark": "",
+            "linked": False,
+            **history,
+        }
+
+    data["machines"] = sorted(
+        machine_rows.values(),
+        key=lambda row: str(row["code"] or "").casefold(),
+    )
 
     supplier_links = PartSupplier.objects.select_related("supplier").filter(
         part=part
