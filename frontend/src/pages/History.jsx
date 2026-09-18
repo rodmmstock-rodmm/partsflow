@@ -5,9 +5,19 @@ import { Alert, Modal, PageHeader, SearchableSelect, fmt } from "../components/C
 import { useOptions } from "../optionsContext";
 
 const MONTHS_TH = [
-  "มกราคม", "กุมภาพันธ์", "มีนาคม", "เมษายน", "พฤษภาคม", "มิถุนายน",
-  "กรกฎาคม", "สิงหาคม", "กันยายน", "ตุลาคม", "พฤศจิกายน", "ธันวาคม",
+  "ม.ค.", "ก.พ.", "มี.ค.", "เม.ย.", "พ.ค.", "มิ.ย.",
+  "ก.ค.", "ส.ค.", "ก.ย.", "ต.ค.", "พ.ย.", "ธ.ค.",
 ];
+
+const pad = (value) => String(value).padStart(2, "0");
+
+function monthRange(year, month) {
+  const lastDay = new Date(year, month + 1, 0).getDate();
+  return {
+    from: `${year}-${pad(month + 1)}-01`,
+    to: `${year}-${pad(month + 1)}-${pad(lastDay)}`,
+  };
+}
 
 const EMPTY_META = {
   count: 0,
@@ -110,8 +120,12 @@ function HistoryTable({ rows, auth, onEdit, onDelete }) {
 export default function History() {
   const auth = useAuth();
   const { options } = useOptions();
+  const now = new Date();
+  const [year, setYear] = useState(now.getFullYear());
+  const [month, setMonth] = useState(now.getMonth());
   const [rows, setRows] = useState([]);
   const [meta, setMeta] = useState(EMPTY_META);
+  const [monthlyCounts, setMonthlyCounts] = useState(null);
   const [type, setType] = useState("ALL");
   const [q, setQ] = useState("");
   const [search, setSearch] = useState("");
@@ -121,8 +135,7 @@ export default function History() {
   const [error, setError] = useState("");
   const [edit, setEdit] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [openYears, setOpenYears] = useState({});
-  const [openMonths, setOpenMonths] = useState({});
+  const range = useMemo(() => monthRange(year, month), [year, month]);
 
   async function load(forceRefresh = false) {
     setLoading(true);
@@ -135,44 +148,28 @@ export default function History() {
         recorder_id: recorder,
         page: String(page),
         page_size: "100",
+        date_from: range.from,
+        date_to: range.to,
+        summary_year: String(year),
       });
       const response = await apiGet(`/history/?${params}`, { forceRefresh });
       setRows(response.results || []);
       setMeta({ ...EMPTY_META, ...response });
+      setMonthlyCounts(
+        Array.isArray(response.monthly_counts) ? response.monthly_counts : null,
+      );
     } catch (err) {
       setError(err.message);
+      setRows([]);
+      setMeta(EMPTY_META);
     } finally {
       setLoading(false);
     }
   }
 
-  useEffect(() => { load(); }, [type, requester, recorder, page, search]);
-
-  const groups = useMemo(() => {
-    const years = new Map();
-    for (const row of rows) {
-      const date = new Date(row.transaction_date);
-      const valid = !Number.isNaN(date.getTime());
-      const year = valid ? String(date.getFullYear()) : String(row.date || "").slice(-4);
-      const monthIndex = valid ? date.getMonth() : 0;
-      const key = `${year}-${String(monthIndex + 1).padStart(2, "0")}`;
-      if (!years.has(year)) years.set(year, new Map());
-      const months = years.get(year);
-      if (!months.has(key)) months.set(key, { key, label: MONTHS_TH[monthIndex] || key, rows: [] });
-      months.get(key).rows.push(row);
-    }
-    return Array.from(years.entries())
-      .sort((a, b) => Number(b[0]) - Number(a[0]))
-      .map(([year, months]) => ({ year, months: Array.from(months.values()).sort((a, b) => b.key.localeCompare(a.key)) }));
-  }, [rows]);
-
   useEffect(() => {
-    if (!groups.length) return;
-    const year = groups[0];
-    const month = year.months[0];
-    setOpenYears((current) => (Object.keys(current).length ? current : { [year.year]: true }));
-    if (month) setOpenMonths((current) => (Object.keys(current).length ? current : { [month.key]: true }));
-  }, [groups]);
+    load();
+  }, [type, requester, recorder, page, search, range.from, range.to]);
 
   function applySearch() {
     const next = q.trim();
@@ -198,8 +195,26 @@ export default function History() {
   const lastRow = Math.min(meta.page * meta.page_size, meta.count);
 
   return <>
-    <PageHeader title="ประวัติการเบิก / รับเข้า (History)" subtitle="จัดกลุ่มตามปีและเดือน · Stock IN / OUT / Adjustment" />
+    <PageHeader title="ประวัติการเบิก / รับเข้า (History)" subtitle={`${MONTHS_TH[month]} ${year} · โหลดครั้งละไม่เกิน 100 รายการ`} />
     <Alert>{error}</Alert>
+
+    <div className="order-nav-v9">
+      <div className="order-month-head-v9">
+        <button onClick={() => { setMonthlyCounts(null); setPage(1); setYear((value) => value - 1); }}>‹</button>
+        <b>{year}</b>
+        <button onClick={() => { setMonthlyCounts(null); setPage(1); setYear((value) => value + 1); }}>›</button>
+        <span>เลือกเดือนเพื่อโหลด History</span>
+      </div>
+      <div className="order-month-tabs-v9">
+        {MONTHS_TH.map((label, index) => (
+          <button key={label} className={month === index ? "active" : ""} onClick={() => { setMonth(index); setPage(1); }}>
+            <span>{label}{Array.isArray(monthlyCounts) ? ` (${fmt(monthlyCounts[index] || 0)})` : ""}</span>
+            {year === now.getFullYear() && index === now.getMonth() && <small>ปัจจุบัน</small>}
+          </button>
+        ))}
+      </div>
+    </div>
+
     <section className="panel">
       <div className="tab-row history-tabs">{[["ALL", "ทั้งหมด"], ["IN", "รับเข้า"], ["OUT", "เบิกออก"], ["ADJUSTMENT", "ปรับยอด"]].map(([value, label]) => <button key={value} className={`tab ${type === value ? "active" : ""}`} onClick={() => { setType(value); setPage(1); }}>{label}</button>)}</div>
       <div className="toolbar wrap">
@@ -208,21 +223,26 @@ export default function History() {
         <select value={recorder} onChange={(e) => { setRecorder(e.target.value); setPage(1); }}><option value="">ผู้บันทึกทั้งหมด</option>{(options.employees || []).map((x) => <option key={x.id} value={x.id}>{x.name}</option>)}</select>
         <button className="btn ghost" onClick={applySearch}>ค้นหา</button>
       </div>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12, flexWrap: "wrap", margin: "4px 0 12px" }}>
-        <small>{meta.count ? `แสดง ${firstRow}-${lastRow} จาก ${meta.count} รายการ` : "ไม่พบรายการ"}</small>
-        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-          <button className="btn ghost" disabled={loading || !meta.has_previous} onClick={() => setPage((current) => Math.max(1, current - 1))}>← ก่อนหน้า</button>
-          <span>หน้า {meta.page} / {meta.total_pages}</span>
-          <button className="btn ghost" disabled={loading || !meta.has_next} onClick={() => setPage((current) => current + 1)}>ถัดไป →</button>
+      {loading ? (
+        <div className="empty">กำลังโหลด {MONTHS_TH[month]} {year}...</div>
+      ) : rows.length === 0 ? (
+        <div className="empty">ไม่พบ History ในเดือนนี้</div>
+      ) : (
+        <HistoryTable rows={rows} auth={auth} onEdit={setEdit} onDelete={remove} />
+      )}
+
+      {!loading && (
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12, flexWrap: "wrap", marginTop: 14 }}>
+          <small>{meta.count ? `แสดง ${firstRow}-${lastRow} จาก ${meta.count} รายการในเดือนนี้` : "ไม่พบรายการ"}</small>
+          {meta.total_pages > 1 && (
+            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+              <button className="btn ghost" disabled={!meta.has_previous} onClick={() => setPage((current) => Math.max(1, current - 1))}>← ก่อนหน้า</button>
+              <span>หน้า {meta.page} / {meta.total_pages}</span>
+              <button className="btn ghost" disabled={!meta.has_next} onClick={() => setPage((current) => current + 1)}>หน้าถัดไป →</button>
+            </div>
+          )}
         </div>
-      </div>
-      {loading ? <div className="empty">กำลังโหลด...</div> : groups.length === 0 ? <div className="empty">ไม่พบข้อมูล</div> : <div className="history-groups">{groups.map((year) => <section className="history-year" key={year.year}>
-        <button className="history-collapse year" onClick={() => setOpenYears((current) => ({ ...current, [year.year]: !current[year.year] }))}><span>{openYears[year.year] ? "▾" : "▸"} ปี {year.year}</span><b>{year.months.reduce((total, month) => total + month.rows.length, 0)} รายการ</b></button>
-        {openYears[year.year] && <div className="history-months">{year.months.map((month) => <section className="history-month" key={month.key}>
-          <button className="history-collapse month" onClick={() => setOpenMonths((current) => ({ ...current, [month.key]: !current[month.key] }))}><span>{openMonths[month.key] ? "▾" : "▸"} {month.label}</span><b>{month.rows.length} รายการ</b></button>
-          {openMonths[month.key] && <HistoryTable rows={month.rows} auth={auth} onEdit={setEdit} onDelete={remove} />}
-        </section>)}</div>}
-      </section>)}</div>}
+      )}
     </section>
     {edit && <EditHistory row={edit} options={options} onClose={() => setEdit(null)} onSaved={() => { setEdit(null); load(true); }} />}
   </>;

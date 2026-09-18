@@ -26,7 +26,7 @@ class StandardPageNumberPagination(PageNumberPagination):
 
 
 class StockTransactionPagination(StandardPageNumberPagination):
-    """History defaults to 100 rows and never returns more than 500 at once."""
+    """History returns no more than 100 rows for the selected month."""
 
     page_size = 100
-    max_page_size = 500
+    max_page_size = 100

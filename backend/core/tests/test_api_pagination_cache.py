@@ -1,4 +1,4 @@
-from datetime import date, timedelta
+from datetime import date, datetime, timedelta
 from decimal import Decimal
 from unittest.mock import patch
 
@@ -89,7 +89,7 @@ class ApiPaginationAndCacheTests(TestCase):
         self.assertEqual(response.data["page_size"], 100)
         self.assertEqual(len(response.data["results"]), 100)
         self.assertTrue(response.data["has_next"])
-        self.assertLessEqual(len(queries), 2)
+        self.assertLessEqual(len(queries), 3)
         self.assertEqual(response.data["results"][0]["maker"], "Maker")
         self.assertNotIsInstance(response.data["results"][0]["machine"], dict)
 
@@ -98,6 +98,61 @@ class ApiPaginationAndCacheTests(TestCase):
             response = history_list(request)
         self.assertEqual(len(response.data["results"]), 5)
         self.assertFalse(response.data["has_next"])
+
+    def test_history_filters_and_paginates_inside_selected_month(self):
+        march_start = timezone.make_aware(datetime(2026, 3, 1, 8, 0))
+        april_start = timezone.make_aware(datetime(2026, 4, 1, 8, 0))
+        StockTransaction.objects.bulk_create(
+            [
+                StockTransaction(
+                    transaction_no=f"MAR-{index:03d}",
+                    part=self.part,
+                    location=self.location,
+                    transaction_type="RECEIVE",
+                    quantity=Decimal("1"),
+                    recorded_by_employee=self.employee,
+                    transaction_date=march_start + timedelta(minutes=index),
+                    legacy_source="WEB",
+                )
+                for index in range(101)
+            ]
+            + [
+                StockTransaction(
+                    transaction_no="APR-001",
+                    part=self.part,
+                    location=self.location,
+                    transaction_type="RECEIVE",
+                    quantity=Decimal("1"),
+                    recorded_by_employee=self.employee,
+                    transaction_date=april_start,
+                    legacy_source="WEB",
+                )
+            ]
+        )
+
+        params = {
+            "date_from": "2026-03-01",
+            "date_to": "2026-03-31",
+            "summary_year": "2026",
+            "page": 1,
+            "page_size": 500,
+        }
+        with patch("core.stock_api.require_permission", return_value=(self.employee, None)):
+            first = history_list(self.factory.get("/api/history/", params))
+
+        self.assertEqual(first.status_code, 200)
+        self.assertEqual(first.data["count"], 101)
+        self.assertEqual(first.data["page_size"], 100)
+        self.assertEqual(len(first.data["results"]), 100)
+        self.assertEqual(first.data["monthly_counts"][2], 101)
+        self.assertEqual(first.data["monthly_counts"][3], 1)
+        self.assertTrue(first.data["has_next"])
+
+        params["page"] = 2
+        with patch("core.stock_api.require_permission", return_value=(self.employee, None)):
+            second = history_list(self.factory.get("/api/history/", params))
+        self.assertEqual(len(second.data["results"]), 1)
+        self.assertFalse(second.data["has_next"])
 
     def test_parts_list_is_paginated_and_flat(self):
         request = self.factory.get("/api/parts/", {"page": 1, "page_size": 50})

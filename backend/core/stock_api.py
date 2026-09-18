@@ -1,7 +1,9 @@
+from datetime import date, datetime, time, timedelta
 from decimal import Decimal, InvalidOperation
 
 from django.db import transaction
-from django.db.models import Q
+from django.db.models import Count, Q
+from django.db.models.functions import ExtractMonth
 from django.utils import timezone
 from django.views.decorators.csrf import csrf_exempt
 from rest_framework.decorators import api_view, permission_classes
@@ -347,6 +349,23 @@ def history_detail_json(tx):
     return StockTransactionDetailSerializer(tx).data
 
 
+def history_date(value, label):
+    raw = str(value or "").strip()
+    if not raw:
+        return None
+    try:
+        return date.fromisoformat(raw)
+    except ValueError:
+        raise ValueError(f"{label} ไม่ถูกต้อง")
+
+
+def local_day_start(value):
+    return timezone.make_aware(
+        datetime.combine(value, time.min),
+        timezone.get_current_timezone(),
+    )
+
+
 @api_view(["GET"])
 @permission_classes([AllowAny])
 def history_list(request):
@@ -359,20 +378,26 @@ def history_list(request):
     requester_id = str(request.GET.get("requester_id", "")).strip()
     recorder_id = str(request.GET.get("recorder_id", "")).strip()
 
-    qs = StockTransaction.objects.select_related(
-        "part",
-        "part__maker",
-        "part__unit",
-        "part__location",
-        "location",
-        "machine",
-        "employee",
-        "recorded_by_employee",
-        "created_by",
-    ).only(*STOCK_TRANSACTION_LIST_ONLY_FIELDS).filter(is_void=False)
+    try:
+        date_from = history_date(request.GET.get("date_from"), "date_from")
+        date_to = history_date(request.GET.get("date_to"), "date_to")
+        summary_year_value = str(request.GET.get("summary_year", "")).strip()
+        summary_year = (
+            int(summary_year_value)
+            if summary_year_value
+            else timezone.localdate().year
+        )
+    except ValueError as exc:
+        return Response({"detail": str(exc)}, status=400)
+    if not 2000 <= summary_year <= 2100:
+        return Response({"detail": "summary_year ไม่ถูกต้อง"}, status=400)
+    if date_from and date_to and date_from > date_to:
+        return Response({"detail": "ช่วงวันที่ไม่ถูกต้อง"}, status=400)
+
+    base_qs = StockTransaction.objects.filter(is_void=False)
 
     if q:
-        qs = qs.filter(
+        base_qs = base_qs.filter(
             Q(part__sku__icontains=q)
             | Q(part__name__icontains=q)
             | Q(part__description__icontains=q)
@@ -383,26 +408,78 @@ def history_list(request):
             | Q(remark__icontains=q)
         )
     if requester_id:
-        qs = qs.filter(employee_id=requester_id)
+        base_qs = base_qs.filter(employee_id=requester_id)
     if recorder_id:
         recorder = Employee.objects.filter(pk=recorder_id).first()
         if recorder:
-            qs = qs.filter(
+            base_qs = base_qs.filter(
                 Q(recorded_by_employee=recorder)
                 | Q(remark__icontains=recorder.name)
             )
     if tx_type == "IN":
-        qs = qs.filter(transaction_type__in=["IN", "RECEIVE", "RETURN", "TRANSFER_IN"])
+        base_qs = base_qs.filter(transaction_type__in=["IN", "RECEIVE", "RETURN", "TRANSFER_IN"])
     elif tx_type == "OUT":
-        qs = qs.filter(transaction_type__in=["OUT", "ISSUE", "TRANSFER_OUT"])
+        base_qs = base_qs.filter(transaction_type__in=["OUT", "ISSUE", "TRANSFER_OUT"])
     elif tx_type in {"ADJUST", "ADJUSTMENT"}:
-        qs = qs.filter(transaction_type="ADJUSTMENT")
+        base_qs = base_qs.filter(transaction_type="ADJUSTMENT")
+
+    year_start = local_day_start(date(summary_year, 1, 1))
+    year_end = local_day_start(date(summary_year + 1, 1, 1))
+    month_rows = (
+        base_qs.filter(
+            transaction_date__gte=year_start,
+            transaction_date__lt=year_end,
+        )
+        .annotate(
+            summary_month=ExtractMonth(
+                "transaction_date",
+                tzinfo=timezone.get_current_timezone(),
+            )
+        )
+        .values("summary_month")
+        .annotate(total=Count("id"))
+        .order_by()
+    )
+    monthly_counts = [0] * 12
+    for row in month_rows:
+        month_number = int(row["summary_month"] or 0)
+        if 1 <= month_number <= 12:
+            monthly_counts[month_number - 1] = row["total"]
+
+    qs = base_qs
+    if date_from:
+        qs = qs.filter(transaction_date__gte=local_day_start(date_from))
+    if date_to:
+        qs = qs.filter(
+            transaction_date__lt=local_day_start(date_to + timedelta(days=1))
+        )
+
+    qs = qs.select_related(
+        "part",
+        "part__maker",
+        "part__unit",
+        "part__location",
+        "location",
+        "machine",
+        "employee",
+        "recorded_by_employee",
+        "created_by",
+    ).only(*STOCK_TRANSACTION_LIST_ONLY_FIELDS)
 
     qs = qs.order_by("-transaction_date")
     paginator = StockTransactionPagination()
     page_rows = paginator.paginate_queryset(qs, request)
     rows = StockTransactionListSerializer(page_rows, many=True).data
-    return paginator.get_paginated_response(rows)
+    response = paginator.get_paginated_response(rows)
+    response.data.update(
+        {
+            "summary_year": summary_year,
+            "monthly_counts": monthly_counts,
+            "date_from": date_from.isoformat() if date_from else None,
+            "date_to": date_to.isoformat() if date_to else None,
+        }
+    )
+    return response
 
 
 def detail_transaction_queryset():
