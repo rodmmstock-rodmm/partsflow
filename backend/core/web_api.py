@@ -42,6 +42,7 @@ from .models import (
     Part,
     PartMachine,
     PartSupplier,
+    StockTransaction,
     Supplier,
     SupplierContact,
     Unit,
@@ -563,14 +564,35 @@ def part_detail(request, pk):
                 {"detail": "ลบได้เฉพาะอะไหล่ที่ปิดใช้งาน (Inactive) แล้วเท่านั้น กรุณาปิดใช้งานก่อน"},
                 status=400,
             )
+        # A Part almost always has an Inventory row (created alongside the
+        # Part) even when its quantity is 0 - that row's mere existence
+        # must not block deletion. Check the actual total quantity instead.
+        total_qty = Inventory.objects.filter(part=part).aggregate(
+            total=Sum("quantity")
+        )["total"] or 0
+        if total_qty:
+            return Response(
+                {
+                    "detail": f"ไม่สามารถลบได้ เนื่องจากยังมี Stock คงเหลือรวม {total_qty} หน่วย กรุณาปรับ Stock ให้เป็น 0 ก่อน"
+                },
+                status=400,
+            )
+        if StockTransaction.objects.filter(part=part).exists():
+            return Response(
+                {
+                    "detail": "ไม่สามารถลบได้ เนื่องจากมีประวัติ Stock Transaction ผูกอยู่ (เก็บไว้เพื่อรักษาประวัติการเบิก-รับ)"
+                },
+                status=400,
+            )
         snapshot = {"sku": part.sku, "name": part.name}
+        # Zero-quantity Inventory rows are just "no stock here" pointers,
+        # safe to clear now that we've confirmed there's really no stock.
+        Inventory.objects.filter(part=part).delete()
         try:
             part.delete()
         except ProtectedError:
             return Response(
-                {
-                    "detail": "ไม่สามารถลบได้ เนื่องจากยังมี Stock หรือประวัติ Transaction ผูกอยู่ กรุณาปรับ Stock ให้เป็น 0 และล้างประวัติก่อน"
-                },
+                {"detail": "ไม่สามารถลบได้ เนื่องจากยังมีข้อมูลอื่นผูกอยู่กับอะไหล่นี้"},
                 status=400,
             )
         audit(actor, "DELETE", "Part", pk, snapshot)

@@ -18,7 +18,7 @@ const NAV = [
   ["/safety-stock", "Safety", "alert", "can_view_safety_stock"],
   ["/orders", "Order", "cart", "can_view_orders"],
   ["/order-steps", "Steps", "steps", "can_view_orders"],
-  ["/po-balance", "PO", "mail", "can_view_orders"],
+  ["/po-balance", "PO", "mail", "can_view_po_balance"],
   ["/fast-orders", "Fast", "zap", "can_view_orders"],
   ["/vendors", "Vendor", "vendor", "can_view_suppliers"],
   ["/machines", "Machine", "gear", "can_view_machines"],
@@ -80,7 +80,7 @@ export default function MobileShell() {
           <Route path="/history" element={<Protected permission="can_view_history"><MobileHistory /></Protected>} />
           <Route path="/safety-stock" element={<Protected permission="can_view_safety_stock"><MobileSafetyStock /></Protected>} />
           <Route path="/orders" element={<Protected permission="can_view_orders"><MobileOrders /></Protected>} />
-          <Route path="/po-balance" element={<Protected permission="can_view_orders"><POBalance /></Protected>} />
+          <Route path="/po-balance" element={<Protected permission="can_view_po_balance"><POBalance /></Protected>} />
           <Route path="/order-steps" element={<Protected permission="can_view_orders"><MobileOrderSteps /></Protected>} />
           <Route path="/fast-orders" element={<Protected permission="can_view_orders"><MobileFastOrders /></Protected>} />
           <Route path="/vendors" element={<Protected permission="can_view_suppliers"><MobileVendors /></Protected>} />

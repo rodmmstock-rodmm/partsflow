@@ -304,6 +304,7 @@ class RoleAccess(UUIDMixin):
     can_view_safety_stock = models.BooleanField(default=True)
 
     can_view_orders = models.BooleanField(default=False)
+    can_view_po_balance = models.BooleanField(default=False)
     can_view_order_updates = models.BooleanField(default=False)
     can_add_order = models.BooleanField(default=False)
     can_edit_order_info = models.BooleanField(default=False)

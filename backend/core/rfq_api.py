@@ -597,7 +597,7 @@ def rfq_vendor(request, pk):
 @api_view(["GET"])
 @permission_classes([AllowAny])
 def po_balance_list(request):
-    actor, err = require_permission(request, "can_view_orders")
+    actor, err = require_permission(request, "can_view_po_balance")
     if err:
         return err
     qs = _rfq_queryset().filter(status=OrderRFQ.STATUS_SENT)
@@ -621,7 +621,7 @@ def po_balance_list(request):
 @api_view(["GET", "PATCH"])
 @permission_classes([AllowAny])
 def po_balance_detail(request, pk):
-    permission = "can_view_orders" if request.method == "GET" else "can_edit_purchase_info"
+    permission = "can_view_po_balance" if request.method == "GET" else "can_edit_purchase_info"
     actor, err = require_permission(request, permission)
     if err:
         return err
@@ -764,7 +764,7 @@ def record_follow_up(request, pk):
 @api_view(["GET"])
 @permission_classes([AllowAny])
 def download_attachment(request, pk):
-    _, err = require_permission(request, "can_view_orders")
+    _, err = require_permission(request, "can_view_po_balance")
     if err:
         return err
     item = RFQAttachment.objects.select_related("message").filter(pk=pk).first()
@@ -798,7 +798,7 @@ def _cc_rule_json(row):
 @api_view(["GET", "POST"])
 @permission_classes([AllowAny])
 def cc_rules(request):
-    permission = "can_view_orders" if request.method == "GET" else "can_edit_purchase_info"
+    permission = "can_view_po_balance" if request.method == "GET" else "can_edit_purchase_info"
     actor, err = require_permission(request, permission)
     if err:
         return err
