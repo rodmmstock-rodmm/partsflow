@@ -7,6 +7,7 @@ export const PERMISSIONS = [
   ["can_view_dashboard", "View Dashboard Stock", "Stock"],
   ["can_view_parts", "View Part & Stock", "Stock"],
   ["can_edit_parts", "Add / Edit Part", "Stock"],
+  ["can_delete_parts", "ลบ Part (เฉพาะที่ Inactive แล้ว)", "Stock"],
   ["can_adjust_stock", "Adjust Stock", "Stock"],
   ["can_receive_stock", "Receive Stock", "Stock"],
   ["can_issue_stock", "Issue Stock", "Stock"],

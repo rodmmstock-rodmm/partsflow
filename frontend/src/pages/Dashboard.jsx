@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { apiGet, apiPatch, apiPost, apiUpload } from "../api";
+import { apiDelete, apiGet, apiPatch, apiPost, apiUpload } from "../api";
 import { useAuth } from "../auth";
 import { Alert, Modal, PageHeader, PartImage, SearchableSelect, fmt, stockDisplay, isNoCountSku } from "../components/Common";
 import { useOptions } from "../optionsContext";
@@ -495,6 +495,22 @@ export default function Dashboard() {
     await Promise.all([loadKpi(true), loadParts(true)]);
   }
 
+  async function deletePart(part) {
+    if (
+      !window.confirm(
+        `ลบอะไหล่ ${part.sku} · ${part.name} ถาวร? การลบนี้ย้อนกลับไม่ได้`
+      )
+    )
+      return;
+    setError("");
+    try {
+      await apiDelete(`/parts/${part.id}/`);
+      await refreshAfterMutation();
+    } catch (err) {
+      setError(err.message);
+    }
+  }
+
   function handleDetected(value) {
     const scanned = String(value || "").trim();
     setScannerOpen(false);
@@ -709,6 +725,9 @@ export default function Dashboard() {
                             )}
                             {!inactive && auth.can("can_receive_stock") && (
                               <button className="mini success" onClick={() => openStock("receive", part)}>รับเข้า</button>
+                            )}
+                            {inactive && auth.can("can_delete_parts") && (
+                              <button className="mini danger" onClick={() => deletePart(part)}>ลบ</button>
                             )}
                           </div>
                         </td>

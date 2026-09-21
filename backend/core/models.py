@@ -293,6 +293,7 @@ class RoleAccess(UUIDMixin):
     can_view_dashboard = models.BooleanField(default=True)
     can_view_parts = models.BooleanField(default=True)
     can_edit_parts = models.BooleanField(default=False)
+    can_delete_parts = models.BooleanField(default=False)
     can_adjust_stock = models.BooleanField(default=False)
     can_receive_stock = models.BooleanField(default=False)
     can_issue_stock = models.BooleanField(default=False)

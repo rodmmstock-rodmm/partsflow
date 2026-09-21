@@ -10,6 +10,7 @@ PERMISSION_FIELDS = [
     "can_view_dashboard",
     "can_view_parts",
     "can_edit_parts",
+    "can_delete_parts",
     "can_adjust_stock",
     "can_receive_stock",
     "can_issue_stock",

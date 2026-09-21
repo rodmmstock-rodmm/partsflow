@@ -3,7 +3,7 @@ import hashlib
 import re
 
 from django.db import IntegrityError
-from django.db.models import Count, DecimalField, Exists, F, Max, OuterRef, Prefetch, Q, Sum, Value
+from django.db.models import Count, DecimalField, Exists, F, Max, OuterRef, Prefetch, Q, Sum, Value, ProtectedError
 from django.db.models.functions import Coalesce
 from django.http import HttpResponse
 from django.utils import timezone
@@ -541,10 +541,14 @@ def create_part(actor, data):
 
 
 @csrf_exempt
-@api_view(["GET", "PATCH"])
+@api_view(["GET", "PATCH", "DELETE"])
 @permission_classes([AllowAny])
 def part_detail(request, pk):
-    permission = "can_view_parts" if request.method == "GET" else "can_edit_parts"
+    permission = (
+        "can_view_parts" if request.method == "GET"
+        else "can_delete_parts" if request.method == "DELETE"
+        else "can_edit_parts"
+    )
     actor, err = require_permission(request, permission)
     if err:
         return err
@@ -553,6 +557,24 @@ def part_detail(request, pk):
         return Response({"detail": "ไม่พบอะไหล่"}, status=404)
     if request.method == "GET":
         return Response(part_detail_json(base_parts().get(pk=pk)))
+    if request.method == "DELETE":
+        if part.active:
+            return Response(
+                {"detail": "ลบได้เฉพาะอะไหล่ที่ปิดใช้งาน (Inactive) แล้วเท่านั้น กรุณาปิดใช้งานก่อน"},
+                status=400,
+            )
+        snapshot = {"sku": part.sku, "name": part.name}
+        try:
+            part.delete()
+        except ProtectedError:
+            return Response(
+                {
+                    "detail": "ไม่สามารถลบได้ เนื่องจากยังมี Stock หรือประวัติ Transaction ผูกอยู่ กรุณาปรับ Stock ให้เป็น 0 และล้างประวัติก่อน"
+                },
+                status=400,
+            )
+        audit(actor, "DELETE", "Part", pk, snapshot)
+        return Response({"ok": True})
     before = part_json(base_parts().get(pk=pk))
     try:
         apply_part_fields(part, request.data)
