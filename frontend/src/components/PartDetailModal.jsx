@@ -21,6 +21,7 @@ export default function PartDetailModal({ part, onClose }) {
   const [detail, setDetail] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [imageZoom, setImageZoom] = useState(false);
 
   useEffect(() => {
     let alive = true;
@@ -33,12 +34,29 @@ export default function PartDetailModal({ part, onClose }) {
     return () => { alive = false; };
   }, [part.id]);
 
+  useEffect(() => {
+    if (!imageZoom) return;
+    const onKey = (e) => { if (e.key === "Escape") setImageZoom(false); };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [imageZoom]);
+
   const p = detail || part;
   return <Modal title={`รายละเอียดอะไหล่ · ${p.sku || ""}`} onClose={onClose} wide>
     <Alert>{error}</Alert>
     {loading ? <div className="empty">กำลังโหลดรายละเอียด...</div> : <div className="part-detail-shell">
       <div className="part-detail-hero">
-        <div className="part-detail-image"><PartImage src={p.image_url || p.image_path} fallbackSrc={p.image_fallback_url} alt={p.name}/></div>
+        <div
+          className={`part-detail-image${p.image_url || p.image_path ? " zoomable" : ""}`}
+          role={p.image_url || p.image_path ? "button" : undefined}
+          tabIndex={p.image_url || p.image_path ? 0 : undefined}
+          aria-label="ดูรูปอะไหล่แบบขยาย"
+          onClick={() => (p.image_url || p.image_path) && setImageZoom(true)}
+          onKeyDown={(e) => { if ((p.image_url || p.image_path) && (e.key === "Enter" || e.key === " ")) { e.preventDefault(); setImageZoom(true); } }}
+        >
+          <PartImage src={p.image_url || p.image_path} fallbackSrc={p.image_fallback_url} alt={p.name}/>
+          {(p.image_url || p.image_path) && <span className="zoom-hint">🔍 ดูขยาย</span>}
+        </div>
         <div className="part-detail-title">
           <div className="m-card-code">{p.sku}</div>
           <h2>{p.name}</h2>
@@ -112,5 +130,20 @@ export default function PartDetailModal({ part, onClose }) {
           </tbody></table></div>}
       </Section>
     </div>}
+    {imageZoom && (
+      <div className="image-lightbox" onClick={() => setImageZoom(false)}>
+        <button
+          type="button"
+          className="image-lightbox-close"
+          aria-label="ปิด"
+          onClick={(e) => { e.stopPropagation(); setImageZoom(false); }}
+        >
+          ✕
+        </button>
+        <div className="image-lightbox-content" onClick={(e) => e.stopPropagation()}>
+          <PartImage src={p.image_url || p.image_path} fallbackSrc={p.image_fallback_url} alt={p.name}/>
+        </div>
+      </div>
+    )}
   </Modal>;
 }
