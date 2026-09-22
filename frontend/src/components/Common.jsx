@@ -2,6 +2,30 @@ import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { apiGet } from "../api";
 
+export function Breadcrumb({ items = [] }) {
+  return (
+    <nav className="breadcrumb" aria-label="ตำแหน่งปัจจุบัน">
+      {items.map((item, i) => {
+        const isLast = i === items.length - 1;
+        return (
+          <span key={i} className="breadcrumb-part">
+            {item.onClick && !isLast ? (
+              <button type="button" className="breadcrumb-link" onClick={item.onClick}>
+                {item.label}
+              </button>
+            ) : (
+              <span className={isLast ? "breadcrumb-current" : "breadcrumb-label"}>
+                {item.label}
+              </span>
+            )}
+            {!isLast && <span className="breadcrumb-sep">/</span>}
+          </span>
+        );
+      })}
+    </nav>
+  );
+}
+
 export function NotificationBell({ compact = false }) {
   const navigate = useNavigate();
   const [summary, setSummary] = useState({ safety_stock: 0, wait_confirm_steps: 0 });

@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import * as XLSX from "xlsx";
 import { apiDelete, apiGet, apiPatch, apiPost } from "../api";
 import { useAuth } from "../auth";
-import { Alert, Modal, PageHeader, SearchableSelect, fmt, formatDMY, money } from "../components/Common";
+import { Alert, Breadcrumb, Modal, PageHeader, SearchableSelect, fmt, formatDMY, money } from "../components/Common";
 import RFQComposeModal from "../components/RFQComposeModal";
 import { useOptions } from "../optionsContext";
 
@@ -3544,6 +3544,20 @@ export default function Orders({ mode = "orders" }) {
           <section className="project-content">
               {projectDetail ? (
                 <>
+                  <Breadcrumb
+                    items={[
+                      { label: "Order Step" },
+                      {
+                        label: "รายการ Project",
+                        onClick: () => {
+                          setSelectedProject(null);
+                          setProjectDetail(null);
+                          setSelected(new Set());
+                        },
+                      },
+                      { label: projectDetail.project.name },
+                    ]}
+                  />
                   <div className="page-header project-head">
                     <div>
                       <h1>{projectDetail.project.name}</h1>
