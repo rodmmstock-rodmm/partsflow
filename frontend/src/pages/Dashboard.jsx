@@ -2,7 +2,8 @@ import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { apiDelete, apiGet, apiPatch, apiPost, apiUpload } from "../api";
 import { useAuth } from "../auth";
-import { Alert, Modal, PageHeader, Pagination, PartImage, SearchableSelect, fmt, stockDisplay, isNoCountSku } from "../components/Common";
+import { Alert, Modal, PageHeader, Pagination, PartImage, SearchableSelect, SkeletonRows, fmt, stockDisplay, isNoCountSku } from "../components/Common";
+import { useFeedback } from "../feedback";
 import { useOptions } from "../optionsContext";
 import BarcodeScannerModal from "../components/BarcodeScannerModal";
 import PartDetailModal from "../components/PartDetailModal";
@@ -399,6 +400,7 @@ function AdjustModal({ part, onClose, onSaved }) {
 export default function Dashboard() {
   const auth = useAuth();
   const navigate = useNavigate();
+  const { showToast, confirm } = useFeedback();
   const tableScrollRef = useRef(null);
   const topScrollRef = useRef(null);
   const searchTimerRef = useRef(null);
@@ -420,7 +422,6 @@ export default function Dashboard() {
     has_next: false,
     has_previous: false,
   });
-  const [error, setError] = useState("");
   const [loading, setLoading] = useState(true);
   const optionsLoading = false;
   const [partModal, setPartModal] = useState(null);
@@ -445,7 +446,6 @@ export default function Dashboard() {
 
   async function loadParts(forceRefresh = false) {
     setLoading(true);
-    setError("");
     try {
       const params = new URLSearchParams();
       params.set("page", String(page));
@@ -465,7 +465,7 @@ export default function Dashboard() {
         has_previous: !!response.has_previous,
       });
     } catch (err) {
-      setError(err.message);
+      showToast(err.message, "error");
     } finally {
       setLoading(false);
     }
@@ -496,18 +496,17 @@ export default function Dashboard() {
   }
 
   async function deletePart(part) {
-    if (
-      !window.confirm(
-        `ลบอะไหล่ ${part.sku} · ${part.name} ถาวร? การลบนี้ย้อนกลับไม่ได้`
-      )
-    )
-      return;
-    setError("");
+    const ok = await confirm(
+      `ลบอะไหล่ ${part.sku} · ${part.name} ถาวร? การลบนี้ย้อนกลับไม่ได้`,
+      { title: "ยืนยันการลบ", confirmLabel: "ลบ", danger: true }
+    );
+    if (!ok) return;
     try {
       await apiDelete(`/parts/${part.id}/`);
+      showToast(`ลบ ${part.sku} สำเร็จ`, "success");
       await refreshAfterMutation();
     } catch (err) {
-      setError(err.message);
+      showToast(err.message, "error");
     }
   }
 
@@ -521,7 +520,7 @@ export default function Dashboard() {
   }
 
   useEffect(() => {
-    loadKpi().catch((err) => setError(err.message));
+    loadKpi().catch((err) => showToast(err.message, "error"));
   }, []);
 
   useEffect(() => {
@@ -569,8 +568,6 @@ export default function Dashboard() {
           </>
         }
       />
-
-      <Alert>{error}</Alert>
 
       <div className="kpi-grid three">
         <div className="kpi-card">
@@ -644,7 +641,7 @@ export default function Dashboard() {
         </div>
 
         {loading ? (
-          <div className="empty">กำลังโหลด...</div>
+          <SkeletonRows count={8} columns={11} />
         ) : (
           <>
             <div ref={topScrollRef} className="table-scroll-top" onScroll={syncTop}>
@@ -750,7 +747,9 @@ export default function Dashboard() {
           options={options || {}}
           onClose={() => setPartModal(null)}
           onSaved={async () => {
+            const wasEdit = !!partModal.id;
             setPartModal(null);
+            showToast(wasEdit ? "บันทึกการแก้ไขสำเร็จ" : "เพิ่มอะไหล่สำเร็จ", "success");
             await refreshAfterMutation();
           }}
         />
@@ -763,7 +762,12 @@ export default function Dashboard() {
           employee={auth.employee}
           onClose={() => setStockModal(null)}
           onSaved={async () => {
+            const mode = stockModal.mode;
             setStockModal(null);
+            showToast(
+              mode === "issue" ? "เบิกของสำเร็จ" : "รับของเข้าสำเร็จ",
+              "success"
+            );
             await refreshAfterMutation();
           }}
         />
@@ -775,6 +779,7 @@ export default function Dashboard() {
           onClose={() => setAdjust(null)}
           onSaved={async () => {
             setAdjust(null);
+            showToast("ปรับยอดสต็อกสำเร็จ", "success");
             await refreshAfterMutation();
           }}
         />

@@ -3,6 +3,7 @@ import ReactDOM from "react-dom/client";
 import { BrowserRouter } from "react-router-dom";
 import App from "./App";
 import { AuthProvider } from "./auth";
+import { FeedbackProvider } from "./feedback";
 import { OptionsProvider } from "./optionsContext";
 import ProductionApprovedUi from "./ProductionApprovedUi";
 import { installOrderSelectedExcelExport } from "./orderSelectedExcelExport";
@@ -22,11 +23,13 @@ ReactDOM.createRoot(document.getElementById("root")).render(
   <React.StrictMode>
     <BrowserRouter>
       <ProductionApprovedUi />
-      <AuthProvider>
-        <OptionsProvider>
-          <App />
-        </OptionsProvider>
-      </AuthProvider>
+      <FeedbackProvider>
+        <AuthProvider>
+          <OptionsProvider>
+            <App />
+          </OptionsProvider>
+        </AuthProvider>
+      </FeedbackProvider>
     </BrowserRouter>
   </React.StrictMode>
 );

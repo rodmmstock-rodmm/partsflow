@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Navigate, NavLink, Route, Routes, useNavigate } from "react-router-dom";
 import { useAuth } from "./auth";
+import { NotificationBell } from "./components/Common";
 import Dashboard from "./pages/Dashboard";
 import History from "./pages/History";
 import SafetyStock from "./pages/SafetyStock";
@@ -56,6 +57,9 @@ function DesktopShell() {
   async function logout() { await auth.logout(); navigate("/login", { replace: true }); }
   return <div className="app-shell">
     {ICON_SPRITE}
+    <div className="app-header-bar">
+      <NotificationBell />
+    </div>
     {!sidebarOpen && <button className="hamburger-btn" onClick={() => setSidebarOpen(true)} aria-label="เปิดเมนู">☰</button>}
     {sidebarOpen && <div className="sidebar-backdrop" onClick={() => setSidebarOpen(false)} />}
     <aside className={sidebarOpen ? "sidebar open" : "sidebar"}>

@@ -14,6 +14,7 @@ urlpatterns = [
     path("drive/oauth/callback/", drive_oauth.oauth_callback, name="drive-oauth-callback"),
 
     path("dashboard/", dashboard_api.dashboard, name="web-dashboard"),
+    path("notifications/summary/", dashboard_api.notification_summary, name="web-notification-summary"),
 
     path("parts/", web_api.parts_list, name="web-parts-list"),
     path("parts/<uuid:pk>/", web_api.part_detail, name="web-part-detail"),

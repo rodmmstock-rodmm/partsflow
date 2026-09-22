@@ -1,4 +1,78 @@
 import { useEffect, useRef, useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { apiGet } from "../api";
+
+export function NotificationBell({ compact = false }) {
+  const navigate = useNavigate();
+  const [summary, setSummary] = useState({ safety_stock: 0, wait_confirm_steps: 0 });
+  const [open, setOpen] = useState(false);
+  const boxRef = useRef(null);
+
+  useEffect(() => {
+    let alive = true;
+    function load() {
+      apiGet("/notifications/summary/")
+        .then((data) => alive && setSummary(data || {}))
+        .catch(() => {});
+    }
+    load();
+    const timer = setInterval(load, 90000);
+    return () => { alive = false; clearInterval(timer); };
+  }, []);
+
+  useEffect(() => {
+    if (!open) return;
+    function onClick(e) {
+      if (boxRef.current && !boxRef.current.contains(e.target)) setOpen(false);
+    }
+    document.addEventListener("mousedown", onClick);
+    return () => document.removeEventListener("mousedown", onClick);
+  }, [open]);
+
+  const total = (summary.safety_stock || 0) + (summary.wait_confirm_steps || 0);
+
+  function go(path) {
+    setOpen(false);
+    navigate(path);
+  }
+
+  return (
+    <div className="notif-bell-wrap" ref={boxRef}>
+      <button
+        type="button"
+        className={compact ? "m-icon-action" : "icon-btn"}
+        aria-label={`การแจ้งเตือน${total ? ` (${total} รายการ)` : ""}`}
+        onClick={() => setOpen((v) => !v)}
+      >
+        🔔
+        {total > 0 && <span className="notif-badge">{total > 99 ? "99+" : total}</span>}
+      </button>
+      {open && (
+        <div className="notif-panel">
+          <div className="notif-panel-head">การแจ้งเตือน</div>
+          {total === 0 ? (
+            <div className="notif-empty">ไม่มีรายการค้างครับ 🎉</div>
+          ) : (
+            <>
+              {summary.safety_stock > 0 && (
+                <button type="button" className="notif-item" onClick={() => go("/safety-stock")}>
+                  <span className="notif-item-icon danger">⚠</span>
+                  <span>อะไหล่ต่ำกว่า Min <strong>{summary.safety_stock}</strong> รายการ</span>
+                </button>
+              )}
+              {summary.wait_confirm_steps > 0 && (
+                <button type="button" className="notif-item" onClick={() => go("/order-steps")}>
+                  <span className="notif-item-icon warning">⏳</span>
+                  <span>Step รอ Confirm <strong>{summary.wait_confirm_steps}</strong> รายการ</span>
+                </button>
+              )}
+            </>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
 
 export function PageHeader({ title, subtitle, actions }) {
   return (
@@ -63,6 +137,41 @@ export function Alert({ type = "error", children }) {
 
 export function SearchInput({ value, onChange, placeholder = "ค้นหา..." }) {
   return <input className="search-input" value={value} onChange={(e) => onChange(e.target.value)} placeholder={placeholder} />;
+}
+
+export function SkeletonCards({ count = 4 }) {
+  return (
+    <div className="skeleton-list">
+      {Array.from({ length: count }).map((_, i) => (
+        <div className="skeleton-card" key={i}>
+          <div className="skeleton-thumb shimmer" />
+          <div className="skeleton-lines">
+            <div className="skeleton-line shimmer" style={{ width: "40%" }} />
+            <div className="skeleton-line shimmer" style={{ width: "75%" }} />
+            <div className="skeleton-line shimmer" style={{ width: "55%" }} />
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+export function SkeletonRows({ count = 6, columns = 6 }) {
+  return (
+    <div className="skeleton-table">
+      {Array.from({ length: count }).map((_, i) => (
+        <div
+          className="skeleton-table-row"
+          key={i}
+          style={{ "--cols": columns }}
+        >
+          {Array.from({ length: columns }).map((__, j) => (
+            <div className="skeleton-line shimmer" key={j} />
+          ))}
+        </div>
+      ))}
+    </div>
+  );
 }
 
 export function Pagination({ page, totalPages, onChange, disabled = false, compact = false }) {

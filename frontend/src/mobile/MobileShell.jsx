@@ -1,5 +1,6 @@
 import { NavLink, Navigate, Route, Routes, useNavigate } from "react-router-dom";
 import { useAuth } from "../auth";
+import { NotificationBell } from "../components/Common";
 import MobileDashboard from "./MobileDashboard";
 import MobileHistory from "./MobileHistory";
 import MobileSafetyStock from "./MobileSafetyStock";
@@ -68,9 +69,12 @@ export default function MobileShell() {
             <span>{auth.employee?.name} · {auth.employee?.role}</span>
           </div>
         </div>
-        <button onClick={logout} aria-label="ออกจากระบบ">
-          <svg className="nav-icon"><use href="#ic-power" /></svg>
-        </button>
+        <div className="m-topbar-actions">
+          <NotificationBell compact />
+          <button onClick={logout} aria-label="ออกจากระบบ">
+            <svg className="nav-icon"><use href="#ic-power" /></svg>
+          </button>
+        </div>
       </header>
 
       <main className="m-main">
