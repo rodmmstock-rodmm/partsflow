@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { apiDelete, apiGet, apiPatch, apiPost, apiUpload } from "../api";
 import { useAuth } from "../auth";
-import { Alert, Modal, PageHeader, PartImage, SearchableSelect, fmt, stockDisplay, isNoCountSku } from "../components/Common";
+import { Alert, Modal, PageHeader, Pagination, PartImage, SearchableSelect, fmt, stockDisplay, isNoCountSku } from "../components/Common";
 import { useOptions } from "../optionsContext";
 import BarcodeScannerModal from "../components/BarcodeScannerModal";
 import PartDetailModal from "../components/PartDetailModal";
@@ -635,15 +635,12 @@ export default function Dashboard() {
 
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: "12px", flexWrap: "wrap", margin: "4px 0 12px" }}>
           <small>{meta.count ? `แสดง ${firstRow}-${lastRow} จาก ${meta.count} รายการ` : "ไม่พบรายการ"}</small>
-          <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-            <button className="btn ghost" disabled={loading || !meta.has_previous} onClick={() => setPage((current) => Math.max(1, current - 1))}>
-              ← ก่อนหน้า
-            </button>
-            <span>หน้า {meta.page} / {meta.total_pages}</span>
-            <button className="btn ghost" disabled={loading || !meta.has_next} onClick={() => setPage((current) => current + 1)}>
-              ถัดไป →
-            </button>
-          </div>
+          <Pagination
+            page={meta.page || 1}
+            totalPages={meta.total_pages || 1}
+            onChange={setPage}
+            disabled={loading}
+          />
         </div>
 
         {loading ? (

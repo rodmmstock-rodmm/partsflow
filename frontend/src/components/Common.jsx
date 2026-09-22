@@ -65,6 +65,79 @@ export function SearchInput({ value, onChange, placeholder = "ค้นหา...
   return <input className="search-input" value={value} onChange={(e) => onChange(e.target.value)} placeholder={placeholder} />;
 }
 
+export function Pagination({ page, totalPages, onChange, disabled = false, compact = false }) {
+  const total = Math.max(1, Number(totalPages) || 1);
+  const current = Math.min(Math.max(1, Number(page) || 1), total);
+
+  function visiblePages() {
+    const delta = compact ? 1 : 2;
+    if (total <= 7) return Array.from({ length: total }, (_, i) => i + 1);
+
+    const pages = [1];
+    let start = Math.max(2, current - delta);
+    let end = Math.min(total - 1, current + delta);
+
+    if (current === 1) end = Math.min(total - 1, 1 + delta * 2);
+    else if (current === total) start = Math.max(2, total - delta * 2);
+
+    if (start > 2) pages.push("...");
+    for (let i = start; i <= end; i++) pages.push(i);
+    if (end < total - 1) pages.push("...");
+    pages.push(total);
+    return pages;
+  }
+
+  function go(target) {
+    const next = Math.min(Math.max(1, target), total);
+    if (next !== current) onChange(next);
+  }
+
+  return (
+    <nav className="pagination" aria-label="เปลี่ยนหน้า">
+      <button
+        type="button"
+        className="pagination-nav"
+        disabled={disabled || current === 1}
+        onClick={() => go(current - 1)}
+      >
+        ← {compact ? "" : "ก่อนหน้า"}
+      </button>
+      {!compact &&
+        visiblePages().map((p, i) =>
+          p === "..." ? (
+            <span className="pagination-ellipsis" key={`e-${i}`}>
+              ···
+            </span>
+          ) : (
+            <button
+              type="button"
+              key={p}
+              className={`pagination-item ${p === current ? "active" : ""}`}
+              aria-current={p === current ? "page" : undefined}
+              disabled={disabled}
+              onClick={() => go(p)}
+            >
+              {p}
+            </button>
+          )
+        )}
+      {compact && (
+        <span className="pagination-compact-label">
+          {current} / {total}
+        </span>
+      )}
+      <button
+        type="button"
+        className="pagination-nav"
+        disabled={disabled || current === total}
+        onClick={() => go(current + 1)}
+      >
+        {compact ? "" : "ถัดไป"} →
+      </button>
+    </nav>
+  );
+}
+
 export function SearchableSelect({
   options: staticOptions = [],
   onSearch,
