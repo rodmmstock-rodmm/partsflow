@@ -63,7 +63,8 @@ tbody tr:hover .sticky-action{background:#fafafa!important}
 .login-screen{background:#f8fafc!important}
 
 /* Common purple accent surfaces */
-.part-preview,.project-item.active{background:#f5f3ff!important}
+.part-preview{background:#FAFAFC!important}
+.project-item.active{background:#f5f3ff!important}
 .part-preview small,.project-item.active,.project-item.active span{color:#6d28d9!important}
 .project-item{background:#f8fafc!important;color:#475569!important}
 .project-item:hover{background:#faf5ff!important;color:#6d28d9!important}
