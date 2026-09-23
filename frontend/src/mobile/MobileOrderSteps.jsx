@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { apiDelete, apiGet, apiPost } from "../api";
 import { useAuth } from "../auth";
 import { Alert, fmt, money } from "../components/Common";
+import { useFeedback } from "../feedback";
 import {
   OrderInfoModal,
   ProjectModal,
@@ -27,6 +28,7 @@ const QUOTATION_STAGE = {
 
 export default function MobileOrderSteps() {
   const auth = useAuth();
+  const { confirm } = useFeedback();
   const [dept, setDept] = useState("MODIFY");
   const [phase, setPhase] = useState("quotation");
   const [projects, setProjects] = useState([]);
@@ -135,7 +137,12 @@ export default function MobileOrderSteps() {
   }
 
   async function deleteStep(step) {
-    if (!window.confirm(`ยืนยันลบ Step ${step.step_no}?`)) return;
+    const ok = await confirm(`ยืนยันลบ Step ${step.step_no}?`, {
+      title: "ยืนยันการลบ",
+      confirmLabel: "ลบ",
+      danger: true,
+    });
+    if (!ok) return;
     try {
       await apiDelete(`/order-projects/${selected.id}/steps/${step.id}/`);
       await load(true);
@@ -145,7 +152,13 @@ export default function MobileOrderSteps() {
   }
 
   async function deleteProject() {
-    if (!selected || !window.confirm(`ยืนยันลบ Project ${selected.name}?`)) {
+    if (!selected) return;
+    const ok = await confirm(`ยืนยันลบ Project ${selected.name}?`, {
+      title: "ยืนยันการลบ",
+      confirmLabel: "ลบ",
+      danger: true,
+    });
+    if (!ok) {
       return;
     }
     try {

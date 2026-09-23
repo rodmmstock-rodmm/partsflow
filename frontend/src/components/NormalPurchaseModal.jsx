@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { apiDelete, apiGet, apiPatch, apiPost } from "../api";
 import { Alert, Modal, SearchableSelect, money } from "./Common";
+import { useFeedback } from "../feedback";
 
 function displayOrderStatus(order) {
   if (order?.lifecycle_status === "WAIT_CONFIRM") return "Wait Confirm Order";
@@ -27,6 +28,7 @@ function formatAddedAt(value) {
 }
 
 export default function NormalPurchaseModal({ order, options, onClose, onChanged }) {
+  const { confirm } = useFeedback();
   const [local, setLocal] = useState({ ...order });
   const [error, setError] = useState("");
   const [busy, setBusy] = useState("");
@@ -102,7 +104,11 @@ export default function NormalPurchaseModal({ order, options, onClose, onChanged
   }
 
   async function removeQuotationVendor(row) {
-    if (!window.confirm(`นำ ${row.vendor_code} · ${row.vendor_name} ออกจาก Order Quotation นี้?`)) return;
+    const ok = await confirm(
+      `นำ ${row.vendor_code} · ${row.vendor_name} ออกจาก Order Quotation นี้?`,
+      { confirmLabel: "นำออก", danger: true }
+    );
+    if (!ok) return;
     setQuotationBusy(true);
     setError("");
     try {
@@ -144,9 +150,11 @@ export default function NormalPurchaseModal({ order, options, onClose, onChanged
     const label = savedVendor
       ? vendorLabel(savedVendor)
       : [local.vendor_code, local.vendor_name].filter(Boolean).join(" · ") || "Vendor ที่เลือก";
-    if (!window.confirm(
-      `ลบ ${label} ออกจาก VENDOR ORDER?\n\nVendor รายนี้จะยังอยู่ใน ORDER QUOTATION`
-    )) return;
+    const ok = await confirm(
+      `ลบ ${label} ออกจาก VENDOR ORDER?\n\nVendor รายนี้จะยังอยู่ใน ORDER QUOTATION`,
+      { confirmLabel: "นำออก", danger: true }
+    );
+    if (!ok) return;
     await saveField("vendor", { vendor_id: "" });
   }
   const hasPrice = Number(local.price_per_unit || 0) > 0;

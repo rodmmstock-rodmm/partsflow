@@ -3,6 +3,7 @@ import { apiDelete, apiGet } from "../api";
 import { useAuth } from "../auth";
 import { Alert, fmt } from "../components/Common";
 import { EditHistory } from "../pages/History";
+import { useFeedback } from "../feedback";
 import { MobileEmpty, MobileLoading, MobilePage, MobileSearch } from "./MobileCommon";
 
 const MONTHS = ["ม.ค.", "ก.พ.", "มี.ค.", "เม.ย.", "พ.ค.", "มิ.ย.", "ก.ค.", "ส.ค.", "ก.ย.", "ต.ค.", "พ.ย.", "ธ.ค."];
@@ -18,6 +19,7 @@ function monthRange(year, month) {
 
 export default function MobileHistory() {
   const auth = useAuth();
+  const { confirm } = useFeedback();
   const now = new Date();
   const [year, setYear] = useState(now.getFullYear());
   const [month, setMonth] = useState(now.getMonth());
@@ -78,7 +80,12 @@ export default function MobileHistory() {
   useEffect(() => { load(); }, [type, page, search, range.from, range.to]);
 
   async function remove(row) {
-    if (!confirm(`ยืนยันลบ/ยกเลิกรายการ ${row.item_id}?`)) return;
+    const ok = await confirm(`ยืนยันลบ/ยกเลิกรายการ ${row.item_id}?`, {
+      title: "ยืนยันการลบ",
+      confirmLabel: "ลบ",
+      danger: true,
+    });
+    if (!ok) return;
     try {
       await apiDelete(`/history/${row.id}/delete/`);
       if (page !== 1) setPage(1);

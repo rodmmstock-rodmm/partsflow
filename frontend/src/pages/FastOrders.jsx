@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { apiDelete, apiGet, apiPatch, apiPost } from "../api";
 import { useAuth } from "../auth";
 import { Alert, Modal, PageHeader, SearchableSelect, fmt } from "../components/Common";
+import { useFeedback } from "../feedback";
 
 const blank = {
   name: "",
@@ -231,6 +232,7 @@ function QuickOrderModal({ row, onClose, onSaved }) {
 
 export default function FastOrders() {
   const auth = useAuth();
+  const { confirm } = useFeedback();
   const [rows, setRows] = useState([]);
   const [q, setQ] = useState("");
   const [error, setError] = useState("");
@@ -267,7 +269,12 @@ export default function FastOrders() {
   }, [rows, q]);
 
   async function remove(row) {
-    if (!window.confirm(`ปิด Fast Order ${row.item_id} ?`)) return;
+    const ok = await confirm(`ปิด Fast Order ${row.item_id} ?`, {
+      title: "ยืนยันการปิด",
+      confirmLabel: "ปิด",
+      danger: true,
+    });
+    if (!ok) return;
     try {
       await apiDelete(`/fast-orders/${row.id}/`);
       await load();

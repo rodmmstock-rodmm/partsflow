@@ -3,6 +3,7 @@ import * as XLSX from "xlsx";
 import { apiDelete, apiGet, apiPatch, apiPost } from "../api";
 import { useAuth } from "../auth";
 import { Alert, Breadcrumb, Modal, PageHeader, SearchableSelect, fmt, formatDMY, money } from "../components/Common";
+import { useFeedback } from "../feedback";
 import RFQComposeModal from "../components/RFQComposeModal";
 import { useOptions } from "../optionsContext";
 
@@ -2319,6 +2320,7 @@ function readCell(row, ...aliases) {
 
 export default function Orders({ mode = "orders" }) {
   const auth = useAuth();
+  const { confirm } = useFeedback();
   const stepPage = mode === "steps";
   const [tab, setTab] = useState(stepPage ? "step" : "normal");
   const { options } = useOptions();
@@ -2554,11 +2556,12 @@ export default function Orders({ mode = "orders" }) {
       delete: "ลบ",
     };
 
-    if (
-      !window.confirm(
-        `ยืนยัน ${labels[action]} จำนวน ${targets.length} รายการ?`
-      )
-    ) {
+    const isDanger = action === "cancel" || action === "delete";
+    const ok = await confirm(
+      `ยืนยัน ${labels[action]} จำนวน ${targets.length} รายการ?`,
+      { confirmLabel: labels[action], danger: isDanger }
+    );
+    if (!ok) {
       return;
     }
 
@@ -2621,7 +2624,8 @@ export default function Orders({ mode = "orders" }) {
         : order.edit_data_status === "รออัพเดต Wait for Item"
           ? "Update รอของมาแล้ว"
           : "Update รับของเรียบร้อยแล้ว";
-    if (!window.confirm(`${label} ?`)) return;
+    const ok = await confirm(`${label} ?`, { confirmLabel: "ยืนยัน" });
+    if (!ok) return;
     try {
       await apiPost(`/orders/${order.id}/update-data/`, {});
       await refresh();
@@ -2673,12 +2677,12 @@ export default function Orders({ mode = "orders" }) {
   }
 
   async function restoreOrder(order) {
-    if (
-      !window.confirm(
-        `กู้คืน Order ${order.order_number} กลับมาใช้งาน ?\n` +
-          `Order จะกลับไปแสดงในแท็บสถานะเดิมของมันตามปกติ`
-      )
-    )
+    const ok = await confirm(
+      `กู้คืน Order ${order.order_number} กลับมาใช้งาน ?\n` +
+        `Order จะกลับไปแสดงในแท็บสถานะเดิมของมันตามปกติ`,
+      { confirmLabel: "กู้คืน" }
+    );
+    if (!ok)
       return;
     setRestoringId(order.id);
     setError("");
@@ -2760,11 +2764,11 @@ export default function Orders({ mode = "orders" }) {
 
   async function confirmStep(step) {
     if (!selectedProject || !step) return;
-    if (
-      !window.confirm(
-        `ยืนยันว่าราคาที่ได้โอเค ให้เริ่มสั่งซื้อ Step ${step.step_no} ได้เลยใช่ไหม?`
-      )
-    )
+    const ok = await confirm(
+      `ยืนยันว่าราคาที่ได้โอเค ให้เริ่มสั่งซื้อ Step ${step.step_no} ได้เลยใช่ไหม?`,
+      { confirmLabel: "ยืนยัน" }
+    );
+    if (!ok)
       return;
     setError("");
     try {
@@ -2780,12 +2784,12 @@ export default function Orders({ mode = "orders" }) {
 
   async function deleteStep(step) {
     if (!selectedProject || !step) return;
-    if (
-      !window.confirm(
-        `ยืนยันลบ Step ${step.step_no}?\n\n` +
-          `Step ที่ยังมี Order อยู่จะไม่สามารถลบได้`
-      )
-    ) {
+    const ok = await confirm(
+      `ยืนยันลบ Step ${step.step_no}?\n\n` +
+        `Step ที่ยังมี Order อยู่จะไม่สามารถลบได้`,
+      { title: "ยืนยันการลบ", confirmLabel: "ลบ", danger: true }
+    );
+    if (!ok) {
       return;
     }
 
@@ -3060,14 +3064,14 @@ export default function Orders({ mode = "orders" }) {
 
       const replaceCount = normalized.filter((r) => r.order_number).length;
       const newCount = normalized.length - replaceCount;
-      if (
-        !window.confirm(
-          `พบ ${normalized.length} แถวในไฟล์\n` +
-            `- ${replaceCount} แถวมี ORDER NUMBER ตรงกับ Order เดิม จะลบของเดิมแล้วแทนที่ด้วยข้อมูลใหม่\n` +
-            `- ${newCount} แถวไม่มี ORDER NUMBER ตรงกับของเดิม จะสร้างเป็น Order ใหม่\n\n` +
-            `การลบของเดิมไม่สามารถย้อนกลับได้ ยืนยันการ Import ?`
-        )
-      ) {
+      const ok = await confirm(
+        `พบ ${normalized.length} แถวในไฟล์\n` +
+          `- ${replaceCount} แถวมี ORDER NUMBER ตรงกับ Order เดิม จะลบของเดิมแล้วแทนที่ด้วยข้อมูลใหม่\n` +
+          `- ${newCount} แถวไม่มี ORDER NUMBER ตรงกับของเดิม จะสร้างเป็น Order ใหม่\n\n` +
+          `การลบของเดิมไม่สามารถย้อนกลับได้ ยืนยันการ Import ?`,
+        { title: "ยืนยันการ Import", confirmLabel: "Import", danger: true }
+      );
+      if (!ok) {
         return;
       }
 
@@ -3174,12 +3178,12 @@ export default function Orders({ mode = "orders" }) {
   async function deleteProject() {
     if (!selectedProject) return;
 
-    if (
-      !window.confirm(
-        `ยืนยันลบ Project "${selectedProject.name}" ?\n\n` +
-          `Project จะหายจาก Order Step และ Order ของ Project นี้จะถูกซ่อนออกจากหน้า Order`
-      )
-    ) {
+    const ok = await confirm(
+      `ยืนยันลบ Project "${selectedProject.name}" ?\n\n` +
+        `Project จะหายจาก Order Step และ Order ของ Project นี้จะถูกซ่อนออกจากหน้า Order`,
+      { title: "ยืนยันการลบ", confirmLabel: "ลบ", danger: true }
+    );
+    if (!ok) {
       return;
     }
 

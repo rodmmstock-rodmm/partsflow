@@ -3,6 +3,7 @@ import * as XLSX from "xlsx";
 import { apiDelete, apiGet, apiPost } from "../api";
 import { useAuth } from "../auth";
 import { Alert, PageHeader, fmt, formatDMY } from "../components/Common";
+import { useFeedback } from "../feedback";
 import MultiMachineOrderInfoModal from "../components/MultiMachineOrderInfoModal";
 import NormalPurchaseModal from "../components/NormalPurchaseModal";
 import { useOptions } from "../optionsContext";
@@ -178,6 +179,7 @@ function BulkBar({ rows, auth, busy, onRun, onClear }){
 
 export default function OrdersV2(){
   const auth=useAuth();
+  const {confirm}=useFeedback();
   const {options}=useOptions();
   const now=new Date();
   const [tab,setTab]=useState("normal");
@@ -235,7 +237,8 @@ export default function OrdersV2(){
   async function runBulk(action){
     const list=targets(action); if(!list.length){setError("รายการที่เลือกไม่มีรายการที่รองรับ Action นี้");return;}
     const labels={wait_confirm:"เปลี่ยนเป็น Wait Confirm",cancel_wait_confirm:"ยกเลิก Wait Confirm",receive:"รับของ",cancel:"ยกเลิก Order",restore:"คืนรายการ",delete:"ลบ"};
-    if(!window.confirm(`ยืนยัน ${labels[action]} ${list.length} รายการ?`)) return;
+    const bulkOk=await confirm(`ยืนยัน ${labels[action]} ${list.length} รายการ?`,{confirmLabel:labels[action],danger:action==="cancel"||action==="delete"});
+    if(!bulkOk) return;
     let waitConfirmRemark="";
     if(action==="wait_confirm"){
       const input=window.prompt(`Remark สำหรับการเปลี่ยนเป็น Wait Confirm ${list.length} รายการ (ไม่บังคับ)`,"");
@@ -257,11 +260,13 @@ export default function OrdersV2(){
     setBulkBusy(false); setSelected(new Set()); await load(true);
   }
   async function restoreOrder(order){
-    if(!window.confirm(`กู้คืน Order ${order.order_number}?`)) return;
+    const ok=await confirm(`กู้คืน Order ${order.order_number}?`,{confirmLabel:"กู้คืน"});
+    if(!ok) return;
     try{await apiPost(`/orders/${order.id}/restore/`,{});await load(true);}catch(e){setError(e.message);}
   }
   async function permanentDeleteOrder(order){
-    if(!window.confirm(`ลบ Order ${order.order_number} ออกจากฐานข้อมูลถาวร?\n\nการกระทำนี้ไม่สามารถกู้คืนได้`)) return;
+    const ok=await confirm(`ลบ Order ${order.order_number} ออกจากฐานข้อมูลถาวร?\n\nการกระทำนี้ไม่สามารถกู้คืนได้`,{title:"ยืนยันการลบถาวร",confirmLabel:"ลบถาวร",danger:true});
+    if(!ok) return;
     const typed=window.prompt(`เพื่อยืนยันอีกครั้ง กรุณาพิมพ์ Order Number\n${order.order_number}`,"");
     if(typed===null) return;
     if(String(typed).trim()!==String(order.order_number||"").trim()){
@@ -275,7 +280,8 @@ export default function OrdersV2(){
     }catch(e){setError(e.message);}
   }
   async function updateData(order){
-    if(!window.confirm(`ยืนยันอัปเดตข้อมูล ${order.order_number}?`)) return;
+    const ok=await confirm(`ยืนยันอัปเดตข้อมูล ${order.order_number}?`,{confirmLabel:"อัปเดต"});
+    if(!ok) return;
     try{await apiPost(`/orders/${order.id}/update-data/`,{});await load(true);}catch(e){setError(e.message);}
   }
 
@@ -342,7 +348,8 @@ export default function OrdersV2(){
         order_number:cell(r,"ORDER NUMBER","ORDER NO"),date:excelDate(cell(r,"DATE","ORDER DATE")),factory:String(cell(r,"FACTORY","WAREHOUSE")||"Phase4").toLowerCase().includes("11")?"MM-11":"MM-4",machine:cell(r,"MACHINE NAME","MACHINE","M/C"),job:cell(r,"JOB"),urgent_status:cell(r,"URGENT STATUS","สถานะงานด่วน"),pending_data_date:excelDate(cell(r,"PENDING DATA DATE","วันที่งานค้าง")),item_id:cell(r,"PART ID","ITEM ID","ITEM","PART NO"),part_name:cell(r,"PART NAME"),part_detail:cell(r,"PART DETAIL","DESCRIPTION"),maker:cell(r,"MAKER","MANUFACTURER"),amount:cell(r,"AMOUNT","QTY","QUANTITY")||0,unit:cell(r,"UNIT"),remark:cell(r,"REMARK","NOTE"),ordered_by:cell(r,"ORDERED BY","ORDER BY"),quotation:cell(r,"QUOTATION","QUOTE"),po_number:cell(r,"PO NUMBER","PO NO","PO"),price_per_unit:cell(r,"PRICE PER UNIT","UNIT PRICE"),currency:cell(r,"CURRENCY")||"THB",vendor_order:cell(r,"VENDOR ORDER","VENDOR","SUPPLIER"),lead_time_days:cell(r,"LEAD TIME","LEAD TIME DAYS"),issue_pr_date:excelDate(cell(r,"ISSUE PR DATE","PR DATE")),due_date:excelDate(cell(r,"DUE DATE")),vendor_confirm_date:excelDate(cell(r,"VENDOR CONFIRM DATE","CONFIRM DATE")),person_in_charge:cell(r,"PERSON IN CHARGE OF ORDER","PERSON IN CHARGE","PIC")
       })).filter(r=>Object.values(r).some(v=>String(v||"").trim()!==""));
       if(!normalized.length) throw new Error("ไม่มีข้อมูลสำหรับ Import");
-      if(!window.confirm(`พบ ${normalized.length} แถว ยืนยัน Import?`)) return;
+      const ok=await confirm(`พบ ${normalized.length} แถว ยืนยัน Import?`,{confirmLabel:"Import"});
+      if(!ok) return;
       const result=await apiPost("/orders/import/",{filename:file.name,rows:normalized});
       setError(`Import สำเร็จ ${result.created||0} · แทนที่ ${result.replaced||0}${result.errors?.length?` · ข้าม ${result.errors.length}`:""}`);
       await load(true);

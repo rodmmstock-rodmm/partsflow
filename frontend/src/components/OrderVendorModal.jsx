@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { apiDelete, apiGet, apiPost } from "../api";
 import { Alert, Modal, SearchableSelect } from "./Common";
+import { useFeedback } from "../feedback";
 
 function vendorLabel(vendor) {
   if (!vendor) return "";
@@ -22,6 +23,7 @@ function formatAddedAt(value) {
 }
 
 export default function OrderVendorModal({ order, options, onClose, onChanged }) {
+  const { confirm } = useFeedback();
   const [rows, setRows] = useState([]);
   const [vendorId, setVendorId] = useState("");
   const [loading, setLoading] = useState(true);
@@ -70,7 +72,11 @@ export default function OrderVendorModal({ order, options, onClose, onChanged })
   }
 
   async function removeVendor(row) {
-    if (!window.confirm(`นำ ${row.vendor_code} · ${row.vendor_name} ออกจาก Order นี้?`)) return;
+    const ok = await confirm(`นำ ${row.vendor_code} · ${row.vendor_name} ออกจาก Order นี้?`, {
+      confirmLabel: "นำออก",
+      danger: true,
+    });
+    if (!ok) return;
     setBusy(true);
     setError("");
     try {

@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { apiDelete, apiGet, apiPost } from "../api";
 import { useAuth } from "../auth";
 import { Alert, fmt, formatDMY } from "../components/Common";
+import { useFeedback } from "../feedback";
 import MultiMachineOrderInfoModal from "../components/MultiMachineOrderInfoModal";
 import NormalPurchaseModal from "../components/NormalPurchaseModal";
 import RFQComposeModal from "../components/RFQComposeModal";
@@ -45,6 +46,7 @@ function isAdmin(employee) {
 
 export default function MobileOrders() {
   const auth = useAuth();
+  const { confirm } = useFeedback();
   const now = new Date();
   const [year, setYear] = useState(now.getFullYear());
   const [month, setMonth] = useState(now.getMonth());
@@ -136,9 +138,9 @@ export default function MobileOrders() {
     let ok = true;
     let reason = "";
     let waitConfirmRemark = "";
-    if (action === "receive") ok = confirm(`ยืนยันรับ ${row.order_number}?`);
+    if (action === "receive") ok = await confirm(`ยืนยันรับ ${row.order_number}?`, { confirmLabel: "รับของ" });
     if (action === "wait") {
-      ok = confirm(`เปลี่ยน ${row.order_number} เป็น Wait Confirm?`);
+      ok = await confirm(`เปลี่ยน ${row.order_number} เป็น Wait Confirm?`, { confirmLabel: "ยืนยัน" });
       if (ok) {
         const input = prompt(
           "Remark สำหรับการเปลี่ยนเป็น Wait Confirm (ไม่บังคับ)",
@@ -152,15 +154,15 @@ export default function MobileOrders() {
         }
       }
     }
-    if (action === "cancelwait") ok = confirm(`ยกเลิก Wait Confirm ${row.order_number}?`);
+    if (action === "cancelwait") ok = await confirm(`ยกเลิก Wait Confirm ${row.order_number}?`, { confirmLabel: "ยกเลิก", danger: true });
     if (action === "cancel") {
-      ok = confirm(`ยกเลิก ${row.order_number}?`);
+      ok = await confirm(`ยกเลิก ${row.order_number}?`, { confirmLabel: "ยกเลิก", danger: true });
       if (ok) reason = prompt("เหตุผลการยกเลิก", "") || "";
     }
-    if (action === "restore") ok = confirm(`คืนรายการ ${row.order_number}?`);
-    if (action === "restore_deleted") ok = confirm(`กู้คืน ${row.order_number}?`);
-    if (action === "delete") ok = confirm(`ลบ ${row.order_number} ถาวร?`);
-    if (action === "update") ok = confirm(`ยืนยันอัปเดตข้อมูล ${row.order_number}?`);
+    if (action === "restore") ok = await confirm(`คืนรายการ ${row.order_number}?`, { confirmLabel: "คืนรายการ" });
+    if (action === "restore_deleted") ok = await confirm(`กู้คืน ${row.order_number}?`, { confirmLabel: "กู้คืน" });
+    if (action === "delete") ok = await confirm(`ลบ ${row.order_number} ถาวร?`, { title: "ยืนยันการลบ", confirmLabel: "ลบ", danger: true });
+    if (action === "update") ok = await confirm(`ยืนยันอัปเดตข้อมูล ${row.order_number}?`, { confirmLabel: "อัปเดต" });
     if (!ok) return;
 
     setBusy(row.id + action);

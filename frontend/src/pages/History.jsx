@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { apiDelete, apiGet, apiPatch } from "../api";
 import { useAuth } from "../auth";
 import { Alert, Modal, PageHeader, SearchableSelect, fmt } from "../components/Common";
+import { useFeedback } from "../feedback";
 import { useOptions } from "../optionsContext";
 
 const MONTHS_TH = [
@@ -119,6 +120,7 @@ function HistoryTable({ rows, auth, onEdit, onDelete }) {
 
 export default function History() {
   const auth = useAuth();
+  const { confirm } = useFeedback();
   const { options } = useOptions();
   const now = new Date();
   const [year, setYear] = useState(now.getFullYear());
@@ -181,7 +183,12 @@ export default function History() {
   }
 
   async function remove(row) {
-    if (!confirm(`ยืนยันลบ/ยกเลิกรายการ ${row.item_id} ?`)) return;
+    const ok = await confirm(`ยืนยันลบ/ยกเลิกรายการ ${row.item_id} ?`, {
+      title: "ยืนยันการลบ",
+      confirmLabel: "ลบ",
+      danger: true,
+    });
+    if (!ok) return;
     try {
       await apiDelete(`/history/${row.id}/delete/`);
       if (page !== 1) setPage(1);

@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { apiDelete, apiGet, apiPatch, apiPost } from "../api";
 import { useAuth } from "../auth";
 import { Alert, Modal, PageHeader } from "../components/Common";
+import { useFeedback } from "../feedback";
 
 function ContactRow({ contact, canEdit, onSave, onRemove }) {
   const [form, setForm] = useState(contact);
@@ -63,6 +64,7 @@ function ContactRow({ contact, canEdit, onSave, onRemove }) {
 
 export function VendorModal({ row, onClose, onSaved }) {
   const auth = useAuth();
+  const { confirm } = useFeedback();
   const [form, setForm] = useState(
     row || { code: "", name: "", contact: "", phone: "", email: "", remark: "", active: true }
   );
@@ -119,7 +121,12 @@ export function VendorModal({ row, onClose, onSaved }) {
 
   async function removeContact(contactId) {
     if (!row) return;
-    if (!window.confirm("ลบ Contact นี้?")) return;
+    const ok = await confirm("ลบ Contact นี้?", {
+      title: "ยืนยันการลบ",
+      confirmLabel: "ลบ",
+      danger: true,
+    });
+    if (!ok) return;
     setError("");
     try {
       const updated = await apiDelete(`/suppliers/${row.id}/contacts/${contactId}/`);
@@ -204,6 +211,7 @@ export function VendorModal({ row, onClose, onSaved }) {
 
 export default function Vendors() {
   const auth = useAuth();
+  const { confirm } = useFeedback();
   const [rows, setRows] = useState([]);
   const [q, setQ] = useState("");
   const [error, setError] = useState("");
@@ -228,7 +236,12 @@ export default function Vendors() {
   );
 
   async function remove(x) {
-    if (!window.confirm(`ยืนยันลบ Vendor ${x.code}?`)) return;
+    const ok = await confirm(`ยืนยันลบ Vendor ${x.code}?`, {
+      title: "ยืนยันการลบ",
+      confirmLabel: "ลบ",
+      danger: true,
+    });
+    if (!ok) return;
     try {
       await apiDelete(`/suppliers/${x.id}/`);
       load();
