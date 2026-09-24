@@ -30,6 +30,7 @@ PERMISSION_FIELDS = [
     "can_delete_order",
     "can_update_edit_data",
     "can_manage_order_projects",
+    "can_view_order_step",
     "can_confirm_order_step",
     "can_create_order_from_quotation",
     "can_view_deleted_orders",
