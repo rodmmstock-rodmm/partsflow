@@ -1071,6 +1071,7 @@ function OrderTable({
             <th>TIMELINE</th>
             <th>NOTE</th>
             <th>STATUS</th>
+            <th>REMARK</th>
             {onUsage && <th>ใช้/ไม่ได้ใช้</th>}
           </tr>
         </thead>
@@ -1081,7 +1082,7 @@ function OrderTable({
             return (
               <tr
                 key={o.id}
-                style={selectedRow ? { background: "#F3DFCF" } : undefined}
+                style={selectedRow ? { background: "#f5f3ff" } : undefined}
               >
                 <td className="sticky-action">
                   <div
@@ -1432,6 +1433,14 @@ function OrderTable({
                   </div>
                 </td>
 
+                <td style={{ minWidth: 160 }}>
+                  {o.lifecycle_status === "WAIT_CONFIRM"
+                    ? o.wait_confirm_remark || "-"
+                    : o.lifecycle_status === "CANCELLED"
+                      ? o.cancel_reason || "-"
+                      : o.remark || "-"}
+                </td>
+
                 {onUsage && (
                   <td>
                     <select
@@ -1491,6 +1500,7 @@ function MinimalStepOrderTable({
             <th>QTY</th>
             <th>VENDOR / ราคา</th>
             <th>STATUS</th>
+            <th>REMARK</th>
             <th></th>
           </tr>
         </thead>
@@ -1525,6 +1535,13 @@ function MinimalStepOrderTable({
                 <span className={`status ${statusClass(displayOrderStatus(o))}`}>
                   {displayOrderStatus(o)}
                 </span>
+              </td>
+              <td className="stack-sub">
+                {o.lifecycle_status === "WAIT_CONFIRM"
+                  ? o.wait_confirm_remark || "-"
+                  : o.lifecycle_status === "CANCELLED"
+                    ? o.cancel_reason || "-"
+                    : o.remark || "-"}
               </td>
               <td>
                 <div className="row-actions">
@@ -1595,7 +1612,7 @@ function QuotationTable({
             return (
               <tr
                 key={row.id}
-                style={selected.has(row.id) ? { background: "#F3DFCF" } : undefined}
+                style={selected.has(row.id) ? { background: "#f5f3ff" } : undefined}
               >
                 <td className="sticky-action">
                   <div style={{ display: "flex", gap: 7, alignItems: "center", marginBottom: 6 }}>
@@ -2033,9 +2050,9 @@ function BulkActions({ rows, auth, busy, onRun, onClear, onRfq }) {
       style={{
         padding: 10,
         marginBottom: 12,
-        border: "1px solid #F3DFCF",
+        border: "1px solid #f5f3ff",
         borderRadius: 12,
-        background: "#F3DFCF",
+        background: "#f5f3ff",
       }}
     >
       <strong style={{ fontSize: 11, marginRight: 4 }}>
@@ -2144,7 +2161,7 @@ function QuotationBulkActions({
         marginBottom: 12,
         border: "1px solid #E8B896",
         borderRadius: 12,
-        background: "#F3DFCF",
+        background: "#f5f3ff",
       }}
     >
       <strong style={{ fontSize: 11, marginRight: 4 }}>
@@ -2566,7 +2583,12 @@ export default function Orders({ mode = "orders" }) {
     }
 
     if (action === "cancel") {
-      reason = window.prompt("เหตุผลการยกเลิก (ไม่บังคับ)", "") ?? "";
+      const input = await promptText("เหตุผลการยกเลิก Order", {
+        title: "ยกเลิก Order",
+        placeholder: "ไม่บังคับกรอก",
+        confirmLabel: "ยืนยันยกเลิก",
+      });
+      reason = input ?? "";
     }
 
     let waitConfirmRemark = "";
@@ -3317,7 +3339,7 @@ export default function Orders({ mode = "orders" }) {
             padding: "8px 12px",
             marginBottom: 10,
             border: "1px solid #E8B896",
-            background: "#F3DFCF",
+            background: "#f5f3ff",
             borderRadius: 10,
             fontSize: 13,
             color: "#7A3C17",

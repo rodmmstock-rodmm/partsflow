@@ -156,7 +156,14 @@ export default function MobileOrders() {
     if (action === "cancelwait") ok = await confirm(`ยกเลิก Wait Confirm ${row.order_number}?`, { confirmLabel: "ยกเลิก", danger: true });
     if (action === "cancel") {
       ok = await confirm(`ยกเลิก ${row.order_number}?`, { confirmLabel: "ยกเลิก", danger: true });
-      if (ok) reason = prompt("เหตุผลการยกเลิก", "") || "";
+      if (ok) {
+        const input = await promptText("เหตุผลการยกเลิก Order", {
+          title: "ยกเลิก Order",
+          placeholder: "ไม่บังคับกรอก",
+          confirmLabel: "ยืนยันยกเลิก",
+        });
+        reason = input || "";
+      }
     }
     if (action === "restore") ok = await confirm(`คืนรายการ ${row.order_number}?`, { confirmLabel: "คืนรายการ" });
     if (action === "restore_deleted") ok = await confirm(`กู้คืน ${row.order_number}?`, { confirmLabel: "กู้คืน" });

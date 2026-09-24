@@ -130,6 +130,7 @@ function CompactOrderTable({
       <th>สถานะงานด่วน</th>
       <th>วันที่ค้าง DATA</th>
       <th>สถานะการสั่ง</th>
+      <th>REMARK</th>
       <th></th>
     </tr></thead>
     <tbody>{rows.map(o=>{const s=displayStatus(o); return <tr key={o.id} className={selected.has(o.id)?"selected":""}>
@@ -142,7 +143,11 @@ function CompactOrderTable({
       <td className="pending-date-v9">{o.pending_data_date ? formatDMY(o.pending_data_date) : "-"}</td>
       <td className="order-status-v11">
         <span className={`status ${statusClass(s)}`}>{s}</span>
-        {o.lifecycle_status==="WAIT_CONFIRM"&&o.wait_confirm_remark&&<small title={o.wait_confirm_remark}>Remark: {o.wait_confirm_remark}</small>}
+      </td>
+      <td className="stack-sub">
+        {o.lifecycle_status==="WAIT_CONFIRM"?(o.wait_confirm_remark||"-")
+          :o.lifecycle_status==="CANCELLED"?(o.cancel_reason||"-")
+          :(o.remark||"-")}
       </td>
       <td className="order-actions-v9">
         <button className="mini primary" onClick={()=>onDetail(o)}>รายละเอียด</button>
@@ -245,7 +250,11 @@ export default function OrdersV2(){
       if(input===null) return;
       waitConfirmRemark=input;
     }
-    const reason=action==="cancel"?(window.prompt("เหตุผลการยกเลิก (ไม่บังคับ)","")||""):"";
+    let reason="";
+    if(action==="cancel"){
+      const input=await promptText("เหตุผลการยกเลิก Order",{title:"ยกเลิก Order",placeholder:"ไม่บังคับกรอก",confirmLabel:"ยืนยันยกเลิก"});
+      reason=input??"";
+    }
     setBulkBusy(true); setError(""); const fail=[];
     for(const o of list){try{
       if(action==="wait_confirm") await apiPost(`/orders/${o.id}/wait-confirm/`,{wait_confirm:true,wait_confirm_remark:waitConfirmRemark});
