@@ -26,6 +26,7 @@ export const PERMISSIONS = [
   ["can_cancel_order", "Cancel / Restore Order", "Order"],
   ["can_delete_order", "Delete Order", "Order"],
   ["can_update_edit_data", "Update Data Workflow", "Order"],
+  ["can_view_order_step", "ดูหน้า Order Step", "Order Step"],
   ["can_manage_order_projects", "Manage Order Project / Step", "Order Step"],
   ["can_confirm_order_step", "ยืนยันสั่งของ (Confirm Step) - สำหรับช่าง", "Order Step"],
   ["can_create_order_from_quotation", "สร้าง Order จากใบเสนอราคา", "Order Step"],
