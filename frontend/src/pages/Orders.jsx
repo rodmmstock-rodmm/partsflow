@@ -2569,6 +2569,20 @@ export default function Orders({ mode = "orders" }) {
       reason = window.prompt("เหตุผลการยกเลิก (ไม่บังคับ)", "") ?? "";
     }
 
+    let waitConfirmRemark = "";
+    if (action === "wait_confirm") {
+      const input = window.prompt(
+        `Remark สำหรับการเปลี่ยนเป็น Wait Confirm จำนวน ${targets.length} รายการ (ไม่บังคับ)`,
+        ""
+      );
+      if (input === null) return;
+      waitConfirmRemark = input.trim();
+      if (waitConfirmRemark.length > 1000) {
+        setError("Wait Confirm Remark ต้องไม่เกิน 1,000 ตัวอักษร");
+        return;
+      }
+    }
+
     setBulkBusy(true);
     setError("");
     const failures = [];
@@ -2578,6 +2592,7 @@ export default function Orders({ mode = "orders" }) {
         if (action === "wait_confirm") {
           await apiPost(`/orders/${order.id}/wait-confirm/`, {
             wait_confirm: true,
+            wait_confirm_remark: waitConfirmRemark,
           });
         } else if (action === "cancel_wait_confirm") {
           await apiPost(`/orders/${order.id}/wait-confirm/`, {

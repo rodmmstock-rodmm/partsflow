@@ -746,10 +746,49 @@ def orders(request):
     wait_confirm_count = sum(
         1 for x in active_rows if x.lifecycle_status == OrderRecord.LIFECYCLE_WAIT_CONFIRM
     )
+
+    # Month badge counts must match whichever tab (view) the person is
+    # currently looking at, not always the ACTIVE tab - otherwise the
+    # numbers next to each month look wrong while browsing Wait Confirm,
+    # Cancelled, Completed, etc. Mirror the same view->lifecycle_status
+    # filter used for the main queryset above, but scoped to the whole
+    # summary_year instead of the date_from/date_to window.
+    if view == "deleted":
+        year_qs = order_queryset().filter(is_deleted=True)
+    else:
+        year_qs = order_queryset().filter(
+            is_deleted=False,
+            procurement_phase=OrderRecord.PROCUREMENT_PURCHASE,
+        )
+    if view == "completed":
+        year_qs = year_qs.filter(lifecycle_status=OrderRecord.LIFECYCLE_COMPLETED)
+    elif view == "confirm":
+        year_qs = year_qs.filter(lifecycle_status=OrderRecord.LIFECYCLE_WAIT_CONFIRM)
+    elif view == "cancelled":
+        year_qs = year_qs.filter(lifecycle_status=OrderRecord.LIFECYCLE_CANCELLED)
+    elif view == "updates":
+        year_qs = year_qs.filter(
+            lifecycle_status=OrderRecord.LIFECYCLE_ACTIVE,
+            pending_data_date__isnull=False,
+            edit_workflow_enabled=True,
+        )
+        year_qs = year_qs.filter(
+            Q(edit_data_status=OrderRecord.EDIT_WAIT_QUOTE, status=OrderRecord.STATUS_QUOTE)
+            | Q(edit_data_status=OrderRecord.EDIT_WAIT_ITEM, status=OrderRecord.STATUS_ITEM)
+            | Q(edit_data_status=OrderRecord.EDIT_WAIT_COMPLETE, status=OrderRecord.STATUS_COMPLETE)
+        )
+    elif view == "deleted":
+        pass
+    else:
+        year_qs = year_qs.filter(
+            lifecycle_status=OrderRecord.LIFECYCLE_ACTIVE,
+        ).exclude(status=OrderRecord.STATUS_COMPLETE)
+
     monthly_active_counts = [0] * 12
-    for order in active_only_rows:
-        if order.order_date and order.order_date.year == summary_year:
-            monthly_active_counts[order.order_date.month - 1] += 1
+    date_field = "deleted_at" if view == "deleted" else "order_date"
+    for value in year_qs.values_list(date_field, flat=True):
+        if value and value.year == summary_year:
+            monthly_active_counts[value.month - 1] += 1
 
     job_core = {"REPAIR", "MODIFY", "AUTOMATION", "PM"}
     kpi = {
