@@ -46,7 +46,7 @@ function isAdmin(employee) {
 
 export default function MobileOrders() {
   const auth = useAuth();
-  const { confirm } = useFeedback();
+  const { confirm, promptText } = useFeedback();
   const now = new Date();
   const [year, setYear] = useState(now.getFullYear());
   const [month, setMonth] = useState(now.getMonth());
@@ -142,16 +142,15 @@ export default function MobileOrders() {
     if (action === "wait") {
       ok = await confirm(`เปลี่ยน ${row.order_number} เป็น Wait Confirm?`, { confirmLabel: "ยืนยัน" });
       if (ok) {
-        const input = prompt(
-          "Remark สำหรับการเปลี่ยนเป็น Wait Confirm (ไม่บังคับ)",
-          row.wait_confirm_remark || ""
-        );
+        const input = await promptText("เพิ่ม Remark สำหรับการเปลี่ยนเป็น Wait Confirm", {
+          title: "Wait Confirm Remark",
+          placeholder: "ไม่บังคับกรอก",
+          maxLength: 1000,
+          confirmLabel: "ยืนยัน Wait Confirm",
+          defaultValue: row.wait_confirm_remark || "",
+        });
         if (input === null) return;
-        waitConfirmRemark = input.trim();
-        if (waitConfirmRemark.length > 1000) {
-          setError("Wait Confirm Remark ต้องไม่เกิน 1,000 ตัวอักษร");
-          return;
-        }
+        waitConfirmRemark = input;
       }
     }
     if (action === "cancelwait") ok = await confirm(`ยกเลิก Wait Confirm ${row.order_number}?`, { confirmLabel: "ยกเลิก", danger: true });

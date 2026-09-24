@@ -1,11 +1,14 @@
-import { createContext, useCallback, useContext, useRef, useState } from "react";
+import { createContext, useCallback, useContext, useEffect, useRef, useState } from "react";
 
 const FeedbackContext = createContext(null);
 
 export function FeedbackProvider({ children }) {
   const [toasts, setToasts] = useState([]);
   const [confirmState, setConfirmState] = useState(null);
+  const [promptState, setPromptState] = useState(null);
+  const [promptValue, setPromptValue] = useState("");
   const idRef = useRef(0);
+  const promptInputRef = useRef(null);
 
   const showToast = useCallback((message, type = "success") => {
     if (!message) return;
@@ -31,8 +34,32 @@ export function FeedbackProvider({ children }) {
     setConfirmState(null);
   }
 
+  // promptText(message, options) -> Promise<string|null>
+  // null means the person cancelled; otherwise the (possibly empty) text value.
+  const promptText = useCallback((message, options = {}) => {
+    return new Promise((resolve) => {
+      setPromptValue(options.defaultValue || "");
+      setPromptState({ message, options, resolve });
+    });
+  }, []);
+
+  function resolvePrompt(value) {
+    promptState?.resolve(value);
+    setPromptState(null);
+    setPromptValue("");
+  }
+
+  useEffect(() => {
+    if (promptState && promptInputRef.current) {
+      promptInputRef.current.focus();
+    }
+  }, [promptState]);
+
+  const maxLen = promptState?.options.maxLength;
+  const overLimit = maxLen ? promptValue.length > maxLen : false;
+
   return (
-    <FeedbackContext.Provider value={{ showToast, confirm }}>
+    <FeedbackContext.Provider value={{ showToast, confirm, promptText }}>
       {children}
 
       <div className="toast-stack" aria-live="polite">
@@ -71,6 +98,47 @@ export function FeedbackProvider({ children }) {
                 autoFocus
               >
                 {confirmState.options.confirmLabel || "ยืนยัน"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {promptState && (
+        <div
+          className="confirm-overlay"
+          onClick={() => resolvePrompt(null)}
+        >
+          <div className="confirm-box prompt-box" onClick={(e) => e.stopPropagation()}>
+            {promptState.options.title && <h3>{promptState.options.title}</h3>}
+            <p>{promptState.message}</p>
+            <textarea
+              ref={promptInputRef}
+              className="prompt-textarea"
+              rows={promptState.options.rows || 3}
+              placeholder={promptState.options.placeholder || ""}
+              value={promptValue}
+              onChange={(e) => setPromptValue(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" && e.ctrlKey) resolvePrompt(promptValue.trim());
+                if (e.key === "Escape") resolvePrompt(null);
+              }}
+            />
+            {maxLen && (
+              <div className={`prompt-counter${overLimit ? " over" : ""}`}>
+                {promptValue.length} / {maxLen}
+              </div>
+            )}
+            <div className="confirm-actions">
+              <button className="btn ghost" onClick={() => resolvePrompt(null)}>
+                {promptState.options.cancelLabel || "ยกเลิก"}
+              </button>
+              <button
+                className="btn primary"
+                disabled={overLimit}
+                onClick={() => resolvePrompt(promptValue.trim())}
+              >
+                {promptState.options.confirmLabel || "ยืนยัน"}
               </button>
             </div>
           </div>

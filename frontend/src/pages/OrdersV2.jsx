@@ -179,7 +179,7 @@ function BulkBar({ rows, auth, busy, onRun, onClear }){
 
 export default function OrdersV2(){
   const auth=useAuth();
-  const {confirm}=useFeedback();
+  const {confirm,promptText}=useFeedback();
   const {options}=useOptions();
   const now=new Date();
   const [tab,setTab]=useState("normal");
@@ -241,10 +241,9 @@ export default function OrdersV2(){
     if(!bulkOk) return;
     let waitConfirmRemark="";
     if(action==="wait_confirm"){
-      const input=window.prompt(`Remark สำหรับการเปลี่ยนเป็น Wait Confirm ${list.length} รายการ (ไม่บังคับ)`,"");
+      const input=await promptText(`เพิ่ม Remark สำหรับการเปลี่ยนเป็น Wait Confirm ${list.length} รายการ`,{title:"Wait Confirm Remark",placeholder:"ไม่บังคับกรอก",maxLength:1000,confirmLabel:"ยืนยัน Wait Confirm"});
       if(input===null) return;
-      waitConfirmRemark=input.trim();
-      if(waitConfirmRemark.length>1000){setError("Wait Confirm Remark ต้องไม่เกิน 1,000 ตัวอักษร");return;}
+      waitConfirmRemark=input;
     }
     const reason=action==="cancel"?(window.prompt("เหตุผลการยกเลิก (ไม่บังคับ)","")||""):"";
     setBulkBusy(true); setError(""); const fail=[];
