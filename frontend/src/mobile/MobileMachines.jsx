@@ -10,7 +10,7 @@ export default function MobileMachines(){
   const auth=useAuth();
   const {confirm}=useFeedback();
   const[rows,setRows]=useState([]),[q,setQ]=useState(""),[loading,setLoading]=useState(true),[error,setError]=useState(""),[modal,setModal]=useState(undefined);
-  async function load(force=false){setLoading(true);setError("");try{const d=await apiGet("/machines/",{forceRefresh:force});setRows((d.results||[]).filter(x=>x.active!==false&&String(x.code||"").trim().toUpperCase()!=="COMMON"))}catch(e){setError(e.message)}finally{setLoading(false)}}
+  async function load(force=false){setLoading(true);setError("");try{const d=await apiGet("/machines/",{forceRefresh:force});setRows((d.results||[]).filter(x=>x.active!==false))}catch(e){setError(e.message)}finally{setLoading(false)}}
   useEffect(()=>{load()},[]);
   const shown=useMemo(()=>rows.filter(x=>!q||`${x.code} ${x.name} ${x.dept_code} ${x.work_code} ${x.location}`.toLowerCase().includes(q.toLowerCase())),[rows,q]);
   async function remove(x){const ok=await confirm(`ยืนยันลบ Machine ${x.code}?`,{title:"ยืนยันการลบ",confirmLabel:"ลบ",danger:true});if(!ok)return;try{await apiDelete(`/machines/${x.id}/`);await load(true)}catch(e){setError(e.message)}}
