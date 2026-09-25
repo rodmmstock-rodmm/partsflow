@@ -473,9 +473,10 @@ def resolve_part_relations(data, part=None):
     location = None
     if location_code:
         location = Location.objects.filter(code__iexact=location_code).first()
+        explicit_warehouse = data.get("warehouse")
         if location is None:
             current_wh = part.location.warehouse if part and part.location_id and part.location else ""
-            warehouse = normalize_warehouse(data.get("warehouse") or current_wh or "MM-4")
+            warehouse = normalize_warehouse(explicit_warehouse or current_wh or "MM-4")
             location = Location.objects.create(
                 code=location_code,
                 name=location_code,
@@ -484,6 +485,14 @@ def resolve_part_relations(data, part=None):
                 legacy_source="WEB",
                 legacy_id=location_code,
             )
+        elif explicit_warehouse:
+            # The person explicitly picked a warehouse for this location in
+            # the form (even though it already exists) - honour it, so a
+            # location that was mis-classified earlier can be corrected here.
+            normalized = normalize_warehouse(explicit_warehouse)
+            if location.warehouse != normalized:
+                location.warehouse = normalized
+                location.save(update_fields=["warehouse"])
     elif data.get("location_id"):
         location = Location.objects.filter(pk=data.get("location_id")).first()
 
