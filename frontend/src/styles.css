@@ -502,31 +502,56 @@
   transform:translateY(0);
 }
 
-/* ---- Order status dashboard v2: monthly pie+dropdown, per-order lookup ---- */
+
+
+/* ---- Order status dashboard v4: half-circle radial (monthly) + donut (per-order lookup) ---- */
+.order-status-panel{margin-bottom:20px}
+.page-actions select{appearance:none;-webkit-appearance:none;padding:9px 34px 9px 14px;border:1px solid var(--border);border-radius:999px;background:#fff url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="%2394a3b8" stroke-width="2"><path d="M6 9l6 6 6-6"/></svg>') no-repeat right 12px center;background-size:14px;font-size:12.5px;font-weight:500;color:var(--text);cursor:pointer;transition:.15s}
+.page-actions select:hover{border-color:var(--brand);background-color:var(--brand-soft)}
+.order-status-month-select{appearance:none;-webkit-appearance:none;padding:8px 30px 8px 12px;border:1px solid var(--border);border-radius:var(--radius-s);background:#fff url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="%2394a3b8" stroke-width="2"><path d="M6 9l6 6 6-6"/></svg>') no-repeat right 10px center;background-size:13px}
+
+/* monthly half-circle radial gauge */
+.order-status-donut-row{display:flex;gap:24px;align-items:center;justify-content:center}
+.order-status-radial-track{stroke:#F4F1FC}
+.order-status-half-block{display:flex;flex-direction:column;align-items:center;gap:14px;padding:8px 0}
+.order-status-half-wrap{position:relative}
+.order-status-half-center{position:absolute;left:0;right:0;bottom:2px;display:flex;align-items:baseline;justify-content:center;gap:8px}
+.order-status-half-num{font-family:var(--font-mono);font-size:34px;font-weight:600;line-height:1}
+.order-status-half-num.pending{color:#B7A7E8}
+.order-status-half-num.completed{color:var(--brand)}
+.order-status-half-sep{font-size:20px;color:var(--border);font-weight:300}
+.order-status-half-legend{display:flex;gap:20px}
+.order-status-half-legend-item{display:flex;align-items:center;gap:7px;font-size:12.5px;color:var(--sub)}
+.order-status-radial-dot{width:10px;height:10px;border-radius:3px;flex-shrink:0;display:inline-block}
+.order-status-radial-dot.pending{background:#E4DBFB}
+.order-status-radial-dot.completed{background:linear-gradient(135deg,var(--brand2),var(--brand))}
+.order-status-radial-total{font-size:12px;color:var(--muted)}
+.order-status-note{font-size:11px;color:var(--muted);margin:14px 0 0}
+
+/* per-order lookup: full donut (unchanged design from the previous pass) */
 .order-status-pie-wrap{position:relative;flex-shrink:0}
-.order-status-pie-center{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;pointer-events:none;text-align:center;padding:0 12px}
-.order-status-pie-center-num{font-family:var(--font-mono);font-size:26px;font-weight:600;color:var(--text)}
-.order-status-pie-center-dur{font-size:18px;font-weight:600;color:var(--text)}
-.order-status-pie-center-label{font-size:11px;color:var(--muted);margin-top:3px;max-width:130px}
-.order-status-pie-check{color:var(--success);font-size:30px}
-.order-status-month-picker{margin:16px 0}
-.order-status-month-picker label{display:flex;align-items:center;gap:10px;font-size:12px;color:var(--sub)}
-.order-status-month-picker select{min-width:220px}
-.order-status-month-detail,.order-status-lookup-body{display:flex;gap:24px;align-items:center;flex-wrap:wrap;background:#fff;border:1px solid var(--border-soft);border-radius:var(--radius-l);padding:18px}
-.order-status-month-legend,.order-status-lookup-legend{flex:1;min-width:200px;display:flex;flex-direction:column;gap:8px}
-.order-status-legend-item{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--sub);padding:4px 0}
-.order-status-legend-item.active{font-weight:600;color:var(--text)}
+.order-status-pie-wrap svg{display:block}
+.order-status-donut-hole{fill:var(--panel,#fff)}
+.order-status-pie-center{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;pointer-events:none;text-align:center;padding:0 16px}
+.order-status-pie-center-dur{font-size:19px;font-weight:600;color:var(--text);line-height:1.3}
+.order-status-pie-center-label{font-size:11px;color:var(--muted);margin-top:5px;max-width:130px;line-height:1.3}
+.order-status-pie-check{color:var(--success);font-size:34px;line-height:1}
+.order-status-legend{flex:1;min-width:220px;max-width:320px;display:flex;flex-direction:column;gap:2px}
+.order-status-legend-item{display:flex;align-items:center;gap:9px;font-size:12.5px;color:var(--sub);padding:7px 4px;border-radius:var(--radius-s)}
+.order-status-legend-item.active{font-weight:600;color:var(--text);background:var(--brand-soft)}
+.order-status-legend-dot{width:10px;height:10px;border-radius:3px;flex-shrink:0}
 .order-status-legend-text{flex:1}
 .order-status-legend-value{font-family:var(--font-mono);font-size:12px;color:var(--text)}
-.order-status-legend-total{border-top:1px solid var(--border-soft);margin-top:4px;padding-top:10px;font-weight:600;color:var(--text)}
-.order-status-note{font-size:11px;color:var(--muted);margin:8px 0 0}
-.order-status-lookup-section{margin-top:32px;padding-top:24px;border-top:1px solid var(--border-soft)}
-.order-status-lookup-section h3{margin:0 0 12px;font-size:14px;color:var(--text)}
-.order-status-lookup-search{max-width:420px;margin-bottom:16px}
-.order-status-lookup-result{margin-top:16px}
-.order-status-lookup-summary{display:flex;align-items:center;gap:10px;margin-bottom:12px}
+
+.order-status-lookup-panel{margin-top:24px}
+.order-status-lookup-search{position:relative;max-width:420px}
+.order-status-search-icon{position:absolute;left:12px;top:50%;transform:translateY(-50%);width:16px;height:16px;fill:none;stroke:var(--muted);stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;pointer-events:none;z-index:1}
+.order-status-lookup-search input{padding-left:34px}
+.order-status-lookup-hint{font-size:12px;color:var(--muted);margin:18px 4px 4px}
+.order-status-lookup-result{margin-top:20px;padding-top:20px;border-top:1px solid var(--border-soft)}
+.order-status-lookup-summary{display:flex;align-items:center;gap:10px;margin-bottom:16px}
 .order-status-lookup-ordno{font-family:var(--font-mono);font-size:12px;color:var(--muted)}
-.order-status-total-box{background:var(--brand-soft);border-radius:var(--radius-m);padding:10px 14px;margin-bottom:4px}
-.order-status-total-box small{font-size:11px;color:var(--muted);display:block}
-.order-status-total-box strong{font-size:16px;font-weight:600;color:var(--text)}
-@media(max-width:600px){.order-status-month-detail,.order-status-lookup-body{flex-direction:column;align-items:center}.order-status-month-legend,.order-status-lookup-legend{width:100%}}
+.order-status-total-box{background:var(--brand-soft);border-radius:var(--radius-m);padding:11px 14px;margin-bottom:8px}
+.order-status-total-box small{font-size:11px;color:var(--sub);display:block}
+.order-status-total-box strong{font-size:17px;font-weight:600;color:var(--text)}
+@media(max-width:600px){.order-status-donut-row{flex-direction:column}.order-status-legend{max-width:none;width:100%}}

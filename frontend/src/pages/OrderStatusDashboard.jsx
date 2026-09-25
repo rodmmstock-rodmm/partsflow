@@ -30,16 +30,60 @@ function formatDuration(seconds) {
   return parts.join(" ");
 }
 
+/* A donut: pie wedges with a solid center disc on top, so the readout in
+ * the middle always sits on one flat surface instead of straddling
+ * whichever slice colors happen to pass behind it. */
+function Donut({ size, slices, holeRatio = 0.62, gradientId, children }) {
+  const r = size / 2;
+  const cx = r;
+  const cy = r;
+  const holeR = r * holeRatio;
+  let angleStart = -90;
+  const paths = [];
+  for (const slice of slices) {
+    if (!slice.value) continue;
+    const rOuter = slice.active ? r : r * 0.92;
+    const angleEnd = angleStart + slice.angle;
+    paths.push(
+      <path
+        key={slice.key}
+        d={pieSlicePath(cx, cy, rOuter, angleStart, angleEnd)}
+        fill={slice.active && gradientId ? `url(#${gradientId})` : slice.color}
+      >
+        <title>{slice.title}</title>
+      </path>
+    );
+    angleStart = angleEnd;
+  }
+  return (
+    <div className="order-status-pie-wrap" style={{ width: size, height: size }}>
+      <svg viewBox={`0 0 ${size} ${size}`} width={size} height={size}>
+        {gradientId && (
+          <defs>
+            <linearGradient id={gradientId} x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stopColor="var(--brand, #7c3aed)" />
+              <stop offset="100%" stopColor="var(--brand2, #a78bfa)" />
+            </linearGradient>
+          </defs>
+        )}
+        {paths}
+        <circle cx={cx} cy={cy} r={holeR} className="order-status-donut-hole" />
+      </svg>
+      <div className="order-status-pie-center">{children}</div>
+    </div>
+  );
+}
+
 /* ---------------------------------------------------------------------
- * Section 1: monthly overview — one big pie + month dropdown, styled
+ * Section 1: monthly overview — one donut + month dropdown, styled
  * after the interactive-pie-chart reference (select drives which slice
  * is spotlighted and what the center readout shows).
  * ------------------------------------------------------------------- */
 
 const MONTH_SLICE_COLORS = {
-  pending: "#7c3aed",
-  completed: "#059669",
-  cancelled: "#e11d48",
+  pending: "var(--brand, #7c3aed)",
+  completed: "var(--success, #059669)",
+  cancelled: "var(--danger, #e11d48)",
 };
 const MONTH_SLICE_ORDER = ["pending", "completed", "cancelled"];
 const MONTH_SLICE_LABELS = {
@@ -48,54 +92,74 @@ const MONTH_SLICE_LABELS = {
   cancelled: "ยกเลิก",
 };
 
-function MonthlyPie({ month, size = 200 }) {
-  const total = month.total;
-  const r = size / 2;
-  const cx = r;
-  const cy = r;
-  const rBase = r * 0.72;
-  const rActive = r * 0.9;
+function arcPath(cx, cy, r, angleStart, angleEnd) {
+  const rad = (deg) => (Math.PI / 180) * deg;
+  const x1 = cx + r * Math.cos(rad(angleStart));
+  const y1 = cy + r * Math.sin(rad(angleStart));
+  const x2 = cx + r * Math.cos(rad(angleEnd));
+  const y2 = cy + r * Math.sin(rad(angleEnd));
+  const largeArc = angleEnd - angleStart >= 180 ? 1 : 0;
+  return `M ${x1} ${y1} A ${r} ${r} 0 ${largeArc} 1 ${x2} ${y2}`;
+}
+
+function HalfRadialStacked({ pending, completed, width = 260, strokeWidth = 26 }) {
+  const total = pending + completed;
+  const r = (width - strokeWidth) / 2;
+  const cx = width / 2;
+  const cy = width / 2;
+  const height = cy + strokeWidth / 2 + 4;
 
   if (!total) {
     return (
-      <div className="order-status-pie-wrap" style={{ width: size, height: size }}>
-        <div className="order-pie-empty" style={{ width: size, height: size }}>
-          ไม่มี Order เดือนนี้
-        </div>
+      <div className="order-pie-empty" style={{ width, height: width * 0.6 }}>
+        ไม่มี Order เดือนนี้
       </div>
     );
   }
 
-  let angleStart = -90;
-  const slices = [];
-  for (const key of MONTH_SLICE_ORDER) {
-    const value = month[key] || 0;
-    if (!value) continue;
-    const isActive = key === "pending";
-    const angle = Math.min((value / total) * 360, 359.999);
-    const angleEnd = angleStart + angle;
-    slices.push(
-      <path
-        key={key}
-        d={pieSlicePath(cx, cy, isActive ? rActive : rBase, angleStart, angleEnd)}
-        fill={MONTH_SLICE_COLORS[key]}
-        stroke={isActive ? "var(--surface-2, #fff)" : "none"}
-        strokeWidth={isActive ? 3 : 0}
-      >
-        <title>{`${MONTH_SLICE_LABELS[key]}: ${value}`}</title>
-      </path>
-    );
-    angleStart = angleEnd;
-  }
+  const sweep = 180;
+  const gapDeg = 5;
+  const pendingAngle = Math.max(0, (pending / total) * sweep - gapDeg);
+  const completedAngle = Math.max(0, (completed / total) * sweep - gapDeg);
+  const pendingStart = 180;
+  const pendingEnd = pendingStart + pendingAngle;
+  const completedStart = pendingEnd + gapDeg;
+  const completedEnd = completedStart + completedAngle;
 
   return (
-    <div className="order-status-pie-wrap" style={{ width: size, height: size }}>
-      <svg viewBox={`0 0 ${size} ${size}`} width={size} height={size}>
-        {slices}
+    <div className="order-status-half-wrap" style={{ width, height }}>
+      <svg viewBox={`0 0 ${width} ${height}`} width={width} height={height}>
+        <path
+          d={arcPath(cx, cy, r, 180, 360)}
+          className="order-status-radial-track"
+          strokeWidth={strokeWidth}
+          fill="none"
+        />
+        <path
+          d={arcPath(cx, cy, r, pendingStart, pendingEnd)}
+          fill="none"
+          stroke="#E4DBFB"
+          strokeWidth={strokeWidth}
+          strokeLinecap="round"
+        />
+        <path
+          d={arcPath(cx, cy, r, completedStart, completedEnd)}
+          fill="none"
+          stroke="url(#completedGrad)"
+          strokeWidth={strokeWidth}
+          strokeLinecap="round"
+        />
+        <defs>
+          <linearGradient id="completedGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+            <stop offset="0%" stopColor="var(--brand2, #a78bfa)" />
+            <stop offset="100%" stopColor="var(--brand, #7c3aed)" />
+          </linearGradient>
+        </defs>
       </svg>
-      <div className="order-status-pie-center">
-        <span className="order-status-pie-center-num">{month.pending}</span>
-        <span className="order-status-pie-center-label">Order รอของ</span>
+      <div className="order-status-half-center">
+        <span className="order-status-half-num pending">{pending}</span>
+        <span className="order-status-half-sep">/</span>
+        <span className="order-status-half-num completed">{completed}</span>
       </div>
     </div>
   );
@@ -153,66 +217,65 @@ function MonthlyStatusSection() {
       ) : data ? (
         <>
           <div className="kpi-grid three">
-            <div className="kpi-card">
-              <small>Order ทั้งปี {year}</small>
+            <div className="kpi-card info">
+              <span>Order ทั้งปี {year}</span>
               <strong>{yearTotal}</strong>
             </div>
-            <div className="kpi-card">
-              <small>Completed ทั้งปี</small>
+            <div className="kpi-card success">
+              <span>Completed ทั้งปี</span>
               <strong>{yearCompleted}</strong>
             </div>
-            <div className="kpi-card">
-              <small>ยังไม่มา (รอของทุกเดือน)</small>
+            <div className="kpi-card warning">
+              <span>ยังไม่มา (รอของทุกเดือน)</span>
               <strong>{yearPending}</strong>
             </div>
           </div>
 
-          <div className="order-status-month-picker">
-            <label>
-              <span>เลือกเดือน</span>
-              <select value={monthIdx} onChange={(e) => setMonthIdx(Number(e.target.value))}>
+          <div className="panel order-status-panel">
+            <div className="section-head">
+              <h2>ภาพรวมรายเดือน</h2>
+              <select
+                className="order-status-month-select"
+                value={monthIdx}
+                onChange={(e) => setMonthIdx(Number(e.target.value))}
+              >
                 {data.months.map((m, i) => (
                   <option key={m.month} value={i}>
                     {m.month_label} · {m.total} Order
                   </option>
                 ))}
               </select>
-            </label>
-          </div>
-
-          {selectedMonth && (
-            <div className="order-status-month-detail">
-              <MonthlyPie month={selectedMonth} />
-              <div className="order-status-month-legend">
-                {MONTH_SLICE_ORDER.map((key) => (
-                  <div className="order-status-legend-item" key={key}>
-                    <span
-                      className="order-status-legend-dot"
-                      style={{ background: MONTH_SLICE_COLORS[key] }}
-                    />
-                    <span className="order-status-legend-text">{MONTH_SLICE_LABELS[key]}</span>
-                    <span className="order-status-legend-value">{selectedMonth[key]}</span>
-                  </div>
-                ))}
-                <div className="order-status-legend-item order-status-legend-total">
-                  <span className="order-status-legend-text">รวมทั้งเดือน</span>
-                  <span className="order-status-legend-value">{selectedMonth.total}</span>
-                </div>
-              </div>
             </div>
-          )}
+
+            {selectedMonth && (
+              <div className="order-status-half-block">
+                <HalfRadialStacked pending={selectedMonth.pending} completed={selectedMonth.completed} />
+                <div className="order-status-half-legend">
+                  <span className="order-status-half-legend-item">
+                    <span className="order-status-radial-dot pending" />
+                    รอของ
+                  </span>
+                  <span className="order-status-half-legend-item">
+                    <span className="order-status-radial-dot completed" />
+                    รับของแล้ว
+                  </span>
+                </div>
+                <div className="order-status-radial-total">รวมทั้งเดือน {selectedMonth.total} Order</div>
+              </div>
+            )}
+
+            {yearCancelled > 0 && (
+              <p className="order-status-note">ยกเลิกทั้งปี {yearCancelled} Order</p>
+            )}
+          </div>
         </>
       ) : null}
-
-      {data && yearCancelled > 0 && (
-        <p className="order-status-note">ยกเลิกทั้งปี {yearCancelled} Order</p>
-      )}
     </>
   );
 }
 
 /* ---------------------------------------------------------------------
- * Section 2: look up one order — search box, pie of the 5 working
+ * Section 2: look up one order — search box, donut of the 5 working
  * stages sized by accumulated real time (all visits summed together),
  * current stage spotlighted with a live duration readout.
  * ------------------------------------------------------------------- */
@@ -224,7 +287,7 @@ const WORKING_STAGES = [
   "Wait for Item",
   "Wait Confirm",
 ];
-const WORKING_STAGE_COLORS = ["#CECBF6", "#AFA9EC", "#7F77DD", "#534AB7", "#3C3489"];
+const WORKING_STAGE_COLORS = ["#ede9fe", "#c4b5fd", "#a78bfa", "#7c3aed", "var(--warning, #d97706)"];
 
 function aggregateStages(segments) {
   const totals = {};
@@ -241,57 +304,22 @@ function aggregateStages(segments) {
   return { totals, currentLabel, currentSegSeconds };
 }
 
-function OrderDurationPie({ totals, currentLabel, size = 220 }) {
-  const total = Object.values(totals).reduce((a, b) => a + b, 0);
-  const r = size / 2;
-  const cx = r;
-  const cy = r;
-  const rBase = r * 0.71;
-  const rActive = r * 0.87;
-
-  if (!total) {
-    return (
-      <div className="order-status-pie-wrap" style={{ width: size, height: size }}>
-        <div className="order-pie-empty" style={{ width: size, height: size }}>
-          ยังไม่มีข้อมูล
-        </div>
-      </div>
-    );
-  }
-
-  let angleStart = -90;
-  const slices = [];
-  WORKING_STAGES.forEach((label, i) => {
-    const value = totals[label] || 0;
-    if (!value) return;
-    const isActive = label === currentLabel;
-    const angle = Math.min((value / total) * 360, 359.999);
-    const angleEnd = angleStart + angle;
-    slices.push(
-      <path
-        key={label}
-        d={pieSlicePath(cx, cy, isActive ? rActive : rBase, angleStart, angleEnd)}
-        fill={WORKING_STAGE_COLORS[i]}
-        stroke={isActive ? "var(--surface-2, #fff)" : "none"}
-        strokeWidth={isActive ? 3 : 0}
-      >
-        <title>{`${label}: ${formatDuration(value)}`}</title>
-      </path>
-    );
-    angleStart = angleEnd;
-  });
-
-  return (
-    <svg viewBox={`0 0 ${size} ${size}`} width={size} height={size}>
-      {slices}
-    </svg>
-  );
-}
-
 function OrderDurationDisplay({ timeline }) {
   const { totals, currentLabel, currentSegSeconds } = aggregateStages(timeline.segments);
   const total = Object.values(totals).reduce((a, b) => a + b, 0);
   const isFinal = timeline.is_final;
+  const activeLabel = isFinal ? null : currentLabel;
+
+  const slices = total
+    ? WORKING_STAGES.map((label, i) => ({
+        key: label,
+        value: totals[label] || 0,
+        angle: Math.min(((totals[label] || 0) / total) * 360, 359.999),
+        color: WORKING_STAGE_COLORS[i],
+        active: label === activeLabel,
+        title: `${label}: ${formatDuration(totals[label] || 0)}`,
+      }))
+    : [];
 
   return (
     <div className="order-status-lookup-result">
@@ -299,16 +327,17 @@ function OrderDurationDisplay({ timeline }) {
         <span className={`status ${isFinal ? "success" : "info"}`}>
           {timeline.current_stage_label}
         </span>
-        {timeline.order_number && <span className="order-status-lookup-ordno">{timeline.order_number}</span>}
+        {timeline.order_number && (
+          <span className="order-status-lookup-ordno">{timeline.order_number}</span>
+        )}
       </div>
 
-      <div className="order-status-lookup-body">
-        <div className="order-status-pie-wrap" style={{ width: 220, height: 220 }}>
-          <OrderDurationPie totals={totals} currentLabel={isFinal ? null : currentLabel} />
-          <div className="order-status-pie-center">
+      <div className="order-status-donut-row">
+        {total ? (
+          <Donut size={216} slices={slices} gradientId="orderCurrentGradient">
             {isFinal ? (
               <>
-                <span className="order-status-pie-center-num order-status-pie-check">✓</span>
+                <span className="order-status-pie-check">✓</span>
                 <span className="order-status-pie-center-label">{timeline.current_stage_label}</span>
               </>
             ) : (
@@ -317,17 +346,21 @@ function OrderDurationDisplay({ timeline }) {
                 <span className="order-status-pie-center-label">{currentLabel || "-"}</span>
               </>
             )}
+          </Donut>
+        ) : (
+          <div className="order-pie-empty" style={{ width: 216, height: 216 }}>
+            ยังไม่มีข้อมูล
           </div>
-        </div>
+        )}
 
-        <div className="order-status-lookup-legend">
+        <div className="order-status-legend">
           <div className="order-status-total-box">
             <small>รวมทั้งหมด</small>
             <strong>{formatDuration(total)}</strong>
           </div>
           {WORKING_STAGES.map((label, i) => (
             <div
-              className={`order-status-legend-item${label === currentLabel && !isFinal ? " active" : ""}`}
+              className={`order-status-legend-item${label === activeLabel ? " active" : ""}`}
               key={label}
             >
               <span className="order-status-legend-dot" style={{ background: WORKING_STAGE_COLORS[i] }} />
@@ -378,9 +411,12 @@ function OrderLookupSection() {
   }, [orderId]);
 
   return (
-    <div className="order-status-lookup-section">
-      <h3>ดูราย Order</h3>
+    <div className="panel order-status-panel order-status-lookup-panel">
+      <div className="section-head">
+        <h2>ดูราย Order</h2>
+      </div>
       <div className="order-status-lookup-search">
+        <svg className="order-status-search-icon"><use href="#ic-search" /></svg>
         <SearchableSelect
           onSearch={searchOrders}
           value={orderId}
@@ -394,6 +430,9 @@ function OrderLookupSection() {
       <Alert>{error}</Alert>
       {loading && <div className="empty">กำลังโหลด...</div>}
       {timeline && !loading && <OrderDurationDisplay timeline={timeline} />}
+      {!timeline && !loading && (
+        <p className="order-status-lookup-hint">พิมพ์เลข Order ด้านบนเพื่อดูว่าตอนนี้ค้างอยู่สถานะไหน นานแค่ไหนแล้ว</p>
+      )}
     </div>
   );
 }
