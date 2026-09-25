@@ -20,6 +20,7 @@ PERMISSION_FIELDS = [
     "can_view_safety_stock",
     "can_view_orders",
     "can_view_po_balance",
+    "can_view_order_status",
     "can_view_order_updates",
     "can_add_order",
     "can_edit_order_info",

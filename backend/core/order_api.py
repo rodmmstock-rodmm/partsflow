@@ -2977,11 +2977,20 @@ ORDER_TIMELINE_STAGE_LABELS = {
     "Wait Issue P/R": "Wait Issue P/R",
     "Wait for Item": "Wait for Item",
     "Wait Confirm": "Wait Confirm",
+    "Wait Confirm Order": "Wait Confirm",
     "Complete Order": "Complete Order",
     "CANCELLED": "ยกเลิกแล้ว",
     "DELETED": "ถูกลบ",
 }
 ORDER_TIMELINE_FINAL_STAGES = {"Complete Order", "CANCELLED", "DELETED"}
+# Wait Confirm has its own dedicated audit actions (fired at the exact
+# moment the person toggles it, or receives the order) which are more
+# precise than waiting for the generic ORDER_FIELD_UPDATE log that follows
+# ~150-200ms later. We use these as the authoritative boundary timestamps
+# for entering/leaving Wait Confirm specifically.
+ORDER_TIMELINE_WAIT_CONFIRM_ENTER_ACTIONS = {"WAIT_CONFIRM_ORDER"}
+ORDER_TIMELINE_WAIT_CONFIRM_EXIT_ACTIONS = {"CANCEL_WAIT_CONFIRM"}
+ORDER_TIMELINE_RECEIVE_ACTIONS = {"RECEIVE_ORDER"}
 
 # order.status (tracked via ORDER_FIELD_UPDATE) already stores display_status,
 # which already folds "Wait Confirm" in for us (see order_json / _snapshot
@@ -3008,6 +3017,9 @@ ORDER_TIMELINE_RELEVANT_ACTIONS = (
     | ORDER_TIMELINE_RESTORE_CANCEL_ACTIONS
     | ORDER_TIMELINE_DELETE_ACTIONS
     | ORDER_TIMELINE_RESTORE_DELETE_ACTIONS
+    | ORDER_TIMELINE_WAIT_CONFIRM_ENTER_ACTIONS
+    | ORDER_TIMELINE_WAIT_CONFIRM_EXIT_ACTIONS
+    | ORDER_TIMELINE_RECEIVE_ACTIONS
     | {"ORDER_FIELD_UPDATE"}
 )
 
@@ -3023,9 +3035,12 @@ def _order_timeline_effective_stage(snapshot):
 @api_view(["GET"])
 @permission_classes([AllowAny])
 def order_timeline(request, pk):
-    _, err = require_permission(request, "can_view_orders")
+    actor, err = require_permission(request)
     if err:
         return err
+    perms = permissions_for(actor)
+    if not (perms.get("can_view_orders") or perms.get("can_view_order_status")):
+        return Response({"detail": "คุณไม่มีสิทธิ์ใช้งานส่วนนี้"}, status=403)
 
     order = OrderRecord.objects.filter(pk=pk).first()
     if not order:
@@ -3078,6 +3093,21 @@ def order_timeline(request, pk):
             changed = True
         elif log.action in ORDER_TIMELINE_RESTORE_DELETE_ACTIONS:
             state["deleted"] = False
+            changed = True
+        elif log.action in ORDER_TIMELINE_WAIT_CONFIRM_ENTER_ACTIONS:
+            state["status_stage"] = "Wait Confirm Order"
+            changed = True
+        elif log.action in ORDER_TIMELINE_WAIT_CONFIRM_EXIT_ACTIONS:
+            # Wait Confirm is a manual overlay independent from the
+            # data-derived purchase workflow, so on exit the "real"
+            # underlying stage is whatever sync_system_fields recalculated
+            # it to right before this action was logged.
+            after_status = (log.detail or {}).get("after", {}).get("status")
+            if after_status:
+                state["status_stage"] = after_status
+                changed = True
+        elif log.action in ORDER_TIMELINE_RECEIVE_ACTIONS:
+            state["status_stage"] = "Complete Order"
             changed = True
         if changed:
             raw_events.append((log.created_at, dict(state)))
@@ -3143,22 +3173,12 @@ MONTHS_TH_SHORT = [
     "ม.ค.", "ก.พ.", "มี.ค.", "เม.ย.", "พ.ค.", "มิ.ย.",
     "ก.ค.", "ส.ค.", "ก.ย.", "ต.ค.", "พ.ย.", "ธ.ค.",
 ]
-ORDER_STATUS_DASHBOARD_SLICES = [
-    "New Order",
-    "Wait Quotation",
-    "Wait Issue P/R",
-    "Wait for Item",
-    "Wait Confirm",
-    "Complete Order",
-    "CANCELLED",
-    "DELETED",
-]
 
 
 @api_view(["GET"])
 @permission_classes([AllowAny])
 def order_status_dashboard(request):
-    _, err = require_permission(request, "can_view_orders")
+    _, err = require_permission(request, "can_view_order_status")
     if err:
         return err
 
@@ -3167,50 +3187,72 @@ def order_status_dashboard(request):
     except (TypeError, ValueError):
         return Response({"detail": "year ไม่ถูกต้อง"}, status=400)
 
+    # Deleted orders are excluded entirely - they don't belong in any of
+    # the three buckets below, and shouldn't count toward month totals.
     rows = OrderRecord.objects.filter(
         order_date__year=year,
         procurement_phase=OrderRecord.PROCUREMENT_PURCHASE,
-    ).values("order_date", "status", "lifecycle_status", "is_deleted")
+        is_deleted=False,
+    ).values("order_date", "status", "lifecycle_status")
 
-    months = {
-        m: {slice_name: 0 for slice_name in ORDER_STATUS_DASHBOARD_SLICES}
-        for m in range(1, 13)
-    }
+    months = {m: {"pending": 0, "completed": 0, "cancelled": 0} for m in range(1, 13)}
 
     for row in rows:
         month = row["order_date"].month
-        if row["is_deleted"]:
-            stage = "DELETED"
-        elif row["lifecycle_status"] == "CANCELLED":
-            stage = "CANCELLED"
+        if row["lifecycle_status"] == "CANCELLED":
+            bucket = "cancelled"
+        elif row["status"] == OrderRecord.STATUS_COMPLETE:
+            bucket = "completed"
         else:
-            stage = row["status"] or "New Order"
-        if stage not in months[month]:
-            # Any status value that doesn't map to a known slice (shouldn't
-            # normally happen) still gets counted so totals stay accurate.
-            months[month][stage] = months[month].get(stage, 0) + 1
-        else:
-            months[month][stage] += 1
+            bucket = "pending"
+        months[month][bucket] += 1
 
     result_months = []
     for m in range(1, 13):
-        counts = months[m]
-        total = sum(counts.values())
-        completed = counts.get("Complete Order", 0)
-        cancelled = counts.get("CANCELLED", 0)
-        deleted = counts.get("DELETED", 0)
+        c = months[m]
+        total = c["pending"] + c["completed"] + c["cancelled"]
         result_months.append(
             {
                 "month": m,
                 "month_label": MONTHS_TH_SHORT[m - 1],
                 "total": total,
-                "counts": counts,
-                "completed": completed,
-                "pending": max(0, total - completed - cancelled - deleted),
-                "cancelled": cancelled,
-                "deleted": deleted,
+                "pending": c["pending"],
+                "completed": c["completed"],
+                "cancelled": c["cancelled"],
             }
         )
 
     return Response({"year": year, "months": result_months})
+
+
+@api_view(["GET"])
+@permission_classes([AllowAny])
+def order_status_search(request):
+    _, err = require_permission(request, "can_view_order_status")
+    if err:
+        return err
+
+    q = str(request.GET.get("q", "")).strip()
+    if not q:
+        return Response({"results": []})
+
+    qs = (
+        OrderRecord.objects.filter(
+            is_deleted=False,
+            procurement_phase=OrderRecord.PROCUREMENT_PURCHASE,
+            order_number__icontains=q,
+        )
+        .order_by("-created_at")[:20]
+    )
+    results = [
+        {
+            "id": str(o.id),
+            "order_number": o.order_number,
+            "status": o.status,
+            "lifecycle_status": o.lifecycle_status,
+        }
+        for o in qs
+    ]
+    return Response({"results": results})
+
 
