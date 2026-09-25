@@ -14,6 +14,7 @@ from rest_framework.response import Response
 from .audit_utils import audit
 from .auth_api import permissions_for, require_permission
 from .models import (
+    AuditLog,
     Employee,
     Inventory,
     Machine,
@@ -2968,4 +2969,248 @@ def update_usage(request, pk):
     order.save(update_fields=["usage_status", "updated_at"])
     audit(actor, "UPDATE_USAGE", "OrderRecord", order.id, {"old": before, "new": status})
     return Response(order_json(order_queryset().get(pk=pk)))
+
+
+ORDER_TIMELINE_STAGE_LABELS = {
+    "New Order": "New Order",
+    "Wait Quotation": "Wait Quotation",
+    "Wait Issue P/R": "Wait Issue P/R",
+    "Wait for Item": "Wait for Item",
+    "Wait Confirm": "Wait Confirm",
+    "Complete Order": "Complete Order",
+    "CANCELLED": "ยกเลิกแล้ว",
+    "DELETED": "ถูกลบ",
+}
+ORDER_TIMELINE_FINAL_STAGES = {"Complete Order", "CANCELLED", "DELETED"}
+
+# order.status (tracked via ORDER_FIELD_UPDATE) already stores display_status,
+# which already folds "Wait Confirm" in for us (see order_json / _snapshot
+# above) - so the New/Quote/IssuePR/Item/Confirm/Complete pipeline is a
+# single field's history. CANCELLED and DELETED are tracked as separate
+# override flags on top, same as they were with the old lifecycle-based
+# version, since neither is reflected in display_status.
+ORDER_TIMELINE_CREATE_ACTIONS = {
+    "CREATE",
+    "CREATE_VIA_IMPORT",
+    "CREATE_PROJECT_ORDER",
+    "CREATE_PROJECT_QUOTATION_ITEM",
+    "CREATE_ORDER_FROM_QUOTATION",
+    "QUICK_ADD_ORDER",
+    "FAST_ORDER_TO_NORMAL",
+}
+ORDER_TIMELINE_CANCEL_ACTIONS = {"CANCEL_ORDER"}
+ORDER_TIMELINE_RESTORE_CANCEL_ACTIONS = {"RESTORE_ORDER"}
+ORDER_TIMELINE_DELETE_ACTIONS = {"SOFT_DELETE", "HARD_DELETE"}
+ORDER_TIMELINE_RESTORE_DELETE_ACTIONS = {"RESTORE"}
+ORDER_TIMELINE_RELEVANT_ACTIONS = (
+    ORDER_TIMELINE_CREATE_ACTIONS
+    | ORDER_TIMELINE_CANCEL_ACTIONS
+    | ORDER_TIMELINE_RESTORE_CANCEL_ACTIONS
+    | ORDER_TIMELINE_DELETE_ACTIONS
+    | ORDER_TIMELINE_RESTORE_DELETE_ACTIONS
+    | {"ORDER_FIELD_UPDATE"}
+)
+
+
+def _order_timeline_effective_stage(snapshot):
+    if snapshot["deleted"]:
+        return "DELETED"
+    if snapshot["cancelled"]:
+        return "CANCELLED"
+    return snapshot["status_stage"] or "New Order"
+
+
+@api_view(["GET"])
+@permission_classes([AllowAny])
+def order_timeline(request, pk):
+    _, err = require_permission(request, "can_view_orders")
+    if err:
+        return err
+
+    order = OrderRecord.objects.filter(pk=pk).first()
+    if not order:
+        return Response({"detail": "ไม่พบ Order"}, status=404)
+
+    logs = list(
+        AuditLog.objects.filter(
+            entity="OrderRecord",
+            entity_id=str(pk),
+            action__in=list(ORDER_TIMELINE_RELEVANT_ACTIONS),
+        ).order_by("created_at")
+    )
+    has_create_log = any(log.action in ORDER_TIMELINE_CREATE_ACTIONS for log in logs)
+
+    state = {"status_stage": "New Order", "cancelled": False, "deleted": False}
+    start_time = order.created_at
+    if has_create_log:
+        start_time = next(
+            log.created_at for log in logs if log.action in ORDER_TIMELINE_CREATE_ACTIONS
+        )
+    raw_events = [(start_time, dict(state))]
+
+    for log in logs:
+        if log.action in ORDER_TIMELINE_CREATE_ACTIONS:
+            continue
+        changed = False
+        if log.action == "ORDER_FIELD_UPDATE":
+            fields = (log.detail or {}).get("fields") or {}
+            if "status" in fields:
+                new_val = fields["status"].get("new")
+                if new_val:
+                    state["status_stage"] = new_val
+                    changed = True
+            if "lifecycle_status" in fields:
+                new_val = fields["lifecycle_status"].get("new")
+                if new_val == "CANCELLED" and not state["cancelled"]:
+                    state["cancelled"] = True
+                    changed = True
+                elif new_val and new_val != "CANCELLED" and state["cancelled"]:
+                    state["cancelled"] = False
+                    changed = True
+        elif log.action in ORDER_TIMELINE_CANCEL_ACTIONS:
+            state["cancelled"] = True
+            changed = True
+        elif log.action in ORDER_TIMELINE_RESTORE_CANCEL_ACTIONS:
+            state["cancelled"] = False
+            changed = True
+        elif log.action in ORDER_TIMELINE_DELETE_ACTIONS:
+            state["deleted"] = True
+            changed = True
+        elif log.action in ORDER_TIMELINE_RESTORE_DELETE_ACTIONS:
+            state["deleted"] = False
+            changed = True
+        if changed:
+            raw_events.append((log.created_at, dict(state)))
+
+    now = timezone.now()
+    stage_events = []
+    last_stage = None
+    for ts, snap in raw_events:
+        stage = _order_timeline_effective_stage(snap)
+        if stage != last_stage:
+            stage_events.append((ts, stage))
+            last_stage = stage
+
+    segments = []
+    for i, (start, stage) in enumerate(stage_events):
+        is_current = i + 1 >= len(stage_events)
+        end = now if is_current else stage_events[i + 1][0]
+        seconds = max(0.0, (end - start).total_seconds())
+        segments.append(
+            {
+                "stage": stage,
+                "stage_label": ORDER_TIMELINE_STAGE_LABELS.get(stage, stage),
+                "started_at": start.isoformat(),
+                "ended_at": None if is_current else end.isoformat(),
+                "duration_seconds": seconds,
+                "is_current": is_current,
+            }
+        )
+
+    # Reconcile the *current* stage against live fields, since the audit
+    # trail can be incomplete (e.g. an action from before this endpoint
+    # existed, or a direct DB edit).
+    live_stage = (
+        "DELETED"
+        if order.is_deleted
+        else "CANCELLED"
+        if order.lifecycle_status == "CANCELLED"
+        else (order.status or "New Order")
+    )
+    if segments and segments[-1]["stage"] != live_stage:
+        segments[-1]["stage"] = live_stage
+        segments[-1]["stage_label"] = ORDER_TIMELINE_STAGE_LABELS.get(live_stage, live_stage)
+
+    current_stage = segments[-1]["stage"] if segments else live_stage
+    total_seconds = max(0.0, (now - stage_events[0][0]).total_seconds()) if stage_events else 0.0
+
+    return Response(
+        {
+            "order_id": str(order.id),
+            "order_number": order.order_number,
+            "created_at": order.created_at.isoformat(),
+            "current_stage": current_stage,
+            "current_stage_label": ORDER_TIMELINE_STAGE_LABELS.get(current_stage, current_stage),
+            "is_final": current_stage in ORDER_TIMELINE_FINAL_STAGES,
+            "total_seconds": total_seconds,
+            "segments": segments,
+            "has_full_history": has_create_log,
+        }
+    )
+
+
+MONTHS_TH_SHORT = [
+    "ม.ค.", "ก.พ.", "มี.ค.", "เม.ย.", "พ.ค.", "มิ.ย.",
+    "ก.ค.", "ส.ค.", "ก.ย.", "ต.ค.", "พ.ย.", "ธ.ค.",
+]
+ORDER_STATUS_DASHBOARD_SLICES = [
+    "New Order",
+    "Wait Quotation",
+    "Wait Issue P/R",
+    "Wait for Item",
+    "Wait Confirm",
+    "Complete Order",
+    "CANCELLED",
+    "DELETED",
+]
+
+
+@api_view(["GET"])
+@permission_classes([AllowAny])
+def order_status_dashboard(request):
+    _, err = require_permission(request, "can_view_orders")
+    if err:
+        return err
+
+    try:
+        year = int(request.GET.get("year") or timezone.localdate().year)
+    except (TypeError, ValueError):
+        return Response({"detail": "year ไม่ถูกต้อง"}, status=400)
+
+    rows = OrderRecord.objects.filter(
+        order_date__year=year,
+        procurement_phase=OrderRecord.PROCUREMENT_PURCHASE,
+    ).values("order_date", "status", "lifecycle_status", "is_deleted")
+
+    months = {
+        m: {slice_name: 0 for slice_name in ORDER_STATUS_DASHBOARD_SLICES}
+        for m in range(1, 13)
+    }
+
+    for row in rows:
+        month = row["order_date"].month
+        if row["is_deleted"]:
+            stage = "DELETED"
+        elif row["lifecycle_status"] == "CANCELLED":
+            stage = "CANCELLED"
+        else:
+            stage = row["status"] or "New Order"
+        if stage not in months[month]:
+            # Any status value that doesn't map to a known slice (shouldn't
+            # normally happen) still gets counted so totals stay accurate.
+            months[month][stage] = months[month].get(stage, 0) + 1
+        else:
+            months[month][stage] += 1
+
+    result_months = []
+    for m in range(1, 13):
+        counts = months[m]
+        total = sum(counts.values())
+        completed = counts.get("Complete Order", 0)
+        cancelled = counts.get("CANCELLED", 0)
+        deleted = counts.get("DELETED", 0)
+        result_months.append(
+            {
+                "month": m,
+                "month_label": MONTHS_TH_SHORT[m - 1],
+                "total": total,
+                "counts": counts,
+                "completed": completed,
+                "pending": max(0, total - completed - cancelled - deleted),
+                "cancelled": cancelled,
+                "deleted": deleted,
+            }
+        )
+
+    return Response({"year": year, "months": result_months})
 
