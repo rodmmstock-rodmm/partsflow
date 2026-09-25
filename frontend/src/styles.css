@@ -501,3 +501,32 @@
 .m-kpi-row>.m-kpi-link:active{
   transform:translateY(0);
 }
+
+/* ---- Order status dashboard v2: monthly pie+dropdown, per-order lookup ---- */
+.order-status-pie-wrap{position:relative;flex-shrink:0}
+.order-status-pie-center{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;pointer-events:none;text-align:center;padding:0 12px}
+.order-status-pie-center-num{font-family:var(--font-mono);font-size:26px;font-weight:600;color:var(--text)}
+.order-status-pie-center-dur{font-size:18px;font-weight:600;color:var(--text)}
+.order-status-pie-center-label{font-size:11px;color:var(--muted);margin-top:3px;max-width:130px}
+.order-status-pie-check{color:var(--success);font-size:30px}
+.order-status-month-picker{margin:16px 0}
+.order-status-month-picker label{display:flex;align-items:center;gap:10px;font-size:12px;color:var(--sub)}
+.order-status-month-picker select{min-width:220px}
+.order-status-month-detail,.order-status-lookup-body{display:flex;gap:24px;align-items:center;flex-wrap:wrap;background:#fff;border:1px solid var(--border-soft);border-radius:var(--radius-l);padding:18px}
+.order-status-month-legend,.order-status-lookup-legend{flex:1;min-width:200px;display:flex;flex-direction:column;gap:8px}
+.order-status-legend-item{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--sub);padding:4px 0}
+.order-status-legend-item.active{font-weight:600;color:var(--text)}
+.order-status-legend-text{flex:1}
+.order-status-legend-value{font-family:var(--font-mono);font-size:12px;color:var(--text)}
+.order-status-legend-total{border-top:1px solid var(--border-soft);margin-top:4px;padding-top:10px;font-weight:600;color:var(--text)}
+.order-status-note{font-size:11px;color:var(--muted);margin:8px 0 0}
+.order-status-lookup-section{margin-top:32px;padding-top:24px;border-top:1px solid var(--border-soft)}
+.order-status-lookup-section h3{margin:0 0 12px;font-size:14px;color:var(--text)}
+.order-status-lookup-search{max-width:420px;margin-bottom:16px}
+.order-status-lookup-result{margin-top:16px}
+.order-status-lookup-summary{display:flex;align-items:center;gap:10px;margin-bottom:12px}
+.order-status-lookup-ordno{font-family:var(--font-mono);font-size:12px;color:var(--muted)}
+.order-status-total-box{background:var(--brand-soft);border-radius:var(--radius-m);padding:10px 14px;margin-bottom:4px}
+.order-status-total-box small{font-size:11px;color:var(--muted);display:block}
+.order-status-total-box strong{font-size:16px;font-weight:600;color:var(--text)}
+@media(max-width:600px){.order-status-month-detail,.order-status-lookup-body{flex-direction:column;align-items:center}.order-status-month-legend,.order-status-lookup-legend{width:100%}}

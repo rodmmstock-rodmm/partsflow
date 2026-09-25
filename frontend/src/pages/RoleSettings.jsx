@@ -17,6 +17,7 @@ export const PERMISSIONS = [
   ["can_view_safety_stock", "View Safety Stock", "Safety Stock"],
   ["can_view_orders", "View Order", "Order"],
   ["can_view_po_balance", "View PO Balance", "Order"],
+  ["can_view_order_status", "ดูหน้าสถิติ Order", "Order"],
   ["can_view_order_updates", "View Order Update List", "Order"],
   ["can_add_order", "Add Order", "Order"],
   ["can_edit_order_info", "Edit Order Information", "Order"],
