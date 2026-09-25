@@ -17,6 +17,7 @@ const blankPart = {
   supplier_id: "",
   location_id: "",
   location_code: "",
+  warehouse: "MM-4",
   image_path: "",
   min_stock: 0,
   reorder_qty: 0,
@@ -28,7 +29,11 @@ const blankPart = {
 };
 
 export function PartModal({ part, options, onClose, onSaved }) {
-  const [form, setForm] = useState(part ? { ...blankPart, ...part } : blankPart);
+  const [form, setForm] = useState(() => {
+    const merged = part ? { ...blankPart, ...part } : { ...blankPart };
+    if (merged.warehouse !== "MM-11") merged.warehouse = "MM-4";
+    return merged;
+  });
   const [partId, setPartId] = useState(part?.id || "");
   const [imageFile, setImageFile] = useState(null);
   const [previewUrl, setPreviewUrl] = useState("");
@@ -175,14 +180,26 @@ export function PartModal({ part, options, onClose, onSaved }) {
               list="location-list"
               value={form.location_code || ""}
               onChange={(e) => {
-                set("location_code", e.target.value);
+                const typed = e.target.value;
+                set("location_code", typed);
                 set("location_id", "");
+                const matched = (options.locations || []).find(
+                  (loc) => String(loc.code).toLowerCase() === typed.trim().toLowerCase()
+                );
+                if (matched) set("warehouse", matched.warehouse || "MM-4");
               }}
               placeholder="พิมพ์ Location ได้"
             />
             <datalist id="location-list">
               {(options.locations || []).map((item) => <option key={item.id} value={item.code} />)}
             </datalist>
+          </label>
+          <label className="field">
+            <span>Warehouse</span>
+            <select value={form.warehouse || "MM-4"} onChange={(e) => set("warehouse", e.target.value)}>
+              <option value="MM-4">Phase4</option>
+              <option value="MM-11">Phase11</option>
+            </select>
           </label>
           <label className="field">
             <span>Min</span>
