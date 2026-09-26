@@ -162,16 +162,16 @@ def image_payload(part):
 def part_stock_status(part, stock_qty):
     """Dashboard status priority: N-prefix > Ordering > Out > Low > Normal."""
     if str(part.sku or "").strip().upper().startswith("N"):
-        return {"stock_status": "normal", "stock_status_label": "normal"}
+        return {"stock_status": "normal", "stock_status_label": "ปกติ"}
     if bool(getattr(part, "active_ordering", False)):
-        return {"stock_status": "ordering_now", "stock_status_label": "ordering now"}
+        return {"stock_status": "ordering_now", "stock_status_label": "กำลังสั่ง"}
     stock = Decimal(str(stock_qty or 0))
     minimum = Decimal(str(part.min_stock or 0))
     if stock <= 0:
-        return {"stock_status": "out_of_stock", "stock_status_label": "out of stock"}
+        return {"stock_status": "out_of_stock", "stock_status_label": "หมดในสต๊อก"}
     if minimum > 0 and stock < minimum:
-        return {"stock_status": "low_stock", "stock_status_label": "low stock"}
-    return {"stock_status": "normal", "stock_status_label": "normal"}
+        return {"stock_status": "low_stock", "stock_status_label": "ควรสั่งซื้อ"}
+    return {"stock_status": "normal", "stock_status_label": "ปกติ"}
 
 
 def part_json(part):

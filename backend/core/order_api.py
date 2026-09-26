@@ -3227,6 +3227,45 @@ def order_status_dashboard(request):
 
 @api_view(["GET"])
 @permission_classes([AllowAny])
+def order_status_pending_items(request):
+    _, err = require_permission(request, "can_view_order_status")
+    if err:
+        return err
+
+    try:
+        year = int(request.GET.get("year") or timezone.localdate().year)
+        month = int(request.GET.get("month") or timezone.localdate().month)
+    except (TypeError, ValueError):
+        return Response({"detail": "year/month ไม่ถูกต้อง"}, status=400)
+    if not 1 <= month <= 12:
+        return Response({"detail": "month ไม่ถูกต้อง"}, status=400)
+
+    rows = (
+        OrderRecord.objects.filter(
+            order_date__year=year,
+            order_date__month=month,
+            procurement_phase=OrderRecord.PROCUREMENT_PURCHASE,
+            is_deleted=False,
+        )
+        .exclude(lifecycle_status=OrderRecord.LIFECYCLE_CANCELLED)
+        .exclude(status=OrderRecord.STATUS_COMPLETE)
+        .order_by("order_date", "created_at")[:200]
+    )
+    items = [
+        {
+            "order_number": o.order_number,
+            "order_date": o.order_date.isoformat() if o.order_date else "",
+            "part_name": o.part_name,
+            "amount": o.amount,
+            "unit_text": o.unit_text,
+        }
+        for o in rows
+    ]
+    return Response({"year": year, "month": month, "items": items})
+
+
+@api_view(["GET"])
+@permission_classes([AllowAny])
 def order_status_search(request):
     _, err = require_permission(request, "can_view_order_status")
     if err:
