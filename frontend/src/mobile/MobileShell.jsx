@@ -20,7 +20,7 @@ const NAV = [
   ["/safety-stock", "Safety", "alert", "can_view_safety_stock"],
   ["/orders", "Order", "cart", "can_view_orders"],
   ["/order-steps", "Steps", "steps", "can_view_order_step"],
-  ["/order-status", "สถิติ", "chart", "can_view_order_status"],
+  ["/order-status", "Dashboard", "chart", "can_view_order_status"],
   ["/po-balance", "PO", "mail", "can_view_po_balance"],
   ["/fast-orders", "Fast", "zap", "can_view_orders"],
   ["/vendors", "Vendor", "vendor", "can_view_suppliers"],

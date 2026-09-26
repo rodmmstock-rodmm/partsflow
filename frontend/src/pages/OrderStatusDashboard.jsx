@@ -172,6 +172,8 @@ function MonthlyStatusSection() {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [pendingItems, setPendingItems] = useState(null);
+  const [pendingLoading, setPendingLoading] = useState(true);
 
   useEffect(() => {
     let alive = true;
@@ -185,6 +187,18 @@ function MonthlyStatusSection() {
       alive = false;
     };
   }, [year]);
+
+  useEffect(() => {
+    let alive = true;
+    setPendingLoading(true);
+    apiGet(`/orders/status-dashboard/pending-items/?year=${year}&month=${monthIdx + 1}`)
+      .then((res) => alive && setPendingItems(res.items || []))
+      .catch(() => alive && setPendingItems([]))
+      .finally(() => alive && setPendingLoading(false));
+    return () => {
+      alive = false;
+    };
+  }, [year, monthIdx]);
 
   const yearOptions = [];
   for (let y = now.getFullYear(); y >= now.getFullYear() - 4; y--) yearOptions.push(y);
@@ -248,19 +262,55 @@ function MonthlyStatusSection() {
             </div>
 
             {selectedMonth && (
-              <div className="order-status-half-block">
-                <HalfRadialStacked pending={selectedMonth.pending} completed={selectedMonth.completed} />
-                <div className="order-status-half-legend">
-                  <span className="order-status-half-legend-item">
-                    <span className="order-status-radial-dot completed" />
-                    รับของแล้ว
-                  </span>
-                  <span className="order-status-half-legend-item">
-                    <span className="order-status-radial-dot pending" />
-                    รอของ
-                  </span>
+              <div className="order-status-month-cols">
+                <div className="order-status-half-block">
+                  <HalfRadialStacked pending={selectedMonth.pending} completed={selectedMonth.completed} />
+                  <div className="order-status-half-legend">
+                    <span className="order-status-half-legend-item">
+                      <span className="order-status-radial-dot completed" />
+                      รับของแล้ว
+                    </span>
+                    <span className="order-status-half-legend-item">
+                      <span className="order-status-radial-dot pending" />
+                      รอของ
+                    </span>
+                  </div>
+                  <div className="order-status-radial-total">รวมทั้งเดือน {selectedMonth.total} Order</div>
                 </div>
-                <div className="order-status-radial-total">รวมทั้งเดือน {selectedMonth.total} Order</div>
+
+                <div className="order-status-pending-list">
+                  <div className="order-status-pending-list-head">รายการที่กำลังรอของ</div>
+                  {pendingLoading ? (
+                    <div className="empty">กำลังโหลด...</div>
+                  ) : pendingItems && pendingItems.length ? (
+                    <div className="order-status-pending-table-wrap">
+                      <table className="order-status-pending-table">
+                        <thead>
+                          <tr>
+                            <th>ORDER</th>
+                            <th>DATE</th>
+                            <th>อะไหล่ที่สั่ง</th>
+                            <th>จำนวน</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {pendingItems.map((item, i) => (
+                            <tr key={`${item.order_number}-${i}`}>
+                              <td className="mono">{item.order_number}</td>
+                              <td>{item.order_date}</td>
+                              <td>{item.part_name}</td>
+                              <td>
+                                {item.amount} {item.unit_text}
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  ) : (
+                    <div className="empty">ไม่มีรายการรอของในเดือนนี้</div>
+                  )}
+                </div>
               </div>
             )}
 

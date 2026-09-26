@@ -333,7 +333,7 @@
 
 .stock-state{display:inline-flex;align-items:center;padding:4px 8px;border-radius:999px;font-size:9px;font-weight:600;background:#f1f5f9;color:#64748b}
 .stock-state.normal{background:var(--success-soft);color:var(--success)}
-.stock-state.low{background:#fff1f2;color:#e11d48}
+.stock-state.low{background:var(--warning-soft, #fffbeb);color:var(--warning, #d97706)}
 .stock-state.out,.stock-state.out_of_stock{background:#fff1f2;color:#e11d48}
 .stock-state.ordering,.stock-state.ordered{background:#fffbeb;color:#b87916}
 
@@ -395,7 +395,7 @@
   .safety-order-review-row{grid-template-columns:1fr;padding:10px}.safety-order-review-part{padding-bottom:7px;border-bottom:1px solid #f1f5f9}.safety-order-review-list{max-height:50dvh}.safety-order-shared{grid-template-columns:1fr!important}
   .m-safety-toolbar{display:flex;align-items:center;justify-content:space-between;gap:7px;margin:2px 0 10px}.m-safety-toolbar button{min-height:36px;border:0;border-radius:10px;padding:7px 10px;font-size:9px;font-weight:600}.m-safety-select-all{background:#f1f5f9;color:#64748b}.m-safety-order-btn{background:#7c3aed;color:#fff;flex:1}.m-safety-order-btn:disabled{opacity:.4}.m-safety-card{position:relative}.m-safety-card.selected{border-color:#c4b5fd;box-shadow:0 0 0 2px rgba(124,58,237,.08),0 2px 8px rgba(24,31,51,.035)}.m-safety-select{display:flex;align-items:center;gap:7px;margin:-2px 0 9px;padding:6px 7px;border-radius:9px;background:#f5f3ff;color:#6d28d9;font-size:8px;font-weight:600}.m-safety-select input{width:17px;height:17px;margin:0;accent-color:#7c3aed}
 }
-.stock-state.low_stock{background:#fff1f2;color:#e11d48}
+.stock-state.low_stock{background:var(--warning-soft, #fffbeb);color:var(--warning, #d97706)}
 .stock-state.ordering_now{background:#fffbeb;color:#b87916}
 
 /* ========================================================================== */
@@ -555,3 +555,21 @@
 .order-status-total-box small{font-size:11px;color:var(--sub);display:block}
 .order-status-total-box strong{font-size:17px;font-weight:600;color:var(--text)}
 @media(max-width:600px){.order-status-donut-row{flex-direction:column}.order-status-legend{max-width:none;width:100%}}
+
+/* ---- Order status: monthly two-column layout (chart + pending items list) ---- */
+.order-status-month-cols{display:flex;gap:28px;align-items:flex-start;flex-wrap:wrap}
+.order-status-month-cols .order-status-half-block{flex-shrink:0}
+.order-status-pending-list{flex:1;min-width:280px;background:var(--surface-1,#faf9fd);border:1px solid var(--border-soft);border-radius:var(--radius-m);padding:14px}
+.order-status-pending-list-head{font-size:12.5px;font-weight:600;color:var(--text);margin-bottom:10px}
+.order-status-pending-table-wrap{max-height:260px;overflow-y:auto}
+.order-status-pending-table{width:100%;border-collapse:collapse;font-size:12px}
+.order-status-pending-table th{text-align:left;padding:6px 8px;color:var(--muted);font-weight:500;border-bottom:1px solid var(--border-soft);position:sticky;top:0;background:var(--surface-1,#faf9fd)}
+.order-status-pending-table td{padding:7px 8px;border-bottom:1px solid var(--border-soft);color:var(--sub)}
+.order-status-pending-table td.mono{font-family:var(--font-mono);color:var(--text);white-space:nowrap}
+.order-status-pending-table tr:last-child td{border-bottom:none}
+@media(max-width:760px){.order-status-month-cols{flex-direction:column}.order-status-pending-list{width:100%}}
+
+/* ---- Checkbox: remove the mouse-click focus box, keep it for keyboard nav ---- */
+input[type="checkbox"]{cursor:pointer}
+input[type="checkbox"]:focus{outline:none}
+input[type="checkbox"]:focus-visible{outline:2px solid var(--brand, #7c3aed);outline-offset:2px;border-radius:3px}
