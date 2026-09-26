@@ -121,10 +121,10 @@ function HalfRadialStacked({ pending, completed, width = 260, strokeWidth = 26 }
   const gapDeg = 5;
   const pendingAngle = Math.max(0, (pending / total) * sweep - gapDeg);
   const completedAngle = Math.max(0, (completed / total) * sweep - gapDeg);
-  const pendingStart = 180;
-  const pendingEnd = pendingStart + pendingAngle;
-  const completedStart = pendingEnd + gapDeg;
+  const completedStart = 180;
   const completedEnd = completedStart + completedAngle;
+  const pendingStart = completedEnd + gapDeg;
+  const pendingEnd = pendingStart + pendingAngle;
 
   return (
     <div className="order-status-half-wrap" style={{ width, height }}>
@@ -157,9 +157,9 @@ function HalfRadialStacked({ pending, completed, width = 260, strokeWidth = 26 }
         </defs>
       </svg>
       <div className="order-status-half-center">
-        <span className="order-status-half-num pending">{pending}</span>
-        <span className="order-status-half-sep">/</span>
         <span className="order-status-half-num completed">{completed}</span>
+        <span className="order-status-half-sep">/</span>
+        <span className="order-status-half-num pending">{pending}</span>
       </div>
     </div>
   );
@@ -252,12 +252,12 @@ function MonthlyStatusSection() {
                 <HalfRadialStacked pending={selectedMonth.pending} completed={selectedMonth.completed} />
                 <div className="order-status-half-legend">
                   <span className="order-status-half-legend-item">
-                    <span className="order-status-radial-dot pending" />
-                    รอของ
-                  </span>
-                  <span className="order-status-half-legend-item">
                     <span className="order-status-radial-dot completed" />
                     รับของแล้ว
+                  </span>
+                  <span className="order-status-half-legend-item">
+                    <span className="order-status-radial-dot pending" />
+                    รอของ
                   </span>
                 </div>
                 <div className="order-status-radial-total">รวมทั้งเดือน {selectedMonth.total} Order</div>
