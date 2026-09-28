@@ -87,6 +87,25 @@ export function invalidateApiCache(prefixes = null) {
   }
 }
 
+// Lets other layers (e.g. the shared /options/ master-data provider) react to
+// a successful write without api.js having to know about them.
+const writeListeners = new Set();
+
+export function onApiWrite(listener) {
+  writeListeners.add(listener);
+  return () => writeListeners.delete(listener);
+}
+
+function announceWrite(path, method, body) {
+  for (const listener of [...writeListeners]) {
+    try {
+      listener({ path: normalizePath(path), method, body });
+    } catch {
+      // A misbehaving listener must never break the save that triggered it.
+    }
+  }
+}
+
 export function clearApiCache() {
   apiCache.clear();
   inFlightGets.clear();
@@ -259,6 +278,7 @@ async function mutationRequest(path, method, body) {
     ...(body !== undefined ? { body: JSON.stringify(body) } : {}),
   });
   invalidateApiCache();
+  announceWrite(path, method, body);
   return data;
 }
 
