@@ -6,6 +6,7 @@ import { Alert, Breadcrumb, Modal, PageHeader, SearchableSelect, fmt, formatDMY,
 import { useFeedback } from "../feedback";
 import RFQComposeModal from "../components/RFQComposeModal";
 import { useOptions } from "../optionsContext";
+import DatePicker from "../components/DatePicker";
 
 const ORDER_TABS = [
   ["normal", "Order Normal"],
@@ -734,15 +735,13 @@ export function PurchaseModal({
             value={local.po_number || ""}
             onChange={(e) => set("po_number", e.target.value)}
           />
-          <input
-            type="date"
+          <DatePicker
             value={local.issue_pr_date || ""}
-            onChange={(e) => set("issue_pr_date", e.target.value)}
+            onChange={(v) => set("issue_pr_date", v)}
           />
-          <input
-            type="date"
+          <DatePicker
             value={local.due_date || ""}
-            onChange={(e) => set("due_date", e.target.value)}
+            onChange={(v) => set("due_date", v)}
           />
           <button
             className="mini"
@@ -760,10 +759,9 @@ export function PurchaseModal({
 
         <div className="purchase-field">
           <label>VENDOR CONFIRM DATE</label>
-          <input
-            type="date"
+          <DatePicker
             value={local.vendor_confirm_date || ""}
-            onChange={(e) => set("vendor_confirm_date", e.target.value)}
+            onChange={(v) => set("vendor_confirm_date", v)}
           />
           <button
             className="mini"

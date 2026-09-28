@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { apiDelete, apiGet, apiPatch, apiPost } from "../api";
 import { Alert, Modal, SearchableSelect, money } from "./Common";
 import { useFeedback } from "../feedback";
+import DatePicker from "./DatePicker";
 
 function displayOrderStatus(order) {
   if (order?.lifecycle_status === "WAIT_CONFIRM") return "Wait Confirm Order";
@@ -306,8 +307,8 @@ export default function NormalPurchaseModal({ order, options, onClose, onChanged
         <div className="purchase-field po-group">
           <label>PO / ISSUE PR / DUE DATE</label>
           <input placeholder="PO Number" value={local.po_number || ""} onChange={(e) => set("po_number", e.target.value)} />
-          <input type="date" value={local.issue_pr_date || ""} onChange={(e) => set("issue_pr_date", e.target.value)} />
-          <input type="date" value={local.due_date || ""} onChange={(e) => set("due_date", e.target.value)} />
+          <DatePicker value={local.issue_pr_date || ""} onChange={(v) => set("issue_pr_date", v)} />
+          <DatePicker value={local.due_date || ""} onChange={(v) => set("due_date", v)} />
           <button
             className="mini"
             onClick={() => saveField("po", {
@@ -322,7 +323,7 @@ export default function NormalPurchaseModal({ order, options, onClose, onChanged
 
         <div className="purchase-field">
           <label>VENDOR CONFIRM DATE</label>
-          <input type="date" value={local.vendor_confirm_date || ""} onChange={(e) => set("vendor_confirm_date", e.target.value)} />
+          <DatePicker value={local.vendor_confirm_date || ""} onChange={(v) => set("vendor_confirm_date", v)} />
           <button className="mini" onClick={() => saveField("confirm", { vendor_confirm_date: local.vendor_confirm_date })}>
             {busy === "confirm" ? "..." : "บันทึก"}
           </button>
