@@ -3253,6 +3253,7 @@ def order_status_pending_items(request):
     )
     items = [
         {
+            "id": str(o.id),
             "order_number": o.order_number,
             "order_date": o.order_date.isoformat() if o.order_date else "",
             "part_name": o.part_name,

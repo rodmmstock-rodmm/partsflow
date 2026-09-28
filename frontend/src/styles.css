@@ -578,3 +578,7 @@ html body input[type="checkbox"]:focus,
 html body input[type="radio"]:focus{box-shadow:none!important;outline:none!important}
 html body input[type="checkbox"]:focus-visible,
 html body input[type="radio"]:focus-visible{outline:2px solid var(--brand, #7c3aed)!important;outline-offset:2px!important}
+
+/* ---- Order status: View button + highlighted row in the waiting list ---- */
+.order-status-view-btn{padding:3px 12px;font-size:11px}
+.order-status-pending-table tr.active td{background:var(--brand-soft)}

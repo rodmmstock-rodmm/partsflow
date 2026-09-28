@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { apiGet } from "../api";
 import { Alert, PageHeader, SearchableSelect } from "../components/Common";
 
@@ -18,7 +18,10 @@ function pieSlicePath(cx, cy, r, angleStart, angleEnd) {
 }
 
 function formatDuration(seconds) {
-  const s = Math.max(0, Math.round(seconds || 0));
+  // No time data (stage never visited / nothing recorded) -> "-".
+  // A real but very short stay (under a minute) still says so.
+  if (!seconds) return "-";
+  const s = Math.max(0, Math.round(seconds));
   const days = Math.floor(s / 86400);
   const hours = Math.floor((s % 86400) / 3600);
   const minutes = Math.floor((s % 3600) / 60);
@@ -165,7 +168,7 @@ function HalfRadialStacked({ pending, completed, width = 260, strokeWidth = 26 }
   );
 }
 
-function MonthlyStatusSection() {
+function MonthlyStatusSection({ onView, activeOrderId }) {
   const now = new Date();
   const [year, setYear] = useState(now.getFullYear());
   const [monthIdx, setMonthIdx] = useState(now.getMonth());
@@ -291,16 +294,29 @@ function MonthlyStatusSection() {
                             <th>DATE</th>
                             <th>อะไหล่ที่สั่ง</th>
                             <th>จำนวน</th>
+                            <th></th>
                           </tr>
                         </thead>
                         <tbody>
                           {pendingItems.map((item, i) => (
-                            <tr key={`${item.order_number}-${i}`}>
+                            <tr
+                              key={`${item.id || item.order_number}-${i}`}
+                              className={item.id && String(item.id) === String(activeOrderId) ? "active" : ""}
+                            >
                               <td className="mono">{item.order_number}</td>
                               <td>{item.order_date}</td>
                               <td>{item.part_name}</td>
                               <td>
                                 {item.amount} {item.unit_text}
+                              </td>
+                              <td>
+                                <button
+                                  type="button"
+                                  className="mini order-status-view-btn"
+                                  onClick={() => onView?.({ id: item.id, order_number: item.order_number })}
+                                >
+                                  View
+                                </button>
                               </td>
                             </tr>
                           ))}
@@ -342,7 +358,7 @@ const WORKING_STAGE_COLORS = ["#ede9fe", "#c4b5fd", "#a78bfa", "#7c3aed", "var(-
 function aggregateStages(segments) {
   const totals = {};
   let currentLabel = null;
-  let currentSegSeconds = 0;
+  let currentSegSeconds = null;
   for (const seg of segments || []) {
     if (!WORKING_STAGES.includes(seg.stage_label)) continue;
     totals[seg.stage_label] = (totals[seg.stage_label] || 0) + seg.duration_seconds;
@@ -367,7 +383,7 @@ function OrderDurationDisplay({ timeline }) {
         angle: Math.min(((totals[label] || 0) / total) * 360, 359.999),
         color: WORKING_STAGE_COLORS[i],
         active: label === activeLabel,
-        title: `${label}: ${formatDuration(totals[label] || 0)}`,
+        title: `${label}: ${formatDuration(totals[label])}`,
       }))
     : [];
 
@@ -415,7 +431,7 @@ function OrderDurationDisplay({ timeline }) {
             >
               <span className="order-status-legend-dot" style={{ background: WORKING_STAGE_COLORS[i] }} />
               <span className="order-status-legend-text">{label}</span>
-              <span className="order-status-legend-value">{formatDuration(totals[label] || 0)}</span>
+              <span className="order-status-legend-value">{formatDuration(totals[label])}</span>
             </div>
           ))}
         </div>
@@ -430,8 +446,11 @@ function OrderDurationDisplay({ timeline }) {
   );
 }
 
-function OrderLookupSection() {
+function OrderLookupSection({ picked }) {
   const [orderId, setOrderId] = useState("");
+  const [orderLabel, setOrderLabel] = useState("");
+  const [reloadKey, setReloadKey] = useState(0);
+  const panelRef = useRef(null);
   const [timeline, setTimeline] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -442,6 +461,15 @@ function OrderLookupSection() {
     const res = await apiGet(`/orders/status-search/?q=${encodeURIComponent(query)}`);
     return res.results || [];
   }
+
+  // An order chosen from the monthly "waiting" list (View button).
+  useEffect(() => {
+    if (!picked?.id) return;
+    setOrderId(String(picked.id));
+    setOrderLabel(picked.order_number || "");
+    setReloadKey((n) => n + 1);
+    panelRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+  }, [picked]);
 
   useEffect(() => {
     if (!orderId) {
@@ -458,10 +486,10 @@ function OrderLookupSection() {
     return () => {
       alive = false;
     };
-  }, [orderId]);
+  }, [orderId, reloadKey]);
 
   return (
-    <div className="panel order-status-panel order-status-lookup-panel">
+    <div className="panel order-status-panel order-status-lookup-panel" ref={panelRef}>
       <div className="section-head">
         <h2>ดูราย Order</h2>
       </div>
@@ -470,7 +498,11 @@ function OrderLookupSection() {
         <SearchableSelect
           onSearch={searchOrders}
           value={orderId}
-          onChange={(id) => setOrderId(id)}
+          initialLabel={orderLabel}
+          onChange={(id, option) => {
+            setOrderId(id);
+            if (option) setOrderLabel(option.order_number || "");
+          }}
           getLabel={(o) => o.order_number}
           getSearchText={(o) => o.order_number}
           placeholder="พิมพ์เลข Order เพื่อค้นหา"
@@ -488,10 +520,11 @@ function OrderLookupSection() {
 }
 
 export default function OrderStatusDashboard() {
+  const [picked, setPicked] = useState(null);
   return (
     <>
-      <MonthlyStatusSection />
-      <OrderLookupSection />
+      <MonthlyStatusSection onView={(o) => setPicked({ ...o })} activeOrderId={picked?.id} />
+      <OrderLookupSection picked={picked} />
     </>
   );
 }
