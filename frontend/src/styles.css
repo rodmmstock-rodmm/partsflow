@@ -615,3 +615,7 @@ html body input[type="radio"]:focus-visible{outline:2px solid var(--brand, #7c3a
 .date-pop-link{border:0;background:transparent;padding:4px 8px;border-radius:8px;font-size:12px;color:var(--sub)}
 .date-pop-link:hover{background:var(--brand-soft);color:var(--brand)}
 .date-pop-link.strong{color:var(--brand);font-weight:600}
+
+/* ---- Mobile Stock: primary "add part" action in the page header ---- */
+.m-icon-action.m-add-part{font-size:13px;background:linear-gradient(135deg,var(--brand),var(--brand2))!important;border-color:transparent!important;color:#fff!important;white-space:nowrap;box-shadow:0 4px 12px rgba(124,58,237,.25)}
+.m-icon-action.m-add-part:disabled{opacity:.6}
