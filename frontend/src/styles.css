@@ -569,7 +569,12 @@
 .order-status-pending-table tr:last-child td{border-bottom:none}
 @media(max-width:760px){.order-status-month-cols{flex-direction:column}.order-status-pending-list{width:100%}}
 
-/* ---- Checkbox: remove the mouse-click focus box, keep it for keyboard nav ---- */
-input[type="checkbox"]{cursor:pointer}
-input[type="checkbox"]:focus{outline:none}
-input[type="checkbox"]:focus-visible{outline:2px solid var(--brand, #7c3aed);outline-offset:2px;border-radius:3px}
+/* ---- Checkbox/radio: opt out of the generic ".panel input" box styling (38px min-height)
+ * and the purple focus ring from production-theme-final.css, which framed the checkbox
+ * with a tall rounded box after every click. Keyboard focus (Tab) keeps a small outline. ---- */
+html body input[type="checkbox"],
+html body input[type="radio"]{cursor:pointer;min-height:0!important;padding:0!important;box-shadow:none!important}
+html body input[type="checkbox"]:focus,
+html body input[type="radio"]:focus{box-shadow:none!important;outline:none!important}
+html body input[type="checkbox"]:focus-visible,
+html body input[type="radio"]:focus-visible{outline:2px solid var(--brand, #7c3aed)!important;outline-offset:2px!important}
