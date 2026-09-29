@@ -619,3 +619,6 @@ html body input[type="radio"]:focus-visible{outline:2px solid var(--brand, #7c3a
 /* ---- Mobile Stock: primary "add part" action in the page header ---- */
 .m-icon-action.m-add-part{font-size:13px;background:linear-gradient(135deg,var(--brand),var(--brand2))!important;border-color:transparent!important;color:#fff!important;white-space:nowrap;box-shadow:0 4px 12px rgba(124,58,237,.25)}
 .m-icon-action.m-add-part:disabled{opacity:.6}
+
+/* ---- Mobile Machines: code is now the card's only title (Name removed) ---- */
+.m-machine-code{font-size:15px;letter-spacing:0}

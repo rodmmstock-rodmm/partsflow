@@ -158,14 +158,14 @@ export default function MultiMachineOrderInfoModal({
         throw new Error("กรุณากรอกวันที่งานค้างรูปแบบ dd/mm/yyyy ให้ถูกต้อง");
       }
       if (!form.machine_ids.length) {
-        throw new Error("กรุณาเลือก MACHINE NAME อย่างน้อย 1 รายการ");
+        throw new Error("กรุณาเลือก MACHINE CODE อย่างน้อย 1 รายการ");
       }
 
       const selected = form.machine_ids
         .map((id) => machines.find((machine) => String(machine.id) === String(id)))
         .filter(Boolean);
       if (selected.length !== form.machine_ids.length) {
-        throw new Error("มี MACHINE NAME บางรายการไม่ถูกต้อง กรุณาเลือกใหม่");
+        throw new Error("มี MACHINE CODE บางรายการไม่ถูกต้อง กรุณาเลือกใหม่");
       }
 
       const ordered = (options?.employees || []).find(
@@ -275,7 +275,7 @@ export default function MultiMachineOrderInfoModal({
           </label>
 
           <div className="field span3">
-            <span>MACHINE NAME * (เลือกได้มากกว่า 1 เครื่อง)</span>
+            <span>MACHINE CODE * (เลือกได้มากกว่า 1 เครื่อง)</span>
             <div className="order-machine-picker">
               {selectedMachines.length > 0 && (
                 <div className="order-machine-selected">
@@ -297,7 +297,7 @@ export default function MultiMachineOrderInfoModal({
                 value=""
                 options={remainingMachines}
                 onChange={(value) => addMachine(value)}
-                getLabel={(machine) => `${machine.code}${machine.name ? ` · ${machine.name}` : ""}`}
+                getLabel={(machine) => machine.code}
                 getSearchText={(machine) => `${machine.code || ""} ${machine.name || ""} ${machine.location || ""}`}
                 placeholder="พิมพ์รหัส Machine เพื่อเพิ่ม"
                 emptyText="ไม่พบ Machine หรือเลือกไว้แล้ว"

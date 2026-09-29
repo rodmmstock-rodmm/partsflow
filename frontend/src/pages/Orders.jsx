@@ -205,7 +205,7 @@ export function OrderInfoModal({
       const ordered = (options.employees || []).find(
         (x) => String(x.id) === String(form.ordered_by_id)
       );
-      if (!machine) throw new Error("กรุณาเลือก MACHINE NAME จากรายการ");
+      if (!machine) throw new Error("กรุณาเลือก MACHINE CODE จากรายการ");
       if (!ordered) throw new Error("กรุณาเลือกชื่อผู้สั่งจากรายการ");
 
       const payload = {
@@ -304,7 +304,7 @@ export function OrderInfoModal({
           </label>
 
           <label className="field">
-            <span>MACHINE NAME *</span>
+            <span>MACHINE CODE *</span>
             <SearchableSelect
               required
               value={form.machine_id}
@@ -1146,7 +1146,7 @@ function OrderTable({
                   <div className="cell-stack">
                     <EditableCell
                       value={o.machine_id}
-                      display={<b>{o.machine_name || o.machine_code || "-"}</b>}
+                      display={<b>{o.machine_code || "-"}</b>}
                       type="searchable"
                       options={options.machines || []}
                       getLabel={(x) => x.code}

@@ -111,15 +111,15 @@ export default function PartDetailModal({ part, onClose }) {
 
       <Section title="Machine Spare Sets ที่ใช้อะไหล่นี้" count={(p.spare_sets || []).length}>
         {(p.spare_sets || []).length === 0 ? <div className="empty compact">ยังไม่ได้อยู่ใน Spare Set</div> :
-          <div className="detail-table-wrap"><table><thead><tr><th>Machine</th><th>ชื่อเครื่อง</th><th>Set</th><th>Qty / Set</th><th>Remark</th></tr></thead><tbody>
-            {p.spare_sets.map((x, index) => <tr key={`${x.id}-${index}`}><td><b>{x.machine_code}</b></td><td>{x.machine_name || "-"}</td><td>{x.name}</td><td>{fmt(x.quantity)} {p.unit_code}</td><td>{x.remark || "-"}</td></tr>)}
+          <div className="detail-table-wrap"><table><thead><tr><th>Machine</th><th>Set</th><th>Qty / Set</th><th>Remark</th></tr></thead><tbody>
+            {p.spare_sets.map((x, index) => <tr key={`${x.id}-${index}`}><td><b>{x.machine_code}</b></td><td>{x.name}</td><td>{fmt(x.quantity)} {p.unit_code}</td><td>{x.remark || "-"}</td></tr>)}
           </tbody></table></div>}
       </Section>
 
       <Section title="Order ล่าสุด" count={(p.recent_orders || []).length}>
         {(p.recent_orders || []).length === 0 ? <div className="empty compact">ยังไม่มี Order</div> :
           <div className="detail-table-wrap"><table><thead><tr><th>Date</th><th>Order</th><th>Machine</th><th>Qty</th><th>Status</th><th>PO</th><th>Vendor</th></tr></thead><tbody>
-            {p.recent_orders.map(x => <tr key={x.id}><td>{formatDMY(x.date)}</td><td><b>{x.order_number}</b></td><td>{x.machine_code || x.machine_name || "-"}</td><td>{fmt(x.amount)}</td><td>{x.status}</td><td>{x.po_number || "-"}</td><td>{x.vendor_name || "-"}</td></tr>)}
+            {p.recent_orders.map(x => <tr key={x.id}><td>{formatDMY(x.date)}</td><td><b>{x.order_number}</b></td><td>{x.machine_code || "-"}</td><td>{fmt(x.amount)}</td><td>{x.status}</td><td>{x.po_number || "-"}</td><td>{x.vendor_name || "-"}</td></tr>)}
           </tbody></table></div>}
       </Section>
 

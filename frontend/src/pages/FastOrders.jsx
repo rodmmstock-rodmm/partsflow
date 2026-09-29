@@ -195,7 +195,7 @@ function QuickOrderModal({ row, onClose, onSaved }) {
             <dt>Part</dt>
             <dd>{row.part_name}</dd>
             <dt>Machine</dt>
-            <dd>{row.machine_code} · {row.machine_name}</dd>
+            <dd>{row.machine_code}</dd>
             <dt>Factory</dt>
             <dd>{row.factory === "MM-11" ? "Phase11" : "Phase4"}</dd>
             <dt>JOB</dt>
@@ -332,7 +332,7 @@ export default function FastOrders() {
                     <td><b>{x.item_id}</b></td>
                     <td>{x.part_name}</td>
                     <td>{x.factory === "MM-11" ? "Phase11" : "Phase4"}</td>
-                    <td>{x.machine_code} · {x.machine_name}</td>
+                    <td>{x.machine_code}</td>
                     <td><span className="status success">SPARE</span></td>
                     <td>{x.remark || "-"}</td>
                     <td>

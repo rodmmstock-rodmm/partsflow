@@ -295,7 +295,7 @@ export default function MobileOrderSteps() {
                     <p>{order.part_detail || order.detail || "-"}</p>
                     <small>
                       {fmt(order.amount)} {order.unit_text || order.unit || ""}
-                      {` · ${order.machine_code || order.machine_name || "-"}`}
+                      {` · ${order.machine_code || "-"}`}
                     </small>
                     {phase === "quotation" && (
                       <small>

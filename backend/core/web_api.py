@@ -987,9 +987,9 @@ def machines_list(request):
             )
         return Response({"results": [machine_json(x) for x in qs[:3000]]})
     code = str(request.data.get("code", "")).strip()
-    name = str(request.data.get("name", "")).strip()
-    if not code or not name:
-        return Response({"detail": "Machine Code และ Machine Name จำเป็นต้องใส่"}, status=400)
+    name = str(request.data.get("name", "")).strip() or code
+    if not code:
+        return Response({"detail": "Machine Code จำเป็นต้องใส่"}, status=400)
     try:
         item = Machine.objects.create(
             code=code,
