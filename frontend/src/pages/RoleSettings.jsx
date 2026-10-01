@@ -102,7 +102,7 @@ export default function RoleSettings(){
       const out=await Promise.all(tasks);
       setRoles(out[0].results||[]);
       let i=1;
-      if(auth.can("can_view_employees")){setEmployees(out[i].results||[]);i++}
+      if(auth.can("can_view_employees")){setEmployees((out[i].results||[]).filter(x=>x.active!==false));i++}
       if(auth.can("can_view_audit_log"))setLogs(out[i]?.results||[]);
     }catch(err){setError(err.message)}
   }
