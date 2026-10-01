@@ -87,6 +87,7 @@ export default function RoleSettings(){
   const [empModal,setEmpModal]=useState(undefined);
   const [roleModal,setRoleModal]=useState(false);
   const [q,setQ]=useState("");
+  const [empView,setEmpView]=useState("active"); // "active" | "inactive" — mirrors the Stock page's Active/Inactive Parts tabs
   // Accordion open/closed state. A role starts collapsed; a page-group
   // inside an expanded role starts open (so the first click already shows
   // every checkbox), and can be folded away individually from there.
@@ -102,7 +103,7 @@ export default function RoleSettings(){
       const out=await Promise.all(tasks);
       setRoles(out[0].results||[]);
       let i=1;
-      if(auth.can("can_view_employees")){setEmployees((out[i].results||[]).filter(x=>x.active!==false));i++}
+      if(auth.can("can_view_employees")){setEmployees(out[i].results||[]);i++}
       if(auth.can("can_view_audit_log"))setLogs(out[i]?.results||[]);
     }catch(err){setError(err.message)}
   }
@@ -126,7 +127,9 @@ export default function RoleSettings(){
   }
 
   const groups=useMemo(()=>[...new Set(PERMISSIONS.map(x=>x[2]))],[]);
-  const shownEmployees=employees.filter(x=>!q||`${x.employee_code} ${x.name} ${x.email} ${x.department} ${x.role}`.toLowerCase().includes(q.toLowerCase()));
+  const employeesInView=employees.filter(x=>empView==="active"?x.active!==false:x.active===false);
+  const shownEmployees=employeesInView.filter(x=>!q||`${x.employee_code} ${x.name} ${x.email} ${x.department} ${x.role}`.toLowerCase().includes(q.toLowerCase()));
+  const inactiveCount=employees.filter(x=>x.active===false).length;
 
   async function removeEmployee(e){
     const ok=await confirm(`ยืนยันลบพนักงาน ${e.employee_code} (${e.name})?`,{title:"ยืนยันการลบ",confirmLabel:"ลบ",danger:true});
@@ -208,6 +211,10 @@ export default function RoleSettings(){
           <div><h2>Employees</h2><p>Login ด้วย Employee Code · อีเมลใช้เป็นข้อมูลติดต่อและประวัติ RFQ</p></div>
           {auth.can("can_add_employees")&&<button className="btn primary" onClick={()=>setEmpModal(null)}>+ เพิ่มพนักงาน</button>}
         </div>
+        <div className="tab-row page-tabs">
+          <button className={`tab ${empView==="active"?"active":""}`} onClick={()=>setEmpView("active")}>Active Employees</button>
+          <button className={`tab ${empView==="inactive"?"active":""}`} onClick={()=>setEmpView("inactive")}>Inactive Employees{inactiveCount>0?` (${inactiveCount})`:""}</button>
+        </div>
         <div className="toolbar">
           <input className="search-input" value={q} onChange={e=>setQ(e.target.value)} placeholder="ค้นหา Employee Code / Name / Email / Department / Role..."/>
         </div>
@@ -224,10 +231,10 @@ export default function RoleSettings(){
                   <td>{e.role||"-"}</td>
                   <td><span className={`status ${e.active?"success":"muted"}`}>{e.active?"Active":"Inactive"}</span></td>
                   <td>
-                    {(auth.can("can_edit_employees")||auth.can("can_delete_employees"))&&
+                    {(auth.can("can_edit_employees")||(empView==="active"&&auth.can("can_delete_employees")))&&
                       <div className="row-actions">
-                        {auth.can("can_edit_employees")&&<button className="mini" onClick={()=>setEmpModal(e)}>แก้ไข</button>}
-                        {auth.can("can_delete_employees")&&<button className="mini danger" onClick={()=>removeEmployee(e)}>ลบ</button>}
+                        {auth.can("can_edit_employees")&&<button className="mini" onClick={()=>setEmpModal(e)}>{empView==="inactive"?"แก้ไข / เปิดใช้งาน":"แก้ไข"}</button>}
+                        {empView==="active"&&auth.can("can_delete_employees")&&<button className="mini danger" onClick={()=>removeEmployee(e)}>ลบ</button>}
                       </div>
                     }
                   </td>
