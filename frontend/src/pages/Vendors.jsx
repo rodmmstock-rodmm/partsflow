@@ -72,7 +72,7 @@ export function VendorModal({ row, onClose, onSaved }) {
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
   const set = (k, v) => setForm((x) => ({ ...x, [k]: v }));
-  const canEdit = auth.can("can_manage_suppliers");
+  const canEdit = auth.can("can_edit_supplier");
 
   async function save(e) {
     e.preventDefault();
@@ -256,7 +256,7 @@ export default function Vendors() {
         title="Vendor"
         subtitle="Vendor Master"
         actions={
-          auth.can("can_manage_suppliers") && (
+          auth.can("can_add_supplier") && (
             <button className="btn primary" onClick={() => setModal(null)}>
               + เพิ่ม Vendor
             </button>
@@ -310,14 +310,18 @@ export default function Vendors() {
                     </span>
                   </td>
                   <td>
-                    {auth.can("can_manage_suppliers") && (
+                    {(auth.can("can_edit_supplier") || auth.can("can_delete_supplier")) && (
                       <div className="row-actions">
-                        <button className="mini" onClick={() => setModal(x)}>
-                          แก้ไข
-                        </button>
-                        <button className="mini danger" onClick={() => remove(x)}>
-                          ลบ
-                        </button>
+                        {auth.can("can_edit_supplier") && (
+                          <button className="mini" onClick={() => setModal(x)}>
+                            แก้ไข
+                          </button>
+                        )}
+                        {auth.can("can_delete_supplier") && (
+                          <button className="mini danger" onClick={() => remove(x)}>
+                            ลบ
+                          </button>
+                        )}
                       </div>
                     )}
                   </td>
