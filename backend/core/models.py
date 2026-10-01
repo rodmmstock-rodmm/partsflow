@@ -322,13 +322,20 @@ class RoleAccess(UUIDMixin):
     can_view_deleted_orders = models.BooleanField(default=False)
 
     can_view_suppliers = models.BooleanField(default=False)
-    can_manage_suppliers = models.BooleanField(default=False)
+    can_manage_suppliers = models.BooleanField(default=False)  # deprecated: superseded by the 3 fields below
+    can_add_supplier = models.BooleanField(default=False)
+    can_edit_supplier = models.BooleanField(default=False)
+    can_delete_supplier = models.BooleanField(default=False)
     can_view_machines = models.BooleanField(default=False)
-    can_manage_machines = models.BooleanField(default=False)
+    can_manage_machines = models.BooleanField(default=False)  # deprecated: superseded by the 3 fields below
+    can_add_machine = models.BooleanField(default=False)
+    can_edit_machine = models.BooleanField(default=False)
+    can_delete_machine = models.BooleanField(default=False)
 
     can_view_employees = models.BooleanField(default=False)
     can_add_employees = models.BooleanField(default=False)
     can_edit_employees = models.BooleanField(default=False)
+    can_delete_employees = models.BooleanField(default=False)
     can_view_audit_log = models.BooleanField(default=False)
     can_manage_roles = models.BooleanField(default=False)
 

@@ -148,10 +148,12 @@ def employees(request):
 
 
 @csrf_exempt
-@api_view(["PATCH"])
+@api_view(["PATCH", "DELETE"])
 @permission_classes([AllowAny])
 def update_employee(request, pk):
-    actor, err = require_permission(request, "can_edit_employees")
+    actor, err = require_permission(
+        request, "can_delete_employees" if request.method == "DELETE" else "can_edit_employees"
+    )
     if err:
         return err
     employee = Employee.objects.filter(pk=pk).first()
@@ -159,6 +161,15 @@ def update_employee(request, pk):
         return Response({"detail": "ไม่พบพนักงาน"}, status=404)
 
     before = employee_json(employee)
+
+    if request.method == "DELETE":
+        if actor and str(actor.id) == str(employee.id):
+            return Response({"detail": "ไม่สามารถลบบัญชีของตัวเองได้"}, status=400)
+        employee.active = False
+        employee.save(update_fields=["active", "updated_at"])
+        audit(actor, "DELETE", "Employee", employee.id, before)
+        return Response({"success": True})
+
     if "employee_code" in request.data:
         employee.employee_code = str(request.data.get("employee_code") or "").strip()
     if "name" in request.data:

@@ -844,7 +844,7 @@ def supplier_json(item):
 @api_view(["GET", "POST"])
 @permission_classes([AllowAny])
 def suppliers_list(request):
-    permission = "can_view_suppliers" if request.method == "GET" else "can_manage_suppliers"
+    permission = "can_view_suppliers" if request.method == "GET" else "can_add_supplier"
     actor, err = require_permission(request, permission)
     if err:
         return err
@@ -881,7 +881,9 @@ def suppliers_list(request):
 @api_view(["PATCH", "DELETE"])
 @permission_classes([AllowAny])
 def supplier_detail(request, pk):
-    actor, err = require_permission(request, "can_manage_suppliers")
+    actor, err = require_permission(
+        request, "can_delete_supplier" if request.method == "DELETE" else "can_edit_supplier"
+    )
     if err:
         return err
     item = Supplier.objects.filter(pk=pk).first()
@@ -912,7 +914,7 @@ def supplier_detail(request, pk):
 @api_view(["POST"])
 @permission_classes([AllowAny])
 def supplier_contacts_list(request, pk):
-    actor, err = require_permission(request, "can_manage_suppliers")
+    actor, err = require_permission(request, "can_edit_supplier")
     if err:
         return err
     supplier = Supplier.objects.filter(pk=pk).first()
@@ -934,7 +936,7 @@ def supplier_contacts_list(request, pk):
 @api_view(["PATCH", "DELETE"])
 @permission_classes([AllowAny])
 def supplier_contact_detail(request, pk, contact_pk):
-    actor, err = require_permission(request, "can_manage_suppliers")
+    actor, err = require_permission(request, "can_edit_supplier")
     if err:
         return err
     contact = SupplierContact.objects.filter(pk=contact_pk, supplier_id=pk).select_related("supplier").first()
@@ -971,7 +973,7 @@ def machine_json(item):
 @api_view(["GET", "POST"])
 @permission_classes([AllowAny])
 def machines_list(request):
-    permission = "can_view_machines" if request.method == "GET" else "can_manage_machines"
+    permission = "can_view_machines" if request.method == "GET" else "can_add_machine"
     actor, err = require_permission(request, permission)
     if err:
         return err
@@ -1013,7 +1015,9 @@ def machines_list(request):
 @api_view(["PATCH", "DELETE"])
 @permission_classes([AllowAny])
 def machine_detail(request, pk):
-    actor, err = require_permission(request, "can_manage_machines")
+    actor, err = require_permission(
+        request, "can_delete_machine" if request.method == "DELETE" else "can_edit_machine"
+    )
     if err:
         return err
     item = Machine.objects.filter(pk=pk).first()
