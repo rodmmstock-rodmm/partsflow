@@ -61,6 +61,11 @@ export const PERMISSIONS = [
   ["can_edit_tool", "Edit อุปกรณ์", "ยืม-คืนอุปกรณ์"],
   ["can_delete_tool", "Delete อุปกรณ์", "ยืม-คืนอุปกรณ์"],
 
+  ["can_view_qr_withdraw", "View เบิกของ QR Code", "เบิกของ QR Code"],
+  ["can_add_qr_withdraw_item", "Add อุปกรณ์", "เบิกของ QR Code"],
+  ["can_edit_qr_withdraw_item", "Edit อุปกรณ์", "เบิกของ QR Code"],
+  ["can_delete_qr_withdraw_item", "Delete อุปกรณ์", "เบิกของ QR Code"],
+
   ["can_manage_roles", "Manage Roles & Permissions", "Role & Permissions"],
 
   ["can_view_employees", "View Employees", "Employee"],

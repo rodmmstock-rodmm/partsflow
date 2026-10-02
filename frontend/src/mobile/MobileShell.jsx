@@ -14,6 +14,7 @@ import MobileMachines from "./MobileMachines";
 import MobileRoles from "./MobileRoles";
 import POBalance from "../pages/POBalance";
 import Tools from "../pages/Tools";
+import QrWithdraw from "../pages/QrWithdraw";
 
 const NAV = [
   ["/", "Stock", "box", "can_view_dashboard"],
@@ -27,6 +28,7 @@ const NAV = [
   ["/vendors", "Vendor", "vendor", "can_view_suppliers"],
   ["/machines", "Machine", "gear", "can_view_machines"],
   ["/tools", "ยืม-คืนอุปกรณ์", "wrench", "can_view_tools"],
+  ["/qr-withdraw", "เบิกของ QR", "qrcode", "can_view_qr_withdraw"],
   ["/settings/roles", "Roles", "shield", "can_manage_roles"],
 ];
 
@@ -45,6 +47,7 @@ const ICON_SPRITE = (
     <symbol id="ic-zap" viewBox="0 0 24 24"><path d="M13 2L4 14h6l-1 8 9-12h-6l1-8z"/></symbol>
     <symbol id="ic-power" viewBox="0 0 24 24"><path d="M12 3v8"/><path d="M6.3 6.3a8 8 0 1011.4 0"/></symbol>
     <symbol id="ic-wrench" viewBox="0 0 24 24"><path d="M14.7 6.3a4 4 0 00-5.4 5.4L3 18l3 3 6.3-6.3a4 4 0 005.4-5.4l-2.6 2.6-2-2z"/></symbol>
+    <symbol id="ic-qrcode" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><path d="M14 14h3v3h-3zM19 14h2v2h-2zM14 19h2v2h-2zM19 19h2v2h-2z"/></symbol>
   </svg>
 );
 
@@ -97,6 +100,7 @@ export default function MobileShell() {
           <Route path="/vendors" element={<Protected permission="can_view_suppliers"><MobileVendors /></Protected>} />
           <Route path="/machines" element={<Protected permission="can_view_machines"><MobileMachines /></Protected>} />
           <Route path="/tools" element={<Protected permission="can_view_tools"><Tools /></Protected>} />
+          <Route path="/qr-withdraw" element={<Protected permission="can_view_qr_withdraw"><QrWithdraw /></Protected>} />
           <Route path="/settings/roles" element={<Protected permission="can_manage_roles"><MobileRoles /></Protected>} />
         </Routes>
       </main>
