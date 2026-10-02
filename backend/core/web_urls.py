@@ -1,6 +1,6 @@
 from django.urls import path
 
-from . import auth_api, dashboard_api, drive_oauth, fast_order_api, order_api, order_audit_api, order_delete_api, order_step_api, order_vendor_api, rfq_api, rfq_step_guard, role_api, spare_set_api, stock_api, tool_api, web_api
+from . import auth_api, dashboard_api, drive_oauth, fast_order_api, order_api, order_audit_api, order_delete_api, order_step_api, order_vendor_api, qr_withdraw_api, rfq_api, rfq_step_guard, role_api, spare_set_api, stock_api, tool_api, web_api
 
 urlpatterns = [
     path("auth/login/", auth_api.login_view),
@@ -70,6 +70,12 @@ urlpatterns = [
     path("tools/public/<str:code>/", tool_api.tool_public_detail, name="web-tool-public-detail"),
     path("tools/public/<str:code>/borrow/", tool_api.tool_public_borrow, name="web-tool-public-borrow"),
     path("tools/public/<str:code>/return/", tool_api.tool_public_return, name="web-tool-public-return"),
+
+    # QR Withdraw (admin view onto the separate qr-withdraw Supabase project;
+    # the standalone qr-withdraw.vercel.app site and its QR codes are untouched)
+    path("qr-withdraw/items/", qr_withdraw_api.qr_withdraw_items, name="web-qr-withdraw-items"),
+    path("qr-withdraw/items/<str:code>/", qr_withdraw_api.qr_withdraw_item_detail, name="web-qr-withdraw-item-detail"),
+    path("qr-withdraw/history/", qr_withdraw_api.qr_withdraw_history, name="web-qr-withdraw-history"),
     path("orders/<uuid:pk>/delete/", order_api.delete_order, name="web-order-delete"),
     path("orders/<uuid:pk>/restore/", order_api.restore_order, name="web-order-restore"),
     path("orders/<uuid:pk>/permanent-delete/", order_delete_api.permanent_delete_order, name="web-order-permanent-delete"),

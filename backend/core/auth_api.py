@@ -53,6 +53,10 @@ PERMISSION_FIELDS = [
     "can_add_tool",
     "can_edit_tool",
     "can_delete_tool",
+    "can_view_qr_withdraw",
+    "can_add_qr_withdraw_item",
+    "can_edit_qr_withdraw_item",
+    "can_delete_qr_withdraw_item",
     "can_view_audit_log",
     "can_manage_roles",
 ]

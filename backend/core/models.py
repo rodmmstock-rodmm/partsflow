@@ -341,6 +341,11 @@ class RoleAccess(UUIDMixin):
     can_add_tool = models.BooleanField(default=False)
     can_edit_tool = models.BooleanField(default=False)
     can_delete_tool = models.BooleanField(default=False)
+
+    can_view_qr_withdraw = models.BooleanField(default=False)
+    can_add_qr_withdraw_item = models.BooleanField(default=False)
+    can_edit_qr_withdraw_item = models.BooleanField(default=False)
+    can_delete_qr_withdraw_item = models.BooleanField(default=False)
     can_view_audit_log = models.BooleanField(default=False)
     can_manage_roles = models.BooleanField(default=False)
 
