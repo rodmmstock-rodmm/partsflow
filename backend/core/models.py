@@ -382,8 +382,12 @@ class FastOrderPreset(UUIDMixin):
     """
     name = models.CharField(max_length=160, blank=True)
     factory = models.CharField(max_length=30, default="MM-4")
+    # Nullable: general consumables (e.g. screws/nuts) aren't tied to one
+    # specific machine, unlike most Fast Order presets.
     machine = models.ForeignKey(
         Machine,
+        null=True,
+        blank=True,
         on_delete=models.PROTECT,
         related_name="fast_order_presets",
     )

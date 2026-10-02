@@ -34,9 +34,9 @@ def preset_json(item):
         "id": str(item.id),
         "name": item.name or "",
         "factory": item.factory,
-        "machine_id": str(item.machine_id),
-        "machine_code": item.machine.code,
-        "machine_name": item.machine.name,
+        "machine_id": str(item.machine_id) if item.machine_id else "",
+        "machine_code": item.machine.code if item.machine_id else "",
+        "machine_name": item.machine.name if item.machine_id else "",
         "part_id": str(item.part_id),
         "item_id": part.sku,
         "part_name": part.name,
@@ -92,9 +92,13 @@ def fast_orders(request):
     if not part:
         return Response({"detail": "ไม่พบ Part ID ที่เลือก"}, status=400)
 
-    machine = Machine.objects.filter(pk=machine_id, active=True).first()
-    if not machine:
-        return Response({"detail": "ไม่พบ Machine ที่เลือก"}, status=400)
+    # Machine is optional - general consumables (e.g. screws) aren't tied to
+    # one specific machine.
+    machine = None
+    if machine_id:
+        machine = Machine.objects.filter(pk=machine_id, active=True).first()
+        if not machine:
+            return Response({"detail": "ไม่พบ Machine ที่เลือก"}, status=400)
 
     try:
         item = FastOrderPreset.objects.create(
@@ -162,13 +166,14 @@ def fast_order_detail(request, pk):
             return Response({"detail": "ไม่พบ Part ID ที่เลือก"}, status=400)
         item.part = part
     if "machine_id" in request.data:
-        machine = Machine.objects.filter(
-            pk=request.data.get("machine_id"),
-            active=True,
-        ).first()
-        if not machine:
-            return Response({"detail": "ไม่พบ Machine ที่เลือก"}, status=400)
-        item.machine = machine
+        new_machine_id = str(request.data.get("machine_id") or "").strip()
+        if not new_machine_id:
+            item.machine = None
+        else:
+            machine = Machine.objects.filter(pk=new_machine_id, active=True).first()
+            if not machine:
+                return Response({"detail": "ไม่พบ Machine ที่เลือก"}, status=400)
+            item.machine = machine
     if "active" in request.data:
         item.active = bool(request.data.get("active"))
 
@@ -219,6 +224,13 @@ def fast_order_create_normal(request, pk):
     if amount <= 0:
         return Response({"detail": "จำนวนต้องมากกว่า 0"}, status=400)
 
+    # A Fast Order preset for a general consumable (e.g. screws) carries no
+    # machine of its own - the actual purchase order still needs one, so the
+    # orderer picks it here at order time instead.
+    machine_id = str(preset.machine_id) if preset.machine_id else str(request.data.get("machine_id") or "").strip()
+    if not machine_id:
+        return Response({"detail": "กรุณาเลือก Machine สำหรับ Order นี้"}, status=400)
+
     try:
         with transaction.atomic():
             order = OrderRecord(
@@ -233,7 +245,7 @@ def fast_order_create_normal(request, pk):
                 {
                     "date": timezone.localdate().isoformat(),
                     "factory": preset.factory,
-                    "machine_id": str(preset.machine_id),
+                    "machine_id": machine_id,
                     "job": "SPARE",
                     "urgent_status": "",
                     "pending_data_date": "",
