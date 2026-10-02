@@ -42,6 +42,7 @@ def preset_json(item):
         "part_name": part.name,
         "part_detail": part.description or "",
         "maker": part.maker.name if part.maker else "",
+        "reorder_qty": part.reorder_qty,
         "unit": part.unit.code if part.unit else "",
         "location": part.location.code if part.location else "",
         "remark": item.remark or "",

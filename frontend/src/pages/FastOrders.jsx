@@ -357,7 +357,7 @@ export default function FastOrders() {
                   <tr key={x.id}>
                     <td><b>{x.item_id}</b></td>
                     <td>{x.part_name}</td>
-                    <td>{x.amount} {x.unit}</td>
+                    <td>{x.reorder_qty} {x.unit}</td>
                     <td>{x.factory === "MM-11" ? "Phase11" : "Phase4"}</td>
                     <td>{x.machine_code || "ทั่วไป"}</td>
                     <td><span className="status success">SPARE</span></td>
