@@ -13,6 +13,8 @@ import FastOrders from "./pages/FastOrders";
 import Vendors from "./pages/Vendors";
 import Machines from "./pages/Machines";
 import RoleSettings from "./pages/RoleSettings";
+import Tools from "./pages/Tools";
+import ToolScan from "./pages/ToolScan";
 import POBalance from "./pages/POBalance";
 import Login from "./pages/Login";
 import MobileShell from "./mobile/MobileShell";
@@ -28,6 +30,7 @@ const NAV = [
   ["/fast-orders", "Fast Order", "zap", "can_view_orders"],
   ["/vendors", "Vendor", "vendor", "can_view_suppliers"],
   ["/machines", "Machines", "gear", "can_view_machines"],
+  ["/tools", "ยืม-คืนอุปกรณ์", "wrench", "can_view_tools"],
   ["/settings/roles", "Role & Permissions", "shield", "can_manage_roles"],
 ];
 
@@ -45,6 +48,7 @@ const ICON_SPRITE = (
     <symbol id="ic-shield" viewBox="0 0 24 24"><path d="M12 2.5l7.5 3.4v5.3c0 5-3.2 8.6-7.5 10.3-4.3-1.7-7.5-5.3-7.5-10.3V5.9L12 2.5z"/><path d="M9 12l2 2 4-4.2"/></symbol>
     <symbol id="ic-zap" viewBox="0 0 24 24"><path d="M13 2L4 14h6l-1 8 9-12h-6l1-8z"/></symbol>
     <symbol id="ic-search" viewBox="0 0 24 24"><circle cx="10.5" cy="10.5" r="6.5"/><path d="M20 20l-4.8-4.8"/></symbol>
+    <symbol id="ic-wrench" viewBox="0 0 24 24"><path d="M14.7 6.3a4 4 0 00-5.4 5.4L3 18l3 3 6.3-6.3a4 4 0 005.4-5.4l-2.6 2.6-2-2z"/></symbol>
   </svg>
 );
 
@@ -74,8 +78,8 @@ function DesktopShell() {
       <nav className="nav-list">{visible.map(([to,label,icon])=><NavLink key={to} to={to} end={to==="/"} onClick={()=>setSidebarOpen(false)} className={({isActive})=>isActive?"nav-link active":"nav-link"}><svg className="nav-icon"><use href={`#ic-${icon}`}/></svg><span>{label}</span></NavLink>)}</nav>
       <div className="sidebar-user"><div><strong>{auth.employee?.name}</strong><span>{auth.employee?.employee_code} · {auth.employee?.role||"No Role"}</span></div><button className="icon-btn" onClick={logout}>⏻</button></div>
     </aside>
-    <main className="main-content"><Routes><Route path="/" element={<Protected permission="can_view_dashboard"><Dashboard/></Protected>}/><Route path="/spare-sets" element={<Protected permission="can_view_dashboard"><SpareSets/></Protected>}/><Route path="/history" element={<Protected permission="can_view_history"><History/></Protected>}/><Route path="/safety-stock" element={<Protected permission="can_view_safety_stock"><SafetyStock/></Protected>}/><Route path="/orders" element={<Protected permission="can_view_orders"><div className="orders-workspace"><OrdersV2/></div></Protected>}/><Route path="/po-balance" element={<Protected permission="can_view_po_balance"><POBalance/></Protected>}/><Route path="/order-steps" element={<Protected permission="can_view_order_step"><div className="order-step-workspace"><Orders mode="steps"/></div></Protected>}/><Route path="/order-status" element={<Protected permission="can_view_order_status"><OrderStatusDashboard/></Protected>}/><Route path="/fast-orders" element={<Protected permission="can_view_orders"><FastOrders/></Protected>}/><Route path="/vendors" element={<Protected permission="can_view_suppliers"><Vendors/></Protected>}/><Route path="/machines" element={<Protected permission="can_view_machines"><Machines/></Protected>}/><Route path="/settings/roles" element={<Protected permission="can_manage_roles"><RoleSettings/></Protected>}/></Routes></main>
+    <main className="main-content"><Routes><Route path="/" element={<Protected permission="can_view_dashboard"><Dashboard/></Protected>}/><Route path="/spare-sets" element={<Protected permission="can_view_dashboard"><SpareSets/></Protected>}/><Route path="/history" element={<Protected permission="can_view_history"><History/></Protected>}/><Route path="/safety-stock" element={<Protected permission="can_view_safety_stock"><SafetyStock/></Protected>}/><Route path="/orders" element={<Protected permission="can_view_orders"><div className="orders-workspace"><OrdersV2/></div></Protected>}/><Route path="/po-balance" element={<Protected permission="can_view_po_balance"><POBalance/></Protected>}/><Route path="/order-steps" element={<Protected permission="can_view_order_step"><div className="order-step-workspace"><Orders mode="steps"/></div></Protected>}/><Route path="/order-status" element={<Protected permission="can_view_order_status"><OrderStatusDashboard/></Protected>}/><Route path="/fast-orders" element={<Protected permission="can_view_orders"><FastOrders/></Protected>}/><Route path="/vendors" element={<Protected permission="can_view_suppliers"><Vendors/></Protected>}/><Route path="/machines" element={<Protected permission="can_view_machines"><Machines/></Protected>}/><Route path="/tools" element={<Protected permission="can_view_tools"><Tools/></Protected>}/><Route path="/settings/roles" element={<Protected permission="can_manage_roles"><RoleSettings/></Protected>}/></Routes></main>
   </div>;
 }
 function ResponsiveShell(){return useIsMobile()?<MobileShell/>:<DesktopShell/>}
-export default function App(){return <Routes><Route path="/login" element={<Login/>}/><Route path="/*" element={<Protected><ResponsiveShell/></Protected>}/></Routes>}
+export default function App(){return <Routes><Route path="/login" element={<Login/>}/><Route path="/tool-scan/:code" element={<ToolScan/>}/><Route path="/*" element={<Protected><ResponsiveShell/></Protected>}/></Routes>}

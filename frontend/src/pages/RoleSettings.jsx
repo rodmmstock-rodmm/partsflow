@@ -56,6 +56,11 @@ export const PERMISSIONS = [
   ["can_edit_machine", "Edit Machine", "Machines"],
   ["can_delete_machine", "Delete Machine", "Machines"],
 
+  ["can_view_tools", "View ยืม-คืนอุปกรณ์", "ยืม-คืนอุปกรณ์"],
+  ["can_add_tool", "Add อุปกรณ์", "ยืม-คืนอุปกรณ์"],
+  ["can_edit_tool", "Edit อุปกรณ์", "ยืม-คืนอุปกรณ์"],
+  ["can_delete_tool", "Delete อุปกรณ์", "ยืม-คืนอุปกรณ์"],
+
   ["can_manage_roles", "Manage Roles & Permissions", "Role & Permissions"],
 
   ["can_view_employees", "View Employees", "Employee"],
