@@ -82,13 +82,12 @@ export function NewRoleModal({ onClose, onSaved }){const[name,setName]=useState(
 
 export default function RoleSettings(){
   const auth=useAuth();
-  const {confirm}=useFeedback();
+  const {confirm,showToast}=useFeedback();
   const [roles,setRoles]=useState([]);
   const [employees,setEmployees]=useState([]);
   const [logs,setLogs]=useState([]);
   const [tab,setTab]=useState("roles");
   const [error,setError]=useState("");
-  const [msg,setMsg]=useState("");
   const [empModal,setEmpModal]=useState(undefined);
   const [roleModal,setRoleModal]=useState(false);
   const [q,setQ]=useState("");
@@ -118,7 +117,7 @@ export default function RoleSettings(){
   async function saveRole(r){
     try{
       await apiPatch(`/roles/${r.id}/`,{permissions:r.permissions,display_name:r.display_name,active:r.active});
-      setMsg(`บันทึก ${r.role_name} แล้ว`);
+      showToast(`บันทึก ${r.role_name} แล้ว`, "success");
       await auth.refresh();
     }catch(err){setError(err.message)}
   }
@@ -144,7 +143,6 @@ export default function RoleSettings(){
 
   return <>
     <PageHeader title="Role & Permissions" subtitle="จัดการสิทธิ์ Role, รายชื่อพนักงาน และ Audit Log"/>
-    <Alert type="success">{msg}</Alert>
     <Alert>{error}</Alert>
     <div className="tab-row page-tabs">
       <button className={`tab ${tab==="roles"?"active":""}`} onClick={()=>setTab("roles")}>Roles & Permissions</button>
