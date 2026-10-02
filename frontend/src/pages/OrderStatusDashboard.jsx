@@ -211,6 +211,7 @@ function MonthlyStatusSection({ onView, activeOrderId }) {
       DATE: o.order_date,
       STATUS: o.status,
       MACHINE: o.machine_code,
+      "PART ID": o.part_id,
       "PART NAME": o.part_name,
       "PART DETAIL": o.part_detail,
       MAKER: o.maker,

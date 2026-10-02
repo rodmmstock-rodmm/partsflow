@@ -3299,7 +3299,7 @@ def order_status_export_items(request):
         )
         .exclude(lifecycle_status=OrderRecord.LIFECYCLE_CANCELLED)
         .exclude(status=OrderRecord.STATUS_COMPLETE)
-        .select_related("machine", "vendor", "person_in_charge")
+        .select_related("machine", "vendor", "person_in_charge", "part")
         .order_by("order_date", "created_at")
     )
 
@@ -3309,6 +3309,7 @@ def order_status_export_items(request):
             "order_date": o.order_date.isoformat() if o.order_date else "",
             "status": o.status,
             "machine_code": o.machine.code if o.machine_id else "",
+            "part_id": o.part.sku if o.part_id else "",
             "part_name": o.part_name,
             "part_detail": o.part_detail,
             "maker": o.maker_text,
