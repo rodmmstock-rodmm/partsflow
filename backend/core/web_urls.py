@@ -1,6 +1,6 @@
 from django.urls import path
 
-from . import auth_api, dashboard_api, drive_oauth, fast_order_api, order_api, order_audit_api, order_delete_api, order_step_api, order_vendor_api, rfq_api, rfq_step_guard, role_api, spare_set_api, stock_api, web_api
+from . import auth_api, dashboard_api, drive_oauth, fast_order_api, order_api, order_audit_api, order_delete_api, order_step_api, order_vendor_api, rfq_api, rfq_step_guard, role_api, spare_set_api, stock_api, tool_api, web_api
 
 urlpatterns = [
     path("auth/login/", auth_api.login_view),
@@ -61,6 +61,15 @@ urlpatterns = [
     path("orders/status-search/", order_api.order_status_search, name="web-order-status-search"),
     path("orders/status-dashboard/pending-items/", order_api.order_status_pending_items, name="web-order-status-pending-items"),
     path("orders/status-dashboard/export/", order_api.order_status_export_items, name="web-order-status-export-items"),
+
+    # Equipment Borrow-Return (admin side, authenticated)
+    path("tools/", tool_api.tools_list, name="web-tools-list"),
+    path("tools/history/", tool_api.tool_loan_history, name="web-tools-history"),
+    path("tools/<uuid:pk>/", tool_api.tool_detail, name="web-tool-detail"),
+    # Equipment Borrow-Return (public QR scan page, no login)
+    path("tools/public/<str:code>/", tool_api.tool_public_detail, name="web-tool-public-detail"),
+    path("tools/public/<str:code>/borrow/", tool_api.tool_public_borrow, name="web-tool-public-borrow"),
+    path("tools/public/<str:code>/return/", tool_api.tool_public_return, name="web-tool-public-return"),
     path("orders/<uuid:pk>/delete/", order_api.delete_order, name="web-order-delete"),
     path("orders/<uuid:pk>/restore/", order_api.restore_order, name="web-order-restore"),
     path("orders/<uuid:pk>/permanent-delete/", order_delete_api.permanent_delete_order, name="web-order-permanent-delete"),

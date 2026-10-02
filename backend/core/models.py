@@ -336,6 +336,11 @@ class RoleAccess(UUIDMixin):
     can_add_employees = models.BooleanField(default=False)
     can_edit_employees = models.BooleanField(default=False)
     can_delete_employees = models.BooleanField(default=False)
+
+    can_view_tools = models.BooleanField(default=False)
+    can_add_tool = models.BooleanField(default=False)
+    can_edit_tool = models.BooleanField(default=False)
+    can_delete_tool = models.BooleanField(default=False)
     can_view_audit_log = models.BooleanField(default=False)
     can_manage_roles = models.BooleanField(default=False)
 
@@ -912,6 +917,51 @@ class IntegrationCredential(UUIDMixin):
         related_name="pending_integrations",
     )
     pending_at = models.DateTimeField(null=True, blank=True)
+
+
+class ToolEquipment(UUIDMixin):
+    """One physical, serialized tool/equipment unit - each row has its own
+    QR code (the QR simply encodes a URL containing `code`). Borrow/return
+    happens on the public scan page, no login required."""
+
+    STATUS_AVAILABLE = "AVAILABLE"
+    STATUS_BORROWED = "BORROWED"
+    STATUS_CHOICES = [
+        (STATUS_AVAILABLE, "ว่าง"),
+        (STATUS_BORROWED, "ถูกยืม"),
+    ]
+
+    code = models.CharField(max_length=50, unique=True)
+    name = models.CharField(max_length=250)
+    category = models.CharField(max_length=120, blank=True)
+    serial_number = models.CharField(max_length=120, blank=True)
+    location = models.CharField(max_length=200, blank=True)
+    remark = models.TextField(blank=True)
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default=STATUS_AVAILABLE)
+    active = models.BooleanField(default=True)
+
+    def __str__(self):
+        return f"{self.code} - {self.name}"
+
+
+class ToolLoanRecord(UUIDMixin):
+    """One borrow/return cycle for a ToolEquipment. `returned_at` is null
+    while the tool is still out."""
+
+    tool = models.ForeignKey(ToolEquipment, on_delete=models.CASCADE, related_name="loan_records")
+    borrower_employee = models.ForeignKey(
+        Employee, null=True, blank=True, on_delete=models.SET_NULL, related_name="tool_loans"
+    )
+    borrower_name = models.CharField(max_length=150)
+    purpose = models.CharField(max_length=250, blank=True)
+    borrowed_at = models.DateTimeField(auto_now_add=True)
+    expected_return_date = models.DateField(null=True, blank=True)
+    returned_at = models.DateTimeField(null=True, blank=True)
+    returned_by_name = models.CharField(max_length=150, blank=True)
+    return_note = models.TextField(blank=True)
+
+    class Meta:
+        ordering = ["-borrowed_at"]
 
 
 class AuditLog(models.Model):

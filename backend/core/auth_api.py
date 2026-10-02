@@ -49,6 +49,10 @@ PERMISSION_FIELDS = [
     "can_add_employees",
     "can_edit_employees",
     "can_delete_employees",
+    "can_view_tools",
+    "can_add_tool",
+    "can_edit_tool",
+    "can_delete_tool",
     "can_view_audit_log",
     "can_manage_roles",
 ]
