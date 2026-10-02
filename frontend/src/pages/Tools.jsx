@@ -321,7 +321,6 @@ function HistoryTab() {
               <th>ผู้เบิก</th>
               <th>วัตถุประสงค์</th>
               <th>วันที่เบิก</th>
-              <th>กำหนดคืน</th>
               <th>วันที่คืน</th>
               <th>สถานะ</th>
             </tr>
@@ -329,13 +328,13 @@ function HistoryTab() {
           <tbody>
             {loading ? (
               <tr>
-                <td colSpan={8} className="empty">
+                <td colSpan={7} className="empty">
                   กำลังโหลด...
                 </td>
               </tr>
             ) : rows.length === 0 ? (
               <tr>
-                <td colSpan={8} className="empty">
+                <td colSpan={7} className="empty">
                   ไม่มีประวัติ
                 </td>
               </tr>
@@ -347,7 +346,6 @@ function HistoryTab() {
                   <td>{l.borrower_name}</td>
                   <td>{l.purpose || "-"}</td>
                   <td>{formatDMY(l.borrowed_at, true)}</td>
-                  <td>{l.expected_return_date || "-"}</td>
                   <td>{formatDMY(l.returned_at, true)}</td>
                   <td>
                     <span className={`status ${l.is_outstanding ? "warning" : "success"}`}>

@@ -319,6 +319,7 @@ export default function FastOrders() {
                 <tr>
                   <th>Part ID</th>
                   <th>Part Name</th>
+                  <th>จำนวนที่สั่ง</th>
                   <th>Factory</th>
                   <th>Machine</th>
                   <th>JOB</th>
@@ -331,6 +332,7 @@ export default function FastOrders() {
                   <tr key={x.id}>
                     <td><b>{x.item_id}</b></td>
                     <td>{x.part_name}</td>
+                    <td>{x.amount} {x.unit}</td>
                     <td>{x.factory === "MM-11" ? "Phase11" : "Phase4"}</td>
                     <td>{x.machine_code}</td>
                     <td><span className="status success">SPARE</span></td>

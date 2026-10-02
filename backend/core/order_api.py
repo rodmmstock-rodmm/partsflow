@@ -3317,6 +3317,7 @@ def order_status_export_items(request):
             "amount": o.amount,
             "unit": o.unit_text,
             "vendor_name": o.vendor.name if o.vendor_id else "",
+            "lead_time_days": o.lead_time_days if o.lead_time_days is not None else "",
             "due_date": o.due_date.isoformat() if o.due_date else "",
             "person_in_charge": o.person_in_charge.name if o.person_in_charge_id else "",
             "remark": o.remark,

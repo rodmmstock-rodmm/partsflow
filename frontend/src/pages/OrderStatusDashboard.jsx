@@ -218,6 +218,7 @@ function MonthlyStatusSection({ onView, activeOrderId }) {
       AMOUNT: o.amount,
       UNIT: o.unit,
       VENDOR: o.vendor_name,
+      "LEAD TIME": o.lead_time_days,
       "DUE DATE": o.due_date,
       "PERSON IN CHARGE": o.person_in_charge,
       REMARK: o.remark,

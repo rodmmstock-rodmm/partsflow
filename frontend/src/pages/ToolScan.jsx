@@ -22,7 +22,6 @@ export default function ToolScan() {
   const [borrowerEmployeeId, setBorrowerEmployeeId] = useState("");
   const [borrowerName, setBorrowerName] = useState("");
   const [purpose, setPurpose] = useState("");
-  const [expectedReturnDate, setExpectedReturnDate] = useState("");
   const [returnerName, setReturnerName] = useState("");
   const [returnNote, setReturnNote] = useState("");
 
@@ -66,7 +65,6 @@ export default function ToolScan() {
         borrower_name: borrowerName.trim(),
         borrower_employee_id: borrowerEmployeeId || undefined,
         purpose: purpose.trim(),
-        expected_return_date: expectedReturnDate || undefined,
       });
       setDone("borrowed");
     } catch (err) {
@@ -173,14 +171,6 @@ export default function ToolScan() {
                 <label className="field">
                   <span>วัตถุประสงค์ / งานที่ใช้</span>
                   <input value={purpose} onChange={(e) => setPurpose(e.target.value)} />
-                </label>
-                <label className="field">
-                  <span>กำหนดคืน (ถ้ามี)</span>
-                  <input
-                    type="date"
-                    value={expectedReturnDate}
-                    onChange={(e) => setExpectedReturnDate(e.target.value)}
-                  />
                 </label>
                 <button className="btn primary full tool-scan-submit" disabled={busy}>
                   {busy ? "กำลังบันทึก..." : "ยืนยันเบิกอุปกรณ์"}
