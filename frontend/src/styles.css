@@ -655,3 +655,6 @@ html body input[type="radio"]:focus-visible{outline:2px solid var(--brand, #7c3a
 /* ---- Order Status Dashboard: Year select + 2 Export buttons, side by side ---- */
 .order-status-header-actions{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
 .order-status-export-btn{width:auto;white-space:nowrap}
+
+/* ---- Order Status Dashboard: "รายละเอียด" column in the pending items list ---- */
+.order-status-pending-detail{max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--muted)}

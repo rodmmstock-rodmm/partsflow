@@ -362,6 +362,7 @@ function MonthlyStatusSection({ onView, activeOrderId }) {
                             <th>ORDER</th>
                             <th>DATE</th>
                             <th>อะไหล่ที่สั่ง</th>
+                            <th>รายละเอียด</th>
                             <th>จำนวน</th>
                             <th></th>
                           </tr>
@@ -375,6 +376,9 @@ function MonthlyStatusSection({ onView, activeOrderId }) {
                               <td className="mono">{item.order_number}</td>
                               <td>{item.order_date}</td>
                               <td>{item.part_name}</td>
+                              <td className="order-status-pending-detail" title={item.part_detail || ""}>
+                                {item.part_detail || "-"}
+                              </td>
                               <td>
                                 {item.amount} {item.unit_text}
                               </td>

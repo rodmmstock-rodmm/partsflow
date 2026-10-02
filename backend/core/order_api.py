@@ -3266,6 +3266,7 @@ def order_status_pending_items(request):
             "order_number": o.order_number,
             "order_date": o.order_date.isoformat() if o.order_date else "",
             "part_name": o.part_name,
+            "part_detail": o.part_detail,
             "amount": o.amount,
             "unit_text": o.unit_text,
         }
