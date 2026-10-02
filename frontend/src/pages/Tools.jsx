@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import QRCode from "qrcode";
 import { apiDelete, apiGet, apiPatch, apiPost } from "../api";
 import { useAuth } from "../auth";
-import { Alert, Modal, PageHeader } from "../components/Common";
+import { Alert, Modal, PageHeader, formatDMY } from "../components/Common";
 import { useFeedback } from "../feedback";
 
 // The URL encoded in every QR code. Scanning it opens the public,
@@ -346,9 +346,9 @@ function HistoryTab() {
                   <td>{l.tool_name}</td>
                   <td>{l.borrower_name}</td>
                   <td>{l.purpose || "-"}</td>
-                  <td>{l.borrowed_at ? l.borrowed_at.slice(0, 16).replace("T", " ") : "-"}</td>
+                  <td>{formatDMY(l.borrowed_at, true)}</td>
                   <td>{l.expected_return_date || "-"}</td>
-                  <td>{l.returned_at ? l.returned_at.slice(0, 16).replace("T", " ") : "-"}</td>
+                  <td>{formatDMY(l.returned_at, true)}</td>
                   <td>
                     <span className={`status ${l.is_outstanding ? "warning" : "success"}`}>
                       {l.is_outstanding ? "ยังไม่คืน" : "คืนแล้ว"}

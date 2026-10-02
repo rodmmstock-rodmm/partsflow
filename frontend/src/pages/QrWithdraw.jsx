@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import QRCode from "qrcode";
 import { apiDelete, apiGet, apiPatch, apiPost } from "../api";
 import { useAuth } from "../auth";
-import { Alert, Modal, PageHeader } from "../components/Common";
+import { Alert, Modal, PageHeader, formatDMY } from "../components/Common";
 import { useFeedback } from "../feedback";
 
 // The standalone site that already exists and already has printed QR codes
@@ -316,7 +316,7 @@ function HistoryTab() {
             ) : (
               rows.map((w) => (
                 <tr key={w.id}>
-                  <td>{w.created_at ? w.created_at.slice(0, 16).replace("T", " ") : "-"}</td>
+                  <td>{formatDMY(w.created_at, true)}</td>
                   <td className="mono-cell">{w.code}</td>
                   <td>{w.name}</td>
                   <td>{w.spec || "-"}</td>
