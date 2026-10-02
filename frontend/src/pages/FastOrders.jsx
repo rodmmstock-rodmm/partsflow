@@ -52,7 +52,6 @@ export function FastOrderModal({ row, onClose, onSaved }) {
 
     try {
       if (!form.part_id) throw new Error("กรุณาเลือก Part ID จากผลการค้นหา");
-      if (!form.machine_id) throw new Error("กรุณาเลือก Machine");
 
       if (row?.id) {
         await apiPatch(`/fast-orders/${row.id}/`, form);
@@ -123,15 +122,14 @@ export function FastOrderModal({ row, onClose, onSaved }) {
           </label>
 
           <label className="field span2">
-            <span>Machine *</span>
+            <span>Machine (เว้นว่างได้ถ้าเป็นอะไหล่ทั่วไป ไม่ผูกกับเครื่องจักรใดเครื่องหนึ่ง)</span>
             <SearchableSelect
-              required
               value={form.machine_id}
               options={machines}
               onChange={(value) => set("machine_id", value)}
               getLabel={(machine) => machine.code}
               getSearchText={(machine) => `${machine.code || ""} ${machine.name || ""} ${machine.location || ""}`}
-              placeholder="พิมพ์รหัส Machine"
+              placeholder="พิมพ์รหัส Machine (ไม่บังคับ)"
             />
           </label>
 
@@ -166,16 +164,28 @@ export function FastOrderModal({ row, onClose, onSaved }) {
 
 function QuickOrderModal({ row, onClose, onSaved }) {
   const [amount, setAmount] = useState(1);
+  const [machineId, setMachineId] = useState("");
+  const [machines, setMachines] = useState([]);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
+  const needsMachine = !row.machine_code;
+
+  useEffect(() => {
+    if (!needsMachine) return;
+    apiGet("/machines/")
+      .then((d) => setMachines(d.results || []))
+      .catch((err) => setError(err.message));
+  }, [needsMachine]);
 
   async function submit(e) {
     e.preventDefault();
     setBusy(true);
     setError("");
     try {
+      if (needsMachine && !machineId) throw new Error("กรุณาเลือก Machine สำหรับ Order นี้");
       const result = await apiPost(`/fast-orders/${row.id}/order/`, {
         amount,
+        machine_id: machineId,
       });
       onSaved(result);
     } catch (err) {
@@ -195,13 +205,28 @@ function QuickOrderModal({ row, onClose, onSaved }) {
             <dt>Part</dt>
             <dd>{row.part_name}</dd>
             <dt>Machine</dt>
-            <dd>{row.machine_code}</dd>
+            <dd>{row.machine_code || "ทั่วไป (ไม่ผูกเครื่องจักร)"}</dd>
             <dt>Factory</dt>
             <dd>{row.factory === "MM-11" ? "Phase11" : "Phase4"}</dd>
             <dt>JOB</dt>
             <dd><b>SPARE</b></dd>
           </dl>
         </div>
+
+        {needsMachine && (
+          <label className="field">
+            <span>Machine สำหรับ Order นี้ *</span>
+            <SearchableSelect
+              required
+              value={machineId}
+              options={machines}
+              onChange={setMachineId}
+              getLabel={(machine) => machine.code}
+              getSearchText={(machine) => `${machine.code || ""} ${machine.name || ""} ${machine.location || ""}`}
+              placeholder="พิมพ์รหัส Machine"
+            />
+          </label>
+        )}
 
         <label className="field">
           <span>จำนวน *</span>
@@ -334,7 +359,7 @@ export default function FastOrders() {
                     <td>{x.part_name}</td>
                     <td>{x.amount} {x.unit}</td>
                     <td>{x.factory === "MM-11" ? "Phase11" : "Phase4"}</td>
-                    <td>{x.machine_code}</td>
+                    <td>{x.machine_code || "ทั่วไป"}</td>
                     <td><span className="status success">SPARE</span></td>
                     <td>{x.remark || "-"}</td>
                     <td>
