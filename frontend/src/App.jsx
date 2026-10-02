@@ -20,21 +20,32 @@ import POBalance from "./pages/POBalance";
 import Login from "./pages/Login";
 import MobileShell from "./mobile/MobileShell";
 
-const NAV = [
-  ["/", "Dashboard Stock", "box", "can_view_dashboard"],
-  ["/history", "History", "clock", "can_view_history"],
-  ["/safety-stock", "Safety Stock", "alert", "can_view_safety_stock"],
-  ["/orders", "Order", "cart", "can_view_orders"],
-  ["/order-steps", "Order Step", "steps", "can_view_order_step"],
-  ["/order-status", "Dashboard Order", "chart", "can_view_order_status"],
-  ["/po-balance", "PO Balance", "mail", "can_view_po_balance"],
-  ["/fast-orders", "Fast Order", "zap", "can_view_orders"],
-  ["/vendors", "Vendor", "vendor", "can_view_suppliers"],
-  ["/machines", "Machines", "gear", "can_view_machines"],
-  ["/tools", "ยืม-คืนอุปกรณ์", "wrench", "can_view_tools"],
-  ["/qr-withdraw", "เบิกของ QR Code", "qrcode", "can_view_qr_withdraw"],
-  ["/settings/roles", "Role & Permissions", "shield", "can_manage_roles"],
+// Grouped for the desktop sidebar's category headers (Stock / Order /
+// Setting). Flattened below into NAV for anything that just needs the full
+// list (e.g. nothing currently does, but kept so a future consumer doesn't
+// have to re-flatten NAV_GROUPS itself).
+const NAV_GROUPS = [
+  ["Stock", [
+    ["/", "Dashboard Stock", "box", "can_view_dashboard"],
+    ["/history", "History", "clock", "can_view_history"],
+    ["/safety-stock", "Safety Stock", "alert", "can_view_safety_stock"],
+    ["/qr-withdraw", "เบิก Screw", "qrcode", "can_view_qr_withdraw"],
+    ["/tools", "ยืม-คืนอุปกรณ์", "wrench", "can_view_tools"],
+  ]],
+  ["Order", [
+    ["/orders", "Order", "cart", "can_view_orders"],
+    ["/order-steps", "Order Step", "steps", "can_view_order_step"],
+    ["/fast-orders", "Fast Order", "zap", "can_view_orders"],
+    ["/po-balance", "PO Balance", "mail", "can_view_po_balance"],
+    ["/order-status", "Dashboard Order", "chart", "can_view_order_status"],
+  ]],
+  ["Setting", [
+    ["/machines", "Machines", "gear", "can_view_machines"],
+    ["/vendors", "Vendor", "vendor", "can_view_suppliers"],
+    ["/settings/roles", "Role & Permissions", "shield", "can_manage_roles"],
+  ]],
 ];
+const NAV = NAV_GROUPS.flatMap(([, items]) => items);
 
 const ICON_SPRITE = (
   <svg style={{ display: "none" }} aria-hidden="true">
@@ -62,7 +73,10 @@ function useIsMobile(){
 }
 function Protected({ permission, children }) { const auth = useAuth(); if (auth.loading) return <div className="auth-loading">กำลังตรวจสอบสิทธิ์...</div>; if (!auth.authenticated) return <Navigate to="/login" replace />; if (permission && !auth.can(permission)) return <Navigate to="/" replace />; return children; }
 function DesktopShell() {
-  const auth = useAuth(); const navigate = useNavigate(); const visible = NAV.filter(([, , , permission]) => auth.can(permission));
+  const auth = useAuth(); const navigate = useNavigate();
+  const visibleGroups = NAV_GROUPS
+    .map(([group, items]) => [group, items.filter(([, , , permission]) => auth.can(permission))])
+    .filter(([, items]) => items.length > 0);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   async function logout() { await auth.logout(); navigate("/login", { replace: true }); }
   return <div className="app-shell">
@@ -78,7 +92,7 @@ function DesktopShell() {
         <div><strong>PartsFlow</strong><span>Spare Parts & Purchasing</span></div>
         <button className="icon-btn sidebar-close" onClick={() => setSidebarOpen(false)} aria-label="ปิดเมนู">✕</button>
       </div>
-      <nav className="nav-list">{visible.map(([to,label,icon])=><NavLink key={to} to={to} end={to==="/"} onClick={()=>setSidebarOpen(false)} className={({isActive})=>isActive?"nav-link active":"nav-link"}><svg className="nav-icon"><use href={`#ic-${icon}`}/></svg><span>{label}</span></NavLink>)}</nav>
+      <nav className="nav-list">{visibleGroups.map(([group,items])=><div className="nav-group" key={group}><div className="nav-group-label">{group}</div>{items.map(([to,label,icon])=><NavLink key={to} to={to} end={to==="/"} onClick={()=>setSidebarOpen(false)} className={({isActive})=>isActive?"nav-link active":"nav-link"}><svg className="nav-icon"><use href={`#ic-${icon}`}/></svg><span>{label}</span></NavLink>)}</div>)}</nav>
       <div className="sidebar-user"><div><strong>{auth.employee?.name}</strong><span>{auth.employee?.employee_code} · {auth.employee?.role||"No Role"}</span></div><button className="icon-btn" onClick={logout}>⏻</button></div>
     </aside>
     <main className="main-content"><Routes><Route path="/" element={<Protected permission="can_view_dashboard"><Dashboard/></Protected>}/><Route path="/spare-sets" element={<Protected permission="can_view_dashboard"><SpareSets/></Protected>}/><Route path="/history" element={<Protected permission="can_view_history"><History/></Protected>}/><Route path="/safety-stock" element={<Protected permission="can_view_safety_stock"><SafetyStock/></Protected>}/><Route path="/orders" element={<Protected permission="can_view_orders"><div className="orders-workspace"><OrdersV2/></div></Protected>}/><Route path="/po-balance" element={<Protected permission="can_view_po_balance"><POBalance/></Protected>}/><Route path="/order-steps" element={<Protected permission="can_view_order_step"><div className="order-step-workspace"><Orders mode="steps"/></div></Protected>}/><Route path="/order-status" element={<Protected permission="can_view_order_status"><OrderStatusDashboard/></Protected>}/><Route path="/fast-orders" element={<Protected permission="can_view_orders"><FastOrders/></Protected>}/><Route path="/vendors" element={<Protected permission="can_view_suppliers"><Vendors/></Protected>}/><Route path="/machines" element={<Protected permission="can_view_machines"><Machines/></Protected>}/><Route path="/tools" element={<Protected permission="can_view_tools"><Tools/></Protected>}/><Route path="/qr-withdraw" element={<Protected permission="can_view_qr_withdraw"><QrWithdraw/></Protected>}/><Route path="/settings/roles" element={<Protected permission="can_manage_roles"><RoleSettings/></Protected>}/></Routes></main>

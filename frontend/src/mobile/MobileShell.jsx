@@ -28,7 +28,7 @@ const NAV = [
   ["/vendors", "Vendor", "vendor", "can_view_suppliers"],
   ["/machines", "Machine", "gear", "can_view_machines"],
   ["/tools", "ยืม-คืนอุปกรณ์", "wrench", "can_view_tools"],
-  ["/qr-withdraw", "เบิกของ QR", "qrcode", "can_view_qr_withdraw"],
+  ["/qr-withdraw", "เบิก Screw", "qrcode", "can_view_qr_withdraw"],
   ["/settings/roles", "Roles", "shield", "can_manage_roles"],
 ];
 

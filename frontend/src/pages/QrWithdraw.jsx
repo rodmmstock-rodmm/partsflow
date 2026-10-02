@@ -338,7 +338,7 @@ export default function QrWithdraw() {
   return (
     <>
       <PageHeader
-        title="เบิกของ QR Code"
+        title="เบิก Screw"
         subtitle="จัดการรายการอุปกรณ์และดูประวัติการเบิก (ระบบสแกนเบิกของเดิมที่ qr-withdraw.vercel.app ไม่เปลี่ยนแปลง)"
       />
       <div className="tab-row page-tabs">
