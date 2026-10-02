@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { apiGet } from "../api";
+import * as XLSX from "xlsx";
 import { Alert, PageHeader, SearchableSelect } from "../components/Common";
 
 const MONTH_LABELS = [
@@ -177,6 +178,7 @@ function MonthlyStatusSection({ onView, activeOrderId }) {
   const [error, setError] = useState("");
   const [pendingItems, setPendingItems] = useState(null);
   const [pendingLoading, setPendingLoading] = useState(true);
+  const [exportingKind, setExportingKind] = useState(null); // "wait_item" | "pending_action" | null
 
   useEffect(() => {
     let alive = true;
@@ -203,13 +205,57 @@ function MonthlyStatusSection({ onView, activeOrderId }) {
     };
   }, [year, monthIdx]);
 
+  function exportRows(items) {
+    return items.map((o) => ({
+      "ORDER NUMBER": o.order_number,
+      DATE: o.order_date,
+      STATUS: o.status,
+      MACHINE: o.machine_code,
+      "PART NAME": o.part_name,
+      "PART DETAIL": o.part_detail,
+      MAKER: o.maker,
+      AMOUNT: o.amount,
+      UNIT: o.unit,
+      VENDOR: o.vendor_name,
+      "DUE DATE": o.due_date,
+      "PERSON IN CHARGE": o.person_in_charge,
+      REMARK: o.remark,
+    }));
+  }
+
+  async function exportPendingExcel(kind) {
+    // kind: "wait_item" ("รอของ") or "pending_action" ("รอดำเนินการ") - each
+    // button downloads its own file, covering the whole selected year.
+    setExportingKind(kind);
+    setError("");
+    try {
+      const res = await apiGet(`/orders/status-dashboard/export/?year=${year}`);
+      const rows = exportRows(res[kind] || []);
+      if (!rows.length) {
+        setError(
+          `ไม่มีรายการ${kind === "wait_item" ? "รอของ" : "รอดำเนินการ"} ในปี ${year}`
+        );
+        return;
+      }
+      const sheetName = kind === "wait_item" ? "รอของ" : "รอดำเนินการ";
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(rows), sheetName);
+      XLSX.writeFile(wb, `order_status_${kind}_${year}.xlsx`);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setExportingKind(null);
+    }
+  }
+
   const yearOptions = [];
   for (let y = now.getFullYear(); y >= now.getFullYear() - 4; y--) yearOptions.push(y);
 
   const yearTotal = data ? data.months.reduce((sum, m) => sum + m.total, 0) : 0;
   const yearCompleted = data ? data.months.reduce((sum, m) => sum + m.completed, 0) : 0;
   const yearCancelled = data ? data.months.reduce((sum, m) => sum + m.cancelled, 0) : 0;
-  const yearPending = data ? data.months.reduce((sum, m) => sum + m.pending, 0) : 0;
+  const yearWaitItem = data ? data.months.reduce((sum, m) => sum + m.wait_item, 0) : 0;
+  const yearPendingAction = data ? data.months.reduce((sum, m) => sum + m.pending_action, 0) : 0;
   const selectedMonth = data ? data.months[monthIdx] : null;
 
   return (
@@ -218,13 +264,31 @@ function MonthlyStatusSection({ onView, activeOrderId }) {
         title="Dashboard สถานะ Order"
         subtitle="ภาพรวมจำนวน Order แต่ละสถานะปัจจุบัน แยกตามเดือนที่สร้าง (ไม่รวม Order ที่ถูกลบ)"
         actions={
-          <select value={year} onChange={(e) => setYear(Number(e.target.value))}>
-            {yearOptions.map((y) => (
-              <option key={y} value={y}>
-                ปี {y}
-              </option>
-            ))}
-          </select>
+          <div className="order-status-header-actions">
+            <select value={year} onChange={(e) => setYear(Number(e.target.value))}>
+              {yearOptions.map((y) => (
+                <option key={y} value={y}>
+                  ปี {y}
+                </option>
+              ))}
+            </select>
+            <button
+              type="button"
+              className="btn ghost order-status-export-btn"
+              onClick={() => exportPendingExcel("wait_item")}
+              disabled={!!exportingKind || loading}
+            >
+              {exportingKind === "wait_item" ? "กำลัง Export..." : "Export รอของ"}
+            </button>
+            <button
+              type="button"
+              className="btn ghost order-status-export-btn"
+              onClick={() => exportPendingExcel("pending_action")}
+              disabled={!!exportingKind || loading}
+            >
+              {exportingKind === "pending_action" ? "กำลัง Export..." : "Export รอดำเนินการ"}
+            </button>
+          </div>
         }
       />
       <Alert>{error}</Alert>
@@ -233,7 +297,7 @@ function MonthlyStatusSection({ onView, activeOrderId }) {
         <div className="empty">กำลังโหลด...</div>
       ) : data ? (
         <>
-          <div className="kpi-grid three">
+          <div className="kpi-grid four">
             <div className="kpi-card info">
               <span>Order ทั้งปี {year}</span>
               <strong>{yearTotal}</strong>
@@ -243,8 +307,12 @@ function MonthlyStatusSection({ onView, activeOrderId }) {
               <strong>{yearCompleted}</strong>
             </div>
             <div className="kpi-card warning">
-              <span>ยังไม่มา (รอของทุกเดือน)</span>
-              <strong>{yearPending}</strong>
+              <span>รอของ (Wait for Item)</span>
+              <strong>{yearWaitItem}</strong>
+            </div>
+            <div className="kpi-card warning">
+              <span>รอดำเนินการ (New / Quotation / P-R / Confirm)</span>
+              <strong>{yearPendingAction}</strong>
             </div>
           </div>
 

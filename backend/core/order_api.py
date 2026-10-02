@@ -3195,7 +3195,10 @@ def order_status_dashboard(request):
         is_deleted=False,
     ).values("order_date", "status", "lifecycle_status")
 
-    months = {m: {"pending": 0, "completed": 0, "cancelled": 0} for m in range(1, 13)}
+    months = {
+        m: {"wait_item": 0, "pending_action": 0, "completed": 0, "cancelled": 0}
+        for m in range(1, 13)
+    }
 
     for row in rows:
         month = row["order_date"].month
@@ -3203,20 +3206,26 @@ def order_status_dashboard(request):
             bucket = "cancelled"
         elif row["status"] == OrderRecord.STATUS_COMPLETE:
             bucket = "completed"
+        elif row["status"] == OrderRecord.STATUS_ITEM:
+            bucket = "wait_item"  # "รอของ" - order already placed, waiting for delivery
         else:
-            bucket = "pending"
+            # "รอดำเนินการ" - New Order / Wait Quotation / Wait Issue P/R / Wait
+            # Confirm Order, and (defensively) any other non-terminal status.
+            bucket = "pending_action"
         months[month][bucket] += 1
 
     result_months = []
     for m in range(1, 13):
         c = months[m]
-        total = c["pending"] + c["completed"] + c["cancelled"]
+        total = c["wait_item"] + c["pending_action"] + c["completed"] + c["cancelled"]
         result_months.append(
             {
                 "month": m,
                 "month_label": MONTHS_TH_SHORT[m - 1],
                 "total": total,
-                "pending": c["pending"],
+                "wait_item": c["wait_item"],
+                "pending_action": c["pending_action"],
+                "pending": c["wait_item"] + c["pending_action"],  # kept for back-compat
                 "completed": c["completed"],
                 "cancelled": c["cancelled"],
             }
@@ -3263,6 +3272,61 @@ def order_status_pending_items(request):
         for o in rows
     ]
     return Response({"year": year, "month": month, "items": items})
+
+
+@api_view(["GET"])
+@permission_classes([AllowAny])
+def order_status_export_items(request):
+    """Year-wide items for the two Export to Excel buttons next to the Year
+    selector: every order still "รอของ" (Wait for Item) or "รอดำเนินการ"
+    (New Order / Wait Quotation / Wait Issue P/R / Wait Confirm Order) across
+    the whole selected year, with enough fields to actually chase each one up.
+    """
+    _, err = require_permission(request, "can_view_order_status")
+    if err:
+        return err
+
+    try:
+        year = int(request.GET.get("year") or timezone.localdate().year)
+    except (TypeError, ValueError):
+        return Response({"detail": "year ไม่ถูกต้อง"}, status=400)
+
+    rows = (
+        OrderRecord.objects.filter(
+            order_date__year=year,
+            procurement_phase=OrderRecord.PROCUREMENT_PURCHASE,
+            is_deleted=False,
+        )
+        .exclude(lifecycle_status=OrderRecord.LIFECYCLE_CANCELLED)
+        .exclude(status=OrderRecord.STATUS_COMPLETE)
+        .select_related("machine", "vendor", "person_in_charge")
+        .order_by("order_date", "created_at")
+    )
+
+    def row_json(o):
+        return {
+            "order_number": o.order_number,
+            "order_date": o.order_date.isoformat() if o.order_date else "",
+            "status": o.status,
+            "machine_code": o.machine.code if o.machine_id else "",
+            "part_name": o.part_name,
+            "part_detail": o.part_detail,
+            "maker": o.maker_text,
+            "amount": o.amount,
+            "unit": o.unit_text,
+            "vendor_name": o.vendor.name if o.vendor_id else "",
+            "due_date": o.due_date.isoformat() if o.due_date else "",
+            "person_in_charge": o.person_in_charge.name if o.person_in_charge_id else "",
+            "remark": o.remark,
+        }
+
+    wait_item, pending_action = [], []
+    for o in rows:
+        (wait_item if o.status == OrderRecord.STATUS_ITEM else pending_action).append(
+            row_json(o)
+        )
+
+    return Response({"year": year, "wait_item": wait_item, "pending_action": pending_action})
 
 
 @api_view(["GET"])

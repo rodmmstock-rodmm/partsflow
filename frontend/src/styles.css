@@ -651,3 +651,7 @@ html body input[type="radio"]:focus-visible{outline:2px solid var(--brand, #7c3a
 .m-role-accordion-summary::-webkit-details-marker{display:none}
 .m-role-accordion-count{display:block;margin-top:6px;color:var(--muted);font-size:9px}
 .m-role-accordion[open] .m-role-accordion-summary{margin-bottom:2px}
+
+/* ---- Order Status Dashboard: Year select + 2 Export buttons, side by side ---- */
+.order-status-header-actions{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.order-status-export-btn{width:auto;white-space:nowrap}

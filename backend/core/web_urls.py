@@ -60,6 +60,7 @@ urlpatterns = [
     path("orders/status-dashboard/", order_api.order_status_dashboard, name="web-order-status-dashboard"),
     path("orders/status-search/", order_api.order_status_search, name="web-order-status-search"),
     path("orders/status-dashboard/pending-items/", order_api.order_status_pending_items, name="web-order-status-pending-items"),
+    path("orders/status-dashboard/export/", order_api.order_status_export_items, name="web-order-status-export-items"),
     path("orders/<uuid:pk>/delete/", order_api.delete_order, name="web-order-delete"),
     path("orders/<uuid:pk>/restore/", order_api.restore_order, name="web-order-restore"),
     path("orders/<uuid:pk>/permanent-delete/", order_delete_api.permanent_delete_order, name="web-order-permanent-delete"),
