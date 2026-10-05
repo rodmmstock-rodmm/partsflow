@@ -42,7 +42,7 @@ def preset_json(item):
         "part_name": part.name,
         "part_detail": part.description or "",
         "maker": part.maker.name if part.maker else "",
-        "reorder_qty": part.reorder_qty,
+        "reorder_qty": float(part.reorder_qty or 0),
         "unit": part.unit.code if part.unit else "",
         "location": part.location.code if part.location else "",
         "remark": item.remark or "",
@@ -200,6 +200,60 @@ def fast_order_detail(request, pk):
     return Response(after)
 
 
+def _create_order_from_preset(preset, amount, machine_id, actor):
+    """Create one real Order from a Fast Order preset. Caller controls the
+    transaction/atomic scope so this can be used for a single order or
+    looped for a bulk order without nesting savepoints per item."""
+    order = OrderRecord(
+        order_number=generate_order_number(),
+        order_date=timezone.localdate(),
+        recorded_by=actor,
+        source_type="NORMAL",
+        edit_workflow_enabled=True,
+    )
+    apply_order_info(
+        order,
+        {
+            "date": timezone.localdate().isoformat(),
+            "factory": preset.factory,
+            "machine_id": machine_id,
+            "job": "SPARE",
+            "urgent_status": "",
+            "pending_data_date": "",
+            "part_id": str(preset.part_id),
+            "amount": amount,
+            "remark": preset.remark,
+            "ordered_by_id": str(actor.id),
+        },
+        creating=True,
+    )
+    order.save()
+
+    audit(
+        actor,
+        "FAST_ORDER_TO_NORMAL",
+        "OrderRecord",
+        order.id,
+        {
+            "fast_order_id": str(preset.id),
+            "amount": amount,
+            "job": "SPARE",
+            "order_number": order.order_number,
+        },
+    )
+    return order
+
+
+def _parse_amount(raw):
+    try:
+        amount = int(raw or 0)
+    except (TypeError, ValueError):
+        raise ValueError("จำนวนต้องเป็นจำนวนเต็ม")
+    if amount <= 0:
+        raise ValueError("จำนวนต้องมากกว่า 0")
+    return amount
+
+
 @csrf_exempt
 @api_view(["POST"])
 @permission_classes([AllowAny])
@@ -218,12 +272,9 @@ def fast_order_create_normal(request, pk):
         return Response({"detail": "ไม่พบ Fast Order หรือรายการถูกปิดใช้งาน"}, status=404)
 
     try:
-        amount = int(request.data.get("amount") or 0)
-    except (TypeError, ValueError):
-        return Response({"detail": "จำนวนต้องเป็นจำนวนเต็ม"}, status=400)
-
-    if amount <= 0:
-        return Response({"detail": "จำนวนต้องมากกว่า 0"}, status=400)
+        amount = _parse_amount(request.data.get("amount"))
+    except ValueError as exc:
+        return Response({"detail": str(exc)}, status=400)
 
     # A Fast Order preset for a general consumable (e.g. screws) carries no
     # machine of its own - the actual purchase order still needs one, so the
@@ -234,46 +285,73 @@ def fast_order_create_normal(request, pk):
 
     try:
         with transaction.atomic():
-            order = OrderRecord(
-                order_number=generate_order_number(),
-                order_date=timezone.localdate(),
-                recorded_by=actor,
-                source_type="NORMAL",
-                edit_workflow_enabled=True,
-            )
-            apply_order_info(
-                order,
-                {
-                    "date": timezone.localdate().isoformat(),
-                    "factory": preset.factory,
-                    "machine_id": machine_id,
-                    "job": "SPARE",
-                    "urgent_status": "",
-                    "pending_data_date": "",
-                    "part_id": str(preset.part_id),
-                    "amount": amount,
-                    "remark": preset.remark,
-                    "ordered_by_id": str(actor.id),
-                },
-                creating=True,
-            )
-            order.save()
-
-            audit(
-                actor,
-                "FAST_ORDER_TO_NORMAL",
-                "OrderRecord",
-                order.id,
-                {
-                    "fast_order_id": str(preset.id),
-                    "amount": amount,
-                    "job": "SPARE",
-                    "order_number": order.order_number,
-                },
-            )
-
+            order = _create_order_from_preset(preset, amount, machine_id, actor)
         return Response(
             order_json(order_queryset().get(pk=order.pk)),
+            status=201,
+        )
+    except (ValueError, IntegrityError) as exc:
+        return Response({"detail": str(exc)}, status=400)
+
+
+@csrf_exempt
+@api_view(["POST"])
+@permission_classes([AllowAny])
+def fast_orders_bulk_order(request):
+    """Create Normal Orders from several presets in one go.
+
+    Body: {"items": [{"id": <preset id>, "amount": <int>}, ...],
+           "machine_id": <optional - used for any item whose own preset has
+           no machine>}. All-or-nothing: if any item fails validation, no
+           orders are created.
+    """
+    actor, err = require_permission(request, "can_add_order")
+    if err:
+        return err
+
+    raw_items = request.data.get("items")
+    if not isinstance(raw_items, list) or not raw_items:
+        return Response({"detail": "กรุณาเลือกอย่างน้อย 1 รายการ"}, status=400)
+
+    shared_machine_id = str(request.data.get("machine_id") or "").strip()
+
+    parsed = []
+    for raw in raw_items:
+        preset_id = str((raw or {}).get("id") or "").strip()
+        preset = preset_queryset().filter(pk=preset_id, active=True).first()
+        if not preset:
+            return Response({"detail": "ไม่พบ Fast Order บางรายการ หรือถูกปิดใช้งานแล้ว"}, status=404)
+
+        try:
+            amount = _parse_amount((raw or {}).get("amount"))
+        except ValueError as exc:
+            return Response(
+                {"detail": f"{preset.part.sku}: {exc}"},
+                status=400,
+            )
+
+        machine_id = str(preset.machine_id) if preset.machine_id else shared_machine_id
+        if not machine_id:
+            return Response(
+                {"detail": f"กรุณาเลือก Machine สำหรับ {preset.part.sku} (ไม่มี Machine ผูกไว้)"},
+                status=400,
+            )
+
+        parsed.append((preset, amount, machine_id))
+
+    try:
+        with transaction.atomic():
+            created = [
+                _create_order_from_preset(preset, amount, machine_id, actor)
+                for preset, amount, machine_id in parsed
+            ]
+        orders = order_queryset().filter(pk__in=[o.pk for o in created])
+        by_pk = {o.pk: o for o in orders}
+        return Response(
+            {
+                "count": len(created),
+                "results": [order_json(by_pk[o.pk]) for o in created],
+            },
             status=201,
         )
     except (ValueError, IntegrityError) as exc:

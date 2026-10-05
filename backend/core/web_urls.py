@@ -42,6 +42,7 @@ urlpatterns = [
     path("fast-orders/", fast_order_api.fast_orders, name="web-fast-orders"),
     path("fast-orders/<uuid:pk>/", fast_order_api.fast_order_detail, name="web-fast-order-detail"),
     path("fast-orders/<uuid:pk>/order/", fast_order_api.fast_order_create_normal, name="web-fast-order-create-normal"),
+    path("fast-orders/bulk-order/", fast_order_api.fast_orders_bulk_order, name="web-fast-orders-bulk-order"),
 
     path("orders/", order_audit_api.orders, name="web-orders"),
     path("orders/batch/", order_api.create_orders_batch, name="web-orders-batch"),
