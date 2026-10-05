@@ -162,8 +162,13 @@ export function FastOrderModal({ row, onClose, onSaved }) {
   );
 }
 
-function QuickOrderModal({ row, onClose, onSaved }) {
-  const [amount, setAmount] = useState(1);
+function defaultAmount(row) {
+  const n = Math.round(Number(row?.reorder_qty) || 0);
+  return n > 0 ? n : 1;
+}
+
+export function QuickOrderModal({ row, onClose, onSaved }) {
+  const [amount, setAmount] = useState(() => defaultAmount(row));
   const [machineId, setMachineId] = useState("");
   const [machines, setMachines] = useState([]);
   const [busy, setBusy] = useState(false);
@@ -255,6 +260,112 @@ function QuickOrderModal({ row, onClose, onSaved }) {
   );
 }
 
+export function BulkOrderModal({ rows, onClose, onSaved }) {
+  const [amounts, setAmounts] = useState(() =>
+    Object.fromEntries(rows.map((r) => [r.id, defaultAmount(r)]))
+  );
+  const [machineId, setMachineId] = useState("");
+  const [machines, setMachines] = useState([]);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
+  const needsMachine = rows.some((r) => !r.machine_code);
+
+  useEffect(() => {
+    if (!needsMachine) return;
+    apiGet("/machines/")
+      .then((d) => setMachines(d.results || []))
+      .catch((err) => setError(err.message));
+  }, [needsMachine]);
+
+  async function submit(e) {
+    e.preventDefault();
+    setBusy(true);
+    setError("");
+    try {
+      if (needsMachine && !machineId) {
+        throw new Error("กรุณาเลือก Machine สำหรับรายการที่ไม่มี Machine ผูกไว้");
+      }
+      const items = rows.map((r) => ({ id: r.id, amount: Number(amounts[r.id]) || 0 }));
+      const result = await apiPost("/fast-orders/bulk-order/", {
+        items,
+        machine_id: machineId,
+      });
+      onSaved(result);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <Modal title={`สั่ง Fast Order (${rows.length} รายการ)`} onClose={onClose} wide>
+      <form onSubmit={submit}>
+        {needsMachine && (
+          <label className="field">
+            <span>Machine สำหรับรายการที่ไม่มี Machine ผูกไว้ *</span>
+            <SearchableSelect
+              required
+              value={machineId}
+              options={machines}
+              onChange={setMachineId}
+              getLabel={(machine) => machine.code}
+              getSearchText={(machine) => `${machine.code || ""} ${machine.name || ""} ${machine.location || ""}`}
+              placeholder="พิมพ์รหัส Machine"
+            />
+          </label>
+        )}
+
+        <div className="table-wrap" style={{ marginTop: 12 }}>
+          <table>
+            <thead>
+              <tr>
+                <th>Part ID</th>
+                <th>Part Name</th>
+                <th>Machine</th>
+                <th>จำนวน</th>
+              </tr>
+            </thead>
+            <tbody>
+              {rows.map((r) => (
+                <tr key={r.id}>
+                  <td><b>{r.item_id}</b></td>
+                  <td>{r.part_name}</td>
+                  <td>{r.machine_code || "ทั่วไป"}</td>
+                  <td>
+                    <input
+                      type="number"
+                      min="1"
+                      step="1"
+                      required
+                      value={amounts[r.id]}
+                      onChange={(e) =>
+                        setAmounts((prev) => ({ ...prev, [r.id]: e.target.value }))
+                      }
+                      style={{ width: 90 }}
+                    />{" "}
+                    {r.unit}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+
+        <Alert>{error}</Alert>
+        <div className="modal-actions">
+          <button type="button" className="btn ghost" onClick={onClose}>
+            ยกเลิก
+          </button>
+          <button className="btn primary" disabled={busy}>
+            {busy ? "กำลังเพิ่ม Order..." : `เพิ่มเข้า Order Normal (${rows.length} รายการ)`}
+          </button>
+        </div>
+      </form>
+    </Modal>
+  );
+}
+
 export default function FastOrders() {
   const auth = useAuth();
   const { confirm } = useFeedback();
@@ -265,6 +376,8 @@ export default function FastOrders() {
   const [editor, setEditor] = useState(undefined);
   const [quick, setQuick] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [selected, setSelected] = useState(() => new Set());
+  const [bulkOrder, setBulkOrder] = useState(false);
 
   async function load() {
     setLoading(true);
@@ -292,6 +405,34 @@ export default function FastOrders() {
         .includes(needle)
     );
   }, [rows, q]);
+
+  function toggleSelected(id) {
+    setSelected((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }
+
+  function toggleSelectAllShown() {
+    setSelected((prev) => {
+      const allShownSelected = shown.length > 0 && shown.every((x) => prev.has(x.id));
+      if (allShownSelected) {
+        const next = new Set(prev);
+        shown.forEach((x) => next.delete(x.id));
+        return next;
+      }
+      const next = new Set(prev);
+      shown.forEach((x) => next.add(x.id));
+      return next;
+    });
+  }
+
+  const selectedRows = useMemo(
+    () => rows.filter((x) => selected.has(x.id)),
+    [rows, selected]
+  );
 
   async function remove(row) {
     const ok = await confirm(`ปิด Fast Order ${row.item_id} ?`, {
@@ -333,6 +474,11 @@ export default function FastOrders() {
             onChange={(e) => setQ(e.target.value)}
             placeholder="ค้นหา Part ID / Part / Machine..."
           />
+          {auth.can("can_add_order") && selected.size > 0 && (
+            <button className="btn primary" onClick={() => setBulkOrder(true)}>
+              สั่งที่เลือก ({selected.size})
+            </button>
+          )}
         </div>
 
         {loading ? (
@@ -342,6 +488,16 @@ export default function FastOrders() {
             <table>
               <thead>
                 <tr>
+                  {auth.can("can_add_order") && (
+                    <th>
+                      <input
+                        type="checkbox"
+                        checked={shown.length > 0 && shown.every((x) => selected.has(x.id))}
+                        onChange={toggleSelectAllShown}
+                        aria-label="เลือกทั้งหมด"
+                      />
+                    </th>
+                  )}
                   <th>Part ID</th>
                   <th>Part Name</th>
                   <th>จำนวนที่สั่ง</th>
@@ -355,6 +511,16 @@ export default function FastOrders() {
               <tbody>
                 {shown.map((x) => (
                   <tr key={x.id}>
+                    {auth.can("can_add_order") && (
+                      <td>
+                        <input
+                          type="checkbox"
+                          checked={selected.has(x.id)}
+                          onChange={() => toggleSelected(x.id)}
+                          aria-label={`เลือก ${x.item_id}`}
+                        />
+                      </td>
+                    )}
                     <td><b>{x.item_id}</b></td>
                     <td>{x.part_name}</td>
                     <td>{x.reorder_qty} {x.unit}</td>
@@ -407,6 +573,18 @@ export default function FastOrders() {
             setMessage(
               `เพิ่ม ${order.order_number} เข้า Order Normal แล้ว · ${order.item_id} × ${order.amount}`
             );
+          }}
+        />
+      )}
+
+      {bulkOrder && (
+        <BulkOrderModal
+          rows={selectedRows}
+          onClose={() => setBulkOrder(false)}
+          onSaved={(result) => {
+            setBulkOrder(false);
+            setSelected(new Set());
+            setMessage(`เพิ่มเข้า Order Normal แล้ว ${result.count} รายการ`);
           }}
         />
       )}
