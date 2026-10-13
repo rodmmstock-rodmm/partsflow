@@ -41,7 +41,7 @@ export default function MobileFastOrders() {
       rows.filter(
         (x) =>
           !q ||
-          `${x.item_id} ${x.part_name} ${x.machine_code} ${x.machine_name} ${x.name}`
+          `${x.item_id} ${x.part_name}`
             .toLowerCase()
             .includes(q.toLowerCase())
       ),
@@ -60,7 +60,7 @@ export default function MobileFastOrders() {
   }
 
   async function remove(x) {
-    const ok = await confirm(`ยืนยันลบ Fast Order ${x.name || x.item_id}?`, {
+    const ok = await confirm(`ยืนยันลบ Fast Order ${x.item_id}?`, {
       title: "ยืนยันการลบ",
       confirmLabel: "ลบ",
       danger: true,
@@ -93,7 +93,7 @@ export default function MobileFastOrders() {
     >
       <Alert>{error}</Alert>
       {msg && <Alert type="success">{msg}</Alert>}
-      <MobileSearch value={q} onChange={setQ} placeholder="Item / Part / Machine..." />
+      <MobileSearch value={q} onChange={setQ} placeholder="Part ID / Part Name..." />
 
       {auth.can("can_add_order") && selected.size > 0 && (
         <button className="m-fast-button" style={{ width: "100%", marginBottom: 10 }} onClick={() => setBulkOrder(true)}>
@@ -122,8 +122,9 @@ export default function MobileFastOrders() {
                 <span className="m-factory">{x.factory === "MM-11" ? "Phase11" : "Phase4"}</span>
                 <b>{x.item_id}</b>
                 <h3>{x.part_name}</h3>
+                {x.part_detail && <p>{x.part_detail}</p>}
                 <p>
-                  {x.machine_code || "ทั่วไป"} · {x.reorder_qty} {x.unit}
+                  {x.machine_code || "ทั่วไป"} · {x.amount} {x.unit}
                 </p>
                 {x.remark && <small>{x.remark}</small>}
               </div>

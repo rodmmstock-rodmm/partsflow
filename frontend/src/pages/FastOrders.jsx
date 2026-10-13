@@ -5,10 +5,10 @@ import { Alert, Modal, PageHeader, SearchableSelect, fmt } from "../components/C
 import { useFeedback } from "../feedback";
 
 const blank = {
-  name: "",
   factory: "MM-4",
   part_id: "",
   machine_id: "",
+  amount: 1,
   remark: "",
 };
 
@@ -70,12 +70,15 @@ export function FastOrderModal({ row, onClose, onSaved }) {
     <Modal title={row ? "แก้ไข Fast Order" : "เพิ่ม Fast Order"} onClose={onClose} wide>
       <form onSubmit={save}>
         <div className="form-grid">
-          <label className="field span2">
-            <span>ชื่อรายการ</span>
+          <label className="field">
+            <span>จำนวนที่ต้อง Order *</span>
             <input
-              value={form.name}
-              onChange={(e) => set("name", e.target.value)}
-              placeholder="เช่น Bearing เครื่อง Cutting"
+              type="number"
+              min="1"
+              step="1"
+              required
+              value={form.amount}
+              onChange={(e) => set("amount", e.target.value)}
             />
           </label>
 
@@ -110,6 +113,8 @@ export function FastOrderModal({ row, onClose, onSaved }) {
                     style={{ display: "block", width: "100%", textAlign: "left", marginBottom: 4 }}
                     onClick={() => {
                       set("part_id", p.id);
+                      const suggested = Math.round(Number(p.reorder_qty) || 0);
+                      set("amount", suggested > 0 ? suggested : 1);
                       setPartQuery(`${p.sku} · ${p.name}`);
                       setPartResults([]);
                     }}
@@ -163,7 +168,7 @@ export function FastOrderModal({ row, onClose, onSaved }) {
 }
 
 function defaultAmount(row) {
-  const n = Math.round(Number(row?.reorder_qty) || 0);
+  const n = Math.round(Number(row?.amount) || 0);
   return n > 0 ? n : 1;
 }
 
@@ -400,9 +405,7 @@ export default function FastOrders() {
     const needle = q.trim().toLowerCase();
     if (!needle) return rows;
     return rows.filter((x) =>
-      `${x.name} ${x.item_id} ${x.part_name} ${x.machine_code} ${x.machine_name}`
-        .toLowerCase()
-        .includes(needle)
+      `${x.item_id} ${x.part_name}`.toLowerCase().includes(needle)
     );
   }, [rows, q]);
 
@@ -435,9 +438,9 @@ export default function FastOrders() {
   );
 
   async function remove(row) {
-    const ok = await confirm(`ปิด Fast Order ${row.item_id} ?`, {
-      title: "ยืนยันการปิด",
-      confirmLabel: "ปิด",
+    const ok = await confirm(`ยืนยันลบ Fast Order ${row.item_id} ?`, {
+      title: "ยืนยันการลบ",
+      confirmLabel: "ลบ",
       danger: true,
     });
     if (!ok) return;
@@ -500,10 +503,11 @@ export default function FastOrders() {
                   )}
                   <th>Part ID</th>
                   <th>Part Name</th>
-                  <th>จำนวนที่สั่ง</th>
+                  <th>Part Detail</th>
                   <th>Factory</th>
                   <th>Machine</th>
                   <th>JOB</th>
+                  <th>จำนวนที่สั่ง</th>
                   <th>Remark</th>
                   <th>Action</th>
                 </tr>
@@ -523,10 +527,11 @@ export default function FastOrders() {
                     )}
                     <td><b>{x.item_id}</b></td>
                     <td>{x.part_name}</td>
-                    <td>{x.reorder_qty} {x.unit}</td>
+                    <td>{x.part_detail || "-"}</td>
                     <td>{x.factory === "MM-11" ? "Phase11" : "Phase4"}</td>
                     <td>{x.machine_code || "ทั่วไป"}</td>
                     <td><span className="status success">SPARE</span></td>
+                    <td>{x.amount} {x.unit}</td>
                     <td>{x.remark || "-"}</td>
                     <td>
                       <div className="row-actions">
@@ -539,7 +544,7 @@ export default function FastOrders() {
                               แก้ไข
                             </button>
                             <button className="mini danger" onClick={() => remove(x)}>
-                              ปิด
+                              ลบ
                             </button>
                           </>
                         )}
