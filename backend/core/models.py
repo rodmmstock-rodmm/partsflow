@@ -377,11 +377,12 @@ class JobType(UUIDMixin):
 class FastOrderPreset(UUIDMixin):
     """Reusable SPARE Order template.
 
-    The preset stores everything required to create a Normal Order except the
-    order quantity. Quick ordering always creates JOB=SPARE.
+    JOB is always SPARE. amount is this preset's own quantity-to-order (not
+    shared with the Part, since the same Part can appear in several presets
+    e.g. for different machines) and pre-fills the quantity when ordering.
     """
-    name = models.CharField(max_length=160, blank=True)
     factory = models.CharField(max_length=30, default="MM-4")
+    amount = models.PositiveIntegerField(default=0)
     # Nullable: general consumables (e.g. screws/nuts) aren't tied to one
     # specific machine, unlike most Fast Order presets.
     machine = models.ForeignKey(

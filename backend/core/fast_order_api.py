@@ -32,7 +32,6 @@ def preset_json(item):
     part = item.part
     return {
         "id": str(item.id),
-        "name": item.name or "",
         "factory": item.factory,
         "machine_id": str(item.machine_id) if item.machine_id else "",
         "machine_code": item.machine.code if item.machine_id else "",
@@ -42,6 +41,7 @@ def preset_json(item):
         "part_name": part.name,
         "part_detail": part.description or "",
         "maker": part.maker.name if part.maker else "",
+        "amount": item.amount,
         "reorder_qty": float(part.reorder_qty or 0),
         "unit": part.unit.code if part.unit else "",
         "location": part.location.code if part.location else "",
@@ -71,11 +71,7 @@ def fast_orders(request):
         qs = preset_queryset().filter(active=active)
         if q:
             qs = qs.filter(
-                Q(name__icontains=q)
-                | Q(part__sku__icontains=q)
-                | Q(part__name__icontains=q)
-                | Q(machine__code__icontains=q)
-                | Q(machine__name__icontains=q)
+                Q(part__sku__icontains=q) | Q(part__name__icontains=q)
             )
 
         return Response(
@@ -93,6 +89,11 @@ def fast_orders(request):
     if not part:
         return Response({"detail": "ไม่พบ Part ID ที่เลือก"}, status=400)
 
+    try:
+        amount = _parse_amount(request.data.get("amount"))
+    except ValueError as exc:
+        return Response({"detail": str(exc)}, status=400)
+
     # Machine is optional - general consumables (e.g. screws) aren't tied to
     # one specific machine.
     machine = None
@@ -103,8 +104,8 @@ def fast_orders(request):
 
     try:
         item = FastOrderPreset.objects.create(
-            name=str(request.data.get("name") or "").strip(),
             factory=factory,
+            amount=amount,
             machine=machine,
             part=part,
             remark=str(request.data.get("remark") or "").strip(),
@@ -149,8 +150,11 @@ def fast_order_detail(request, pk):
 
     before = preset_json(item)
 
-    if "name" in request.data:
-        item.name = str(request.data.get("name") or "").strip()
+    if "amount" in request.data:
+        try:
+            item.amount = _parse_amount(request.data.get("amount"))
+        except ValueError as exc:
+            return Response({"detail": str(exc)}, status=400)
     if "remark" in request.data:
         item.remark = str(request.data.get("remark") or "").strip()
     if "factory" in request.data:
