@@ -719,7 +719,7 @@ export default function Dashboard() {
                           {inactive ? (
                             <span className="status muted">Inactive</span>
                           ) : (
-                            <span className={`stock-state ${part.stock_status || "normal"}`}>{part.stock_status_label || "ปกติ"}</span>
+                            <span className={`stock-state ${part.stock_status || "normal"}`}>{part.stock_status_label || "normal"}</span>
                           )}
                         </td>
                         <td onClick={(event) => event.stopPropagation()}>
