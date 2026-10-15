@@ -15,6 +15,13 @@ from .supabase_storage import public_image_url, storage_enabled
 QTY_FIELD = DecimalField(max_digits=18, decimal_places=2)
 
 
+STOCK_STATUS_LABELS_TH = {
+    "normal": "ปกติ",
+    "low_stock": "ต่ำกว่า Min",
+    "out_of_stock": "จำนวนเป็น 0",
+    "ordering_now": "กำลังออเดอร์",
+}
+
 PART_LIST_ONLY_FIELDS = (
     "id",
     "sku",
@@ -277,18 +284,18 @@ class PartListSerializer(serializers.ModelSerializer):
             cache = self._partsflow_status_cache = {}
         if part.pk not in cache:
             if str(part.sku or "").strip().upper().startswith("N"):
-                status = "ปกติ"
+                status = "normal"
             elif bool(getattr(part, "active_ordering", False)):
-                status = "กำลังออเดอร์"
+                status = "ordering_now"
             else:
                 stock = Decimal(str(self._stock_qty(part) or 0))
                 minimum = Decimal(str(part.min_stock or 0))
                 if stock <= 0:
-                    status = "จำนวนเหลือศูนย์"
+                    status = "out_of_stock"
                 elif minimum > 0 and stock < minimum:
-                    status = "จำนวนเหลือน้อย"
+                    status = "low_stock"
                 else:
-                    status = "ปกติ"
+                    status = "normal"
             cache[part.pk] = status
         return cache[part.pk]
 
@@ -296,7 +303,16 @@ class PartListSerializer(serializers.ModelSerializer):
         return self._stock_status(part)
 
     def get_stock_status_label(self, part):
-        return self._stock_status(part).replace("_", " ")
+         # คืนฉลากภาษาไทยตามสถานะที่คำนวณได้
+    status = self._stock_status(part)
+    if status and status in STOCK_STATUS_LABELS_TH:
+        return STOCK_STATUS_LABELS_TH[status]
+    # ถ้ามีฟิลด์ stock_status_label อยู่ที่ model/data (fallback)
+    label = getattr(part, "stock_status_label", None)
+    if label:
+        return label
+    # Fallback สุดท้าย: แปลง underscore เป็นช่องว่าง (เดิม)
+    return status.replace("_", " ") if status else "ปกติ"
 
 
 class PartDetailSerializer(PartListSerializer):
