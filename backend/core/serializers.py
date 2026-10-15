@@ -22,6 +22,7 @@ STOCK_STATUS_LABELS_TH = {
     "ordering_now": "กำลังออเดอร์",
 }
 
+
 PART_LIST_ONLY_FIELDS = (
     "id",
     "sku",
@@ -303,16 +304,15 @@ class PartListSerializer(serializers.ModelSerializer):
         return self._stock_status(part)
 
     def get_stock_status_label(self, part):
-         # คืนฉลากภาษาไทยตามสถานะที่คำนวณได้
-    status = self._stock_status(part)
-    if status and status in STOCK_STATUS_LABELS_TH:
-        return STOCK_STATUS_LABELS_TH[status]
-    # ถ้ามีฟิลด์ stock_status_label อยู่ที่ model/data (fallback)
-    label = getattr(part, "stock_status_label", None)
-    if label:
-        return label
-    # Fallback สุดท้าย: แปลง underscore เป็นช่องว่าง (เดิม)
-    return status.replace("_", " ") if status else "ปกติ"
+        status = self._stock_status(part)
+        if status and status in STOCK_STATUS_LABELS_TH:
+            return STOCK_STATUS_LABELS_TH[status]
+
+        label = getattr(part, "stock_status_label", None)
+        if label:
+            return label
+
+        return status.replace("_", " ") if status else "ปกติ"
 
 
 class PartDetailSerializer(PartListSerializer):
