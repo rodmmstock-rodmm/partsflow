@@ -277,18 +277,18 @@ class PartListSerializer(serializers.ModelSerializer):
             cache = self._partsflow_status_cache = {}
         if part.pk not in cache:
             if str(part.sku or "").strip().upper().startswith("N"):
-                status = "normal"
+                status = "ปกติ"
             elif bool(getattr(part, "active_ordering", False)):
-                status = "ordering_now"
+                status = "กำลังออเดอร์"
             else:
                 stock = Decimal(str(self._stock_qty(part) or 0))
                 minimum = Decimal(str(part.min_stock or 0))
                 if stock <= 0:
-                    status = "out_of_stock"
+                    status = "จำนวนเหลือศูนย์"
                 elif minimum > 0 and stock < minimum:
-                    status = "low_stock"
+                    status = "จำนวนเหลือน้อย"
                 else:
-                    status = "normal"
+                    status = "ปกติ"
             cache[part.pk] = status
         return cache[part.pk]
 
