@@ -364,12 +364,28 @@ export default function NormalPurchaseModal({ order, options, onClose, onChanged
               })}>
               {busy === "po" ? "..." : "บันทึก 3 ช่อง"}
             </button>
-            {[local.po_number, local.issue_pr_date, local.due_date].some(Boolean) && (
+            {local.po_number && (
               <button className="mini danger" disabled={!!busy}
-                onClick={() => clearField("PO / ISSUE PR / DUE DATE ทั้ง 3 ช่อง", "po", {
-                  po_number: "", issue_pr_date: "", due_date: "",
+                onClick={() => clearField("PO NUMBER", "po-number", {
+                  po_number: "", _clear_purchase_field: "po_number",
                 })}>
-                ล้าง 3 ช่อง
+                ล้าง PO Number
+              </button>
+            )}
+            {local.issue_pr_date && (
+              <button className="mini danger" disabled={!!busy}
+                onClick={() => clearField("ISSUE PR DATE", "issue-pr-date", {
+                  issue_pr_date: "", _clear_purchase_field: "issue_pr_date",
+                })}>
+                ล้าง Issue PR
+              </button>
+            )}
+            {local.due_date && (
+              <button className="mini danger" disabled={!!busy}
+                onClick={() => clearField("DUE DATE", "due-date", {
+                  due_date: "", _clear_purchase_field: "due_date",
+                })}>
+                ล้าง Due Date
               </button>
             )}
           </div>
