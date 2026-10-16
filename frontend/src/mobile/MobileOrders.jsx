@@ -251,7 +251,7 @@ export default function MobileOrders() {
               onClick={() => setMonth(index)}
             >
               {label}
-              {Array.isArray(monthlyActiveCounts) && ` (${fmt(monthlyActiveCounts[index] || 0)})`}
+              {Array.isArray(monthlyActiveCounts) && monthlyActiveCounts[index] ? ` ${fmt(monthlyActiveCounts[index])}` : ""}
               {year === now.getFullYear() && index === now.getMonth() && <small>ปัจจุบัน</small>}
             </button>
           ))}
