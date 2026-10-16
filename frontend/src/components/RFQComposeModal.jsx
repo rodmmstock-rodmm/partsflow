@@ -27,6 +27,14 @@ function isHttpsLink(value) {
   }
 }
 
+function rfqErrorMessage(error) {
+  const message = String(error?.message || "เกิดข้อผิดพลาด");
+  if (/403|forbidden|ไม่มีสิทธิ์|สิทธิ์ใช้งาน/i.test(message)) {
+    return "Server ปฏิเสธสิทธิ์บันทึกคำขอราคา จึงยังไม่ได้บันทึก RFQ กรุณาออกจากระบบแล้วเข้าสู่ระบบใหม่ หากยังพบปัญหา ให้ผู้ดูแลตรวจสอบ Role Access ว่าบัญชีมีสิทธิ์ can_edit_purchase_info";
+  }
+  return message;
+}
+
 export default function RFQComposeModal({ orders, options, onClose, onRecorded }) {
   const orderIds = useMemo(() => (orders || []).map((row) => row.id), [orders]);
   const [preview, setPreview] = useState(null);
@@ -56,7 +64,7 @@ export default function RFQComposeModal({ orders, options, onClose, onRecorded }
           )
         );
       })
-      .catch((err) => active && setError(err.message))
+      .catch((err) => active && setError(rfqErrorMessage(err)))
       .finally(() => active && setBusy(false));
     return () => {
       active = false;
@@ -101,7 +109,7 @@ export default function RFQComposeModal({ orders, options, onClose, onRecorded }
       });
       setResult(data);
     } catch (err) {
-      setError(err.message);
+      setError(rfqErrorMessage(err));
     } finally {
       setBusy(false);
     }
