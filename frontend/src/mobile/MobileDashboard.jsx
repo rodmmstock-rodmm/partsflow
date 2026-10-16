@@ -23,32 +23,26 @@ import {
   MobileStockModal,
   StockBadge,
 } from "./MobileCommon";
-
 export default function MobileDashboard() {
-  const auth = useAuth();
-  const navigate = useNavigate();
-  const { showToast, confirm } = useFeedback();
-  const { options, loading: optionsLoading } = useOptions();
-
-  const [kpi, setKpi] = useState({});
-  const [parts, setParts] = useState([]);
-  const [q, setQ] = useState("");
-  const [dq, setDq] = useState("");
-  const [warehouse, setWarehouse] = useState("");
-  const [view, setView] = useState("active");
-  const [page, setPage] = useState(1);
-  const [meta, setMeta] = useState({});
-  const [loading, setLoading] = useState(true);
-
-  const [stock, setStock] = useState(null);
-  const [adjust, setAdjust] = useState(null);
-  const [edit, setEdit] = useState(null);
-  const [detail, setDetail] = useState(null);
-  const [scannerOpen, setScannerOpen] = useState(false);
-
-  const timer = useRef(null);
-
-  // Debounce search input
+  const auth = useAuth(),
+    navigate = useNavigate(),
+    { showToast, confirm } = useFeedback(),
+    { options, loading: optionsLoading } = useOptions();
+  const [kpi, setKpi] = useState({}),
+    [parts, setParts] = useState([]),
+    [q, setQ] = useState(""),
+    [dq, setDq] = useState(""),
+    [warehouse, setWarehouse] = useState(""),
+    [view, setView] = useState("active"),
+    [page, setPage] = useState(1),
+    [meta, setMeta] = useState({}),
+    [loading, setLoading] = useState(true),
+    [stock, setStock] = useState(null),
+    [adjust, setAdjust] = useState(null),
+    [edit, setEdit] = useState(null),
+    [detail, setDetail] = useState(null),
+    [scannerOpen, setScannerOpen] = useState(false),
+    timer = useRef(null);
   useEffect(() => {
     clearTimeout(timer.current);
     timer.current = setTimeout(() => {
@@ -57,7 +51,6 @@ export default function MobileDashboard() {
     }, 300);
     return () => clearTimeout(timer.current);
   }, [q]);
-
   async function load(force = false) {
     setLoading(true);
     try {
@@ -68,12 +61,10 @@ export default function MobileDashboard() {
       });
       if (dq) p.set("q", dq);
       if (warehouse) p.set("warehouse", warehouse);
-
       const [d, r] = await Promise.all([
         apiGet("/dashboard/", { forceRefresh: force }),
         apiGet(`/parts/?${p}`, { forceRefresh: force }),
       ]);
-
       setKpi(d.kpi || {});
       setParts(r.results || []);
       setMeta(r || {});
@@ -83,18 +74,12 @@ export default function MobileDashboard() {
       setLoading(false);
     }
   }
-
   async function deletePart(p) {
     const ok = await confirm(
       `ลบอะไหล่ ${p.sku} · ${p.name} ถาวร? การลบนี้ย้อนกลับไม่ได้`,
-      {
-        title: "ยืนยันการลบ",
-        confirmLabel: "ลบ",
-        danger: true,
-      }
+      { title: "ยืนยันการลบ", confirmLabel: "ลบ", danger: true },
     );
     if (!ok) return;
-
     try {
       await apiDelete(`/parts/${p.id}/`);
       showToast(`ลบ ${p.sku} สำเร็จ`, "success");
@@ -103,11 +88,9 @@ export default function MobileDashboard() {
       showToast(e.message, "error");
     }
   }
-
   useEffect(() => {
     load();
   }, [page, dq, warehouse, view]);
-
   return (
     <MobilePage
       title="Stock"
@@ -135,7 +118,6 @@ export default function MobileDashboard() {
         </>
       }
     >
-      {/* KPI Cards */}
       <div className="m-kpi-row">
         <div>
           <span>Parts</span>
@@ -160,8 +142,6 @@ export default function MobileDashboard() {
           <b>{fmt(kpi.safety_stock_ordered)}</b>
         </button>
       </div>
-
-      {/* Quick Navigation Button */}
       <button
         className="m-dashboard-spare-set"
         onClick={() => navigate("/spare-sets")}
@@ -173,8 +153,6 @@ export default function MobileDashboard() {
         </div>
         <strong>›</strong>
       </button>
-
-      {/* Search & Scanner */}
       <div className="m-search-scan-row">
         <MobileSearch
           value={q}
@@ -191,8 +169,6 @@ export default function MobileDashboard() {
           ⌗
         </button>
       </div>
-
-      {/* Filter Row */}
       <div className="m-filter-row">
         <select
           value={warehouse}
@@ -226,8 +202,6 @@ export default function MobileDashboard() {
           </button>
         </div>
       </div>
-
-      {/* Content List */}
       {loading ? (
         <SkeletonCards count={4} />
       ) : parts.length === 0 ? (
@@ -264,9 +238,7 @@ export default function MobileDashboard() {
                   <h3>{p.name}</h3>
                   <p>{p.description || "-"}</p>
                 </div>
-                <div
-                  style={{ display: "grid", justifyItems: "end", gap: 7 }}
-                >
+                <div style={{ display: "grid", justifyItems: "end", gap: 7 }}>
                   {view === "inactive" ? (
                     <span className="status muted">Inactive</span>
                   ) : (
@@ -278,4 +250,166 @@ export default function MobileDashboard() {
                       className="m-action edit"
                       onClick={(e) => {
                         e.stopPropagation();
-                        setEdit(
+                        setEdit(p);
+                      }}
+                      style={{
+                        height: 32,
+                        padding: "0 9px",
+                        whiteSpace: "nowrap",
+                      }}
+                    >
+                      ✎ แก้ไข
+                    </button>
+                  )}
+                  {view === "inactive" && auth.can("can_delete_parts") && (
+                    <button
+                      type="button"
+                      className="m-action issue"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        deletePart(p);
+                      }}
+                      style={{
+                        height: 32,
+                        padding: "0 9px",
+                        whiteSpace: "nowrap",
+                      }}
+                    >
+                      🗑 ลบ
+                    </button>
+                  )}
+                </div>
+              </div>
+              <div className="m-part-meta">
+                <span>📍 {p.location_code || "-"}</span>
+                <span>{p.warehouse_label || "-"}</span>
+                <span>{p.maker_name || "-"}</span>
+              </div>
+              <div className="m-stock-line">
+                <span>คงเหลือ</span>
+                <strong>
+                  {stockDisplay(p)} <small>{p.unit_code}</small>
+                </strong>
+                <span>Min {fmt(p.min_stock)}</span>
+              </div>
+              {view === "active" &&
+                (auth.can("can_issue_stock") ||
+                  auth.can("can_receive_stock") ||
+                  auth.can("can_adjust_stock")) && (
+                  <div
+                    className="m-action-grid"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    {auth.can("can_issue_stock") && (
+                      <button
+                        className="m-action issue"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setStock({ mode: "issue", part: p });
+                        }}
+                      >
+                        − เบิก
+                      </button>
+                    )}
+                    {auth.can("can_receive_stock") && (
+                      <button
+                        className="m-action receive"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setStock({ mode: "receive", part: p });
+                        }}
+                      >
+                        ＋ รับเข้า
+                      </button>
+                    )}
+                    {auth.can("can_adjust_stock") && (
+                      <button
+                        type="button"
+                        className="m-action adjust"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setAdjust(p);
+                        }}
+                      >
+                        ± ปรับยอด
+                      </button>
+                    )}
+                  </div>
+                )}
+            </article>
+          ))}
+        </div>
+      )}
+      <Pagination
+        page={meta.page || 1}
+        totalPages={meta.total_pages || 1}
+        onChange={setPage}
+        disabled={loading}
+        compact
+      />
+      {scannerOpen && (
+        <BarcodeScannerModal
+          onClose={() => setScannerOpen(false)}
+          onDetected={(value) => {
+            setQ(value);
+            setDq(value);
+            setPage(1);
+            setScannerOpen(false);
+          }}
+        />
+      )}
+      {stock && (
+        <MobileStockModal
+          {...stock}
+          employee={auth.employee}
+          onClose={() => setStock(null)}
+          onSaved={async () => {
+            const mode = stock.mode;
+            setStock(null);
+            showToast(
+              mode === "issue" ? "เบิกของสำเร็จ" : "รับของเข้าสำเร็จ",
+              "success",
+            );
+            await load(true);
+          }}
+        />
+      )}
+      {adjust && (
+        <MobileAdjustModal
+          part={adjust}
+          employee={auth.employee}
+          onClose={() => setAdjust(null)}
+          onSaved={async () => {
+            setAdjust(null);
+            showToast("ปรับยอดสต็อกสำเร็จ", "success");
+            await load(true);
+          }}
+        />
+      )}
+      {edit && (
+        <PartModal
+          part={edit.id ? edit : null}
+          options={options || {}}
+          onClose={() => setEdit(null)}
+          onSaved={async () => {
+            const wasEdit = !!edit.id,
+              jump = !wasEdit && (view !== "active" || page !== 1);
+            setEdit(null);
+            setDetail(null);
+            showToast(
+              wasEdit ? "บันทึกการแก้ไขสำเร็จ" : "เพิ่มอะไหล่สำเร็จ",
+              "success",
+            );
+            if (jump) {
+              setView("active");
+              setPage(1);
+            } else await load(true);
+          }}
+        />
+      )}
+      {detail && (
+        <PartDetailModal part={detail} onClose={() => setDetail(null)} />
+      )}
+    </MobilePage>
+  );
+}
