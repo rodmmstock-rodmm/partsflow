@@ -125,7 +125,7 @@ export default function BulkOrderQuotationModal({
     return (
       <Modal title={`${title} · ผลการบันทึก`} onClose={onClose} wide>
         <div className={result.failures.length ? "alert warning" : "alert success"}>
-          สำเร็จ ${result.successCount} รายการ · ไม่ต้องเปลี่ยนแปลง ${result.skippedCount} รายการ
+          สำเร็จ {result.successCount} รายการ · ไม่ต้องเปลี่ยนแปลง {result.skippedCount} รายการ
           {result.failures.length ? ` · ไม่สำเร็จ ${result.failures.length} รายการ` : ""}
         </div>
         {result.failures.length > 0 && (
@@ -148,6 +148,22 @@ export default function BulkOrderQuotationModal({
 
   return (
     <Modal title={`${title} · ${orders.length} Order`} onClose={onClose} wide>
+      <style>{`
+        @media (max-width: 640px) {
+          .order-quotation-responsive table,
+          .order-quotation-responsive tbody,
+          .order-quotation-responsive tr,
+          .order-quotation-responsive td { display: block; width: 100%; box-sizing: border-box; }
+          .order-quotation-responsive thead { display: none; }
+          .order-quotation-responsive tbody tr { border: 1px solid var(--border, #ddd); border-radius: 10px; padding: 8px 10px; margin: 0 0 10px; }
+          .order-quotation-responsive tbody td { display: grid; grid-template-columns: minmax(6rem, 34%) minmax(0, 1fr); gap: 8px; padding: 6px 0; overflow-wrap: anywhere; border: 0; text-align: left; }
+          .order-quotation-responsive tbody td::before { color: var(--muted, #666); font-weight: 600; }
+          .order-quotation-responsive tbody td:nth-child(1)::before { content: "Order"; }
+          .order-quotation-responsive tbody td:nth-child(2)::before { content: "Part ID"; }
+          .order-quotation-responsive tbody td:nth-child(3)::before { content: "Vendor Order ปัจจุบัน"; }
+          .order-quotation-responsive tbody td:nth-child(4)::before { content: "ผลที่จะเกิดขึ้น"; }
+        }
+      `}</style>
       <div className="form-grid">
         <label className="field span2">
           <span>Vendor *</span>
@@ -176,7 +192,7 @@ export default function BulkOrderQuotationModal({
             <>
               {missingVendorOrders.length ? (
                 <div className="alert warning">
-                  Vendor นี้ยังไม่อยู่ใน Order Quotation ของ ${missingVendorOrders.length} รายการ จึงยังบันทึก Vendor Order ไม่ได้ กรุณาเพิ่ม Vendor ใน Order Quotation ก่อน
+                  Vendor นี้ยังไม่อยู่ใน Order Quotation ของ {missingVendorOrders.length} รายการ จึงยังบันทึก Vendor Order ไม่ได้ กรุณาเพิ่ม Vendor ใน Order Quotation ก่อน
                 </div>
               ) : (
                 <div className="alert info">
@@ -185,7 +201,7 @@ export default function BulkOrderQuotationModal({
               )}
             </>
           )}
-          <div className="table-wrap compact">
+          <div className="table-wrap compact order-quotation-responsive">
             <table>
               <thead>
                 <tr>
