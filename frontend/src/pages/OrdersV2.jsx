@@ -69,12 +69,13 @@ function displayStatus(order){
   if(order?.lifecycle_status === "WAIT_CONFIRM") return "Wait Confirm Order";
   if(order?.lifecycle_status === "CANCELLED") return "Cancelled";
   if(order?.lifecycle_status === "COMPLETED") return "Complete Order";
-  return order?.display_status || order?.status || "New Order";
+  const status = order?.display_status || order?.status || "New Order";
+  return status === "Wait for Item" ? "Wait Part" : status;
 }
 function statusClass(status){
   if(status === "Complete Order") return "success";
   if(status === "Cancelled") return "danger";
-  if(status === "Wait for Item") return "warning";
+  if(status === "Wait Part") return "warning";
   if(status === "Wait Confirm Order") return "confirm";
   if(status === "Wait Issue P/R" || status === "Wait Quotation") return "info";
   return "muted";
@@ -396,7 +397,7 @@ export default function OrdersV2(){
         {tab==="normal"&&<>
           <select value={urgency} onChange={e=>setUrgency(e.target.value)}>{URGENCY.map(([v,l])=><option key={v} value={v}>{l}</option>)}</select>
           <select value={job} onChange={e=>setJob(e.target.value)}><option value="">JOB: ทั้งหมด</option><option>REPAIR</option><option>MODIFY</option><option>AUTOMATION</option><option>PM</option></select>
-          <select value={status} onChange={e=>setStatus(e.target.value)}><option value="">STATUS: ทั้งหมด</option>{STATUS.map(x=><option key={x}>{x}</option>)}</select>
+          <select value={status} onChange={e=>setStatus(e.target.value)}><option value="">STATUS: ทั้งหมด</option>{STATUS.map(x=><option key={x} value={x}>{x === "Wait for Item" ? "Wait Part" : x}</option>)}</select>
         </>}
         <button className="btn ghost" onClick={()=>load(true)}>↻ รีเฟรช</button>
         {tab==="normal"&&auth.can("can_add_order")&&auth.can("can_delete_order")&&<button className="btn ghost" onClick={downloadTemplate}>⬇ Template</button>}
