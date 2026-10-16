@@ -25,6 +25,27 @@ export default function BulkOrderQuotationModal({
     (vendor) => String(vendor.id) === String(vendorId)
   );
 
+  // Vendor Order must use a vendor already quoted on every selected Order.
+  // This keeps the single shared Vendor Order consistent across the selection.
+  const vendorOptions = useMemo(() => {
+    const allVendors = options.vendors || [];
+    if (mode !== "vendor-order") return allVendors;
+    if (loading || error || !orders.length) return [];
+
+    const commonIds = new Set(
+      (vendorLists[String(orders[0].id)] || []).map((row) => String(row.vendor_id))
+    );
+    for (const order of orders.slice(1)) {
+      const orderVendorIds = new Set(
+        (vendorLists[String(order.id)] || []).map((row) => String(row.vendor_id))
+      );
+      for (const id of commonIds) {
+        if (!orderVendorIds.has(id)) commonIds.delete(id);
+      }
+    }
+    return allVendors.filter((vendor) => commonIds.has(String(vendor.id)));
+  }, [mode, options.vendors, loading, error, orders, vendorLists]);
+
   useEffect(() => {
     let active = true;
     setLoading(true);
@@ -166,11 +187,11 @@ export default function BulkOrderQuotationModal({
       `}</style>
       <div className="form-grid">
         <label className="field span2">
-          <span>Vendor *</span>
+          <span>{mode === "vendor-order" ? "Vendor จาก Order Quotation *" : "Vendor *"}</span>
           <SearchableSelect
             required
             value={vendorId}
-            options={options.vendors || []}
+            options={vendorOptions}
             onChange={setVendorId}
             getLabel={vendorLabel}
             getSearchText={(vendor) => `${vendor.code || ""} ${vendor.name || ""} ${vendor.email || ""} ${vendor.contact_person || ""}`}
@@ -180,6 +201,11 @@ export default function BulkOrderQuotationModal({
       </div>
 
       <Alert>{error}</Alert>
+      {!loading && !error && mode === "vendor-order" && vendorOptions.length === 0 && (
+        <div className="alert warning">
+          ไม่มี Vendor ที่อยู่ใน Order Quotation ครบทุก Order ที่เลือก กรุณาเพิ่ม Vendor เดียวกันใน Order Quotation ของทุกรายการก่อน แล้วจึงเลือก Vendor Order
+        </div>
+      )}
       {loading ? (
         <div className="empty">กำลังตรวจสอบ Order Quotation ของรายการที่เลือก...</div>
       ) : vendorId ? (
