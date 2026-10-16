@@ -209,7 +209,7 @@ function MonthlyStatusSection({ onView, activeOrderId }) {
     return items.map((o) => ({
       "ORDER NUMBER": o.order_number,
       DATE: o.order_date,
-      STATUS: o.status,
+      STATUS: o.status === "Wait for Item" ? "Wait Part" : o.status,
       MACHINE: o.machine_code,
       "PART ID": o.part_id,
       "PART NAME": o.part_name,
@@ -309,7 +309,7 @@ function MonthlyStatusSection({ onView, activeOrderId }) {
               <strong>{yearCompleted}</strong>
             </div>
             <div className="kpi-card warning">
-              <span>รอของ (Wait for Item)</span>
+              <span>รอของ (Wait Part)</span>
               <strong>{yearWaitItem}</strong>
             </div>
             <div className="kpi-card warning">
@@ -424,7 +424,7 @@ const WORKING_STAGES = [
   "New Order",
   "Wait Quotation",
   "Wait Issue P/R",
-  "Wait for Item",
+  "Wait Part",
   "Wait Confirm",
 ];
 const WORKING_STAGE_COLORS = ["#ede9fe", "#c4b5fd", "#a78bfa", "#7c3aed", "var(--warning, #d97706)"];
