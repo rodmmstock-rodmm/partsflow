@@ -35,6 +35,7 @@ function formatAddedAt(value) {
 export default function NormalPurchaseModal({ order, options, onClose, onChanged }) {
   const { confirm } = useFeedback();
   const [local, setLocal] = useState({ ...order });
+  const [savedPurchase, setSavedPurchase] = useState({ ...order });
   const [dirtyFields, setDirtyFields] = useState({});
   const [error, setError] = useState("");
   const [busy, setBusy] = useState("");
@@ -69,6 +70,7 @@ export default function NormalPurchaseModal({ order, options, onClose, onChanged
   async function refreshOrder() {
     try {
       const result = await apiGet(`/orders/${order.id}/`, { cache: false, forceRefresh: true });
+      setSavedPurchase({ ...result });
       setLocal((current) => {
         const next = { ...result };
         Object.keys(dirtyFields).forEach((key) => {
@@ -142,6 +144,7 @@ export default function NormalPurchaseModal({ order, options, onClose, onChanged
     setError("");
     try {
       const result = await apiPatch(`/orders/${order.id}/purchase/`, payload);
+      setSavedPurchase((current) => ({ ...current, ...result, ...Object.fromEntries(Object.entries(payload).filter(([field]) => field !== "_clear_purchase_field")) }));
       const savedKeys = Object.keys(payload).filter((field) => field !== "_clear_purchase_field");
       setLocal((current) => {
         const next = { ...result };
@@ -220,6 +223,13 @@ export default function NormalPurchaseModal({ order, options, onClose, onChanged
   }
   const hasPrice = Number(local.price_per_unit || 0) > 0;
   const hasLeadTime = local.lead_time_days !== null && local.lead_time_days !== undefined && local.lead_time_days !== "";
+  const hasSavedPrice = Number(savedPurchase.price_per_unit || 0) > 0;
+  const hasSavedLeadTime = savedPurchase.lead_time_days !== null && savedPurchase.lead_time_days !== undefined && savedPurchase.lead_time_days !== "";
+  const hasSavedPurchaseData = Boolean(
+    savedPurchase.vendor_id || hasSavedPrice || hasSavedLeadTime || savedPurchase.po_number ||
+    savedPurchase.issue_pr_date || savedPurchase.due_date || savedPurchase.vendor_confirm_date ||
+    savedPurchase.person_in_charge_id
+  );
 
   return (
     <Modal title={`Purchase Information · ${order.order_number}`} onClose={onClose} wide>
@@ -333,7 +343,7 @@ export default function NormalPurchaseModal({ order, options, onClose, onChanged
             >
               {busy === "price" ? "..." : "บันทึก"}
             </button>
-            {Number(local.price_per_unit || 0) > 0 && (
+            {hasSavedPrice && (
               <button className="mini danger" disabled={!!busy}
                 onClick={() => clearField("PRICE PER UNIT", "price", { price_per_unit: "" })}>
                 ล้างราคา
@@ -367,7 +377,7 @@ export default function NormalPurchaseModal({ order, options, onClose, onChanged
               onClick={() => saveField("lead", { lead_time_days: local.lead_time_days })}>
               {busy === "lead" ? "..." : "บันทึก"}
             </button>
-            {hasLeadTime && (
+            {hasSavedLeadTime && (
               <button className="mini danger" disabled={!!busy}
                 onClick={() => clearField("LEAD TIME", "lead", { lead_time_days: null })}>
                 ล้างข้อมูล
@@ -391,7 +401,7 @@ export default function NormalPurchaseModal({ order, options, onClose, onChanged
               })}>
               {busy === "po" ? "..." : "บันทึก 3 ช่อง"}
             </button>
-            {local.po_number && (
+            {savedPurchase.po_number && (
               <button className="mini danger" disabled={!!busy}
                 onClick={() => clearField("PO NUMBER", "po-number", {
                   po_number: "", _clear_purchase_field: "po_number",
@@ -399,7 +409,7 @@ export default function NormalPurchaseModal({ order, options, onClose, onChanged
                 ล้าง PO Number
               </button>
             )}
-            {local.issue_pr_date && (
+            {savedPurchase.issue_pr_date && (
               <button className="mini danger" disabled={!!busy}
                 onClick={() => clearField("ISSUE PR DATE", "issue-pr-date", {
                   issue_pr_date: "", _clear_purchase_field: "issue_pr_date",
@@ -407,7 +417,7 @@ export default function NormalPurchaseModal({ order, options, onClose, onChanged
                 ล้าง Issue PR
               </button>
             )}
-            {local.due_date && (
+            {savedPurchase.due_date && (
               <button className="mini danger" disabled={!!busy}
                 onClick={() => clearField("DUE DATE", "due-date", {
                   due_date: "", _clear_purchase_field: "due_date",
@@ -425,7 +435,7 @@ export default function NormalPurchaseModal({ order, options, onClose, onChanged
             <button className="mini" disabled={!!busy} onClick={() => saveField("confirm", { vendor_confirm_date: local.vendor_confirm_date })}>
               {busy === "confirm" ? "..." : "บันทึก"}
             </button>
-            {local.vendor_confirm_date && (
+            {savedPurchase.vendor_confirm_date && (
               <button className="mini danger" disabled={!!busy} onClick={() => clearField("VENDOR CONFIRM DATE", "confirm", { vendor_confirm_date: "" })}>
                 ล้างวันที่
               </button>
@@ -447,7 +457,7 @@ export default function NormalPurchaseModal({ order, options, onClose, onChanged
             <button className="mini" disabled={!!busy} onClick={() => saveField("pic", { person_in_charge_id: local.person_in_charge_id })}>
               {busy === "pic" ? "..." : person ? "แก้ไข" : "บันทึก"}
             </button>
-            {local.person_in_charge_id && (
+            {savedPurchase.person_in_charge_id && (
               <button className="mini danger" disabled={!!busy} onClick={() => clearField("PERSON IN CHARGE", "pic", { person_in_charge_id: "" })}>
                 ล้างผู้รับผิดชอบ
               </button>
@@ -466,7 +476,7 @@ export default function NormalPurchaseModal({ order, options, onClose, onChanged
       </div>
 
       <div className="modal-actions">
-        <button className="btn danger" disabled={!!busy || quotationBusy} onClick={clearAllPurchase}>ล้างข้อมูล Purchase ทั้งชุด</button>
+        {hasSavedPurchaseData && <button className="btn danger" disabled={!!busy || quotationBusy} onClick={clearAllPurchase}>ล้างข้อมูล Purchase ทั้งชุด</button>}
         <button className="btn ghost" onClick={onClose}>ปิด</button>
       </div>
     </Modal>
