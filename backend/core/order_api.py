@@ -454,9 +454,15 @@ def apply_purchase_info(order, data):
     if vendor_ready and not quotation_ready:
         raise ValueError("กรุณาใส่ Quotation ก่อนเลือก Vendor Order")
 
-    if any(po_group) and not all(po_group):
+    clear_po_field = data.get("_clear_purchase_field")
+    is_clearing_one_po_field = (
+        clear_po_field in {"po_number", "issue_pr_date", "due_date"}
+        and data.get(clear_po_field) in (None, "")
+    )
+    if any(po_group) and not all(po_group) and not is_clearing_one_po_field:
         raise ValueError(
-            "PO Number, ISSUE PR DATE และ DUE DATE ต้องใส่พร้อมกันทั้ง 3 ช่อง"
+            "PO Number, ISSUE PR DATE และ DUE DATE ต้องใส่พร้อมกันทั้ง 3 ช่อง "
+            "ยกเว้นการล้างข้อมูลรายช่อง"
         )
 
     if all(po_group) and not (quotation_ready and vendor_ready):
