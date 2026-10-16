@@ -219,20 +219,26 @@ function ItemsTab() {
                   </button>
                 </td>
                 <td>
-                  {(auth.can("can_edit_qr_withdraw_item") || auth.can("can_delete_qr_withdraw_item")) && (
-                    <div className="row-actions">
-                      {auth.can("can_edit_qr_withdraw_item") && (
-                        <button className="mini" onClick={() => setModal(x)}>
-                          แก้ไข
-                        </button>
-                      )}
-                      {auth.can("can_delete_qr_withdraw_item") && (
-                        <button className="mini danger" onClick={() => remove(x)}>
-                          ลบ
-                        </button>
-                      )}
-                    </div>
-                  )}
+                  <div className="row-actions">
+                    <a
+                      className="mini"
+                      href={scanUrl(x.code)}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                    >
+                      เปิดหน้าเบิก
+                    </a>
+                    {auth.can("can_edit_qr_withdraw_item") && (
+                      <button className="mini" onClick={() => setModal(x)}>
+                        แก้ไข
+                      </button>
+                    )}
+                    {auth.can("can_delete_qr_withdraw_item") && (
+                      <button className="mini danger" onClick={() => remove(x)}>
+                        ลบ
+                      </button>
+                    )}
+                  </div>
                 </td>
               </tr>
             ))}
