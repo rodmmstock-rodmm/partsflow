@@ -351,7 +351,7 @@ export default function NormalPurchaseModal({ order, options, onClose, onChanged
 
       <Alert>{error}</Alert>
       <div className="system-box">
-        <div><span>WORKFLOW STATUS</span><strong>{local.status}</strong></div>
+        <div><span>WORKFLOW STATUS</span><strong>{displayOrderStatus(local)}</strong></div>
         <div><span>LIFECYCLE</span><strong>{local.lifecycle_status || "ACTIVE"}</strong></div>
         <div><span>DISPLAY STATUS</span><strong>{displayOrderStatus(local)}</strong></div>
         <div><span>EDIT DATA STATUS</span><strong>{displayEditDataStatus(local.edit_data_status) || "-"}</strong></div>
