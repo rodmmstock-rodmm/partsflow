@@ -6,6 +6,7 @@ import { Alert, PageHeader, fmt, formatDMY } from "../components/Common";
 import { useFeedback } from "../feedback";
 import MultiMachineOrderInfoModal from "../components/MultiMachineOrderInfoModal";
 import NormalPurchaseModal from "../components/NormalPurchaseModal";
+import RFQComposeModal from "../components/RFQComposeModal";
 import { useOptions } from "../optionsContext";
 import { openOrderDetailByNumber } from "../orderDetailEnhancer";
 
@@ -162,14 +163,16 @@ function CompactOrderTable({
   </table></div>;
 }
 
-function BulkBar({ rows, auth, busy, onRun, onClear }){
+function BulkBar({ rows, auth, busy, onRun, onClear, onRfq }){
   if(!rows.length) return null;
+  const canRfq=rows.some(x=>["ACTIVE","WAIT_CONFIRM"].includes(x.lifecycle_status));
   const canWait=rows.some(x=>x.lifecycle_status==="ACTIVE");
   const canCancelWait=rows.some(x=>x.lifecycle_status==="WAIT_CONFIRM");
   const canAct=rows.some(x=>["ACTIVE","WAIT_CONFIRM"].includes(x.lifecycle_status));
   const canRestore=rows.some(x=>x.lifecycle_status==="CANCELLED");
   return <div className="bulk-v9"><b>เลือกแล้ว {rows.length} รายการ</b>
     {auth.can("can_edit_purchase_info")&&<>
+      <button className="btn primary" disabled={busy||!canRfq} onClick={onRfq}>บันทึกขอราคา</button>
       <button className="btn warning" disabled={busy||!canWait} onClick={()=>onRun("wait_confirm")}>รอ Confirm</button>
       <button className="btn ghost" disabled={busy||!canCancelWait} onClick={()=>onRun("cancel_wait_confirm")}>ยกเลิก Wait</button>
     </>}
@@ -206,12 +209,14 @@ export default function OrdersV2(){
   const [bulkBusy,setBulkBusy]=useState(false);
   const [editor,setEditor]=useState(null);
   const [purchase,setPurchase]=useState(null);
+  const [rfqCompose,setRfqCompose]=useState(false);
   const [importBusy,setImportBusy]=useState(false);
   const [exportBusy,setExportBusy]=useState(false);
   const fileRef=useRef(null);
   const admin=isAdmin(auth.employee);
   const range=useMemo(()=>monthRange(year,month),[year,month]);
   const selectedRows=useMemo(()=>rows.filter(x=>selected.has(x.id)),[rows,selected]);
+  const selectedQuotationRows=useMemo(()=>selectedRows.filter(x=>["ACTIVE","WAIT_CONFIRM"].includes(x.lifecycle_status)),[selectedRows]);
 
   useEffect(()=>{const t=setTimeout(()=>setQ(qInput.trim()),350);return()=>clearTimeout(t);},[qInput]);
 
@@ -405,7 +410,7 @@ export default function OrdersV2(){
         {lastLoadedAt&&<span>อัปเดต {lastLoadedAt.toLocaleTimeString("th-TH",{hour:"2-digit",minute:"2-digit"})}</span>}
       </div>
 
-      {tab!=="deleted"&&<BulkBar rows={selectedRows} auth={auth} busy={bulkBusy} onRun={runBulk} onClear={()=>setSelected(new Set())}/>}      
+      {tab!=="deleted"&&<BulkBar rows={selectedRows} auth={auth} busy={bulkBusy} onRun={runBulk} onRfq={()=>setRfqCompose(true)} onClear={()=>setSelected(new Set())}/>}      
       {loading?<div className="empty">กำลังโหลด {MONTHS_TH[month]} {year}...</div>:<CompactOrderTable
         rows={rows}
         selected={selected}
@@ -424,6 +429,7 @@ export default function OrdersV2(){
 
     {editor&&<MultiMachineOrderInfoModal order={editor.order} options={options} employee={auth.employee} canEditOrderDate={auth.can("can_edit_order_date")} onClose={()=>setEditor(null)} onSaved={()=>{setEditor(null);load(true);}}/>}
     {purchase&&<NormalPurchaseModal order={purchase} options={options} onClose={()=>setPurchase(null)} onChanged={r=>{setPurchase(r);load(true);}}/>}
+    {rfqCompose&&selectedQuotationRows.length>0&&<RFQComposeModal orders={selectedQuotationRows} options={options} onClose={()=>setRfqCompose(false)} onRecorded={()=>{setRfqCompose(false);setSelected(new Set());load(true);}}/>}
   </>;
 }
 
