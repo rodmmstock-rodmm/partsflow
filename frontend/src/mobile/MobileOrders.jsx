@@ -35,7 +35,8 @@ function orderStatus(order) {
   if (order.lifecycle_status === "WAIT_CONFIRM") return "Wait Confirm Order";
   if (order.lifecycle_status === "CANCELLED") return "Cancelled";
   if (order.lifecycle_status === "COMPLETED") return "Complete Order";
-  return order.display_status || order.status || "New Order";
+  const status = order.display_status || order.status || "New Order";
+  return status === "Wait for Item" ? "Wait Part" : status;
 }
 
 function isAdmin(employee) {
@@ -275,7 +276,7 @@ export default function MobileOrders() {
           </select>
           <select value={status} onChange={(event) => setStatus(event.target.value)}>
             <option value="">ทุกสถานะ</option>
-            <option>New Order</option><option>Wait Quotation</option><option>Wait Issue P/R</option><option>Wait for Item</option>
+            <option value="New Order">New Order</option><option value="Wait Quotation">Wait Quotation</option><option value="Wait Issue P/R">Wait Issue P/R</option><option value="Wait for Item">Wait Part</option>
           </select>
         </div>
       )}

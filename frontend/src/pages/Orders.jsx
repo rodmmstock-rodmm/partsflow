@@ -121,12 +121,17 @@ function displayOrderStatus(order) {
   if (order?.lifecycle_status === "WAIT_CONFIRM") {
     return "Wait Confirm Order";
   }
-  return order?.display_status || order?.status || "New Order";
+  const status = order?.display_status || order?.status || "New Order";
+  return status === "Wait for Item" ? "Wait Part" : status;
+}
+
+function displayEditDataStatus(value) {
+  return value === "รออัพเดต Wait for Item" ? "รออัพเดต Wait Part" : value;
 }
 
 function statusClass(status) {
   if (status === "Complete Order") return "success";
-  if (status === "Wait for Item") return "warning";
+  if (status === "Wait Part") return "warning";
   if (status === "Wait Confirm Order") return "confirm";
   if (status === "Wait Issue P/R") return "info";
   if (status === "Wait Quotation") return "info";
@@ -802,7 +807,7 @@ export function PurchaseModal({
       <div className="system-box">
         <div>
           <span>WORKFLOW STATUS</span>
-          <strong>{local.status}</strong>
+          <strong>{displayOrderStatus(local)}</strong>
         </div>
         <div>
           <span>LIFECYCLE</span>
@@ -814,7 +819,7 @@ export function PurchaseModal({
         </div>
         <div>
           <span>EDIT DATA STATUS</span>
-          <strong>{local.edit_data_status || "-"}</strong>
+          <strong>{displayEditDataStatus(local.edit_data_status) || "-"}</strong>
         </div>
         <div>
           <span>GROUP ORDER</span>
@@ -1426,7 +1431,7 @@ function OrderTable({
                       />
                     </div>
                     {o.edit_data_status && (
-                      <div className="stack-sub">{o.edit_data_status}</div>
+                      <div className="stack-sub">{displayEditDataStatus(o.edit_data_status)}</div>
                     )}
                   </div>
                 </td>
@@ -3411,7 +3416,7 @@ export default function Orders({ mode = "orders" }) {
                 <select value={status} onChange={(e) => setStatus(e.target.value)}>
                   <option value="">STATUS: ทั้งหมด</option>
                   {STATUS.filter((x) => x !== "Complete Order").map((x) => (
-                    <option key={x}>{x}</option>
+                    <option key={x} value={x}>{x === "Wait for Item" ? "Wait Part" : x}</option>
                   ))}
                 </select>
               </>

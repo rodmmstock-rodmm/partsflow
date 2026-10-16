@@ -6,7 +6,11 @@ import DatePicker from "./DatePicker";
 
 function displayOrderStatus(order) {
   if (order?.lifecycle_status === "WAIT_CONFIRM") return "Wait Confirm Order";
-  return order?.display_status || order?.status || "New Order";
+  const status = order?.display_status || order?.status || "New Order";
+  return status === "Wait for Item" ? "Wait Part" : status;}
+
+function displayEditDataStatus(value) {
+  return value === "รออัพเดต Wait for Item" ? "รออัพเดต Wait Part" : value;
 }
 
 function vendorLabel(item) {
@@ -347,10 +351,10 @@ export default function NormalPurchaseModal({ order, options, onClose, onChanged
 
       <Alert>{error}</Alert>
       <div className="system-box">
-        <div><span>WORKFLOW STATUS</span><strong>{local.status}</strong></div>
+        <div><span>WORKFLOW STATUS</span><strong>{displayOrderStatus(local)}</strong></div>
         <div><span>LIFECYCLE</span><strong>{local.lifecycle_status || "ACTIVE"}</strong></div>
         <div><span>DISPLAY STATUS</span><strong>{displayOrderStatus(local)}</strong></div>
-        <div><span>EDIT DATA STATUS</span><strong>{local.edit_data_status || "-"}</strong></div>
+        <div><span>EDIT DATA STATUS</span><strong>{displayEditDataStatus(local.edit_data_status) || "-"}</strong></div>
         <div><span>GROUP ORDER</span><strong>{local.group_order || "-"}</strong></div>
       </div>
 
