@@ -113,6 +113,12 @@ for origin in PRODUCTION_FRONTEND_ORIGINS:
     if origin not in CSRF_TRUSTED_ORIGINS:
         CSRF_TRUSTED_ORIGINS.append(origin)
 
+# Permit Vercel Preview deployments for this project only, so PR previews can
+# reach the Render API without opening CORS to arbitrary *.vercel.app hosts.
+CORS_ALLOWED_ORIGIN_REGEXES = [
+    r"^https://rodmmstock-rodmm-partsflo-git-[a-z0-9-]+-rodmmstock-rodmms-projects\.vercel\.app$",
+]
+
 CORS_ALLOW_ALL_ORIGINS = DEBUG and not CORS_ALLOWED_ORIGINS
 
 REST_FRAMEWORK = {
