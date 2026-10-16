@@ -14,6 +14,7 @@ PERMISSION_FIELDS = [
     "can_adjust_stock",
     "can_receive_stock",
     "can_issue_stock",
+    "can_select_issue_requester",
     "can_view_history",
     "can_edit_history",
     "can_delete_history",
