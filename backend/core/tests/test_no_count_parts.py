@@ -42,6 +42,9 @@ class NoCountPartTests(TestCase):
         with patch(
             "core.stock_api.require_permission",
             return_value=(self.recorder, None),
+        ), patch(
+            "core.stock_api.permissions_for",
+            return_value={"can_select_issue_requester": True},
         ):
             return issue_stock(request)
 

@@ -297,6 +297,7 @@ class RoleAccess(UUIDMixin):
     can_adjust_stock = models.BooleanField(default=False)
     can_receive_stock = models.BooleanField(default=False)
     can_issue_stock = models.BooleanField(default=False)
+    can_select_issue_requester = models.BooleanField(default=False)
 
     can_view_history = models.BooleanField(default=True)
     can_edit_history = models.BooleanField(default=False)

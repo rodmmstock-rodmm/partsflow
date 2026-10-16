@@ -11,7 +11,7 @@ from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 
 from .audit_utils import audit
-from .auth_api import require_permission
+from .auth_api import permissions_for, require_permission
 from .models import Employee, Inventory, Machine, Part, StockTransaction
 from .pagination import StockTransactionPagination
 from .serializers import (
@@ -134,7 +134,14 @@ def issue_stock(request):
     try:
         part = get_part(request.data.get("part_id"))
         qty = to_decimal(request.data.get("quantity"), "จำนวนเบิก")
-        requester = get_employee(request.data.get("requester_id"))
+        can_select_requester = permissions_for(recorder).get("can_select_issue_requester", False)
+        requested_requester_id = str(request.data.get("requester_id") or "").strip()
+        if can_select_requester:
+            requester = get_employee(requested_requester_id)
+        else:
+            if requested_requester_id and requested_requester_id != str(recorder.id):
+                return Response({"detail": "คุณไม่มีสิทธิ์เลือกชื่อผู้เบิกแทนผู้อื่น"}, status=403)
+            requester = recorder
         machine = get_machine(request.data.get("machine_id"))
         note = str(request.data.get("note") or "").strip()
 

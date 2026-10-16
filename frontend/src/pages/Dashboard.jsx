@@ -269,7 +269,7 @@ export function PartModal({ part, options, onClose, onSaved }) {
   );
 }
 
-function StockModal({ mode, part, options, employee, onClose, onSaved }) {
+function StockModal({ mode, part, options, canSelectRequester, onClose, onSaved }) {
   const [qty, setQty] = useState("");
   const [requesterId, setRequesterId] = useState("");
   const [machineId, setMachineId] = useState("");
@@ -285,9 +285,9 @@ function StockModal({ mode, part, options, employee, onClose, onSaved }) {
     try {
       const payload = { part_id: part.id, quantity: qty, note };
       if (issue) {
-        if (!requesterId) throw new Error("กรุณาเลือกผู้เบิกจากรายการ");
+        if (canSelectRequester && !requesterId) throw new Error("กรุณาเลือกผู้เบิกจากรายการ");
         if (!machineId) throw new Error("กรุณาเลือกเครื่องจักรจากรายการ");
-        payload.requester_id = requesterId;
+        if (canSelectRequester) payload.requester_id = requesterId;
         payload.machine_id = machineId;
       }
       await apiPost(issue ? "/stock/issue/" : "/stock/receive/", payload);
@@ -320,18 +320,20 @@ function StockModal({ mode, part, options, employee, onClose, onSaved }) {
           </label>
           {issue && (
             <>
-              <label className="field">
-                <span>ผู้เบิก *</span>
-                <SearchableSelect
-                  required
-                  value={requesterId}
-                  options={options.employees || []}
-                  onChange={setRequesterId}
-                  getLabel={(item) => item.name}
-                  getSearchText={(item) => `${item.employee_code || ""} ${item.name || ""} ${item.department || ""}`}
-                  placeholder="พิมพ์ชื่อพนักงาน"
-                />
-              </label>
+              {canSelectRequester && (
+                <label className="field">
+                  <span>ผู้เบิก *</span>
+                  <SearchableSelect
+                    required
+                    value={requesterId}
+                    options={(options.employees || []).filter((item) => item.active !== false)}
+                    onChange={setRequesterId}
+                    getLabel={(item) => item.name}
+                    getSearchText={(item) => `${item.employee_code || ""} ${item.name || ""} ${item.department || ""}`}
+                    placeholder="พิมพ์ชื่อพนักงาน"
+                  />
+                </label>
+              )}
               <label className="field span2">
                 <span>เครื่องจักร *</span>
                 <SearchableSelect
@@ -346,10 +348,6 @@ function StockModal({ mode, part, options, employee, onClose, onSaved }) {
               </label>
             </>
           )}
-          <label className="field span2">
-            <span>ผู้บันทึก</span>
-            <input readOnly value={employee?.name || ""} />
-          </label>
           <label className="field span2">
             <span>Remark</span>
             <textarea rows="2" value={note} onChange={(e) => setNote(e.target.value)} />
@@ -776,7 +774,7 @@ export default function Dashboard() {
         <StockModal
           {...stockModal}
           options={options || {}}
-          employee={auth.employee}
+          canSelectRequester={auth.can("can_select_issue_requester")}
           onClose={() => setStockModal(null)}
           onSaved={async () => {
             const mode = stockModal.mode;
