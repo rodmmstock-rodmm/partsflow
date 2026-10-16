@@ -18,6 +18,7 @@ export const PERMISSIONS = [
   ["can_adjust_stock", "Adjust Stock", "Dashboard Stock"],
   ["can_receive_stock", "Receive Stock", "Dashboard Stock"],
   ["can_issue_stock", "Issue Stock", "Dashboard Stock"],
+  ["can_select_issue_requester", "เลือกชื่อผู้เบิก (เลือกแทนบุคคลอื่น)", "Dashboard Stock"],
 
   ["can_view_history", "View History", "History"],
   ["can_edit_history", "Edit History", "History"],
