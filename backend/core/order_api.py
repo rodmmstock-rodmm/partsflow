@@ -1265,6 +1265,10 @@ def wait_confirm_order(request, pk):
 @api_view(["POST"])
 @permission_classes([AllowAny])
 def cancel_order(request, pk):
+    # Cancellation/restoration must not be available to users who cannot view Orders.
+    _, err = require_permission(request, "can_view_orders")
+    if err:
+        return err
     actor, err = require_permission(request, "can_cancel_order")
     if err:
         return err
