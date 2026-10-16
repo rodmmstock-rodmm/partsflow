@@ -807,7 +807,7 @@ export function PurchaseModal({
       <div className="system-box">
         <div>
           <span>WORKFLOW STATUS</span>
-          <strong>{local.status}</strong>
+          <strong>{displayOrderStatus(local)}</strong>
         </div>
         <div>
           <span>LIFECYCLE</span>
