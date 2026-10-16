@@ -387,7 +387,7 @@ export default function OrdersV2(){
     <div className="order-nav-v9">
       <div className="order-status-tabs-v9">{ORDER_TABS.filter(([key])=>(key!=="updates"||auth.can("can_view_order_updates"))&&(key!=="deleted"||auth.can("can_view_deleted_orders"))).map(([key,label])=><button key={key} className={tab===key?"active":""} onClick={()=>{setTab(key);setQInput("");setQ("");setSelected(new Set());}}>{label}</button>)}</div>
       <div className="order-month-head-v9"><button onClick={()=>setYear(y=>y-1)}>‹</button><b>{year}</b><button onClick={()=>setYear(y=>y+1)}>›</button><span>เลือกเดือนเพื่อโหลดข้อมูล</span></div>
-      <div className="order-month-tabs-v9">{MONTHS_TH.map((label,i)=><button key={label} className={month===i?"active":""} onClick={()=>setMonth(i)}><span>{label}{Array.isArray(monthlyActiveCounts)?` (${fmt(monthlyActiveCounts[i]||0)})`:""}</span>{year===now.getFullYear()&&i===now.getMonth()&&<small>ปัจจุบัน</small>}</button>)}</div>
+      <div className="order-month-tabs-v9">{MONTHS_TH.map((label,i)=><button key={label} className={month===i?"active":""} onClick={()=>setMonth(i)}><span>{label}{Array.isArray(monthlyActiveCounts) && monthlyActiveCounts[i] ? ` ${fmt(monthlyActiveCounts[i])}` : ""}</span>{year===now.getFullYear()&&i===now.getMonth()&&<small>ปัจจุบัน</small>}</button>)}</div>
     </div>
 
     <section className="panel order-panel-v9">
