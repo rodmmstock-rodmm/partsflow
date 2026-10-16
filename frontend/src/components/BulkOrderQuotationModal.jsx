@@ -249,7 +249,7 @@ export default function BulkOrderQuotationModal({
       )}
       {loading ? (
         <div className="empty">กำลังตรวจสอบ Order Quotation ของรายการที่เลือก...</div>
-      ) : vendorId ? (
+      ) : (vendorId || (mode === "quotation" && stagedVendors.length > 0)) ? (
         <>
           {mode === "quotation" ? (
             <div className="alert info">
