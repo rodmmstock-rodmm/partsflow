@@ -2043,7 +2043,7 @@ function BulkPurchaseEditModal({ mode, rows, options, onClose, onSaved, onPartia
 
   function quotationTokens(value) {
     return String(value || "")
-      .split(/[,;\\n]+/)
+      .split(/[,;\n]+/)
       .map((item) => item.trim().toLocaleLowerCase())
       .filter(Boolean);
   }
@@ -2188,7 +2188,7 @@ function BulkPurchaseEditModal({ mode, rows, options, onClose, onSaved, onPartia
   );
 }
 
-function BulkActions({ rows, auth, busy, onRun, onClear, onRfq, onBulkPurchase }) {
+function BulkActions({ rows, auth, busy, onRun, onClear, onRfq, onBulkPurchase, showPurchaseBulk = true }) {
   const count = rows.length;
   const canWait = rows.some((o) => o.lifecycle_status === "ACTIVE");
   const canCancelWait = rows.some(
@@ -2227,20 +2227,24 @@ function BulkActions({ rows, auth, busy, onRun, onClear, onRfq, onBulkPurchase }
           >
             บันทึกขอราคา
           </button>
-          <button
-            className="btn ghost"
-            disabled={busy}
-            onClick={() => onBulkPurchase("quotation")}
-          >
-            Order Quotation
-          </button>
-          <button
-            className="btn ghost"
-            disabled={busy}
-            onClick={() => onBulkPurchase("vendor")}
-          >
-            Vendor Order
-          </button>
+          {showPurchaseBulk && (
+            <>
+              <button
+                className="btn ghost"
+                disabled={busy}
+                onClick={() => onBulkPurchase("quotation")}
+              >
+                Order Quotation
+              </button>
+              <button
+                className="btn ghost"
+                disabled={busy}
+                onClick={() => onBulkPurchase("vendor")}
+              >
+                Vendor Order
+              </button>
+            </>
+          )}
           <button
             className="btn warning"
             disabled={!count || busy || !canWait}
@@ -3636,6 +3640,7 @@ export default function Orders({ mode = "orders" }) {
               onClear={() => setSelected(new Set())}
               onRfq={() => setRfqCompose(true)}
               onBulkPurchase={setBulkPurchaseMode}
+              showPurchaseBulk={tab !== "step" || projectPhase !== "quotation"}
             />
           )}
 
