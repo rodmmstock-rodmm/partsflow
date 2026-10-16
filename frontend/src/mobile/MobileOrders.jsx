@@ -275,7 +275,7 @@ export default function MobileOrders() {
           </select>
           <select value={status} onChange={(event) => setStatus(event.target.value)}>
             <option value="">ทุกสถานะ</option>
-            <option>New Order</option><option>Wait Quotation</option><option>Wait Issue P/R</option><option>Wait for Item</option>
+            <option value="New Order">New Order</option><option value="Wait Quotation">Wait Quotation</option><option value="Wait Issue P/R">Wait Issue P/R</option><option value="Wait for Item">Wait Part</option>
           </select>
         </div>
       )}
