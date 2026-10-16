@@ -170,7 +170,7 @@ export default function BulkOrderQuotationModal({
         <>
           {mode === "quotation" ? (
             <div className="alert info">
-              ตรวจสอบรายการก่อนบันทึก: Vendor ที่มีอยู่แล้วจะไม่ถูกเพิ่มซ้ำ ระบบจะไม่ส่งอีเมลและไม่สร้าง RFQ
+              ตรวจสอบรายการก่อนบันทึก: Vendor ที่มีอยู่แล้วจะไม่ถูกเพิ่มซ้ำ ระบบจะไม่ส่งอีเมลอัตโนมัติ
             </div>
           ) : (
             <>
