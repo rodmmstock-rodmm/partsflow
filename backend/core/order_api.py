@@ -2975,7 +2975,7 @@ ORDER_TIMELINE_STAGE_LABELS = {
     "New Order": "New Order",
     "Wait Quotation": "Wait Quotation",
     "Wait Issue P/R": "Wait Issue P/R",
-    "Wait for Item": "Wait for Item",
+    "Wait for Item": "Wait Part",
     "Wait Confirm": "Wait Confirm",
     "Wait Confirm Order": "Wait Confirm",
     "Complete Order": "Complete Order",
