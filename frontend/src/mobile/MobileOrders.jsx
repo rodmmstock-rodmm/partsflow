@@ -196,6 +196,58 @@ export default function MobileOrders() {
     }
   }
 
+  async function bulkAct(action) {
+    if (busy) return;
+    const eligible = selectedRows.filter((row) =>
+      action === "wait"
+        ? row.lifecycle_status === "ACTIVE"
+        : row.lifecycle_status === "WAIT_CONFIRM"
+    );
+    if (!eligible.length) return;
+
+    const isWait = action === "wait";
+    const accepted = await confirm(
+      isWait
+        ? `เปลี่ยน ${eligible.length} รายการเป็น Wait Confirm?`
+        : `ยกเลิก Wait Confirm ${eligible.length} รายการ?`,
+      { confirmLabel: isWait ? "ยืนยัน" : "ยกเลิก", danger: !isWait }
+    );
+    if (!accepted) return;
+
+    let waitConfirmRemark = "";
+    if (isWait) {
+      const input = await promptText("เพิ่ม Remark สำหรับการเปลี่ยนเป็น Wait Confirm", {
+        title: "Wait Confirm Remark",
+        placeholder: "ไม่บังคับกรอก",
+        maxLength: 1000,
+        confirmLabel: "ยืนยัน Wait Confirm",
+        defaultValue: "",
+      });
+      if (input === null) return;
+      waitConfirmRemark = input;
+    }
+
+    setBusy(`bulk-${action}`);
+    setError("");
+    const results = await Promise.allSettled(
+      eligible.map((row) =>
+        apiPost(`/orders/${row.id}/wait-confirm/`, {
+          wait_confirm: isWait,
+          ...(isWait ? { wait_confirm_remark: waitConfirmRemark } : {}),
+        })
+      )
+    );
+    const succeeded = results.filter((result) => result.status === "fulfilled").length;
+    const failed = results.length - succeeded;
+    await load(true);
+    if (failed) {
+      setError(`ดำเนินการสำเร็จ ${succeeded}/${results.length} รายการ มี ${failed} รายการที่ไม่สำเร็จ กรุณาตรวจสอบสถานะแล้วลองใหม่เฉพาะรายการที่ยังค้าง`);
+    } else {
+      setSelected(new Set());
+    }
+    setBusy("");
+  }
+
   return (
     <MobilePage
       title="Order"
@@ -284,8 +336,29 @@ export default function MobileOrders() {
       {selectedRows.length > 0 && (
         <div className="m-rfq-selection">
           <b>เลือกแล้ว {selectedRows.length} รายการ</b>
-          <button onClick={() => setRfqCompose(true)}>บันทึกขอราคา</button>
-          <button onClick={() => setSelected(new Set())}>ล้าง</button>
+          {auth.can("can_edit_purchase_info") && (
+            <>
+              <button
+                onClick={() => setRfqCompose(true)}
+                disabled={!!busy}
+              >
+                บันทึกขอราคา
+              </button>
+              <button
+                onClick={() => bulkAct("wait")}
+                disabled={!!busy || !selectedRows.some((row) => row.lifecycle_status === "ACTIVE")}
+              >
+                รอ Confirm
+              </button>
+              <button
+                onClick={() => bulkAct("cancelwait")}
+                disabled={!!busy || !selectedRows.some((row) => row.lifecycle_status === "WAIT_CONFIRM")}
+              >
+                ยกเลิกรอ Confirm
+              </button>
+            </>
+          )}
+          <button onClick={() => setSelected(new Set())} disabled={!!busy}>ล้าง</button>
         </div>
       )}
 
