@@ -6,7 +6,7 @@ const STAGE_COLOR = {
   "New Order": "info",
   "Wait Quotation": "info",
   "Wait Issue P/R": "info",
-  "Wait for Item": "info",
+  "Wait Part": "info",
   "Wait Confirm": "warning",
   "Complete Order": "success",
   CANCELLED: "danger",
