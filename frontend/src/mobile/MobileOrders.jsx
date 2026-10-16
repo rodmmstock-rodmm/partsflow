@@ -35,7 +35,8 @@ function orderStatus(order) {
   if (order.lifecycle_status === "WAIT_CONFIRM") return "Wait Confirm Order";
   if (order.lifecycle_status === "CANCELLED") return "Cancelled";
   if (order.lifecycle_status === "COMPLETED") return "Complete Order";
-  return order.display_status || order.status || "New Order";
+  const status = order.display_status || order.status || "New Order";
+  return status === "Wait for Item" ? "Wait Part" : status;
 }
 
 function isAdmin(employee) {
