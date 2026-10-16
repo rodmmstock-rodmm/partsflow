@@ -117,31 +117,41 @@ export default function BulkOrderQuotationModal({
     setStagedVendorIds((current) => current.filter((item) => String(item) !== String(id)));
   }
   async function save() {
-    if (!selectedVendor || !canSave) return;
+    if (!canSave) return;
+    if (mode === "vendor-order" && !selectedVendor) return;
     setBusy(true);
     setError("");
     const successes = [];
     const failures = [];
 
-    for (const row of previewRows) {
-      try {
-        if (mode === "quotation") {
-          if (row.alreadyAdded) {
-            successes.push({ order: row, skipped: true });
+    if (mode === "quotation") {
+      for (const row of previewRows) {
+        const existingIds = new Set((vendorLists[String(row.id)] || []).map((item) => String(item.vendor_id)));
+        for (const vendor of stagedVendors) {
+          if (existingIds.has(String(vendor.id))) {
+            successes.push({ order: row, vendor, skipped: true });
             continue;
           }
-          await apiPost(`/orders/${row.id}/vendors/`, { vendor_id: vendorId });
-          successes.push({ order: row, skipped: false });
-        } else {
+          try {
+            await apiPost("/orders/" + row.id + "/vendors/", { vendor_id: vendor.id });
+            successes.push({ order: row, vendor, skipped: false });
+          } catch (err) {
+            failures.push(row.order_number + " · " + vendorLabel(vendor) + ": " + err.message);
+          }
+        }
+      }
+    } else {
+      for (const row of previewRows) {
+        try {
           if (String(row.vendor_id || "") === String(vendorId)) {
             successes.push({ order: row, unchanged: true });
             continue;
           }
-          await apiPatch(`/orders/${row.id}/purchase/`, { vendor_id: vendorId });
+          await apiPatch("/orders/" + row.id + "/purchase/", { vendor_id: vendorId });
           successes.push({ order: row, unchanged: false });
+        } catch (err) {
+          failures.push(row.order_number + ": " + err.message);
         }
-      } catch (err) {
-        failures.push(`${row.order_number}: ${err.message}`);
       }
     }
 
@@ -152,7 +162,6 @@ export default function BulkOrderQuotationModal({
     });
     setBusy(false);
   }
-
   const title = mode === "quotation" ? "Order Quotation" : "Vendor Order";
   const actionLabel = mode === "quotation" ? "เพิ่ม Vendor ใน Order Quotation" : "บันทึก Vendor Order";
 
