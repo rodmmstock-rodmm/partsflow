@@ -15,15 +15,20 @@ export default function BulkOrderQuotationModal({
   onSaved,
 }) {
   const [vendorId, setVendorId] = useState("");
+  const [stagedVendorIds, setStagedVendorIds] = useState([]);
   const [vendorLists, setVendorLists] = useState({});
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [result, setResult] = useState(null);
 
-  const selectedVendor = (options.vendors || []).find(
+  const allVendors = options.vendors || [];
+  const selectedVendor = allVendors.find(
     (vendor) => String(vendor.id) === String(vendorId)
   );
+  const stagedVendors = stagedVendorIds
+    .map((id) => allVendors.find((vendor) => String(vendor.id) === String(id)))
+    .filter(Boolean);
 
   // Vendor Order must use a vendor already quoted on every selected Order.
   // This keeps the single shared Vendor Order consistent across the selection.
@@ -75,33 +80,42 @@ export default function BulkOrderQuotationModal({
 
   const previewRows = useMemo(() => orders.map((order) => {
     const vendors = vendorLists[String(order.id)] || [];
-    const match = vendors.find(
-      (row) => String(row.vendor_id) === String(vendorId)
-    );
     return {
       ...order,
       vendors,
-      alreadyAdded: !!match,
-      hasVendor: vendors.some(
-        (row) => String(row.vendor_id) === String(vendorId)
-      ),
+      stagedStatus: stagedVendors.map((vendor) => ({
+        vendor,
+        alreadyAdded: vendors.some((row) => String(row.vendor_id) === String(vendor.id)),
+      })),
+      hasVendor: vendors.some((row) => String(row.vendor_id) === String(vendorId)),
       currentVendorOrder: order.vendor_id
-        ? (options.vendors || []).find(
-            (vendor) => String(vendor.id) === String(order.vendor_id)
-          )
+        ? allVendors.find((vendor) => String(vendor.id) === String(order.vendor_id))
         : null,
     };
-  }), [orders, vendorLists, vendorId, options.vendors]);
+  }), [orders, vendorLists, stagedVendors, vendorId, allVendors]);
 
   const missingVendorOrders = previewRows.filter((row) => !row.hasVendor);
   const canSave = Boolean(
-    vendorId &&
-    !loading &&
-    !busy &&
-    !error &&
-    (mode === "quotation" || (previewRows.length > 0 && missingVendorOrders.length === 0))
+    !loading && !busy && !error &&
+    (mode === "quotation"
+      ? stagedVendors.length > 0
+      : vendorId && previewRows.length > 0 && missingVendorOrders.length === 0)
   );
 
+  function stageVendor() {
+    if (!selectedVendor) return;
+    if (stagedVendorIds.some((id) => String(id) === String(vendorId))) {
+      setError("เลือก Vendor นี้ไว้แล้ว");
+      return;
+    }
+    setStagedVendorIds((current) => [...current, vendorId]);
+    setVendorId("");
+    setError("");
+  }
+
+  function removeStagedVendor(id) {
+    setStagedVendorIds((current) => current.filter((item) => String(item) !== String(id)));
+  }
   async function save() {
     if (!selectedVendor || !canSave) return;
     setBusy(true);
