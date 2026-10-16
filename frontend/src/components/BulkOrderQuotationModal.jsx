@@ -210,16 +210,34 @@ export default function BulkOrderQuotationModal({
       `}</style>
       <div className="form-grid">
         <label className="field span2">
-          <span>{mode === "vendor-order" ? "Vendor จาก Order Quotation *" : "Vendor *"}</span>
+          <span>{mode === "vendor-order" ? "Vendor จาก Order Quotation *" : "เลือก Vendor เพื่อเพิ่มในรายการ *"}</span>
           <SearchableSelect
             required
             value={vendorId}
             options={vendorOptions}
             onChange={setVendorId}
             getLabel={vendorLabel}
-            getSearchText={(vendor) => `${vendor.code || ""} ${vendor.name || ""} ${vendor.email || ""} ${vendor.contact_person || ""}`}
+            getSearchText={(vendor) => (vendor.code || "") + " " + (vendor.name || "") + " " + (vendor.email || "") + " " + (vendor.contact_person || "")}
             placeholder="พิมพ์ชื่อหรือรหัส Vendor"
           />
+          {mode === "quotation" && (
+            <div style={{ marginTop: 8 }}>
+              <button type="button" className="btn ghost" disabled={!selectedVendor || loading || busy || stagedVendorIds.some((id) => String(id) === String(vendorId))} onClick={stageVendor}>
+                + เพิ่ม Vendor ในรายการ
+              </button>
+              {stagedVendors.length > 0 && (
+                <div className="quotation-rfq-list" style={{ marginTop: 10 }}>
+                  <b>Vendor ที่จะบันทึก ({stagedVendors.length})</b>
+                  {stagedVendors.map((vendor) => (
+                    <div key={vendor.id}>
+                      <span>{vendorLabel(vendor)}</span>
+                      <button type="button" className="mini danger" disabled={busy} onClick={() => removeStagedVendor(vendor.id)}>นำออก</button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
         </label>
       </div>
 
@@ -235,7 +253,7 @@ export default function BulkOrderQuotationModal({
         <>
           {mode === "quotation" ? (
             <div className="alert info">
-              ตรวจสอบรายการก่อนบันทึก: Vendor ที่มีอยู่แล้วจะไม่ถูกเพิ่มซ้ำ ระบบจะไม่ส่งอีเมลอัตโนมัติ
+              เลือก Vendor ได้หลายรายก่อนกดยืนยันบันทึก รายที่มีอยู่แล้วใน Order ใดจะไม่ถูกเพิ่มซ้ำ และระบบจะไม่ส่งอีเมลอัตโนมัติ
             </div>
           ) : (
             <>
@@ -268,14 +286,16 @@ export default function BulkOrderQuotationModal({
                     <td>{row.currentVendorOrder ? vendorLabel(row.currentVendorOrder) : (row.vendor_name || "-")}</td>
                     <td>
                       {mode === "quotation"
-                        ? row.alreadyAdded
-                          ? "มี Vendor นี้แล้ว · ไม่เพิ่มซ้ำ"
-                          : `เพิ่ม ${vendorLabel(selectedVendor)} ใน Order Quotation`
+                        ? (row.stagedStatus.length
+                            ? row.stagedStatus.map(({ vendor, alreadyAdded }) => alreadyAdded
+                                ? vendorLabel(vendor) + ": มีแล้ว"
+                                : vendorLabel(vendor) + ": เพิ่ม").join(" · ")
+                            : "เพิ่ม Vendor ในรายการด้านบนเพื่อดูผลก่อนบันทึก")
                         : missingVendorOrders.some((item) => item.id === row.id)
                           ? "ยังไม่มี Vendor ใน Order Quotation"
                           : String(row.vendor_id || "") === String(vendorId)
                             ? "ใช้ Vendor นี้อยู่แล้ว"
-                            : `เปลี่ยนเป็น ${vendorLabel(selectedVendor)}`}
+                            : "เปลี่ยนเป็น " + vendorLabel(selectedVendor)}
                     </td>
                   </tr>
                 ))}
@@ -290,7 +310,7 @@ export default function BulkOrderQuotationModal({
       <div className="modal-actions">
         <button type="button" className="btn ghost" disabled={busy} onClick={onClose}>ยกเลิก</button>
         <button className="btn primary" disabled={!canSave} onClick={save}>
-          {busy ? "กำลังบันทึก..." : actionLabel}
+          {busy ? "กำลังบันทึก..." : (mode === "quotation" ? "ยืนยันบันทึก Vendor " + stagedVendors.length + " ราย" : actionLabel)}
         </button>
       </div>
     </Modal>
