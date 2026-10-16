@@ -21,9 +21,15 @@ export function MobileLoading({ text="กำลังโหลด..." }) { retur
 export function MobileEmpty({ text="ไม่พบข้อมูล" }) { return <div className="m-empty">{text}</div>; }
 
 export function StockBadge({ row }) {
-  if (isNoCountSku(row.sku)) return <span className="m-stock-badge normal">normal</span>;
+  if (isNoCountSku(row.sku)) return <span className="m-stock-badge normal">ปกติ</span>;
   const cls=row.stock_status||((Number(row.stock_qty||0)<=0)?"out_of_stock":(Number(row.stock_qty||0)<Number(row.min_stock||0)?"low_stock":"normal"));
-  return <span className={`m-stock-badge ${cls}`}>{row.stock_status_label||cls}</span>;
+  const labels = {
+    normal: "ปกติ",
+    low_stock: "ต่ำกว่า Min",
+    out_of_stock: "จำนวนเป็น 0",
+    ordering_now: "กำลังออเดอร์",
+  };
+  return <span className={`m-stock-badge ${cls}`}>{labels[cls]||row.stock_status_label||cls}</span>;
 }
 
 export function MobileStockModal({ mode, part, employee, onClose, onSaved }) {
