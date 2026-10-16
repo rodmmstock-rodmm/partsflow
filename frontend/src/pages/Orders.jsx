@@ -2032,7 +2032,163 @@ function MonthlyProjectList({ projects, onSelect }) {
   );
 }
 
-function BulkActions({ rows, auth, busy, onRun, onClear, onRfq }) {
+function BulkPurchaseEditModal({ mode, rows, options, onClose, onSaved, onPartialSave }) {
+  const [vendorId, setVendorId] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
+  const vendors = options.vendors || [];
+  const vendor = vendors.find((item) => String(item.id) === String(vendorId));
+  const vendorName = String(vendor?.name || "").trim();
+  const isQuotation = mode === "quotation";
+
+  function quotationTokens(value) {
+    return String(value || "")
+      .split(/[,;\n]+/)
+      .map((item) => item.trim().toLocaleLowerCase())
+      .filter(Boolean);
+  }
+
+  const previewRows = rows.map((row) => {
+    const current = String(row.quotation || "").trim();
+    const tokens = quotationTokens(current);
+    const alreadyIncluded = vendorName && tokens.includes(vendorName.toLocaleLowerCase());
+    const nextQuotation = !vendorName || alreadyIncluded
+      ? current
+      : [current, vendorName].filter(Boolean).join(", ");
+    const vendorIsQuoted = !!vendorName && tokens.includes(vendorName.toLocaleLowerCase());
+    return {
+      ...row,
+      currentQuotation: current,
+      nextQuotation,
+      alreadyIncluded,
+      vendorIsQuoted,
+      valid: isQuotation || vendorIsQuoted,
+    };
+  });
+
+  const invalidRows = previewRows.filter((row) => !row.valid);
+  const changedRows = isQuotation
+    ? previewRows.filter((row) => !row.alreadyIncluded)
+    : previewRows;
+  const canSave = !!vendor && changedRows.length > 0 && !invalidRows.length && !busy;
+
+  async function submit(event) {
+    event.preventDefault();
+    if (!vendor) {
+      setError("กรุณาเลือก Vendor");
+      return;
+    }
+    if (invalidRows.length) {
+      setError("Vendor Order ต้องอยู่ใน ORDER QUOTATION ของทุก Order ก่อน กรุณาแก้ไขรายการที่ไม่ผ่าน");
+      return;
+    }
+
+    setBusy(true);
+    setError("");
+    const results = await Promise.allSettled(
+      changedRows.map((row) =>
+        apiPatch(`/orders/${row.id}/purchase/`, isQuotation
+          ? { quotation: row.nextQuotation }
+          : { vendor_id: vendor.id })
+      )
+    );
+    const failed = results
+      .map((result, index) => ({ result, row: changedRows[index] }))
+      .filter(({ result }) => result.status === "rejected");
+
+    if (failed.length) {
+      const succeeded = results.length - failed.length;
+      setError(
+        `บันทึกสำเร็จ ${succeeded} รายการ และไม่สำเร็จ ${failed.length} รายการ: ` +
+        failed.map(({ row, result }) => `${row.order_number || row.id}: ${result.reason?.message || "เกิดข้อผิดพลาด"}`).join(" · ")
+      );
+      setBusy(false);
+      if (succeeded > 0) await onPartialSave?.();
+      return;
+    }
+
+    await onSaved({ partial: false });
+  }
+
+  return (
+    <Modal
+      title={isQuotation ? "Bulk Edit · Order Quotation" : "Bulk Edit · Vendor Order"}
+      onClose={onClose}
+      wide
+    >
+      <form onSubmit={submit}>
+        <p className="helper">
+          {isQuotation
+            ? "เพิ่ม Vendor ลงในช่อง ORDER QUOTATION เดิม โดยเก็บข้อมูลเดิมไว้ ไม่สร้าง RFQ และไม่ส่งอีเมล"
+            : "กำหนด Vendor Order เดียวกันให้ Order ที่เลือก โดย Vendor ต้องอยู่ใน ORDER QUOTATION ของทุกรายการก่อน"}
+        </p>
+
+        <label className="field">
+          <span>{isQuotation ? "Vendor ที่ต้องการเพิ่ม *" : "Vendor Order *"}</span>
+          <select required value={vendorId} onChange={(event) => { setVendorId(event.target.value); setError(""); }}>
+            <option value="">เลือก Vendor</option>
+            {vendors.filter((item) => item.active !== false).map((item) => (
+              <option key={item.id} value={item.id}>
+                {item.code ? `${item.code} · ` : ""}{item.name}
+              </option>
+            ))}
+          </select>
+        </label>
+
+        {vendor && (
+          <>
+            <div className="alert success">
+              ตรวจสอบแล้ว {previewRows.length} Order
+              {isQuotation
+                ? " · จะเพิ่มเฉพาะ Vendor ที่ยังไม่มีในรายการ"
+                : ` · Vendor ที่เลือก: ${vendorName}`}
+            </div>
+            <div className="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>ORDER NUMBER</th>
+                    <th>ORDER QUOTATION เดิม</th>
+                    <th>{isQuotation ? "ORDER QUOTATION หลังแก้ไข" : "ผลตรวจสอบ Vendor"}</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {previewRows.map((row) => (
+                    <tr key={row.id}>
+                      <td><b>{row.order_number || row.id}</b></td>
+                      <td>{row.currentQuotation || "-"}</td>
+                      <td>
+                        {isQuotation ? (
+                          row.alreadyIncluded
+                            ? <span className="status muted">มี Vendor นี้แล้ว</span>
+                            : row.nextQuotation || "-"
+                        ) : (
+                          row.vendorIsQuoted
+                            ? <span className="status success">ผ่าน · {vendorName}</span>
+                            : <span className="status warning">ไม่พบ Vendor ใน ORDER QUOTATION</span>
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </>
+        )}
+
+        <Alert>{error}</Alert>
+        <div className="modal-actions">
+          <button type="button" className="btn ghost" onClick={onClose} disabled={busy}>ยกเลิก</button>
+          <button className="btn primary" disabled={!canSave}>
+            {busy ? "กำลังบันทึก..." : `บันทึก ${changedRows.length} Order`}
+          </button>
+        </div>
+      </form>
+    </Modal>
+  );
+}
+
+function BulkActions({ rows, auth, busy, onRun, onClear, onRfq, onBulkPurchase, showPurchaseBulk = true }) {
   const count = rows.length;
   const canWait = rows.some((o) => o.lifecycle_status === "ACTIVE");
   const canCancelWait = rows.some(
@@ -2062,7 +2218,7 @@ function BulkActions({ rows, auth, busy, onRun, onClear, onRfq }) {
         เลือกแล้ว {fmt(count)} รายการ
       </strong>
 
-      {auth.can("can_edit_purchase_info") && (
+      {auth.can("can_edit_purchase_info") && count > 0 && (
         <>
           <button
             className="btn primary"
@@ -2071,6 +2227,24 @@ function BulkActions({ rows, auth, busy, onRun, onClear, onRfq }) {
           >
             บันทึกขอราคา
           </button>
+          {showPurchaseBulk && (
+            <>
+              <button
+                className="btn ghost"
+                disabled={busy}
+                onClick={() => onBulkPurchase("quotation")}
+              >
+                Order Quotation
+              </button>
+              <button
+                className="btn ghost"
+                disabled={busy}
+                onClick={() => onBulkPurchase("vendor")}
+              >
+                Vendor Order
+              </button>
+            </>
+          )}
           <button
             className="btn warning"
             disabled={!count || busy || !canWait}
@@ -2357,6 +2531,7 @@ export default function Orders({ mode = "orders" }) {
 
   const [editor, setEditor] = useState(null);
   const [purchase, setPurchase] = useState(null);
+  const [bulkPurchaseMode, setBulkPurchaseMode] = useState("");
   const [rfqCompose, setRfqCompose] = useState(false);
 
   const [projects, setProjects] = useState([]);
@@ -3464,6 +3639,8 @@ export default function Orders({ mode = "orders" }) {
               onRun={runBulk}
               onClear={() => setSelected(new Set())}
               onRfq={() => setRfqCompose(true)}
+              onBulkPurchase={setBulkPurchaseMode}
+              showPurchaseBulk={tab !== "step" || projectPhase !== "quotation"}
             />
           )}
 
@@ -3958,6 +4135,23 @@ export default function Orders({ mode = "orders" }) {
           onChanged={(result) => {
             setPurchase(result);
             refresh();
+          }}
+        />
+      )}
+
+      {bulkPurchaseMode && (
+        <BulkPurchaseEditModal
+          mode={bulkPurchaseMode}
+          rows={selectedRows}
+          options={options}
+          onClose={() => setBulkPurchaseMode("")}
+          onSaved={async () => {
+            setBulkPurchaseMode("");
+            setSelected(new Set());
+            await refresh();
+          }}
+          onPartialSave={async () => {
+            await refresh();
           }}
         />
       )}
