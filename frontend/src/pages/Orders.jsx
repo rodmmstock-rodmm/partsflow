@@ -1062,6 +1062,7 @@ function OrderTable({
               <label style={{ display: "flex", gap: 6, alignItems: "center" }}>
                 <input
                   type="checkbox"
+                  style={{ width: 22, height: 22, cursor: "pointer", flexShrink: 0 }}
                   checked={allSelected}
                   onChange={(e) => onToggleAll(rows, e.target.checked)}
                 />
@@ -1098,6 +1099,7 @@ function OrderTable({
                   >
                     <input
                       type="checkbox"
+                      style={{ width: 22, height: 22, cursor: "pointer", flexShrink: 0 }}
                       checked={selectedRow}
                       onChange={(e) => onToggle(o.id, e.target.checked)}
                     />
