@@ -32,7 +32,7 @@ export function StockBadge({ row }) {
   return <span className={`m-stock-badge ${cls}`}>{labels[cls]||row.stock_status_label||cls}</span>;
 }
 
-export function MobileStockModal({ mode, part, employee, onClose, onSaved }) {
+export function MobileStockModal({ mode, part, canSelectRequester, onClose, onSaved }) {
   const issue=mode==="issue";
   const noCount=isNoCountSku(part.sku);
   const [qty,setQty]=useState(1);
@@ -59,12 +59,12 @@ export function MobileStockModal({ mode, part, employee, onClose, onSaved }) {
     const amount=Number(qty);
     if(!Number.isInteger(amount)||amount<=0){setError("จำนวนต้องเป็นจำนวนเต็มมากกว่า 0");return;}
     if(issue&&!noCount&&amount>Number(part.stock_qty||0)){setError("จำนวนเบิกมากกว่าสต็อกคงเหลือ");return;}
-    if(issue&&!requesterId){setError("กรุณาเลือกผู้เบิกจากรายการ");return;}
+    if(issue&&canSelectRequester&&!requesterId){setError("กรุณาเลือกผู้เบิกจากรายการ");return;}
     if(issue&&!machineId){setError("กรุณาเลือกเครื่องจักรจากรายการ");return;}
     setBusy(true);
     try{
       const payload={part_id:part.id,quantity:amount,note};
-      if(issue){payload.requester_id=requesterId;payload.machine_id=machineId;}
+      if(issue){if(canSelectRequester)payload.requester_id=requesterId;payload.machine_id=machineId;}
       await apiPost(issue?"/stock/issue/":"/stock/receive/",payload);
       onSaved?.();
     }catch(err){setError(err.message)}finally{setBusy(false)}
@@ -79,10 +79,9 @@ export function MobileStockModal({ mode, part, employee, onClose, onSaved }) {
       <div className="m-stock-preview"><div><span>คงเหลือ</span><strong>{stockDisplay(part)} {part.unit_code}</strong></div><div><span>หลังทำรายการ</span><strong className={!noCount&&after<0?"text-danger":""}>{noCount?"เช็คหน้างาน":fmt(after)} {part.unit_code}</strong></div></div>
       <label className="field"><span>จำนวน *</span><input inputMode="numeric" type="number" min="1" step="1" required value={qty} onChange={e=>setQty(e.target.value)}/></label>
       {issue&&<>
-        <label className="field"><span>ผู้เบิก *</span><SearchableSelect required value={requesterId} options={(options.employees||[]).filter(x=>x.active!==false)} onChange={setRequesterId} disabled={loading} getLabel={x=>x.name} getSearchText={x=>`${x.employee_code||""} ${x.name||""} ${x.department||""}`} placeholder="พิมพ์ชื่อพนักงาน"/></label>
+        {canSelectRequester&&<label className="field"><span>ผู้เบิก *</span><SearchableSelect required value={requesterId} options={(options.employees||[]).filter(x=>x.active!==false)} onChange={setRequesterId} disabled={loading} getLabel={x=>x.name} getSearchText={x=>`${x.employee_code||""} ${x.name||""} ${x.department||""}`} placeholder="พิมพ์ชื่อพนักงาน"/></label>}
         <label className="field"><span>เครื่องจักร *</span><SearchableSelect required value={machineId} options={(options.machines||[]).filter(x=>x.active!==false)} onChange={setMachineId} disabled={loading} getLabel={x=>x.code} getSearchText={x=>`${x.code||""} ${x.name||""} ${x.location||""}`} placeholder="พิมพ์รหัส Machine"/></label>
       </>}
-      <label className="field"><span>ผู้บันทึก</span><input readOnly value={employee?.name||""}/></label>
       <label className="field"><span>หมายเหตุ</span><textarea rows="2" value={note} onChange={e=>setNote(e.target.value)}/></label>
       <Alert>{error}</Alert>
       <button className={`m-confirm-btn ${issue?"issue":"receive"}`} disabled={busy||loading}>{busy?"กำลังบันทึก...":issue?"ยืนยันการเบิก":"ยืนยันการรับเข้า"}</button>
@@ -90,7 +89,7 @@ export function MobileStockModal({ mode, part, employee, onClose, onSaved }) {
   </Modal>;
 }
 
-export function MobileAdjustModal({ part, employee, onClose, onSaved }) {
+export function MobileAdjustModal({ part, onClose, onSaved }) {
   const [actual,setActual]=useState(part.stock_qty??0);
   const [reason,setReason]=useState("");
   const [error,setError]=useState("");
@@ -120,7 +119,6 @@ export function MobileAdjustModal({ part, employee, onClose, onSaved }) {
       <div className="m-stock-preview"><div><span>ยอดในระบบ</span><strong>{stockDisplay(part)} {part.unit_code}</strong></div><div><span>ผลต่าง</span><strong className={difference<0?"text-danger":""}>{difference>0?"+":""}{fmt(difference)} {part.unit_code}</strong></div></div>
       <label className="field"><span>ยอดตรวจนับจริง *</span><input inputMode="decimal" type="number" min="0" step="any" required value={actual} onChange={e=>setActual(e.target.value)}/></label>
       <label className="field"><span>เหตุผลในการปรับยอด *</span><textarea rows="3" required value={reason} onChange={e=>setReason(e.target.value)}/></label>
-      <label className="field"><span>ผู้บันทึก</span><input readOnly value={employee?.name||""}/></label>
       <Alert>{error}</Alert>
       <button type="submit" className="m-confirm-btn adjust" disabled={busy}>{busy?"กำลังบันทึก...":"ยืนยันการปรับยอด"}</button>
     </form>
