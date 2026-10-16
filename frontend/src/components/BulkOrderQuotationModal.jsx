@@ -15,15 +15,20 @@ export default function BulkOrderQuotationModal({
   onSaved,
 }) {
   const [vendorId, setVendorId] = useState("");
+  const [stagedVendorIds, setStagedVendorIds] = useState([]);
   const [vendorLists, setVendorLists] = useState({});
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [result, setResult] = useState(null);
 
-  const selectedVendor = (options.vendors || []).find(
+  const allVendors = options.vendors || [];
+  const selectedVendor = allVendors.find(
     (vendor) => String(vendor.id) === String(vendorId)
   );
+  const stagedVendors = stagedVendorIds
+    .map((id) => allVendors.find((vendor) => String(vendor.id) === String(id)))
+    .filter(Boolean);
 
   // Vendor Order must use a vendor already quoted on every selected Order.
   // This keeps the single shared Vendor Order consistent across the selection.
@@ -75,59 +80,78 @@ export default function BulkOrderQuotationModal({
 
   const previewRows = useMemo(() => orders.map((order) => {
     const vendors = vendorLists[String(order.id)] || [];
-    const match = vendors.find(
-      (row) => String(row.vendor_id) === String(vendorId)
-    );
     return {
       ...order,
       vendors,
-      alreadyAdded: !!match,
-      hasVendor: vendors.some(
-        (row) => String(row.vendor_id) === String(vendorId)
-      ),
+      stagedStatus: stagedVendors.map((vendor) => ({
+        vendor,
+        alreadyAdded: vendors.some((row) => String(row.vendor_id) === String(vendor.id)),
+      })),
+      hasVendor: vendors.some((row) => String(row.vendor_id) === String(vendorId)),
       currentVendorOrder: order.vendor_id
-        ? (options.vendors || []).find(
-            (vendor) => String(vendor.id) === String(order.vendor_id)
-          )
+        ? allVendors.find((vendor) => String(vendor.id) === String(order.vendor_id))
         : null,
     };
-  }), [orders, vendorLists, vendorId, options.vendors]);
+  }), [orders, vendorLists, stagedVendors, vendorId, allVendors]);
 
   const missingVendorOrders = previewRows.filter((row) => !row.hasVendor);
   const canSave = Boolean(
-    vendorId &&
-    !loading &&
-    !busy &&
-    !error &&
-    (mode === "quotation" || (previewRows.length > 0 && missingVendorOrders.length === 0))
+    !loading && !busy && !error &&
+    (mode === "quotation"
+      ? stagedVendors.length > 0
+      : vendorId && previewRows.length > 0 && missingVendorOrders.length === 0)
   );
 
+  function stageVendor() {
+    if (!selectedVendor) return;
+    if (stagedVendorIds.some((id) => String(id) === String(vendorId))) {
+      setError("เลือก Vendor นี้ไว้แล้ว");
+      return;
+    }
+    setStagedVendorIds((current) => [...current, vendorId]);
+    setVendorId("");
+    setError("");
+  }
+
+  function removeStagedVendor(id) {
+    setStagedVendorIds((current) => current.filter((item) => String(item) !== String(id)));
+  }
   async function save() {
-    if (!selectedVendor || !canSave) return;
+    if (!canSave) return;
+    if (mode === "vendor-order" && !selectedVendor) return;
     setBusy(true);
     setError("");
     const successes = [];
     const failures = [];
 
-    for (const row of previewRows) {
-      try {
-        if (mode === "quotation") {
-          if (row.alreadyAdded) {
-            successes.push({ order: row, skipped: true });
+    if (mode === "quotation") {
+      for (const row of previewRows) {
+        const existingIds = new Set((vendorLists[String(row.id)] || []).map((item) => String(item.vendor_id)));
+        for (const vendor of stagedVendors) {
+          if (existingIds.has(String(vendor.id))) {
+            successes.push({ order: row, vendor, skipped: true });
             continue;
           }
-          await apiPost(`/orders/${row.id}/vendors/`, { vendor_id: vendorId });
-          successes.push({ order: row, skipped: false });
-        } else {
+          try {
+            await apiPost("/orders/" + row.id + "/vendors/", { vendor_id: vendor.id });
+            successes.push({ order: row, vendor, skipped: false });
+          } catch (err) {
+            failures.push(row.order_number + " · " + vendorLabel(vendor) + ": " + err.message);
+          }
+        }
+      }
+    } else {
+      for (const row of previewRows) {
+        try {
           if (String(row.vendor_id || "") === String(vendorId)) {
             successes.push({ order: row, unchanged: true });
             continue;
           }
-          await apiPatch(`/orders/${row.id}/purchase/`, { vendor_id: vendorId });
+          await apiPatch("/orders/" + row.id + "/purchase/", { vendor_id: vendorId });
           successes.push({ order: row, unchanged: false });
+        } catch (err) {
+          failures.push(row.order_number + ": " + err.message);
         }
-      } catch (err) {
-        failures.push(`${row.order_number}: ${err.message}`);
       }
     }
 
@@ -138,7 +162,6 @@ export default function BulkOrderQuotationModal({
     });
     setBusy(false);
   }
-
   const title = mode === "quotation" ? "Order Quotation" : "Vendor Order";
   const actionLabel = mode === "quotation" ? "เพิ่ม Vendor ใน Order Quotation" : "บันทึก Vendor Order";
 
@@ -187,16 +210,34 @@ export default function BulkOrderQuotationModal({
       `}</style>
       <div className="form-grid">
         <label className="field span2">
-          <span>{mode === "vendor-order" ? "Vendor จาก Order Quotation *" : "Vendor *"}</span>
+          <span>{mode === "vendor-order" ? "Vendor จาก Order Quotation *" : "เลือก Vendor เพื่อเพิ่มในรายการ *"}</span>
           <SearchableSelect
             required
             value={vendorId}
             options={vendorOptions}
             onChange={setVendorId}
             getLabel={vendorLabel}
-            getSearchText={(vendor) => `${vendor.code || ""} ${vendor.name || ""} ${vendor.email || ""} ${vendor.contact_person || ""}`}
+            getSearchText={(vendor) => (vendor.code || "") + " " + (vendor.name || "") + " " + (vendor.email || "") + " " + (vendor.contact_person || "")}
             placeholder="พิมพ์ชื่อหรือรหัส Vendor"
           />
+          {mode === "quotation" && (
+            <div style={{ marginTop: 8 }}>
+              <button type="button" className="btn ghost" disabled={!selectedVendor || loading || busy || stagedVendorIds.some((id) => String(id) === String(vendorId))} onClick={stageVendor}>
+                + เพิ่ม Vendor ในรายการ
+              </button>
+              {stagedVendors.length > 0 && (
+                <div className="quotation-rfq-list" style={{ marginTop: 10 }}>
+                  <b>Vendor ที่จะบันทึก ({stagedVendors.length})</b>
+                  {stagedVendors.map((vendor) => (
+                    <div key={vendor.id}>
+                      <span>{vendorLabel(vendor)}</span>
+                      <button type="button" className="mini danger" disabled={busy} onClick={() => removeStagedVendor(vendor.id)}>นำออก</button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
         </label>
       </div>
 
@@ -208,11 +249,11 @@ export default function BulkOrderQuotationModal({
       )}
       {loading ? (
         <div className="empty">กำลังตรวจสอบ Order Quotation ของรายการที่เลือก...</div>
-      ) : vendorId ? (
+      ) : (vendorId || (mode === "quotation" && stagedVendors.length > 0)) ? (
         <>
           {mode === "quotation" ? (
             <div className="alert info">
-              ตรวจสอบรายการก่อนบันทึก: Vendor ที่มีอยู่แล้วจะไม่ถูกเพิ่มซ้ำ ระบบจะไม่ส่งอีเมลอัตโนมัติ
+              เลือก Vendor ได้หลายรายก่อนกดยืนยันบันทึก รายที่มีอยู่แล้วใน Order ใดจะไม่ถูกเพิ่มซ้ำ และระบบจะไม่ส่งอีเมลอัตโนมัติ
             </div>
           ) : (
             <>
@@ -245,14 +286,16 @@ export default function BulkOrderQuotationModal({
                     <td>{row.currentVendorOrder ? vendorLabel(row.currentVendorOrder) : (row.vendor_name || "-")}</td>
                     <td>
                       {mode === "quotation"
-                        ? row.alreadyAdded
-                          ? "มี Vendor นี้แล้ว · ไม่เพิ่มซ้ำ"
-                          : `เพิ่ม ${vendorLabel(selectedVendor)} ใน Order Quotation`
+                        ? (row.stagedStatus.length
+                            ? row.stagedStatus.map(({ vendor, alreadyAdded }) => alreadyAdded
+                                ? vendorLabel(vendor) + ": มีแล้ว"
+                                : vendorLabel(vendor) + ": เพิ่ม").join(" · ")
+                            : "เพิ่ม Vendor ในรายการด้านบนเพื่อดูผลก่อนบันทึก")
                         : missingVendorOrders.some((item) => item.id === row.id)
                           ? "ยังไม่มี Vendor ใน Order Quotation"
                           : String(row.vendor_id || "") === String(vendorId)
                             ? "ใช้ Vendor นี้อยู่แล้ว"
-                            : `เปลี่ยนเป็น ${vendorLabel(selectedVendor)}`}
+                            : "เปลี่ยนเป็น " + vendorLabel(selectedVendor)}
                     </td>
                   </tr>
                 ))}
@@ -267,7 +310,7 @@ export default function BulkOrderQuotationModal({
       <div className="modal-actions">
         <button type="button" className="btn ghost" disabled={busy} onClick={onClose}>ยกเลิก</button>
         <button className="btn primary" disabled={!canSave} onClick={save}>
-          {busy ? "กำลังบันทึก..." : actionLabel}
+          {busy ? "กำลังบันทึก..." : (mode === "quotation" ? "ยืนยันบันทึก Vendor " + stagedVendors.length + " ราย" : actionLabel)}
         </button>
       </div>
     </Modal>
