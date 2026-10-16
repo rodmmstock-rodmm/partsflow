@@ -5,7 +5,7 @@ import { Alert, fmt, formatDMY } from "../components/Common";
 import { useFeedback } from "../feedback";
 import MultiMachineOrderInfoModal from "../components/MultiMachineOrderInfoModal";
 import NormalPurchaseModal from "../components/NormalPurchaseModal";
-import RFQComposeModal from "../components/RFQComposeModal";
+import BulkOrderQuotationModal from "../components/BulkOrderQuotationModal";
 import { openOrderDetailByNumber } from "../orderDetailEnhancer";
 import { MobileEmpty, MobileLoading, MobilePage, MobileSearch } from "./MobileCommon";
 
@@ -66,7 +66,7 @@ export default function MobileOrders() {
   const [editor, setEditor] = useState(null);
   const [purchase, setPurchase] = useState(null);
   const [selected, setSelected] = useState(() => new Set());
-  const [rfqCompose, setRfqCompose] = useState(false);
+  const [quotationMode, setQuotationMode] = useState(null);
   const range = useMemo(() => monthRange(year, month), [year, month]);
   const admin = isAdmin(auth.employee);
 
@@ -339,10 +339,16 @@ export default function MobileOrders() {
           {auth.can("can_edit_purchase_info") && (
             <>
               <button
-                onClick={() => setRfqCompose(true)}
+                onClick={() => setQuotationMode("quotation")}
                 disabled={!!busy}
               >
-                บันทึกขอราคา
+                Order Quotation
+              </button>
+              <button
+                onClick={() => setQuotationMode("vendor-order")}
+                disabled={!!busy}
+              >
+                Vendor Order
               </button>
               <button
                 onClick={() => bulkAct("wait")}
@@ -459,12 +465,13 @@ export default function MobileOrders() {
           onChanged={(result) => { setPurchase(result); load(true); }}
         />
       )}
-      {rfqCompose && (
-        <RFQComposeModal
+      {quotationMode && (
+        <BulkOrderQuotationModal
+          mode={quotationMode === "quotation" ? "quotation" : "vendor-order"}
           orders={selectedRows}
           options={options}
-          onClose={() => setRfqCompose(false)}
-          onRecorded={() => { setRfqCompose(false); setSelected(new Set()); load(true); }}
+          onClose={() => setQuotationMode(null)}
+          onSaved={() => { setQuotationMode(null); setSelected(new Set()); load(true); }}
         />
       )}
     </MobilePage>
