@@ -361,7 +361,7 @@ export default function MobileDashboard() {
       {stock && (
         <MobileStockModal
           {...stock}
-          employee={auth.employee}
+          canSelectRequester={auth.can("can_select_issue_requester")}
           onClose={() => setStock(null)}
           onSaved={async () => {
             const mode = stock.mode;
@@ -377,7 +377,6 @@ export default function MobileDashboard() {
       {adjust && (
         <MobileAdjustModal
           part={adjust}
-          employee={auth.employee}
           onClose={() => setAdjust(null)}
           onSaved={async () => {
             setAdjust(null);
