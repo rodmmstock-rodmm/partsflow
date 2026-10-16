@@ -21,32 +21,9 @@ export function MobileLoading({ text="กำลังโหลด..." }) { retur
 export function MobileEmpty({ text="ไม่พบข้อมูล" }) { return <div className="m-empty">{text}</div>; }
 
 export function StockBadge({ row }) {
-  // Prefer server-provided status and label when available.
-  // Backend uses statuses like: "normal", "low_stock", "out_of_stock", "ordering_now".
-  // Compute a fallback status in the same naming convention when backend did not provide one.
-  const sku = String(row?.sku || "").trim().toUpperCase();
-  const hasServerStatus = !!row?.stock_status;
-
-  const computedStatus = (() => {
-    if (sku.startsWith("N")) return "normal"; // no-count items
-    const qty = Number(row?.stock_qty || 0);
-    const min = Number(row?.min_stock || 0);
-    if (qty <= 0) return "out_of_stock";
-    if (min > 0 && qty < min) return "low_stock";
-    return "normal";
-  })();
-
-  const cls = row?.stock_status || computedStatus;
-
-  const label = row?.stock_status_label || (
-    cls === "normal" ? "ปกติ"
-    : cls === "low_stock" ? "ควรสั่งซื้อ"
-    : cls === "out_of_stock" ? "หมดในสต็อก"
-    : cls === "ordering_now" ? "กำลังสั่ง"
-    : cls
-  );
-
-  return <span className={`m-stock-badge ${cls}`}>{label}</span>;
+  if (isNoCountSku(row.sku)) return <span className="m-stock-badge normal">normal</span>;
+  const cls=row.stock_status||((Number(row.stock_qty||0)<=0)?"out":(Number(row.stock_qty||0)<Number(row.min_stock||0)?"low":"normal"));
+  return <span className={`m-stock-badge ${cls}`}>{row.stock_status_label||cls}</span>;
 }
 
 export function MobileStockModal({ mode, part, employee, onClose, onSaved }) {
@@ -93,11 +70,11 @@ export function MobileStockModal({ mode, part, employee, onClose, onSaved }) {
         <div className="m-part-image"><PartImage src={part.image_url||part.image_path} fallbackSrc={part.image_fallback_url} alt={part.name}/></div>
         <div><b>{part.sku}</b><h3>{part.name}</h3><p>{part.description||"-"}</p><small>{part.location_code||"ไม่ระบุ Location"}</small></div>
       </div>
-      <div className="m-stock-preview"><div><span>คงเหลือ</span><strong>{stockDisplay(part)} {part.unit_code}</strong></div><div><span>หลังทำรายการ</span><strong>{fmt(after)}</strong></div></div>
+      <div className="m-stock-preview"><div><span>คงเหลือ</span><strong>{stockDisplay(part)} {part.unit_code}</strong></div><div><span>หลังทำรายการ</span><strong className={!noCount&&after<0?"text-danger":""}>{noCount?"เช็คหน้างาน":fmt(after)} {part.unit_code}</strong></div></div>
       <label className="field"><span>จำนวน *</span><input inputMode="numeric" type="number" min="1" step="1" required value={qty} onChange={e=>setQty(e.target.value)}/></label>
       {issue&&<>
-        <label className="field"><span>ผู้เบิก *</span><SearchableSelect required value={requesterId} options={(options.employees||[]).filter(x=>x.active!==false)} onChange={setRequesterId} getLabel={i=>i.name} getSearchText={i=>`${i.employee_code||""} ${i.name||""} ${i.department||""}`} placeholder="พิมพ์ชื่อพนักงาน"/></label>
-        <label className="field"><span>เครื่องจักร *</span><SearchableSelect required value={machineId} options={(options.machines||[]).filter(x=>x.active!==false)} onChange={setMachineId} getLabel={i=>i.code} getSearchText={i=>`${i.code||""} ${i.name||""} ${i.location||""}`} placeholder="พิมพ์รหัส Machine"/></label>
+        <label className="field"><span>ผู้เบิก *</span><SearchableSelect required value={requesterId} options={(options.employees||[]).filter(x=>x.active!==false)} onChange={setRequesterId} disabled={loading} getLabel={x=>x.name} getSearchText={x=>`${x.employee_code||""} ${x.name||""} ${x.department||""}`} placeholder="พิมพ์ชื่อพนักงาน"/></label>
+        <label className="field"><span>เครื่องจักร *</span><SearchableSelect required value={machineId} options={(options.machines||[]).filter(x=>x.active!==false)} onChange={setMachineId} disabled={loading} getLabel={x=>x.code} getSearchText={x=>`${x.code||""} ${x.name||""} ${x.location||""}`} placeholder="พิมพ์รหัส Machine"/></label>
       </>}
       <label className="field"><span>ผู้บันทึก</span><input readOnly value={employee?.name||""}/></label>
       <label className="field"><span>หมายเหตุ</span><textarea rows="2" value={note} onChange={e=>setNote(e.target.value)}/></label>
@@ -134,7 +111,7 @@ export function MobileAdjustModal({ part, employee, onClose, onSaved }) {
         <div className="m-part-image"><PartImage src={part.image_url||part.image_path} fallbackSrc={part.image_fallback_url} alt={part.name}/></div>
         <div><b>{part.sku}</b><h3>{part.name}</h3><p>{part.description||"-"}</p><small>{part.location_code||"ไม่ระบุ Location"}</small></div>
       </div>
-      <div className="m-stock-preview"><div><span>ยอดในระบบ</span><strong>{stockDisplay(part)} {part.unit_code}</strong></div><div><span>ผลต่าง</span><strong className={difference>0?"positive":"negative"}>{difference>0?"+":""}{fmt(difference)}</strong></div></div>
+      <div className="m-stock-preview"><div><span>ยอดในระบบ</span><strong>{stockDisplay(part)} {part.unit_code}</strong></div><div><span>ผลต่าง</span><strong className={difference<0?"text-danger":""}>{difference>0?"+":""}{fmt(difference)} {part.unit_code}</strong></div></div>
       <label className="field"><span>ยอดตรวจนับจริง *</span><input inputMode="decimal" type="number" min="0" step="any" required value={actual} onChange={e=>setActual(e.target.value)}/></label>
       <label className="field"><span>เหตุผลในการปรับยอด *</span><textarea rows="3" required value={reason} onChange={e=>setReason(e.target.value)}/></label>
       <label className="field"><span>ผู้บันทึก</span><input readOnly value={employee?.name||""}/></label>
