@@ -105,7 +105,10 @@ const WORKFLOW_FIELDS = [
   {
     key: "status",
     label: "STATUS",
-    value: (d) => d.display_status || d.status,
+    value: (d) => {
+      const status = d.display_status || d.status;
+      return status === "Wait for Item" ? "Wait Part" : status;
+    },
   },
   {
     key: "lifecycle_status",
@@ -121,7 +124,7 @@ const WORKFLOW_FIELDS = [
   {
     key: "edit_data_status",
     label: "EDIT DATA",
-    value: (d) => d.edit_data_status,
+    value: (d) => d.edit_data_status === "รออัพเดต Wait for Item" ? "รออัพเดต Wait Part" : d.edit_data_status,
   },
   {
     key: "received_at",
