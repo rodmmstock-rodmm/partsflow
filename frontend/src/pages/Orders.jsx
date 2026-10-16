@@ -2032,7 +2032,7 @@ function MonthlyProjectList({ projects, onSelect }) {
   );
 }
 
-function BulkPurchaseEditModal({ mode, rows, options, onClose, onSaved }) {
+function BulkPurchaseEditModal({ mode, rows, options, onClose, onSaved, onPartialSave }) {
   const [vendorId, setVendorId] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
@@ -2067,7 +2067,10 @@ function BulkPurchaseEditModal({ mode, rows, options, onClose, onSaved }) {
   });
 
   const invalidRows = previewRows.filter((row) => !row.valid);
-  const canSave = !!vendor && previewRows.length > 0 && !invalidRows.length && !busy;
+  const changedRows = isQuotation
+    ? previewRows.filter((row) => !row.alreadyIncluded)
+    : previewRows;
+  const canSave = !!vendor && changedRows.length > 0 && !invalidRows.length && !busy;
 
   async function submit(event) {
     event.preventDefault();
@@ -2083,14 +2086,14 @@ function BulkPurchaseEditModal({ mode, rows, options, onClose, onSaved }) {
     setBusy(true);
     setError("");
     const results = await Promise.allSettled(
-      previewRows.map((row) =>
+      changedRows.map((row) =>
         apiPatch(`/orders/${row.id}/purchase/`, isQuotation
           ? { quotation: row.nextQuotation }
           : { vendor_id: vendor.id })
       )
     );
     const failed = results
-      .map((result, index) => ({ result, row: previewRows[index] }))
+      .map((result, index) => ({ result, row: changedRows[index] }))
       .filter(({ result }) => result.status === "rejected");
 
     if (failed.length) {
@@ -2100,7 +2103,7 @@ function BulkPurchaseEditModal({ mode, rows, options, onClose, onSaved }) {
         failed.map(({ row, result }) => `${row.order_number || row.id}: ${result.reason?.message || "เกิดข้อผิดพลาด"}`).join(" · ")
       );
       setBusy(false);
-      if (succeeded > 0) await onSaved({ partial: true });
+      if (succeeded > 0) await onPartialSave?.();
       return;
     }
 
@@ -2177,7 +2180,7 @@ function BulkPurchaseEditModal({ mode, rows, options, onClose, onSaved }) {
         <div className="modal-actions">
           <button type="button" className="btn ghost" onClick={onClose} disabled={busy}>ยกเลิก</button>
           <button className="btn primary" disabled={!canSave}>
-            {busy ? "กำลังบันทึก..." : `บันทึก ${previewRows.length} Order`}
+            {busy ? "กำลังบันทึก..." : `บันทึก ${changedRows.length} Order`}
           </button>
         </div>
       </form>
@@ -4140,6 +4143,9 @@ export default function Orders({ mode = "orders" }) {
           onSaved={async () => {
             setBulkPurchaseMode("");
             setSelected(new Set());
+            await refresh();
+          }}
+          onPartialSave={async () => {
             await refresh();
           }}
         />
