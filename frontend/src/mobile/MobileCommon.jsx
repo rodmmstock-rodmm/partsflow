@@ -22,7 +22,7 @@ export function MobileEmpty({ text="ไม่พบข้อมูล" }) { retu
 
 export function StockBadge({ row }) {
   if (isNoCountSku(row.sku)) return <span className="m-stock-badge normal">normal</span>;
-  const cls=row.stock_status||((Number(row.stock_qty||0)<=0)?"out":(Number(row.stock_qty||0)<Number(row.min_stock||0)?"low":"normal"));
+  const cls=row.stock_status||((Number(row.stock_qty||0)<=0)?"out_of_stock":(Number(row.stock_qty||0)<Number(row.min_stock||0)?"low_stock":"normal"));
   return <span className={`m-stock-badge ${cls}`}>{row.stock_status_label||cls}</span>;
 }
 
