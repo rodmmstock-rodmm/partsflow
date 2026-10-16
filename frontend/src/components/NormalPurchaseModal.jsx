@@ -35,6 +35,7 @@ function formatAddedAt(value) {
 export default function NormalPurchaseModal({ order, options, onClose, onChanged }) {
   const { confirm } = useFeedback();
   const [local, setLocal] = useState({ ...order });
+  const [dirtyFields, setDirtyFields] = useState({});
   const [error, setError] = useState("");
   const [busy, setBusy] = useState("");
   const [quotationVendors, setQuotationVendors] = useState([]);
@@ -42,7 +43,10 @@ export default function NormalPurchaseModal({ order, options, onClose, onChanged
   const [quotationVendorId, setQuotationVendorId] = useState("");
   const [quotationLoading, setQuotationLoading] = useState(true);
   const [quotationBusy, setQuotationBusy] = useState(false);
-  const set = (key, value) => setLocal((current) => ({ ...current, [key]: value }));
+  const set = (key, value) => {
+    setLocal((current) => ({ ...current, [key]: value }));
+    setDirtyFields((current) => ({ ...current, [key]: true }));
+  };
 
   const availableQuotationVendors = useMemo(() => {
     const used = new Set(quotationVendors.map((row) => String(row.vendor_id)));
@@ -65,7 +69,13 @@ export default function NormalPurchaseModal({ order, options, onClose, onChanged
   async function refreshOrder() {
     try {
       const result = await apiGet(`/orders/${order.id}/`, { cache: false, forceRefresh: true });
-      setLocal(result);
+      setLocal((current) => {
+        const next = { ...result };
+        Object.keys(dirtyFields).forEach((key) => {
+          if (dirtyFields[key]) next[key] = current[key];
+        });
+        return next;
+      });
       setSavedVendorId(result.vendor_id || "");
       onChanged?.(result);
     } catch {
@@ -132,7 +142,24 @@ export default function NormalPurchaseModal({ order, options, onClose, onChanged
     setError("");
     try {
       const result = await apiPatch(`/orders/${order.id}/purchase/`, payload);
-      setLocal(result);
+      const savedKeys = Object.keys(payload).filter((field) => field !== "_clear_purchase_field");
+      setLocal((current) => {
+        const next = { ...result };
+        savedKeys.forEach((field) => {
+          if (!(field in next)) next[field] = payload[field];
+        });
+        Object.keys(dirtyFields).forEach((field) => {
+          if (dirtyFields[field] && !savedKeys.includes(field)) {
+            next[field] = current[field];
+          }
+        });
+        return next;
+      });
+      setDirtyFields((current) => {
+        const next = { ...current };
+        savedKeys.forEach((field) => delete next[field]);
+        return next;
+      });
       setSavedVendorId(result.vendor_id || "");
       onChanged?.(result);
     } catch (err) {
