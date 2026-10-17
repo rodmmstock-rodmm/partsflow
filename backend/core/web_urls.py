@@ -1,6 +1,6 @@
 from django.urls import path
 
-from . import auth_api, dashboard_api, drive_oauth, fast_order_api, order_api, order_audit_api, order_delete_api, order_step_api, order_vendor_api, qr_withdraw_api, rfq_api, rfq_step_guard, role_api, spare_set_api, stock_api, tool_api, web_api
+from . import auth_api, cloth_roll_api, dashboard_api, drive_oauth, fast_order_api, order_api, order_audit_api, order_delete_api, order_step_api, order_vendor_api, qr_withdraw_api, rfq_api, rfq_step_guard, role_api, spare_set_api, stock_api, tool_api, web_api
 
 urlpatterns = [
     path("auth/login/", auth_api.login_view),
@@ -71,6 +71,11 @@ urlpatterns = [
     path("tools/public/<str:code>/", tool_api.tool_public_detail, name="web-tool-public-detail"),
     path("tools/public/<str:code>/borrow/", tool_api.tool_public_borrow, name="web-tool-public-borrow"),
     path("tools/public/<str:code>/return/", tool_api.tool_public_return, name="web-tool-public-return"),
+
+    # Cloth roll inventory (authenticated QR and web transactions)
+    path("cloth-rolls/", cloth_roll_api.cloth_rolls, name="web-cloth-rolls"),
+    path("cloth-rolls/transactions/", cloth_roll_api.cloth_roll_transaction, name="web-cloth-roll-transaction"),
+    path("cloth-rolls/settings/<str:phase>/", cloth_roll_api.cloth_roll_settings, name="web-cloth-roll-settings"),
 
     # QR Withdraw (admin view onto the separate qr-withdraw Supabase project;
     # the standalone qr-withdraw.vercel.app site and its QR codes are untouched)

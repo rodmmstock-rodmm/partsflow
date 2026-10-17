@@ -10,7 +10,7 @@ export default function Login() {
   const navigate = useNavigate();
   const location = useLocation();
 
-  if (!auth.loading && auth.authenticated) return <Navigate to="/" replace />;
+  if (!auth.loading && auth.authenticated) return <Navigate to={location.state?.from || "/"} replace />;
 
   async function submit(e) {
     e.preventDefault();
