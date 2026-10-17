@@ -103,6 +103,7 @@ export default function MobileShell() {
           <Route path="/machines" element={<Protected permission="can_view_machines"><MobileMachines /></Protected>} />
           <Route path="/tools" element={<Protected permission="can_view_tools"><Tools /></Protected>} />
           <Route path="/qr-withdraw" element={<Protected permission="can_view_qr_withdraw"><QrWithdraw /></Protected>} />
+          <Route path="/cloth-rolls/scan/:token" element={<Protected permission="can_view_qr_withdraw"><ClothRolls /></Protected>} />
           <Route path="/cloth-rolls/:phase?" element={<Protected permission="can_view_qr_withdraw"><ClothRolls /></Protected>} />
           <Route path="/settings/roles" element={<Protected permission="can_manage_roles"><MobileRoles /></Protected>} />
         </Routes>
