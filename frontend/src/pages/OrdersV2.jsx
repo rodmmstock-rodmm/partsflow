@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import * as XLSX from "xlsx";
+import * as XLSX from "xlsx-js-style";
 import { apiDelete, apiGet, apiPost } from "../api";
 import { useAuth } from "../auth";
 import { Alert, PageHeader, fmt, formatDMY } from "../components/Common";
