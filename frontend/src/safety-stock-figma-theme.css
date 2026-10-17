@@ -1,0 +1,151 @@
+/* Safety Stock — Figma-inspired preview. Visual-only; existing data/actions remain unchanged. */
+.safety-stock-page {
+  color: #24364b;
+  padding-bottom: 20px;
+}
+.safety-stock-page > .page-header {
+  position: relative;
+  overflow: hidden;
+  padding: 24px 26px;
+  margin-bottom: 20px;
+  border: 1px solid rgba(203,213,225,.78);
+  border-radius: 22px;
+  background: linear-gradient(120deg, rgba(255,255,255,.97), rgba(239,246,255,.9));
+  box-shadow: 0 10px 28px rgba(30,64,175,.055), inset 0 1px 0 #fff;
+}
+.safety-stock-page > .page-header::after {
+  content: "";
+  position: absolute;
+  width: 200px;
+  height: 200px;
+  right: -70px;
+  top: -120px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(96,165,250,.18), transparent 68%);
+  pointer-events: none;
+}
+.safety-stock-page > .page-header h1 {
+  color: #172b4d;
+  font-size: clamp(24px, 2vw, 30px);
+  font-weight: 760;
+  letter-spacing: -.035em;
+}
+.safety-stock-page > .page-header p { color: #64748b; }
+.safety-stock-page > .page-header .btn {
+  min-height: 41px;
+  border-radius: 12px;
+  font-weight: 650;
+}
+.safety-stock-page > .page-header .btn.primary {
+  background: linear-gradient(135deg,#2563eb,#3b82f6);
+  box-shadow: 0 6px 15px rgba(37,99,235,.2);
+}
+.safety-stock-page .kpi-grid.one {
+  margin: 0 0 18px;
+}
+.safety-stock-page .kpi-card {
+  position: relative;
+  min-height: 112px;
+  padding: 20px 22px;
+  border: 1px solid #e2eaf4;
+  border-left: 4px solid #fb7185;
+  border-radius: 18px;
+  background: linear-gradient(120deg,#fff,#fff8f8);
+  box-shadow: 0 8px 22px rgba(15,23,42,.04);
+}
+.safety-stock-page .kpi-card span {
+  color: #64748b;
+  font-size: 12px;
+  font-weight: 650;
+}
+.safety-stock-page .kpi-card strong {
+  margin-top: 10px;
+  color: #be123c;
+  font-size: 30px;
+  font-weight: 780;
+  letter-spacing: -.04em;
+}
+.safety-stock-page > .panel {
+  overflow: hidden;
+  padding: 18px;
+  border: 1px solid #e2eaf4;
+  border-radius: 20px;
+  background: rgba(255,255,255,.94);
+  box-shadow: 0 10px 28px rgba(15,23,42,.04);
+}
+.safety-stock-page .toolbar {
+  gap: 10px;
+  margin-bottom: 15px;
+}
+.safety-stock-page .toolbar .search-input {
+  max-width: none;
+  min-height: 43px;
+  border: 1px solid #dbe5f1;
+  border-radius: 12px;
+  background: #f8fafc;
+  font-size: 12px;
+}
+.safety-stock-page .toolbar .btn {
+  min-height: 42px;
+  padding-inline: 16px;
+  border-radius: 11px;
+}
+.safety-stock-page .table-wrap {
+  border: 1px solid #e6edf5;
+  border-radius: 13px;
+  background: #fff;
+}
+.safety-stock-page table { font-size: 12px; }
+.safety-stock-page thead,
+.safety-stock-page th { background: #f1f6fc; }
+.safety-stock-page th {
+  padding: 13px 14px;
+  border-bottom: 1px solid #e2eaf4;
+  color: #52647c;
+  font-size: 10px;
+  font-weight: 760;
+  letter-spacing: .035em;
+  white-space: nowrap;
+}
+.safety-stock-page td {
+  padding: 12px 14px;
+  border-bottom-color: #edf2f7;
+  color: #52647c;
+  vertical-align: middle;
+}
+.safety-stock-page tbody tr { transition: background .12s ease; }
+.safety-stock-page tbody tr:hover { background: #f5f9ff; }
+.safety-stock-page td b { color: #1e3a8a; font-weight: 700; }
+.safety-stock-page td.text-danger b { color: #be123c; }
+.safety-stock-page input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+  accent-color: #2563eb;
+  cursor: pointer;
+}
+.safety-stock-page .empty {
+  padding: 32px 16px;
+  color: #64748b;
+  text-align: center;
+}
+@media (max-width: 767px) {
+  .safety-stock-page > .page-header {
+    padding: 18px 16px;
+    margin-bottom: 15px;
+    border-radius: 17px;
+  }
+  .safety-stock-page > .page-header h1 { font-size: 23px; }
+  .safety-stock-page > .page-header .btn { padding-inline: 10px; }
+  .safety-stock-page .kpi-card {
+    min-height: 92px;
+    padding: 15px 17px;
+    border-radius: 15px;
+  }
+  .safety-stock-page .kpi-card strong { font-size: 26px; }
+  .safety-stock-page > .panel { padding: 12px; border-radius: 16px; }
+  .safety-stock-page .toolbar { align-items: stretch; }
+  .safety-stock-page .toolbar .search-input { flex-basis: 100%; min-width: 100%; }
+  .safety-stock-page .toolbar .btn { justify-content: center; }
+  .safety-stock-page .table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  .safety-stock-page table { min-width: 1050px; }
+}
