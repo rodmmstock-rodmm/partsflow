@@ -125,7 +125,7 @@ export default function ClothRolls() {
 
   return (
     <div className="page cloth-rolls-page" style={{ maxWidth: 1180, margin: "0 auto" }}>
-      <div style={{ padding: "18px 20px", marginBottom: 16, borderRadius: 18, background: "linear-gradient(120deg,#eaf3fb 0%,#f5f9fd 58%,#ffffff 100%)", color: "#fff", boxShadow: "0 12px 28px rgba(57,120,184,.08)", position: "relative", overflow: "hidden" }}>
+      <div className="cloth-rolls-hero" style={{ padding: "18px 20px", marginBottom: 16, borderRadius: 18, background: "linear-gradient(120deg,#eaf3fb 0%,#f5f9fd 58%,#ffffff 100%)", color: "#fff", boxShadow: "0 12px 28px rgba(57,120,184,.08)", position: "relative", overflow: "hidden" }}>
         <div style={{ position: "absolute", right: -24, top: -42, width: 180, height: 180, borderRadius: "50%", background: "rgba(255,255,255,.08)" }} />
         <div style={{ position: "relative", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 16, flexWrap: "wrap" }}>
           <div><div style={{ fontSize: 11, fontWeight: 700, letterSpacing: ".10em", opacity: .78, marginBottom: 7 }}>STOCK MANAGEMENT · CLOTH ROLLS</div><h1 style={{ margin: 0, fontSize: 25, lineHeight: 1.3, fontWeight: 700 }}>เบิกจ่ายเศษผ้า</h1><p style={{ margin: "7px 0 0", color: "rgba(255,255,255,.82)", fontSize: 15 }}>{isQr ? "สแกน QR เพื่อบันทึกการเบิกเศษผ้า" : "จัดการยอดคงเหลือ บันทึกการเบิก และรับเข้าในที่เดียว"}</p></div>
@@ -170,13 +170,72 @@ export default function ClothRolls() {
           .cloth-rolls-page #cloth-roll-form form > div:nth-of-type(1) { gap: 8px !important; }
           .cloth-rolls-page #cloth-roll-form form button { min-height: 42px; }
         }
-      `}</style>
+      `}
+        /* Complete layout refresh for the cloth-rolls workspace */
+        .cloth-rolls-page { display:grid; grid-template-columns:minmax(0,1.08fr) minmax(320px,.92fr); gap:18px; align-items:start; max-width:1240px!important; padding:4px 0 28px; }
+        .cloth-rolls-page > .cloth-rolls-hero,
+        .cloth-rolls-page > .cloth-rolls-stock-grid,
+        .cloth-rolls-page > .cloth-rolls-history-card { grid-column:1 / -1; }
+        .cloth-rolls-page > .cloth-rolls-hero { margin:0!important; padding:28px 30px!important; background:linear-gradient(120deg,#edf5fc 0%,#f7fbff 58%,#fff 100%)!important; border:1px solid #dbe8f4!important; border-radius:18px!important; color:#172b42!important; box-shadow:none!important; }
+        .cloth-rolls-page > .cloth-rolls-hero > div:first-child { display:none!important; }
+        .cloth-rolls-page > .cloth-rolls-hero h1 { font-size:clamp(25px,3vw,32px)!important; font-weight:750!important; letter-spacing:-.04em; color:#173a5e!important; }
+        .cloth-rolls-page > .cloth-rolls-hero p { font-size:14px!important; color:#627d97!important; }
+        .cloth-rolls-page > .cloth-rolls-hero > div > div:last-child { background:#fff!important; border:1px solid #dce8f2!important; border-radius:999px!important; color:#42617e!important; }
+        .cloth-rolls-page > .cloth-rolls-stock-grid { grid-template-columns:repeat(2,minmax(0,1fr))!important; gap:16px!important; margin:0!important; }
+        .cloth-rolls-page .cloth-rolls-stock-card { border:1px solid #dce5ee!important; border-radius:14px!important; box-shadow:0 3px 12px rgba(36,68,98,.035)!important; transition:border-color .15s,box-shadow .15s; }
+        .cloth-rolls-page .cloth-rolls-stock-card.is-selected { border:1.5px solid #76a9d5!important; box-shadow:0 0 0 3px rgba(88,147,198,.10)!important; }
+        .cloth-rolls-page .cloth-rolls-stock-card > div:first-child { height:4px!important; background:#dce8f2!important; }
+        .cloth-rolls-page .cloth-rolls-stock-card.is-selected > div:first-child { background:linear-gradient(90deg,#4d8fc5,#a9cce9)!important; }
+        .cloth-rolls-page .cloth-rolls-stock-card strong { color:#254968; }
+        .cloth-rolls-page .cloth-rolls-stock-card button.btn.full { width:100%; min-height:42px; }
+        .cloth-rolls-page #cloth-roll-form { margin:0!important; border:1px solid #dce5ee!important; border-radius:14px!important; box-shadow:0 3px 12px rgba(36,68,98,.035)!important; scroll-margin-top:18px; }
+        .cloth-rolls-page #cloth-roll-form > div:first-child { padding:20px 22px!important; background:#f7fafc!important; border-bottom:1px solid #e4ebf2!important; }
+        .cloth-rolls-page #cloth-roll-form > div:first-child h2 { font-size:18px!important; font-weight:700; color:#254968!important; }
+        .cloth-rolls-page #cloth-roll-form > div:first-child span { background:#eaf3fb!important; color:#356b9c!important; }
+        .cloth-rolls-page #cloth-roll-form > div:last-child { padding:22px!important; }
+        .cloth-rolls-page #cloth-roll-form form { max-width:none!important; }
+        .cloth-rolls-page #cloth-roll-form form > div:nth-of-type(1) { gap:10px!important; }
+        .cloth-rolls-page #cloth-roll-form form > div:nth-of-type(1) button { flex:1; min-height:42px; }
+        .cloth-rolls-page #cloth-roll-form input,.cloth-rolls-page #cloth-roll-form select { min-height:44px; border:1px solid #d4e1ed; background:#fff; }
+        .cloth-rolls-page #cloth-roll-form .btn.primary { background:#3978b8!important; border-color:#3978b8!important; }
+        .cloth-rolls-page #cloth-roll-form .btn.secondary,.cloth-rolls-page .cloth-rolls-qr-card .btn.secondary { background:#fff!important; color:#426b8d!important; border:1px solid #d4e1ed!important; }
+        .cloth-rolls-page .cloth-rolls-qr-card,.cloth-rolls-page .cloth-rolls-history-card { margin:0!important; border:1px solid #dce5ee!important; border-radius:14px!important; box-shadow:0 3px 12px rgba(36,68,98,.035)!important; }
+        .cloth-rolls-page .cloth-rolls-qr-card > div:first-child,.cloth-rolls-page .cloth-rolls-history-card > div:first-child { padding:18px 20px!important; background:#f7fafc!important; border-bottom:1px solid #e4ebf2!important; }
+        .cloth-rolls-page .cloth-rolls-qr-card h2,.cloth-rolls-page .cloth-rolls-history-card h2 { color:#254968!important; font-size:17px!important; font-weight:700; }
+        .cloth-rolls-page .cloth-rolls-qr-card > div:last-child,.cloth-rolls-page .cloth-rolls-history-card > div:last-child { padding:18px!important; }
+        .cloth-rolls-page .cloth-rolls-history-card { grid-column:1 / -1; }
+        .cloth-rolls-page .cloth-rolls-history-card .data-table { min-width:780px!important; }
+        .cloth-rolls-page .cloth-rolls-history-card .data-table th { background:#f7fafc!important; color:#627d97!important; }
+        .cloth-rolls-page .cloth-rolls-history-card .data-table td { color:#334e68; }
+        .cloth-rolls-page .cloth-rolls-history-card .data-table tbody tr:hover { background:#f4f8fc; }
+        @media(max-width:800px) {
+          .cloth-rolls-page { display:flex!important; flex-direction:column; gap:14px!important; padding:0 0 20px!important; }
+          .cloth-rolls-page > * { width:100%; box-sizing:border-box; }
+          .cloth-rolls-page > .cloth-rolls-hero { padding:22px 20px!important; border-radius:14px!important; }
+          .cloth-rolls-page > .cloth-rolls-stock-grid { display:grid!important; grid-template-columns:repeat(2,minmax(0,1fr))!important; gap:10px!important; }
+          .cloth-rolls-page .cloth-rolls-stock-card > div:nth-child(2) { padding:12px!important; }
+          .cloth-rolls-page .cloth-rolls-stock-card strong { font-size:16px!important; }
+          .cloth-rolls-page .cloth-rolls-stock-card input { min-width:0; }
+          .cloth-rolls-page .cloth-rolls-stock-card button { font-size:12px; padding:8px!important; }
+          .cloth-rolls-page #cloth-roll-form > div:first-child { padding:16px!important; }
+          .cloth-rolls-page #cloth-roll-form > div:last-child { padding:16px!important; }
+          .cloth-rolls-page .cloth-rolls-qr-card > div:first-child,.cloth-rolls-page .cloth-rolls-history-card > div:first-child { padding:15px!important; }
+          .cloth-rolls-page .cloth-rolls-qr-card > div:last-child,.cloth-rolls-page .cloth-rolls-history-card > div:last-child { padding:12px!important; }
+        }
+        @media(max-width:440px) {
+          .cloth-rolls-page > .cloth-rolls-stock-grid { grid-template-columns:minmax(0,1fr)!important; }
+          .cloth-rolls-page > .cloth-rolls-hero { padding:18px 16px!important; }
+          .cloth-rolls-page > .cloth-rolls-hero h1 { font-size:24px!important; }
+          .cloth-rolls-page .cloth-rolls-stock-card button { font-size:13px; }
+        }
+
+      </style>
       {error && <Alert>{error}</Alert>}
       {loading ? <div className="empty">กำลังโหลดข้อมูล...</div> : <>
-        {!isQr && <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(240px,1fr))", gap: 12, marginBottom: 16 }}>
+        {!isQr && <div className="cloth-rolls-stock-grid" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(240px,1fr))", gap: 12, marginBottom: 16 }}>
           {PHASES.filter((p) => !isQr || p.value === lockedPhase?.value).map((p) => {
             const stock = data.stocks.find((s) => s.phase === p.value) || { quantity: 0, low_stock_threshold: 0, is_low: false };
-            return <section key={p.value} className="card" style={{ padding: 0, border: phase === p.value && !isQr ? "2px solid #3978b8" : "1px solid var(--border,#e5e7eb)", borderRadius: 14, overflow: "hidden", boxShadow: phase === p.value && !isQr ? "0 8px 22px rgba(57,120,184,.10)" : "0 3px 12px rgba(15,23,42,.035)" }}><div style={{ height: 5, background: stock.is_low ? "linear-gradient(90deg,#e11d48,#fb7185)" : phase === p.value ? "linear-gradient(90deg,#3978b8,#78a9d8)" : "#e2e8f0" }} /><div style={{ padding: 15 }}>
+            return <section key={p.value} className={`card cloth-rolls-stock-card${phase === p.value ? " is-selected" : ""}`} style={{ padding: 0, border: phase === p.value && !isQr ? "2px solid #3978b8" : "1px solid var(--border,#e5e7eb)", borderRadius: 14, overflow: "hidden", boxShadow: phase === p.value && !isQr ? "0 8px 22px rgba(57,120,184,.10)" : "0 3px 12px rgba(15,23,42,.035)" }}><div style={{ height: 5, background: stock.is_low ? "linear-gradient(90deg,#e11d48,#fb7185)" : phase === p.value ? "linear-gradient(90deg,#3978b8,#78a9d8)" : "#e2e8f0" }} /><div style={{ padding: 15 }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10 }}>
                 <strong style={{ fontSize: 18 }}>{p.label}</strong>
                 {stock.is_low && <span className="badge danger">เหลือน้อย</span>}
@@ -198,7 +257,7 @@ export default function ClothRolls() {
           <span aria-hidden="true">🔒</span><div><strong>Phase จาก QR Code: {lockedPhase.label}</strong><div style={{ color: "var(--muted,#64748b)", fontSize: 13 }}>Phase นี้ถูกล็อก ไม่สามารถเปลี่ยนจากแบบฟอร์มได้</div></div>
         </div>}
 
-        <section id="cloth-roll-form" className="card" style={{ padding: 0, borderRadius: 16, marginBottom: 22, overflow: "hidden", border: "1px solid #d4e1ed", boxShadow: "0 5px 18px rgba(57,120,184,.05)" }}><div style={{ padding: "14px 18px", background: "linear-gradient(90deg,#f3f8fd,#fff)", borderBottom: "1px solid #e2e8f0", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}><div><h2 style={{ margin: 0, fontSize: 18, color: "#285783" }}>{isQr ? "ฟอร์มเบิกเศษผ้า" : "บันทึกรายการเบิก / รับเข้า"}</h2><div style={{ marginTop: 3, color: "var(--muted,#64748b)", fontSize: 13 }}>{isQr ? "รายการสำหรับ " + (lockedPhase?.label || "Phase ที่ระบุใน QR") : "กำลังทำรายการสำหรับ " + phaseName(phase)}</div></div><span style={{ background: "#e1effb", color: "#3978b8", borderRadius: 999, padding: "5px 10px", fontSize: 12, fontWeight: 700 }}>หน่วย: ม้วน</span></div><div style={{ padding: 16 }}>
+        <section id="cloth-roll-form" className="card cloth-rolls-form-card" style={{ padding: 0, borderRadius: 16, marginBottom: 22, overflow: "hidden", border: "1px solid #d4e1ed", boxShadow: "0 5px 18px rgba(57,120,184,.05)" }}><div style={{ padding: "14px 18px", background: "linear-gradient(90deg,#f3f8fd,#fff)", borderBottom: "1px solid #e2e8f0", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}><div><h2 style={{ margin: 0, fontSize: 18, color: "#285783" }}>{isQr ? "ฟอร์มเบิกเศษผ้า" : "บันทึกรายการเบิก / รับเข้า"}</h2><div style={{ marginTop: 3, color: "var(--muted,#64748b)", fontSize: 13 }}>{isQr ? "รายการสำหรับ " + (lockedPhase?.label || "Phase ที่ระบุใน QR") : "กำลังทำรายการสำหรับ " + phaseName(phase)}</div></div><span style={{ background: "#e1effb", color: "#3978b8", borderRadius: 999, padding: "5px 10px", fontSize: 12, fontWeight: 700 }}>หน่วย: ม้วน</span></div><div style={{ padding: 16 }}>
           <form onSubmit={saveTransaction}>
             {!isQr && <label className="field" style={{ display: "block", marginBottom: 14 }}><span>Phase</span>
               <select value={phase} onChange={(e) => { setPhase(e.target.value); setBorrowerId(""); }} style={{ width: "100%" }}>
@@ -225,7 +284,7 @@ export default function ClothRolls() {
           </form>
           </div></section>
 
-        {!isQr && <section className="card" style={{ padding: 0, borderRadius: 16, marginBottom: 22, overflow: "hidden" }}><div style={{ padding: "16px 20px", background: "#fafafa", borderBottom: "1px solid var(--border-soft)" }}>
+        {!isQr && <section className="card cloth-rolls-qr-card" style={{ padding: 0, borderRadius: 16, marginBottom: 22, overflow: "hidden" }}><div style={{ padding: "16px 20px", background: "#fafafa", borderBottom: "1px solid var(--border-soft)" }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12, flexWrap: "wrap" }}><div><h2 style={{ margin: 0, fontSize: 18 }}>QR Code สำหรับแต่ละ Phase</h2><p style={{ margin: "4px 0 0", fontSize: 14, color: "var(--muted,#64748b)" }}>ใช้พิมพ์ติดจุดจัดเก็บ เพื่อเปิดฟอร์มเบิกที่ล็อก Phase ไว้</p></div><button className="btn secondary" type="button" onClick={() => setShowQr((v) => !v)}>{showQr ? "ซ่อน QR Code" : "แสดง QR Code"}</button></div></div>
           {showQr && <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(200px,1fr))", gap: 16, padding: 20 }}>
             {PHASES.map((p) => <div key={p.value} style={{ border: "1px solid var(--border,#e5e7eb)", borderRadius: 12, padding: 14, textAlign: "center" }}>
@@ -237,7 +296,7 @@ export default function ClothRolls() {
           </div>}
         </section>}
 
-        {!isQr && <section className="card" style={{ padding: 0, borderRadius: 16, overflow: "hidden" }}><div style={{ padding: "16px 20px", background: "#fafafa", borderBottom: "1px solid var(--border-soft)" }}><h2 style={{ margin: 0, fontSize: 18 }}>ประวัติการเบิกจ่าย</h2><p style={{ margin: "4px 0 0", fontSize: 14, color: "var(--muted,#64748b)" }}>รายการล่าสุดที่บันทึกผ่านหน้าเว็บหรือ QR Code</p></div><div style={{ padding: 14 }}>
+        {!isQr && <section className="card cloth-rolls-history-card" style={{ padding: 0, borderRadius: 16, overflow: "hidden" }}><div style={{ padding: "16px 20px", background: "#fafafa", borderBottom: "1px solid var(--border-soft)" }}><h2 style={{ margin: 0, fontSize: 18 }}>ประวัติการเบิกจ่าย</h2><p style={{ margin: "4px 0 0", fontSize: 14, color: "var(--muted,#64748b)" }}>รายการล่าสุดที่บันทึกผ่านหน้าเว็บหรือ QR Code</p></div><div style={{ padding: 14 }}>
           {transactions.length === 0 ? <div className="empty">ยังไม่มีประวัติการเบิกหรือรับเข้า</div> : <div style={{ overflowX: "auto" }}>
             <table className="data-table" style={{ width: "100%", minWidth: 760 }}>
               <thead><tr><th>วันเวลา</th><th>Phase</th><th>รายการ</th><th>จำนวน</th><th>คงเหลือหลังทำรายการ</th><th>ผู้เบิก</th><th>ผู้บันทึก</th><th>ช่องทาง</th></tr></thead>
