@@ -307,14 +307,14 @@ export default function OrdersV2(){
     try{
       const details = await Promise.all(selectedRows.map(async (o) => {
         try {
-          return await apiGet(`/orders/${o.id}/`, { forceRefresh: true, cache: false });
+          return await apiGet(`/orders/${o.id}/vendors/`, { forceRefresh: true, cache: false });
         } catch {
           return null;
         }
       }));
       const exportRows=selectedRows.map((o,index)=>{
         const vendor=o.vendor_code&&o.vendor_name?`${o.vendor_code} · ${o.vendor_name}`:(o.vendor_name||o.vendor_code||"");
-        const quotationVendors = Array.isArray(details[index]?.order_quotation_vendors) ? details[index].order_quotation_vendors : [];
+        const quotationVendors = Array.isArray(details[index]?.results) ? details[index].results : [];
         const orderQuotation = quotationVendors.map((v) => {
           const name = String(v.vendor_name || "").trim();
           const code = String(v.vendor_code || "").trim();
