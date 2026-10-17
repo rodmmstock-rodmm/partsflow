@@ -102,3 +102,19 @@ tbody tr:hover, tbody tr:hover .sticky-action { background: #f5f8fd !important; 
   button, .btn { min-height: 40px; }
   .nav-link, .mobile-link { min-height: 42px; }
 }
+
+
+/* Mobile dock navigation: replace legacy purple with the Stockey blue palette. */
+.m-bottom-nav {
+  background: rgba(255, 255, 255, .98) !important;
+  border-color: #e5eaf2 !important;
+}
+.m-bottom-nav a.active {
+  color: #fff !important;
+  background: linear-gradient(135deg, #3478f6, #5a95ff) !important;
+  box-shadow: 0 5px 14px rgba(52, 120, 246, .22) !important;
+}
+.m-bottom-nav a:not(.active):hover {
+  color: #3478f6 !important;
+  background: #edf4ff !important;
+}
