@@ -46,6 +46,7 @@ const ORDER_EXPORT_HEADERS = [
   "DRAWING PATH",
   "ORDERED BY",
   "QUOTATION",
+  "ORDER QUOTATION",
   "VENDOR ORDER",
   "PO NUMBER",
   "PRICE PER UNIT",
@@ -304,8 +305,23 @@ export default function OrdersV2(){
     if(!selectedRows.length){setError("กรุณาเลือกรายการ Order ที่ต้องการ Export");return;}
     setExportBusy(true); setError("");
     try{
-      const exportRows=selectedRows.map((o)=>{
+      const details = await Promise.all(selectedRows.map(async (o) => {
+        try {
+          return await apiGet(`/orders/${o.id}/`, { forceRefresh: true, cache: false });
+        } catch {
+          return null;
+        }
+      }));
+      const exportRows=selectedRows.map((o,index)=>{
         const vendor=o.vendor_code&&o.vendor_name?`${o.vendor_code} · ${o.vendor_name}`:(o.vendor_name||o.vendor_code||"");
+        const quotationVendors = Array.isArray(details[index]?.order_quotation_vendors) ? details[index].order_quotation_vendors : [];
+        const orderQuotation = quotationVendors.map((v) => {
+          const name = String(v.vendor_name || "").trim();
+          const code = String(v.vendor_code || "").trim();
+          const addedDate = v.added_at ? String(v.added_at).slice(0, 10) : "";
+          const vendorLabel = code && name ? code + " · " + name : (name || code);
+          return vendorLabel ? vendorLabel + (addedDate ? " (" + addedDate + ")" : "") : "";
+        }).filter(Boolean).join("\n");
         return {
           "ORDER NUMBER":o.order_number||"",
           DATE:o.date||"",
@@ -324,6 +340,7 @@ export default function OrdersV2(){
           "DRAWING PATH":o.drawing_path||"",
           "ORDERED BY":o.ordered_by||"",
           QUOTATION:o.quotation||"",
+          "ORDER QUOTATION":orderQuotation,
           "VENDOR ORDER":vendor,
           "PO NUMBER":o.po_number||"",
           "PRICE PER UNIT":o.price_per_unit??"",
@@ -337,7 +354,21 @@ export default function OrdersV2(){
         };
       });
       const ws=XLSX.utils.json_to_sheet(exportRows,{header:ORDER_EXPORT_HEADERS});
-      ws["!cols"]=ORDER_EXPORT_HEADERS.map(header=>({wch:Math.min(Math.max(header.length+2,14),34)}));
+      ws["!cols"]=ORDER_EXPORT_HEADERS.map(header=>({wch: header === "ORDER QUOTATION" ? 36 : Math.min(Math.max(header.length+2,14),34)}));
+      const border = {
+        top: { style: "thin", color: { rgb: "B7C9D6" } },
+        bottom: { style: "thin", color: { rgb: "B7C9D6" } },
+        left: { style: "thin", color: { rgb: "B7C9D6" } },
+        right: { style: "thin", color: { rgb: "B7C9D6" } },
+      };
+      const range = XLSX.utils.decode_range(ws["!ref"] || "A1:A1");
+      for (let row = range.s.r; row <= range.e.r; row++) {
+        for (let col = range.s.c; col <= range.e.c; col++) {
+          const address = XLSX.utils.encode_cell({ r: row, c: col });
+          if (!ws[address]) ws[address] = { t: "s", v: "" };
+          ws[address].s = { border, ...(row === 0 ? { font: { bold: true } } : {}), alignment: { vertical: "top", wrapText: true } };
+        }
+      }
       const wb=XLSX.utils.book_new();
       XLSX.utils.book_append_sheet(wb,ws,"Orders");
       const stamp=new Date();
