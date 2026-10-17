@@ -987,3 +987,54 @@ class AuditLog(models.Model):
     class Meta:
         ordering = ["-created_at"]
 
+
+
+class ClothRollStock(UUIDMixin):
+    """Current cloth-roll balance and low-stock threshold for one production phase."""
+    PHASE_4 = "PHASE4"
+    PHASE_11 = "PHASE11"
+    PHASE_CHOICES = [
+        (PHASE_4, "Phase 4"),
+        (PHASE_11, "Phase 11"),
+    ]
+
+    phase = models.CharField(max_length=12, choices=PHASE_CHOICES, unique=True)
+    quantity = models.PositiveIntegerField(default=0)
+    low_stock_threshold = models.PositiveIntegerField(default=0)
+    low_stock_notified = models.BooleanField(default=False)
+
+    class Meta:
+        ordering = ["phase"]
+
+    def __str__(self):
+        return f"{self.get_phase_display()}: {self.quantity} rolls"
+
+
+class ClothRollTransaction(UUIDMixin):
+    """Auditable IN/OUT movement for cloth-roll inventory; quantity is whole rolls."""
+    TYPE_OUT = "OUT"
+    TYPE_IN = "IN"
+    TYPE_CHOICES = [
+        (TYPE_OUT, "เบิก"),
+        (TYPE_IN, "รับเข้า"),
+    ]
+
+    phase = models.CharField(max_length=12, choices=ClothRollStock.PHASE_CHOICES)
+    transaction_type = models.CharField(max_length=3, choices=TYPE_CHOICES)
+    quantity = models.PositiveIntegerField()
+    balance_after = models.PositiveIntegerField()
+    borrower_employee = models.ForeignKey(
+        Employee, null=True, blank=True, on_delete=models.SET_NULL,
+        related_name="cloth_roll_borrowings",
+    )
+    recorded_by_employee = models.ForeignKey(
+        Employee, null=True, blank=True, on_delete=models.SET_NULL,
+        related_name="cloth_roll_records",
+    )
+    source = models.CharField(max_length=8, choices=[("WEB", "Web"), ("QR", "QR")], default="WEB")
+
+    class Meta:
+        ordering = ["-created_at"]
+
+    def __str__(self):
+        return f"{self.phase} {self.transaction_type} {self.quantity} roll(s)"
