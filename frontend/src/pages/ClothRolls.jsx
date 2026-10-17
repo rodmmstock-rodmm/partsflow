@@ -170,11 +170,13 @@ export default function ClothRolls() {
           .cloth-rolls-page #cloth-roll-form form > div:nth-of-type(1) { gap: 8px !important; }
           .cloth-rolls-page #cloth-roll-form form button { min-height: 42px; }
         }
-        /* Complete layout refresh for the cloth-rolls workspace */
-        .cloth-rolls-page { display:grid; grid-template-columns:minmax(0,1.08fr) minmax(320px,.92fr); gap:18px; align-items:start; max-width:1240px!important; padding:4px 0 28px; }
-        .cloth-rolls-page > .cloth-rolls-hero,
-        .cloth-rolls-page > .cloth-rolls-stock-grid,
-        .cloth-rolls-page > .cloth-rolls-history-card { grid-column:1 / -1; }
+        /* Desktop workspace: history on the left, compact transaction form on the right, QR below */
+        .cloth-rolls-page { display:grid; grid-template-columns:minmax(0,1fr) minmax(0,.5fr); grid-template-areas:"hero hero" "stock stock" "history form" "qr qr"; gap:18px; align-items:start; max-width:1240px!important; padding:4px 0 28px; }
+        .cloth-rolls-page > .cloth-rolls-hero { grid-area:hero; }
+        .cloth-rolls-page > .cloth-rolls-stock-grid { grid-area:stock; }
+        .cloth-rolls-page > .cloth-rolls-history-card { grid-area:history; min-width:0; }
+        .cloth-rolls-page > #cloth-roll-form { grid-area:form; min-width:0; }
+        .cloth-rolls-page > .cloth-rolls-qr-card { grid-area:qr; }
         .cloth-rolls-page > .cloth-rolls-hero { margin:0!important; padding:28px 30px!important; background:linear-gradient(120deg,#edf5fc 0%,#f7fbff 58%,#fff 100%)!important; border:1px solid #dbe8f4!important; border-radius:18px!important; color:#172b42!important; box-shadow:none!important; }
         .cloth-rolls-page > .cloth-rolls-hero > div:first-child { display:none!important; }
         .cloth-rolls-page > .cloth-rolls-hero h1 { font-size:clamp(25px,3vw,32px)!important; font-weight:750!important; letter-spacing:-.04em; color:#173a5e!important; }
@@ -202,13 +204,18 @@ export default function ClothRolls() {
         .cloth-rolls-page .cloth-rolls-qr-card > div:first-child,.cloth-rolls-page .cloth-rolls-history-card > div:first-child { padding:18px 20px!important; background:#f7fafc!important; border-bottom:1px solid #e4ebf2!important; }
         .cloth-rolls-page .cloth-rolls-qr-card h2,.cloth-rolls-page .cloth-rolls-history-card h2 { color:#254968!important; font-size:17px!important; font-weight:700; }
         .cloth-rolls-page .cloth-rolls-qr-card > div:last-child,.cloth-rolls-page .cloth-rolls-history-card > div:last-child { padding:18px!important; }
-        .cloth-rolls-page .cloth-rolls-history-card { grid-column:1 / -1; }
-        .cloth-rolls-page .cloth-rolls-history-card .data-table { min-width:780px!important; }
+        .cloth-rolls-page .cloth-rolls-history-card { min-width:0; }
+        .cloth-rolls-page .cloth-rolls-history-card .data-table { min-width:650px!important; }
         .cloth-rolls-page .cloth-rolls-history-card .data-table th { background:#f7fafc!important; color:#627d97!important; }
         .cloth-rolls-page .cloth-rolls-history-card .data-table td { color:#334e68; }
         .cloth-rolls-page .cloth-rolls-history-card .data-table tbody tr:hover { background:#f4f8fc; }
         @media(max-width:800px) {
           .cloth-rolls-page { display:flex!important; flex-direction:column; gap:14px!important; padding:0 0 20px!important; }
+          .cloth-rolls-page > .cloth-rolls-hero { order:0; }
+          .cloth-rolls-page > .cloth-rolls-stock-grid { order:1; }
+          .cloth-rolls-page > .cloth-rolls-history-card { order:2; }
+          .cloth-rolls-page > #cloth-roll-form { order:3; }
+          .cloth-rolls-page > .cloth-rolls-qr-card { order:4; }
           .cloth-rolls-page > * { width:100%; box-sizing:border-box; }
           .cloth-rolls-page > .cloth-rolls-hero { padding:22px 20px!important; border-radius:14px!important; }
           .cloth-rolls-page > .cloth-rolls-stock-grid { display:grid!important; grid-template-columns:repeat(2,minmax(0,1fr))!important; gap:10px!important; }
@@ -380,13 +387,12 @@ export default function ClothRolls() {
         {!isQr && <section className="card cloth-rolls-history-card" style={{ padding: 0, borderRadius: 16, overflow: "hidden" }}><div style={{ padding: "16px 20px", background: "#fafafa", borderBottom: "1px solid var(--border-soft)" }}><h2 style={{ margin: 0, fontSize: 18 }}>ประวัติการเบิกจ่าย</h2><p style={{ margin: "4px 0 0", fontSize: 14, color: "var(--muted,#64748b)" }}>รายการล่าสุดที่บันทึกผ่านหน้าเว็บหรือ QR Code</p></div><div style={{ padding: 14 }}>
           {transactions.length === 0 ? <div className="empty">ยังไม่มีประวัติการเบิกหรือรับเข้า</div> : <div style={{ overflowX: "auto" }}>
             <table className="data-table" style={{ width: "100%", minWidth: 760 }}>
-              <thead><tr><th>วันเวลา</th><th>Phase</th><th>รายการ</th><th>จำนวน</th><th>คงเหลือหลังทำรายการ</th><th>ผู้เบิก</th><th>ผู้บันทึก</th><th>ช่องทาง</th></tr></thead>
+              <thead><tr><th>วันเวลา</th><th>Phase</th><th>รายการ</th><th>จำนวน</th><th>ผู้เบิก</th><th>ผู้บันทึก</th><th>ช่องทาง</th></tr></thead>
               <tbody>{transactions.map((row) => <tr key={row.id}>
                 <td>{row.created_at ? new Date(row.created_at).toLocaleString("th-TH") : "—"}</td>
                 <td>{row.phase_label || phaseName(row.phase)}</td>
                 <td>{row.type_label}</td>
                 <td style={{ fontVariantNumeric: "tabular-nums" }}>{row.quantity} ม้วน</td>
-                <td>{row.balance_after} ม้วน</td>
                 <td>{row.borrower_name || "—"}</td>
                 <td>{row.recorded_by_name || "—"}</td>
                 <td>{row.source === "QR" ? "QR Code" : "หน้าเว็บ"}</td>
