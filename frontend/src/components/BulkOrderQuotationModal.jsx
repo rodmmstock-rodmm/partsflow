@@ -97,6 +97,18 @@ export default function BulkOrderQuotationModal({
     };
   }), [orders, vendorLists, stagedVendors, vendorId, allVendors]);
 
+  // Only offer vendors already present in at least one selected Order's quotation.
+  // This lets the user fill gaps without introducing unrelated vendors.
+  const existingQuotationVendors = useMemo(() => {
+    const existingIds = new Set();
+    for (const order of orders) {
+      for (const row of (vendorLists[String(order.id)] || [])) {
+        existingIds.add(String(row.vendor_id));
+      }
+    }
+    return allVendors.filter((vendor) => existingIds.has(String(vendor.id)));
+  }, [orders, vendorLists, allVendors]);
+
   const missingVendorOrders = previewRows.filter((row) => !row.hasVendor);
   const canSave = Boolean(
     !loading && !busy && !error &&
@@ -123,6 +135,13 @@ export default function BulkOrderQuotationModal({
   async function addVendorToMissingQuotations() {
     const vendor = allVendors.find((item) => String(item.id) === String(quotationVendorId));
     if (!vendor || addingQuotation || mode === "quotation") return;
+    const existsInSelectedOrder = orders.some((order) =>
+      (vendorLists[String(order.id)] || []).some((item) => String(item.vendor_id) === String(vendor.id))
+    );
+    if (!existsInSelectedOrder) {
+      setQuotationNotice("เลือกได้เฉพาะ Vendor ที่มีอยู่ใน Order Quotation ของ Order ที่เลือกอย่างน้อย 1 รายการ");
+      return;
+    }
     const missingRows = previewRows.filter((row) =>
       !(vendorLists[String(row.id)] || []).some((item) => String(item.vendor_id) === String(vendor.id))
     );
@@ -303,7 +322,7 @@ export default function BulkOrderQuotationModal({
               <span>Vendor ที่ต้องการเพิ่มใน Order Quotation</span>
               <SearchableSelect
                 value={quotationVendorId}
-                options={allVendors}
+                options={existingQuotationVendors}
                 onChange={(value) => { setQuotationVendorId(value); setQuotationNotice(""); }}
                 getLabel={vendorLabel}
                 getSearchText={(vendor) => (vendor.code || "") + " " + (vendor.name || "") + " " + (vendor.email || "") + " " + (vendor.contact_person || "")}
