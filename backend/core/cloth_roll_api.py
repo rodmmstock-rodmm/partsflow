@@ -198,10 +198,9 @@ def cloth_roll_transaction(request):
     if source == "QR":
         borrower = None
 
+    _stock_row(phase)
     with transaction.atomic():
-        stock = ClothRollStock.objects.select_for_update().filter(phase=phase).first()
-        if not stock:
-            stock = ClothRollStock.objects.create(phase=phase)
+        stock = ClothRollStock.objects.select_for_update().get(phase=phase)
         if tx_type == ClothRollTransaction.TYPE_OUT and stock.quantity < qty:
             return Response({
                 "detail": f"เศษผ้าไม่เพียงพอ คงเหลือ {stock.quantity} ม้วน"
@@ -217,7 +216,7 @@ def cloth_roll_transaction(request):
             recorded_by_employee=actor,
             source=source,
         )
-        _maybe_notify_low_stock(stock)
+    _maybe_notify_low_stock(stock)
     row = ClothRollTransaction.objects.select_related("borrower_employee", "recorded_by_employee").get(pk=row.pk)
     return Response({
         "transaction": _transaction_json(row),
