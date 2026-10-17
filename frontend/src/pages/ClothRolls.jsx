@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { useParams } from "react-router-dom";
 import QRCode from "qrcode";
 import { apiGet, apiPatch, apiPost } from "../api";
-import { Alert, PageHeader, formatDMY } from "../components/Common";
+import { Alert, PageHeader } from "../components/Common";
 import { useFeedback } from "../feedback";
 
 const PHASES = [
@@ -88,7 +88,7 @@ export default function ClothRolls() {
       setQuantity("1");
       setBorrowerId("");
       await load();
-      feedback?.success?.("บันทึกรายการสำเร็จ");
+      feedback.showToast("บันทึกรายการสำเร็จ", "success");
     } catch (err) {
       setError(err.message || "บันทึกรายการไม่สำเร็จ");
     } finally {
@@ -104,7 +104,7 @@ export default function ClothRolls() {
         low_stock_threshold: thresholds[p.value],
       });
       await load();
-      feedback?.success?.(`บันทึกจุดแจ้งเตือน ${p.label} แล้ว`);
+      feedback.showToast(`บันทึกจุดแจ้งเตือน ${p.label} แล้ว`, "success");
     } catch (err) {
       setError(err.message || "บันทึกจุดแจ้งเตือนไม่สำเร็จ");
     } finally {
