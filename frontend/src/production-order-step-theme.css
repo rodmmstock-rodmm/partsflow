@@ -21,19 +21,19 @@
   background:#fff;
 }
 .order-step-workspace .department-card:hover{
-  border-color:#c4b5fd;
-  background:#faf5ff;
-  box-shadow:0 5px 14px rgba(109,40,217,.07);
+  border-color:#a9c9e8;
+  background:#f3f8fd;
+  box-shadow:0 5px 14px rgba(46,99,152,.07);
 }
 .order-step-workspace .department-card.active{
-  border-color:#a78bfa;
-  background:#f5f3ff;
-  color:#6d28d9;
-  box-shadow:0 0 0 2px rgba(167,139,250,.14),0 5px 14px rgba(109,40,217,.06);
+  border-color:#78a9d8;
+  background:#eef6fd;
+  color:#2e6398;
+  box-shadow:0 0 0 2px rgba(120,169,216,.14),0 5px 14px rgba(46,99,152,.06);
 }
-.order-step-workspace .department-card.active strong{color:#6d28d9}
+.order-step-workspace .department-card.active strong{color:#2e6398}
 .order-step-workspace .department-card.active span,
-.order-step-workspace .department-card.active small{color:#7c3aed}
+.order-step-workspace .department-card.active small{color:#3978b8}
 
 /* Project list / selected project */
 .order-step-workspace .project-item{
@@ -41,15 +41,15 @@
   color:#475569;
 }
 .order-step-workspace .project-item:hover{
-  background:#faf5ff;
-  color:#6d28d9;
+  background:#f3f8fd;
+  color:#2e6398;
 }
 .order-step-workspace .project-item.active{
-  background:#f5f3ff;
-  color:#6d28d9;
-  box-shadow:inset 0 0 0 1px #ddd6fe;
+  background:#eef6fd;
+  color:#2e6398;
+  box-shadow:inset 0 0 0 1px #d4e1ed;
 }
-.order-step-workspace .project-item.active span{color:#7c3aed}
+.order-step-workspace .project-item.active span{color:#3978b8}
 
 /* Project header / back button / tabs */
 .order-step-workspace .project-head{
@@ -57,25 +57,25 @@
   box-shadow:0 3px 15px rgba(15,23,42,.04);
 }
 .order-step-workspace .project-head>.page-actions>.btn:first-child{
-  border-color:#c4b5fd!important;
-  background:#f5f3ff!important;
-  color:#6d28d9!important;
-  box-shadow:0 3px 9px rgba(124,58,237,.08)!important;
+  border-color:#a9c9e8!important;
+  background:#eef6fd!important;
+  color:#2e6398!important;
+  box-shadow:0 3px 9px rgba(57,120,184,.08)!important;
 }
 .order-step-workspace .project-head>.page-actions>.btn:first-child:hover{
-  background:#ede9fe!important;
+  background:#e1effb!important;
 }
 .order-step-workspace .project-content>.page-tabs .tab{
   color:#64748b;
 }
 .order-step-workspace .project-content>.page-tabs .tab:hover{
-  background:#f5f3ff;
-  color:#6d28d9;
+  background:#eef6fd;
+  color:#2e6398;
 }
 .order-step-workspace .project-content>.page-tabs .tab.active{
-  background:linear-gradient(135deg,#7c3aed,#a78bfa);
+  background:linear-gradient(135deg,#3978b8,#78a9d8);
   color:#fff;
-  box-shadow:0 3px 9px rgba(124,58,237,.18);
+  box-shadow:0 3px 9px rgba(57,120,184,.18);
 }
 
 /* Steps */
@@ -84,21 +84,21 @@
   background:#f8fafc;
 }
 .order-step-workspace .step-toggle:hover{
-  border-color:#ddd6fe;
-  background:#f5f3ff;
+  border-color:#d4e1ed;
+  background:#eef6fd;
 }
-.order-step-workspace .step-toggle .stack-sub{color:#7c3aed}
+.order-step-workspace .step-toggle .stack-sub{color:#3978b8}
 .order-step-workspace .section-head h2,
 .order-step-workspace .project-head h1{color:#1e293b}
 
 /* Old inline brown editing borders and selected-row tint used by legacy Order Step component. */
 .order-step-workspace input[style*="#C1622B"],
 .order-step-workspace select[style*="#C1622B"]{
-  border-color:#a78bfa!important;
-  box-shadow:0 0 0 2px rgba(167,139,250,.10)!important;
+  border-color:#78a9d8!important;
+  box-shadow:0 0 0 2px rgba(120,169,216,.10)!important;
 }
 .order-step-workspace tr[style*="#F3DFCF"]{
-  background:#f5f3ff!important;
+  background:#eef6fd!important;
 }
 .order-step-workspace .mono-cell[style*="#8B96A3"]{color:#94a3b8!important}
 
@@ -110,10 +110,10 @@
   }
   .m-project-card:hover,
   .m-project-card:active{
-    border-color:#c4b5fd;
-    background:#faf5ff;
+    border-color:#a9c9e8;
+    background:#f3f8fd;
   }
-  .m-project-card strong{color:#6d28d9}
+  .m-project-card strong{color:#2e6398}
   .m-project-card span,
   .m-project-card small{color:#94a3b8}
 
@@ -125,15 +125,15 @@
     border-color:#e2e8f0;
     background:#fff;
   }
-  .m-step>header b{color:#6d28d9}
+  .m-step>header b{color:#2e6398}
   .m-step>header span{color:#94a3b8}
   .m-step-order{background:#f8fafc}
   .m-step-order .m-row-between>span,
   .m-step-order small{color:#64748b}
 
   .m-back-btn{
-    border-color:#ddd6fe;
-    background:#f5f3ff;
-    color:#6d28d9;
+    border-color:#d4e1ed;
+    background:#eef6fd;
+    color:#2e6398;
   }
 }
