@@ -11,6 +11,7 @@ import { installOrderDetailEnhancer } from "./orderDetailEnhancer";
 import { installDrawingPathEnhancer } from "./drawingPathEnhancer";
 import "./styles.css";
 import "./dashboard-figma-theme.css";
+import "./safety-stock-figma-theme.css";
 import "./searchable-select.css";
 import "./order-focus-v8.css";
 import "./order-v9.css";
