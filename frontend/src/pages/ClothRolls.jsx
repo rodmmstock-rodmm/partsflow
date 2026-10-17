@@ -9,18 +9,17 @@ const PHASES = [
   { value: "PHASE4", slug: "phase-4", label: "Phase 4" },
   { value: "PHASE11", slug: "phase-11", label: "Phase 11" },
 ];
-const phaseFromParam = (param) => PHASES.find((p) => p.slug === String(param || "").toLowerCase());
 const phaseName = (value) => PHASES.find((p) => p.value === value)?.label || value;
-const qrUrl = (phase) => `${window.location.origin}/cloth-rolls/${phase.slug}`;
+const qrUrl = (phase, tokens) => `${window.location.origin}/cloth-rolls/scan/${encodeURIComponent(tokens?.[phase.value] || "")}`;
 
 function Qty({ value }) {
   return <strong style={{ fontSize: 30, lineHeight: 1.2, fontVariantNumeric: "tabular-nums" }}>{Number(value || 0).toLocaleString("th-TH")}</strong>;
 }
 
 export default function ClothRolls() {
-  const { phase: phaseParam } = useParams();
-  const isQr = Boolean(phaseParam);
-  const lockedPhase = phaseFromParam(phaseParam);
+  const { token: qrToken } = useParams();
+  const isQr = Boolean(qrToken);
+  const lockedPhase = data.qr_phase ? PHASES.find((p) => p.value === data.qr_phase) : null;
   const feedback = useFeedback();
   const [data, setData] = useState({ stocks: [], transactions: [], employees: [], line_configured: false });
   const [loading, setLoading] = useState(true);
@@ -38,7 +37,7 @@ export default function ClothRolls() {
   const load = useCallback(async () => {
     setError("");
     try {
-      const result = await apiGet("/cloth-rolls/", { cache: false, forceRefresh: true });
+      const result = await apiGet(`/cloth-rolls/${qrToken ? `?qr_token=${encodeURIComponent(qrToken)}` : ""}`, { cache: false, forceRefresh: true });
       setData(result);
       setThresholds({
         PHASE4: String(result.stocks.find((s) => s.phase === "PHASE4")?.low_stock_threshold ?? 0),
@@ -49,7 +48,7 @@ export default function ClothRolls() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [qrToken]);
 
   useEffect(() => { load(); }, [load]);
 
@@ -59,11 +58,12 @@ export default function ClothRolls() {
 
   useEffect(() => {
     let active = true;
-    Promise.all(PHASES.map(async (p) => [p.value, await QRCode.toDataURL(qrUrl(p), { width: 240, margin: 1 })]))
+    if (!data.qr_tokens) return () => { active = false; };
+    Promise.all(PHASES.map(async (p) => [p.value, await QRCode.toDataURL(qrUrl(p, data.qr_tokens), { width: 240, margin: 1 })]))
       .then((entries) => { if (active) setQrImages(Object.fromEntries(entries)); })
       .catch(() => {});
     return () => { active = false; };
-  }, []);
+  }, [data.qr_tokens]);
 
   const currentStock = data.stocks.find((s) => s.phase === phase);
   const currentPhase = PHASES.find((p) => p.value === phase) || PHASES[0];
@@ -71,7 +71,7 @@ export default function ClothRolls() {
 
   async function saveTransaction(event) {
     event.preventDefault();
-    if (isQr && !lockedPhase) {
+    if (isQr && !loading && !lockedPhase) {
       setError("QR Code ไม่ถูกต้อง กรุณาสแกน QR Code ของ Phase 4 หรือ Phase 11");
       return;
     }
@@ -84,6 +84,7 @@ export default function ClothRolls() {
         quantity,
         borrower_employee_id: !isQr && type === "OUT" ? borrowerId : "",
         source: isQr ? "QR" : "WEB",
+        qr_token: isQr ? qrToken : "",
       });
       setQuantity("1");
       setBorrowerId("");
@@ -115,7 +116,7 @@ export default function ClothRolls() {
   function printQr(p) {
     const win = window.open("", "_blank", "width=420,height=560");
     if (!win || !qrImages[p.value]) return;
-    win.document.write(`<!doctype html><html><head><title>QR ${p.label}</title><style>body{font-family:Arial,sans-serif;text-align:center;padding:24px}img{width:260px;height:260px}h2{margin:12px 0 4px}p{color:#555;font-size:12px;overflow-wrap:anywhere}</style></head><body><img src="${qrImages[p.value]}" alt="QR Code"/><h2>เบิกจ่ายเศษผ้า - ${p.label}</h2><p>${qrUrl(p)}</p><script>window.onload=()=>window.print()</script></body></html>`);
+    win.document.write(`<!doctype html><html><head><title>QR ${p.label}</title><style>body{font-family:Arial,sans-serif;text-align:center;padding:24px}img{width:260px;height:260px}h2{margin:12px 0 4px}p{color:#555;font-size:12px;overflow-wrap:anywhere}</style></head><body><img src="${qrImages[p.value]}" alt="QR Code"/><h2>เบิกจ่ายเศษผ้า - ${p.label}</h2><p>${qrUrl(p, data.qr_tokens)}</p><script>window.onload=()=>window.print()</script></body></html>`);
     win.document.close();
   }
 
@@ -190,7 +191,7 @@ export default function ClothRolls() {
             {PHASES.map((p) => <div key={p.value} style={{ border: "1px solid var(--border,#e5e7eb)", borderRadius: 12, padding: 14, textAlign: "center" }}>
               <strong>{p.label}</strong>
               {qrImages[p.value] ? <img src={qrImages[p.value]} alt={`QR Code ${p.label}`} style={{ width: 180, maxWidth: "100%", display: "block", margin: "10px auto" }} /> : <div className="empty">กำลังสร้าง QR...</div>}
-              <div style={{ fontSize: 11, color: "var(--muted,#64748b)", overflowWrap: "anywhere" }}>{qrUrl(p)}</div>
+              <div style={{ fontSize: 11, color: "var(--muted,#64748b)", overflowWrap: "anywhere" }}>{qrUrl(p, data.qr_tokens)}</div>
               <button className="btn secondary" type="button" style={{ marginTop: 10 }} onClick={() => printQr(p)}>พิมพ์ QR</button>
             </div>)}
           </div>}
