@@ -172,6 +172,8 @@ def cloth_roll_transaction(request):
     else:
         phase = _phase(request.data.get("phase"))
     tx_type = str(request.data.get("transaction_type") or "").strip().upper()
+    if source == "QR" and tx_type != ClothRollTransaction.TYPE_OUT:
+        return Response({"detail": "QR Code นี้ใช้สำหรับเบิกเศษผ้าเท่านั้น"}, status=400)
     if phase not in {ClothRollStock.PHASE_4, ClothRollStock.PHASE_11}:
         return Response({"detail": "Phase ไม่ถูกต้อง"}, status=400)
     if tx_type not in {ClothRollTransaction.TYPE_IN, ClothRollTransaction.TYPE_OUT}:
