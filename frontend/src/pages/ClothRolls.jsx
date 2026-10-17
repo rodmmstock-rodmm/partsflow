@@ -170,7 +170,6 @@ export default function ClothRolls() {
           .cloth-rolls-page #cloth-roll-form form > div:nth-of-type(1) { gap: 8px !important; }
           .cloth-rolls-page #cloth-roll-form form button { min-height: 42px; }
         }
-      `}
         /* Complete layout refresh for the cloth-rolls workspace */
         .cloth-rolls-page { display:grid; grid-template-columns:minmax(0,1.08fr) minmax(320px,.92fr); gap:18px; align-items:start; max-width:1240px!important; padding:4px 0 28px; }
         .cloth-rolls-page > .cloth-rolls-hero,
@@ -228,8 +227,7 @@ export default function ClothRolls() {
           .cloth-rolls-page > .cloth-rolls-hero h1 { font-size:24px!important; }
           .cloth-rolls-page .cloth-rolls-stock-card button { font-size:13px; }
         }
-
-      </style>
+      `}</style>
       {error && <Alert>{error}</Alert>}
       {loading ? <div className="empty">กำลังโหลดข้อมูล...</div> : <>
         {!isQr && <div className="cloth-rolls-stock-grid" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(240px,1fr))", gap: 12, marginBottom: 16 }}>
