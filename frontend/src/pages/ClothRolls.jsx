@@ -227,7 +227,90 @@ export default function ClothRolls() {
           .cloth-rolls-page > .cloth-rolls-hero h1 { font-size:24px!important; }
           .cloth-rolls-page .cloth-rolls-stock-card button { font-size:13px; }
         }
-      `}</style>
+
+        /* Desktop: align alert threshold input and save action on one baseline */
+        .cloth-rolls-page .cloth-rolls-threshold-row {
+          display:grid!important;
+          grid-template-columns:minmax(0,1fr) auto;
+          align-items:end!important;
+          gap:10px!important;
+          margin-top:16px!important;
+          padding:12px;
+          border:1px solid #e3ebf3;
+          border-radius:10px;
+          background:#f8fbfe;
+        }
+        .cloth-rolls-page .cloth-rolls-threshold-label {
+          display:flex;
+          flex-direction:column;
+          justify-content:flex-end;
+          gap:7px;
+          min-width:0;
+          color:#526b82;
+          font-size:12px!important;
+          font-weight:600;
+          line-height:1.45;
+        }
+        .cloth-rolls-page .cloth-rolls-threshold-input {
+          display:block;
+          box-sizing:border-box;
+          width:100%;
+          min-width:0;
+          height:42px;
+          margin:0!important;
+          padding:0 12px;
+          border:1px solid #cbd9e6!important;
+          border-radius:8px!important;
+          background:#fff!important;
+          color:#183a59!important;
+          font-size:14px;
+          font-weight:600;
+          font-variant-numeric:tabular-nums;
+          box-shadow:inset 0 1px 2px rgba(22,54,82,.03);
+        }
+        .cloth-rolls-page .cloth-rolls-threshold-input:focus {
+          outline:none;
+          border-color:#6d9fc9!important;
+          box-shadow:0 0 0 3px rgba(57,120,184,.12)!important;
+        }
+        .cloth-rolls-page .cloth-rolls-threshold-save {
+          display:inline-flex;
+          align-items:center;
+          justify-content:center;
+          align-self:end;
+          box-sizing:border-box;
+          min-width:104px;
+          height:42px;
+          min-height:42px!important;
+          padding:0 14px;
+          border:1px solid #c9dced!important;
+          border-radius:8px!important;
+          background:#eaf3fb!important;
+          color:#2e6398!important;
+          font-size:12px;
+          font-weight:700;
+          line-height:1;
+          white-space:nowrap;
+          box-shadow:none!important;
+        }
+        .cloth-rolls-page .cloth-rolls-threshold-save:hover:not(:disabled) {
+          border-color:#a8c9e5!important;
+          background:#dcecf9!important;
+        }
+        .cloth-rolls-page .cloth-rolls-threshold-save:disabled {
+          opacity:.65;
+          cursor:wait;
+        }
+        @media(max-width:440px) {
+          .cloth-rolls-page .cloth-rolls-threshold-row {
+            grid-template-columns:minmax(0,1fr);
+          }
+          .cloth-rolls-page .cloth-rolls-threshold-save {
+            width:100%;
+          }
+        }
+
+            `}</style>
       {error && <Alert>{error}</Alert>}
       {loading ? <div className="empty">กำลังโหลดข้อมูล...</div> : <>
         {!isQr && <div className="cloth-rolls-stock-grid" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(240px,1fr))", gap: 12, marginBottom: 16 }}>
@@ -240,11 +323,11 @@ export default function ClothRolls() {
               </div>
               <div style={{ margin: "10px 0 3px" }}><Qty value={stock.quantity} /></div>
               <div style={{ color: "var(--muted,#64748b)", fontSize: 14 }}>ม้วนคงเหลือ</div>
-              {!isQr && <div style={{ display: "flex", gap: 8, alignItems: "center", marginTop: 12 }}>
-                <label style={{ fontSize: 13, flex: 1 }}>แจ้งเตือนเมื่อเหลือไม่เกิน (ม้วน)
-                  <input type="number" min="0" step="1" value={thresholds[p.value]} onChange={(e) => setThresholds((old) => ({ ...old, [p.value]: e.target.value }))} style={{ display: "block", width: "100%", marginTop: 5 }} />
+              {!isQr && <div className="cloth-rolls-threshold-row">
+                <label className="cloth-rolls-threshold-label">แจ้งเตือนเมื่อเหลือไม่เกิน (ม้วน)
+                  <input className="cloth-rolls-threshold-input" type="number" min="0" step="1" value={thresholds[p.value]} onChange={(e) => setThresholds((old) => ({ ...old, [p.value]: e.target.value }))} />
                 </label>
-                <button className="btn secondary" type="button" disabled={savingThreshold === p.value} onClick={() => saveThreshold(p)}>{savingThreshold === p.value ? "กำลังบันทึก" : "บันทึกเกณฑ์"}</button>
+                <button className="btn secondary cloth-rolls-threshold-save" type="button" disabled={savingThreshold === p.value} onClick={() => saveThreshold(p)}>{savingThreshold === p.value ? "กำลังบันทึก…" : "บันทึกเกณฑ์"}</button>
               </div>}
               {!isQr && <button className={phase === p.value ? "btn primary full" : "btn ghost full"} type="button" style={{ marginTop: 12 }} onClick={() => { setPhase(p.value); setType("OUT"); setBorrowerId(""); document.getElementById("cloth-roll-form")?.scrollIntoView({ behavior: "smooth", block: "start" }); }}>{phase === p.value ? "✓ เลือก Phase นี้แล้ว" : "เลือก " + p.label + " เพื่อทำรายการ"}</button>}
               </div></section>;
