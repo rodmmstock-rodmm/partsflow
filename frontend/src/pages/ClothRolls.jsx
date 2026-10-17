@@ -23,7 +23,7 @@ export default function ClothRolls() {
   const [data, setData] = useState({ stocks: [], transactions: [], employees: [], line_configured: false });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  const [phase, setPhase] = useState(lockedPhase?.value || "PHASE4");
+  const [phase, setPhase] = useState("PHASE4");
   const [type, setType] = useState("OUT");
   const [quantity, setQuantity] = useState("1");
   const [borrowerId, setBorrowerId] = useState("");
@@ -138,12 +138,12 @@ export default function ClothRolls() {
               </div>
               <div style={{ margin: "14px 0 4px" }}><Qty value={stock.quantity} /></div>
               <div style={{ color: "var(--muted,#64748b)", fontSize: 13 }}>ม้วนคงเหลือ</div>
-              <div style={{ display: "flex", gap: 8, alignItems: "center", marginTop: 16 }}>
+              {!isQr && <div style={{ display: "flex", gap: 8, alignItems: "center", marginTop: 16 }}>
                 <label style={{ fontSize: 12, flex: 1 }}>แจ้งเตือนเมื่อเหลือไม่เกิน (ม้วน)
                   <input type="number" min="0" step="1" value={thresholds[p.value]} onChange={(e) => setThresholds((old) => ({ ...old, [p.value]: e.target.value }))} style={{ display: "block", width: "100%", marginTop: 5 }} />
                 </label>
                 <button className="btn secondary" type="button" disabled={savingThreshold === p.value} onClick={() => saveThreshold(p)}>{savingThreshold === p.value ? "กำลังบันทึก" : "บันทึกเกณฑ์"}</button>
-              </div>
+              </div>}
               {!isQr && <button className="btn ghost" type="button" style={{ marginTop: 12, width: "100%" }} onClick={() => { setPhase(p.value); setType("OUT"); setBorrowerId(""); document.getElementById("cloth-roll-form")?.scrollIntoView({ behavior: "smooth", block: "start" }); }}>ทำรายการ {p.label}</button>}
             </section>;
           })}
