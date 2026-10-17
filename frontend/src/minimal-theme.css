@@ -166,3 +166,62 @@ tbody tr:hover .sticky-action{background:#f8fafc}
 @media(prefers-reduced-motion:reduce){
   *,*::before,*::after{scroll-behavior:auto!important;animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}
 }
+
+/* Stock dashboard KPI polish: soft borders, balanced width, and gentle depth */
+.dashboard-stock-kpi {
+  width: 100%;
+  max-width: 1040px;
+  margin: 0 auto 20px;
+  gap: 16px;
+  align-items: stretch;
+}
+.dashboard-stock-kpi > .kpi-card {
+  box-sizing: border-box;
+  min-width: 0;
+  min-height: 112px;
+  padding: 18px 22px;
+  border: 1px solid rgba(196, 211, 227, .72);
+  border-radius: 20px;
+  background: linear-gradient(145deg, #fff 0%, #fbfdff 100%);
+  box-shadow: 0 8px 22px rgba(44, 76, 108, .065), 0 2px 5px rgba(44, 76, 108, .035);
+  transition: border-color .18s ease, box-shadow .18s ease, transform .18s ease;
+}
+.dashboard-stock-kpi > .kpi-card-link:hover {
+  border-color: rgba(133, 173, 209, .8);
+  box-shadow: 0 12px 26px rgba(44, 76, 108, .10), 0 3px 8px rgba(44, 76, 108, .045);
+  transform: translateY(-1px);
+}
+.dashboard-stock-kpi-mobile {
+  width: 100%;
+  max-width: 680px;
+  margin: 0 auto 16px;
+  gap: 9px;
+}
+.dashboard-stock-kpi-mobile > * {
+  box-sizing: border-box;
+  min-width: 0;
+  min-height: 86px;
+  padding: 13px 11px;
+  border: 1px solid rgba(196, 211, 227, .78);
+  border-radius: 17px;
+  background: linear-gradient(145deg, #fff 0%, #fbfdff 100%);
+  box-shadow: 0 6px 16px rgba(44, 76, 108, .065), 0 2px 4px rgba(44, 76, 108, .03);
+}
+.dashboard-stock-kpi-mobile > * span {
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+}
+.dashboard-stock-kpi-mobile > * b {
+  font-variant-numeric: tabular-nums;
+}
+@media (max-width: 640px) {
+  .dashboard-stock-kpi {
+    gap: 9px;
+    margin-bottom: 16px;
+  }
+  .dashboard-stock-kpi > .kpi-card {
+    min-height: 88px;
+    padding: 12px 11px;
+    border-radius: 16px;
+  }
+}
