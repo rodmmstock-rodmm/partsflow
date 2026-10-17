@@ -222,14 +222,14 @@
 }
 
 
-/* Order selection checkboxes: larger tap target for desktop and mobile. */
+/* Order selection checkboxes: comfortable tap target without being oversized. */
 .order-table-v9 input[type="checkbox"]{
-  width:35px;
-  height:35px;
-  min-width:35px;
-  min-height:35px;
+  width:25px;
+  height:25px;
+  min-width:25px;
+  min-height:25px;
   margin:0;
-  flex:0 0 35px;
+  flex:0 0 25px;
   cursor:pointer;
   accent-color:var(--primary, #2563eb);
 }
