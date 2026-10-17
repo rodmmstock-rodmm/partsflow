@@ -129,7 +129,7 @@ export default function ClothRolls() {
       {error && <Alert>{error}</Alert>}
       {loading ? <div className="empty">กำลังโหลดข้อมูล...</div> : <>
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(240px,1fr))", gap: 14, marginBottom: 20 }}>
-          {PHASES.map((p) => {
+          {PHASES.filter((p) => !isQr || p.value === lockedPhase?.value).map((p) => {
             const stock = data.stocks.find((s) => s.phase === p.value) || { quantity: 0, low_stock_threshold: 0, is_low: false };
             return <section key={p.value} className="card" style={{ padding: 18, border: phase === p.value && !isQr ? "2px solid var(--primary,#2563eb)" : "1px solid var(--border,#e5e7eb)", borderRadius: 14 }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10 }}>
