@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Navigate, NavLink, Route, Routes, useNavigate } from "react-router-dom";
+import { Navigate, NavLink, Route, Routes, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "./auth";
 import { NotificationBell } from "./components/Common";
 import Dashboard from "./pages/Dashboard";
@@ -15,6 +15,7 @@ import Machines from "./pages/Machines";
 import RoleSettings from "./pages/RoleSettings";
 import Tools from "./pages/Tools";
 import QrWithdraw from "./pages/QrWithdraw";
+import ClothRolls from "./pages/ClothRolls";
 import ToolScan from "./pages/ToolScan";
 import POBalance from "./pages/POBalance";
 import Login from "./pages/Login";
@@ -30,6 +31,7 @@ const NAV_GROUPS = [
     ["/history", "History", "clock", "can_view_history"],
     ["/safety-stock", "Safety Stock", "alert", "can_view_safety_stock"],
     ["/qr-withdraw", "เบิก Screw", "qrcode", "can_view_qr_withdraw"],
+    ["/cloth-rolls", "เบิกจ่ายเศษผ้า", "qrcode", "can_view_qr_withdraw"],
     ["/tools", "ยืม-คืนอุปกรณ์", "wrench", "can_view_tools"],
   ]],
   ["Order", [
@@ -71,7 +73,7 @@ function useIsMobile(){
   useEffect(()=>{const m=window.matchMedia("(max-width: 767px)");const fn=e=>setMobile(e.matches);fn(m);m.addEventListener?.("change",fn);return()=>m.removeEventListener?.("change",fn)},[]);
   return mobile;
 }
-function Protected({ permission, children }) { const auth = useAuth(); if (auth.loading) return <div className="auth-loading">กำลังตรวจสอบสิทธิ์...</div>; if (!auth.authenticated) return <Navigate to="/login" replace />; if (permission && !auth.can(permission)) return <Navigate to="/" replace />; return children; }
+function Protected({ permission, children }) { const auth = useAuth(); const location = useLocation(); if (auth.loading) return <div className="auth-loading">กำลังตรวจสอบสิทธิ์...</div>; if (!auth.authenticated) return <Navigate to="/login" state={{ from: location.pathname + location.search }} replace />; if (permission && !auth.can(permission)) return <Navigate to="/" replace />; return children; }
 function DesktopShell() {
   const auth = useAuth(); const navigate = useNavigate();
   const visibleGroups = NAV_GROUPS
@@ -95,7 +97,7 @@ function DesktopShell() {
       <nav className="nav-list">{visibleGroups.map(([group,items])=><div className="nav-group" key={group}><div className="nav-group-label">{group}</div>{items.map(([to,label,icon])=><NavLink key={to} to={to} end={to==="/"} onClick={()=>setSidebarOpen(false)} className={({isActive})=>isActive?"nav-link active":"nav-link"}><svg className="nav-icon"><use href={`#ic-${icon}`}/></svg><span>{label}</span></NavLink>)}</div>)}</nav>
       <div className="sidebar-user"><div><strong>{auth.employee?.name}</strong><span>{auth.employee?.employee_code} · {auth.employee?.role||"No Role"}</span></div><button className="icon-btn" onClick={logout}>⏻</button></div>
     </aside>
-    <main className="main-content"><Routes><Route path="/" element={<Protected permission="can_view_dashboard"><Dashboard/></Protected>}/><Route path="/spare-sets" element={<Protected permission="can_view_dashboard"><SpareSets/></Protected>}/><Route path="/history" element={<Protected permission="can_view_history"><History/></Protected>}/><Route path="/safety-stock" element={<Protected permission="can_view_safety_stock"><SafetyStock/></Protected>}/><Route path="/orders" element={<Protected permission="can_view_orders"><div className="orders-workspace"><OrdersV2/></div></Protected>}/><Route path="/po-balance" element={<Protected permission="can_view_po_balance"><POBalance/></Protected>}/><Route path="/order-steps" element={<Protected permission="can_view_order_step"><div className="order-step-workspace"><Orders mode="steps"/></div></Protected>}/><Route path="/order-status" element={<Protected permission="can_view_order_status"><OrderStatusDashboard/></Protected>}/><Route path="/fast-orders" element={<Protected permission="can_view_orders"><FastOrders/></Protected>}/><Route path="/vendors" element={<Protected permission="can_view_suppliers"><Vendors/></Protected>}/><Route path="/machines" element={<Protected permission="can_view_machines"><Machines/></Protected>}/><Route path="/tools" element={<Protected permission="can_view_tools"><Tools/></Protected>}/><Route path="/qr-withdraw" element={<Protected permission="can_view_qr_withdraw"><QrWithdraw/></Protected>}/><Route path="/settings/roles" element={<Protected permission="can_manage_roles"><RoleSettings/></Protected>}/></Routes></main>
+    <main className="main-content"><Routes><Route path="/" element={<Protected permission="can_view_dashboard"><Dashboard/></Protected>}/><Route path="/spare-sets" element={<Protected permission="can_view_dashboard"><SpareSets/></Protected>}/><Route path="/history" element={<Protected permission="can_view_history"><History/></Protected>}/><Route path="/safety-stock" element={<Protected permission="can_view_safety_stock"><SafetyStock/></Protected>}/><Route path="/orders" element={<Protected permission="can_view_orders"><div className="orders-workspace"><OrdersV2/></div></Protected>}/><Route path="/po-balance" element={<Protected permission="can_view_po_balance"><POBalance/></Protected>}/><Route path="/order-steps" element={<Protected permission="can_view_order_step"><div className="order-step-workspace"><Orders mode="steps"/></div></Protected>}/><Route path="/order-status" element={<Protected permission="can_view_order_status"><OrderStatusDashboard/></Protected>}/><Route path="/fast-orders" element={<Protected permission="can_view_orders"><FastOrders/></Protected>}/><Route path="/vendors" element={<Protected permission="can_view_suppliers"><Vendors/></Protected>}/><Route path="/machines" element={<Protected permission="can_view_machines"><Machines/></Protected>}/><Route path="/tools" element={<Protected permission="can_view_tools"><Tools/></Protected>}/><Route path="/qr-withdraw" element={<Protected permission="can_view_qr_withdraw"><QrWithdraw/></Protected>}/><Route path="/cloth-rolls/:phase?" element={<Protected permission="can_view_qr_withdraw"><ClothRolls/></Protected>}/><Route path="/settings/roles" element={<Protected permission="can_manage_roles"><RoleSettings/></Protected>}/></Routes></main>
   </div>;
 }
 function ResponsiveShell(){return useIsMobile()?<MobileShell/>:<DesktopShell/>}
