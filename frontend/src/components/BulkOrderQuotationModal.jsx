@@ -34,7 +34,7 @@ export default function BulkOrderQuotationModal({
   // This keeps the single shared Vendor Order consistent across the selection.
   const vendorOptions = useMemo(() => {
     const allVendors = options.vendors || [];
-    if (mode !== "vendor-order") return allVendors;
+    if (mode === "quotation") return allVendors;
     if (loading || error || !orders.length) return [];
 
     const commonIds = new Set(
@@ -118,7 +118,7 @@ export default function BulkOrderQuotationModal({
   }
   async function save() {
     if (!canSave) return;
-    if (mode === "vendor-order" && !selectedVendor) return;
+    if (mode !== "quotation" && !selectedVendor) return;
     setBusy(true);
     setError("");
     const successes = [];
@@ -210,7 +210,7 @@ export default function BulkOrderQuotationModal({
       `}</style>
       <div className="form-grid">
         <label className="field span2">
-          <span>{mode === "vendor-order" ? "Vendor จาก Order Quotation *" : "เลือก Vendor เพื่อเพิ่มในรายการ *"}</span>
+          <span>{mode !== "quotation" ? "Vendor จาก Order Quotation *" : "เลือก Vendor เพื่อเพิ่มในรายการ *"}</span>
           <SearchableSelect
             required
             value={vendorId}
@@ -242,7 +242,7 @@ export default function BulkOrderQuotationModal({
       </div>
 
       <Alert>{error}</Alert>
-      {!loading && !error && mode === "vendor-order" && vendorOptions.length === 0 && (
+      {!loading && !error && mode !== "quotation" && vendorOptions.length === 0 && (
         <div className="alert warning">
           ไม่มี Vendor ที่อยู่ใน Order Quotation ครบทุก Order ที่เลือก กรุณาเพิ่ม Vendor เดียวกันใน Order Quotation ของทุกรายการก่อน แล้วจึงเลือก Vendor Order
         </div>
