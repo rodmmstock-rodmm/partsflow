@@ -1,0 +1,286 @@
+/* PartsFlow Figma-inspired Dashboard Stock refresh.
+   Scoped to Dashboard Stock only; preserves existing controls, routes, permissions and data flow. */
+.main-content:has(.dashboard-stock-table) {
+  background:
+    radial-gradient(ellipse at 92% 0%, rgba(191,219,254,.28), transparent 38%),
+    #f5f8fc;
+}
+.main-content:has(.dashboard-stock-table) > .page-header {
+  position: relative;
+  overflow: hidden;
+  padding: 24px 26px;
+  margin-bottom: 22px;
+  border: 1px solid rgba(203,213,225,.72);
+  border-radius: 22px;
+  background: linear-gradient(120deg, rgba(255,255,255,.96), rgba(239,246,255,.88));
+  box-shadow: 0 10px 30px rgba(30,64,175,.055), inset 0 1px 0 rgba(255,255,255,.9);
+}
+.main-content:has(.dashboard-stock-table) > .page-header::after {
+  content: "";
+  position: absolute;
+  width: 210px;
+  height: 210px;
+  right: -70px;
+  top: -115px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(96,165,250,.17), rgba(96,165,250,0));
+  pointer-events: none;
+}
+.main-content:has(.dashboard-stock-table) > .page-header h1 {
+  letter-spacing: -.035em;
+  font-size: clamp(23px, 2vw, 29px);
+  font-weight: 750;
+  color: #172b4d;
+}
+.main-content:has(.dashboard-stock-table) > .page-header p {
+  color: #64748b;
+}
+.main-content:has(.dashboard-stock-table) > .page-header .btn {
+  min-height: 40px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 650;
+}
+.main-content:has(.dashboard-stock-table) > .page-header .btn.primary {
+  background: linear-gradient(135deg,#2563eb,#3b82f6);
+  box-shadow: 0 6px 15px rgba(37,99,235,.2);
+}
+.main-content:has(.dashboard-stock-table) .kpi-grid.three {
+  gap: 16px;
+  margin-bottom: 22px;
+}
+.main-content:has(.dashboard-stock-table) .kpi-card {
+  position: relative;
+  min-height: 116px;
+  padding: 19px 21px;
+  border: 1px solid rgba(203,213,225,.76);
+  border-top: 1px solid rgba(203,213,225,.76);
+  border-radius: 18px;
+  background: rgba(255,255,255,.82);
+  box-shadow: 0 8px 24px rgba(15,23,42,.035), inset 0 1px 0 rgba(255,255,255,.95);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  text-align: left;
+  transition: transform .16s ease, box-shadow .16s ease, border-color .16s ease;
+}
+.main-content:has(.dashboard-stock-table) .kpi-card span {
+  color: #64748b;
+  font-size: 12px;
+  font-weight: 600;
+}
+.main-content:has(.dashboard-stock-table) .kpi-card strong {
+  margin-top: 12px;
+  color: #1e3a8a;
+  font-family: inherit;
+  font-size: 30px;
+  font-weight: 750;
+  letter-spacing: -.04em;
+}
+.main-content:has(.dashboard-stock-table) .kpi-card small {
+  margin-top: 7px;
+  color: #94a3b8;
+  font-size: 11px;
+}
+.main-content:has(.dashboard-stock-table) .kpi-card:not(button) {
+  border-left: 3px solid #93c5fd;
+}
+.main-content:has(.dashboard-stock-table) .kpi-card.danger {
+  border-left: 3px solid #fb7185;
+}
+.main-content:has(.dashboard-stock-table) .kpi-card.warning {
+  border-left: 3px solid #fbbf24;
+}
+.main-content:has(.dashboard-stock-table) button.kpi-card-link {
+  cursor: pointer;
+}
+.main-content:has(.dashboard-stock-table) button.kpi-card-link:hover {
+  transform: translateY(-2px);
+  border-color: #bfdbfe;
+  box-shadow: 0 12px 26px rgba(37,99,235,.09);
+}
+.main-content:has(.dashboard-stock-table) .page-tabs {
+  margin-bottom: 12px;
+}
+.main-content:has(.dashboard-stock-table) .tab-row {
+  gap: 8px;
+}
+.main-content:has(.dashboard-stock-table) .tab {
+  padding: 10px 16px;
+  border: 1px solid transparent;
+  border-radius: 11px;
+  background: transparent;
+  color: #64748b;
+  font-weight: 650;
+}
+.main-content:has(.dashboard-stock-table) .tab.active {
+  border-color: #bfdbfe;
+  background: #eff6ff;
+  color: #1d4ed8;
+  box-shadow: inset 0 0 0 1px rgba(191,219,254,.24);
+}
+.main-content:has(.dashboard-stock-table) .panel {
+  overflow: hidden;
+  padding: 18px;
+  border: 1px solid rgba(203,213,225,.8);
+  border-radius: 19px;
+  background: rgba(255,255,255,.9);
+  box-shadow: 0 10px 28px rgba(15,23,42,.04);
+}
+.main-content:has(.dashboard-stock-table) .toolbar {
+  gap: 10px;
+  margin-bottom: 16px;
+}
+.main-content:has(.dashboard-stock-table) .toolbar .search-input {
+  min-height: 43px;
+  max-width: none;
+  border-color: #dbe5f1;
+  border-radius: 12px;
+  background: #f8fafc;
+  font-size: 12px;
+}
+.main-content:has(.dashboard-stock-table) .toolbar input:focus,
+.main-content:has(.dashboard-stock-table) .toolbar select:focus {
+  border-color: #93c5fd;
+  box-shadow: 0 0 0 3px rgba(59,130,246,.12);
+}
+.main-content:has(.dashboard-stock-table) .toolbar .btn,
+.main-content:has(.dashboard-stock-table) .toolbar select {
+  min-height: 41px;
+  border-radius: 11px;
+}
+.main-content:has(.dashboard-stock-table) .table-scroll-top {
+  height: 9px;
+  margin-bottom: 8px;
+  background: #eff6ff;
+}
+.main-content:has(.dashboard-stock-table) .table-wrap {
+  border: 1px solid #e6edf5;
+  border-radius: 13px;
+  background: #fff;
+}
+.main-content:has(.dashboard-stock-table) table {
+  font-size: 12px;
+}
+.main-content:has(.dashboard-stock-table) thead,
+.main-content:has(.dashboard-stock-table) th {
+  background: #f1f6fc;
+}
+.main-content:has(.dashboard-stock-table) th {
+  padding: 13px 14px;
+  border-bottom: 1px solid #e2eaf4;
+  color: #52647c;
+  font-size: 10px;
+  font-weight: 750;
+  letter-spacing: .045em;
+}
+.main-content:has(.dashboard-stock-table) td {
+  padding: 12px 14px;
+  border-bottom-color: #edf2f7;
+  color: #52647c;
+}
+.main-content:has(.dashboard-stock-table) tbody tr {
+  transition: background .12s ease;
+}
+.main-content:has(.dashboard-stock-table) tbody tr:hover {
+  background: #f6faff;
+}
+.main-content:has(.dashboard-stock-table) tbody tr:hover .sticky-action {
+  background: #f6faff;
+}
+.main-content:has(.dashboard-stock-table) .table-thumb {
+  width: 44px;
+  height: 44px;
+  border: 1px solid #e6edf5;
+  border-radius: 11px;
+  background: #f8fafc;
+}
+.main-content:has(.dashboard-stock-table) .mono-cell b {
+  color: #1e40af;
+  font-weight: 700;
+}
+.main-content:has(.dashboard-stock-table) .row-actions {
+  gap: 6px;
+}
+.main-content:has(.dashboard-stock-table) .mini {
+  padding: 7px 10px;
+  border: 1px solid #dbeafe;
+  border-radius: 9px;
+  background: #eff6ff;
+  color: #1d4ed8;
+  font-size: 10.5px;
+  font-weight: 650;
+}
+.main-content:has(.dashboard-stock-table) .mini.primary {
+  border-color: transparent;
+  background: linear-gradient(135deg,#2563eb,#3b82f6);
+  color: #fff;
+}
+.main-content:has(.dashboard-stock-table) .mini.success {
+  border-color: #bbf7d0;
+  background: #f0fdf4;
+  color: #15803d;
+}
+.main-content:has(.dashboard-stock-table) .mini.danger {
+  border-color: #fecdd3;
+  background: #fff1f2;
+  color: #be123c;
+}
+.main-content:has(.dashboard-stock-table) .status,
+.main-content:has(.dashboard-stock-table) .stock-state {
+  border-radius: 999px;
+  font-weight: 700;
+}
+.main-content:has(.dashboard-stock-table) .pagination-nav,
+.main-content:has(.dashboard-stock-table) .pagination-item {
+  border-color: #dbe5f1;
+  border-radius: 9px;
+}
+.main-content:has(.dashboard-stock-table) .pagination-item.active {
+  background: #2563eb;
+}
+@media (max-width: 767px) {
+  .main-content:has(.dashboard-stock-table) {
+    background: #f5f8fc;
+  }
+  .main-content:has(.dashboard-stock-table) > .page-header {
+    padding: 18px 16px;
+    margin-bottom: 16px;
+    border-radius: 17px;
+  }
+  .main-content:has(.dashboard-stock-table) > .page-header h1 {
+    font-size: 22px;
+  }
+  .main-content:has(.dashboard-stock-table) .kpi-grid.three {
+    grid-template-columns: 1fr;
+    gap: 10px;
+    margin-bottom: 16px;
+  }
+  .main-content:has(.dashboard-stock-table) .kpi-card {
+    min-height: 90px;
+    padding: 15px 17px;
+    border-radius: 15px;
+  }
+  .main-content:has(.dashboard-stock-table) .kpi-card strong {
+    margin-top: 7px;
+    font-size: 25px;
+  }
+  .main-content:has(.dashboard-stock-table) .panel {
+    padding: 12px;
+    border-radius: 16px;
+  }
+  .main-content:has(.dashboard-stock-table) .toolbar {
+    align-items: stretch;
+  }
+  .main-content:has(.dashboard-stock-table) .toolbar .search-input {
+    flex-basis: 100%;
+    min-width: 100%;
+  }
+  .main-content:has(.dashboard-stock-table) .toolbar select {
+    flex: 1;
+    min-width: 120px;
+  }
+  .main-content:has(.dashboard-stock-table) .toolbar .btn {
+    flex: 1;
+    justify-content: center;
+  }
+}
