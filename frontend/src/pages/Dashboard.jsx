@@ -571,7 +571,6 @@ export default function Dashboard() {
     <>
       <PageHeader
         title="Dashboard Stock"
-        subtitle="Part & Stock ในหน้าเดียว"
         actions={
           <>
             <button className="btn ghost" onClick={() => navigate("/spare-sets")}>⚙ ชุดอะไหล่เครื่องจักร</button>
@@ -584,7 +583,7 @@ export default function Dashboard() {
         }
       />
 
-      <div className="kpi-grid three">
+      <div className="kpi-grid three dashboard-stock-kpi">
         <div className="kpi-card">
           <span>จำนวนรายการอะไหล่</span>
           <strong>{fmt(kpi.parts)}</strong>
@@ -635,14 +634,13 @@ export default function Dashboard() {
             aria-label="สแกน Barcode หรือ QR Code"
             onClick={() => setScannerOpen(true)}
           >
-            ⌗ สแกน Barcode / QR
+            🔳 สแกน Barcode / QR
           </button>
           <select value={warehouse} onChange={(e) => { setWarehouse(e.target.value); setPage(1); }}>
             <option value="">คลังทั้งหมด</option>
             <option value="MM-4">Phase4</option>
             <option value="MM-11">Phase11</option>
           </select>
-          <button className="btn ghost" onClick={() => Promise.all([loadKpi(true), loadParts(true)])}>รีเฟรช</button>
         </div>
 
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: "12px", flexWrap: "wrap", margin: "4px 0 12px" }}>

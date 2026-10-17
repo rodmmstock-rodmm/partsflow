@@ -108,17 +108,10 @@ export default function MobileDashboard() {
               {optionsLoading ? "กำลังโหลด..." : "＋ เพิ่มอะไหล่"}
             </button>
           )}
-          <button
-            className="m-icon-action"
-            onClick={() => load(true)}
-            aria-label="รีเฟรช"
-          >
-            ↻
-          </button>
         </>
       }
     >
-      <div className="m-kpi-row">
+      <div className="m-kpi-row dashboard-stock-kpi-mobile">
         <div>
           <span>Parts</span>
           <b>{fmt(kpi.parts)}</b>
@@ -166,7 +159,7 @@ export default function MobileDashboard() {
           aria-label="สแกน Barcode หรือ QR Code"
           onClick={() => setScannerOpen(true)}
         >
-          ⌗
+          🔳
         </button>
       </div>
       <div className="m-filter-row">
