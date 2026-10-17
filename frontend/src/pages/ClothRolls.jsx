@@ -125,10 +125,10 @@ export default function ClothRolls() {
 
   return (
     <div className="page" style={{ maxWidth: 1180, margin: "0 auto" }}>
-      <PageHeader title="เบิกจ่ายเศษผ้า" subtitle="บันทึกการเบิกและรับเข้าเศษผ้า · หน่วยนับม้วน" />
+      <PageHeader title="เบิกจ่ายเศษผ้า" subtitle={isQr ? "สแกน QR เพื่อเบิกเศษผ้า · หน่วยนับม้วน" : "บันทึกการเบิกและรับเข้าเศษผ้า · หน่วยนับม้วน"} />
       {error && <Alert>{error}</Alert>}
       {loading ? <div className="empty">กำลังโหลดข้อมูล...</div> : <>
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(240px,1fr))", gap: 14, marginBottom: 20 }}>
+        {!isQr && <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(240px,1fr))", gap: 14, marginBottom: 20 }}>
           {PHASES.filter((p) => !isQr || p.value === lockedPhase?.value).map((p) => {
             const stock = data.stocks.find((s) => s.phase === p.value) || { quantity: 0, low_stock_threshold: 0, is_low: false };
             return <section key={p.value} className="card" style={{ padding: 18, border: phase === p.value && !isQr ? "2px solid var(--primary,#2563eb)" : "1px solid var(--border,#e5e7eb)", borderRadius: 14 }}>
@@ -147,24 +147,24 @@ export default function ClothRolls() {
               {!isQr && <button className="btn ghost" type="button" style={{ marginTop: 12, width: "100%" }} onClick={() => { setPhase(p.value); setType("OUT"); setBorrowerId(""); document.getElementById("cloth-roll-form")?.scrollIntoView({ behavior: "smooth", block: "start" }); }}>ทำรายการ {p.label}</button>}
             </section>;
           })}
-        </div>
+        </div>}
 
         {isQr && <div className="card" style={{ padding: 14, marginBottom: 14, borderRadius: 12, display: "flex", alignItems: "center", gap: 10 }}>
           <span aria-hidden="true">🔒</span><div><strong>Phase จาก QR Code: {lockedPhase.label}</strong><div style={{ color: "var(--muted,#64748b)", fontSize: 13 }}>Phase นี้ถูกล็อก ไม่สามารถเปลี่ยนจากแบบฟอร์มได้</div></div>
         </div>}
 
         <section id="cloth-roll-form" className="card" style={{ padding: 18, borderRadius: 14, marginBottom: 22 }}>
-          <h2 style={{ margin: "0 0 16px", fontSize: 19 }}>บันทึกรายการ</h2>
+          <h2 style={{ margin: "0 0 16px", fontSize: 19 }}>{isQr ? "ฟอร์มเบิกเศษผ้า" : "บันทึกรายการ"}</h2>
           <form onSubmit={saveTransaction}>
             {!isQr && <label className="field" style={{ display: "block", marginBottom: 14 }}><span>Phase</span>
               <select value={phase} onChange={(e) => { setPhase(e.target.value); setBorrowerId(""); }} style={{ width: "100%" }}>
                 {PHASES.map((p) => <option key={p.value} value={p.value}>{p.label}</option>)}
               </select>
             </label>}
-            <div style={{ display: "flex", gap: 8, marginBottom: 16 }}>
+            {!isQr && <div style={{ display: "flex", gap: 8, marginBottom: 16 }}>
               <button type="button" className={type === "OUT" ? "btn primary" : "btn secondary"} style={{ flex: 1 }} onClick={() => setType("OUT")}>เบิก</button>
               <button type="button" className={type === "IN" ? "btn primary" : "btn secondary"} style={{ flex: 1 }} onClick={() => { setType("IN"); setBorrowerId(""); }}>รับเข้า</button>
-            </div>
+            </div>}
             <label className="field" style={{ display: "block", marginBottom: 14 }}><span>จำนวน (ม้วน) *</span>
               <input required type="number" min="1" step="1" inputMode="numeric" pattern="[0-9]*" value={quantity} onChange={(e) => setQuantity(e.target.value)} />
             </label>
@@ -181,7 +181,7 @@ export default function ClothRolls() {
           </form>
         </section>
 
-        <section className="card" style={{ padding: 18, borderRadius: 14, marginBottom: 22 }}>
+        {!isQr && <section className="card" style={{ padding: 18, borderRadius: 14, marginBottom: 22 }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
             <h2 style={{ margin: 0, fontSize: 19 }}>QR Code สำหรับแต่ละ Phase</h2>
             <button className="btn secondary" type="button" onClick={() => setShowQr((v) => !v)}>{showQr ? "ซ่อน QR Code" : "แสดง QR Code"}</button>
@@ -194,9 +194,9 @@ export default function ClothRolls() {
               <button className="btn secondary" type="button" style={{ marginTop: 10 }} onClick={() => printQr(p)}>พิมพ์ QR</button>
             </div>)}
           </div>}
-        </section>
+        </section>}
 
-        <section className="card" style={{ padding: 18, borderRadius: 14 }}>
+        {!isQr && <section className="card" style={{ padding: 18, borderRadius: 14 }}>
           <h2 style={{ margin: "0 0 14px", fontSize: 19 }}>ประวัติการเบิกจ่าย</h2>
           {transactions.length === 0 ? <div className="empty">ยังไม่มีประวัติการเบิกหรือรับเข้า</div> : <div style={{ overflowX: "auto" }}>
             <table className="data-table" style={{ width: "100%", minWidth: 760 }}>
@@ -213,8 +213,8 @@ export default function ClothRolls() {
               </tr>)}</tbody>
             </table>
           </div>}
-        </section>
-        {!data.line_configured && <p style={{ marginTop: 12, color: "var(--muted,#64748b)", fontSize: 12 }}>หมายเหตุ: ต้องตั้งค่า LINE_CHANNEL_ACCESS_TOKEN และ LINE_USER_ID ใน Environment ของ Backend ก่อน ระบบจึงจะส่งแจ้งเตือน LINE ได้</p>}
+        </section>}
+        {!isQr && !data.line_configured && <p style={{ marginTop: 12, color: "var(--muted,#64748b)", fontSize: 12 }}>หมายเหตุ: ต้องตั้งค่า LINE_CHANNEL_ACCESS_TOKEN และ LINE_USER_ID ใน Environment ของ Backend ก่อน ระบบจึงจะส่งแจ้งเตือน LINE ได้</p>}
       </>}
     </div>
   );
