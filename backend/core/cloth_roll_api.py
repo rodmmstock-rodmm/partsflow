@@ -115,7 +115,9 @@ def _transaction_json(row):
 @api_view(["GET"])
 @permission_classes([AllowAny])
 def cloth_rolls(request):
-    actor, err = require_permission(request, "can_view_qr_withdraw")
+    qr_token = str(request.GET.get("qr_token") or "").strip()
+    permission = "can_view_qr_withdraw" if qr_token else "can_view_cloth_rolls"
+    actor, err = require_permission(request, permission)
     if err:
         return err
     stocks = [_stock_row(phase) for phase in (ClothRollStock.PHASE_4, ClothRollStock.PHASE_11)]
@@ -126,7 +128,6 @@ def cloth_rolls(request):
         "id", "employee_code", "name", "department"
     )[:1000]
     qr_phase = None
-    qr_token = str(request.GET.get("qr_token") or "").strip()
     if qr_token:
         try:
             qr_payload = signing.loads(qr_token, salt=QR_SIGNING_SALT)
@@ -156,11 +157,11 @@ def cloth_rolls(request):
 @api_view(["POST"])
 @permission_classes([AllowAny])
 def cloth_roll_transaction(request):
-    actor, err = require_permission(request, "can_view_qr_withdraw")
+    source = str(request.data.get("source") or "WEB").strip().upper()
+    permission = "can_view_qr_withdraw" if source == "QR" else "can_view_cloth_rolls"
+    actor, err = require_permission(request, permission)
     if err:
         return err
-
-    source = str(request.data.get("source") or "WEB").strip().upper()
     if source == "QR":
         qr_token = str(request.data.get("qr_token") or "").strip()
         try:
@@ -229,7 +230,7 @@ def cloth_roll_transaction(request):
 @api_view(["PATCH"])
 @permission_classes([AllowAny])
 def cloth_roll_settings(request, phase):
-    actor, err = require_permission(request, "can_view_qr_withdraw")
+    actor, err = require_permission(request, "can_view_cloth_rolls")
     if err:
         return err
     normalized = _phase(phase)
