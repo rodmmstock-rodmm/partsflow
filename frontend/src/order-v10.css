@@ -220,3 +220,24 @@
   color:#94a3b8;
   opacity:.65;
 }
+
+
+/* Order selection checkboxes: larger tap target for desktop and mobile. */
+.order-table-v9 input[type="checkbox"]{
+  width:35px;
+  height:35px;
+  min-width:35px;
+  min-height:35px;
+  margin:0;
+  flex:0 0 35px;
+  cursor:pointer;
+  accent-color:var(--primary, #2563eb);
+}
+
+.order-table-v9 th:first-child,
+.order-table-v9 td:first-child{
+  width:52px;
+  min-width:52px;
+  text-align:center;
+  vertical-align:middle;
+}
