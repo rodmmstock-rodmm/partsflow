@@ -1,0 +1,104 @@
+/* Preview-only Stockey-inspired design system.
+   Scope: visual styling only. Do not change stock, withdrawal, routing, or permission logic. */
+@import url("https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=IBM+Plex+Sans+Thai:wght@300;400;500;600;700&display=swap");
+
+:root {
+  --font-sans: "DM Sans", "IBM Plex Sans Thai", sans-serif;
+  --brand: #3478f6;
+  --brand2: #5a95ff;
+  --brand-soft: #edf4ff;
+  --bg: #f4f7fb;
+  --panel: #ffffff;
+  --border: #e5eaf2;
+  --border-soft: #eff2f7;
+  --text: #202b3c;
+  --muted: #8b97a9;
+  --sub: #66758b;
+  --radius-s: 8px;
+  --radius-m: 14px;
+  --radius-l: 20px;
+  color-scheme: light;
+}
+
+html, body, .app-shell, .mobile-app-shell { background: var(--bg); color: var(--text); }
+body { font-family: var(--font-sans); letter-spacing: -.01em; }
+button, input, select, textarea { font-family: var(--font-sans); }
+button, .btn, .nav-link, .mobile-link, .tab, .project-item, .step-toggle {
+  transition: background-color .18s ease, color .18s ease, border-color .18s ease, box-shadow .18s ease, transform .18s ease;
+}
+button:active, .btn:active { transform: translateY(1px); }
+:focus-visible { outline: 3px solid rgba(52,120,246,.25); outline-offset: 2px; }
+
+/* App chrome */
+.sidebar { background: #fff; border-right-color: #e8edf5; box-shadow: 8px 0 28px rgba(32,43,60,.025); }
+.brand { border-bottom-color: #edf1f7; }
+.brand-logo, .login-logo { background: linear-gradient(135deg,#3478f6,#68a0ff); box-shadow: 0 6px 14px rgba(52,120,246,.18); }
+.nav-group-label { color: #9aa6b7; letter-spacing: .09em; }
+.nav-link { border-radius: 10px; color: #68778c; }
+.nav-link:hover, .mobile-link:hover { background: #f1f6ff !important; color: #3478f6 !important; }
+.nav-link.active, .mobile-link.active {
+  color: #fff !important;
+  background: linear-gradient(110deg,#3478f6,#5793ff) !important;
+  box-shadow: 0 5px 13px rgba(52,120,246,.19) !important;
+}
+.hamburger-btn { border-color: #e5eaf2; border-radius: 12px; box-shadow: 0 3px 12px rgba(32,43,60,.08); }
+
+/* Surfaces and page hierarchy */
+.panel, .card, .metric, .stat-card, .dashboard-card, .table-wrap, .table-container, .modal, .modal-content, .confirm-box, .system-box, .project-item {
+  border-color: var(--border);
+  border-radius: var(--radius-m);
+}
+.panel, .card, .metric, .stat-card, .dashboard-card, .table-wrap, .table-container, .modal-content {
+  box-shadow: 0 4px 18px rgba(34,55,86,.035);
+}
+.section-head h2, h1, h2, h3 { color: #202b3c; letter-spacing: -.025em; }
+.section-head h2 { font-weight: 700; }
+.section-label, .permission-group h4 { color: #3478f6 !important; }
+.metric-inline>div, .table-thumb, .system-box, .project-item, .login-screen { background: #f7f9fc; }
+.project-item.active { color: #2769df; background: #edf4ff; box-shadow: inset 0 0 0 1px #d7e6ff; }
+
+/* Buttons, tabs and badges */
+.btn, button.primary, .btn.primary { border-radius: 10px; font-weight: 600; }
+.btn.primary { background: #3478f6 !important; color: #fff !important; box-shadow: 0 4px 10px rgba(52,120,246,.14); }
+.btn.primary:hover { background: #2468e5 !important; box-shadow: 0 6px 14px rgba(52,120,246,.2); }
+.btn.ghost { background: #f3f6fa !important; color: #53637a !important; }
+.btn.ghost:hover { background: #eaf0f8 !important; }
+.tab { border-radius: 9px; }
+.tab.active { background: #3478f6 !important; color: #fff !important; box-shadow: 0 3px 9px rgba(52,120,246,.16); }
+.mini:not(.success):not(.danger):not(.warning), .mini.link { background: #edf4ff !important; color: #286ce5 !important; }
+.status.muted { background: #f0f3f8 !important; color: #69788c !important; }
+
+/* Forms */
+.search-input, .toolbar input, .toolbar select, .panel input, .panel select, .panel textarea, .field input, .field select, .field textarea, .purchase-field input, .purchase-field select, .po-inline-form input, .po-inline-form select {
+  border: 1px solid #e0e7f0 !important;
+  border-radius: 9px !important;
+  background: #fff !important;
+  color: #344258 !important;
+}
+.search-input:focus, .toolbar input:focus, .toolbar select:focus, .panel input:focus, .panel select:focus, .panel textarea:focus, .field input:focus, .field select:focus, .field textarea:focus, .purchase-field input:focus, .purchase-field select:focus, .po-inline-form input:focus, .po-inline-form select:focus {
+  border-color: #8ab4ff !important;
+  box-shadow: 0 0 0 3px rgba(52,120,246,.12) !important;
+  outline: none !important;
+}
+input[type="checkbox"], input[type="radio"] { accent-color: #3478f6; }
+input[type="date"] { border-color: #e0e7f0 !important; border-radius: 9px !important; background: #fff !important; }
+
+/* Tables and motion */
+thead, th, .table-scroll-top { background: #f6f8fc !important; }
+th { color: #718097; font-weight: 600; }
+td { color: #5d6b80; }
+tbody tr { transition: background-color .16s ease; }
+tbody tr:hover, tbody tr:hover .sticky-action { background: #f5f8fd !important; }
+@keyframes stockeyFadeUp {
+  from { opacity: 0; transform: translateY(7px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.panel, .dashboard-card, .metric, .stat-card { animation: stockeyFadeUp .32s ease both; }
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; scroll-behavior: auto !important; transition-duration: .01ms !important; }
+}
+@media (max-width: 640px) {
+  .panel, .card, .metric, .stat-card, .dashboard-card { border-radius: 13px; }
+  button, .btn { min-height: 40px; }
+  .nav-link, .mobile-link { min-height: 42px; }
+}
