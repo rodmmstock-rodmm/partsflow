@@ -132,6 +132,45 @@ export default function ClothRolls() {
           <div style={{ padding: "9px 13px", borderRadius: 12, background: "rgba(255,255,255,.13)", border: "1px solid rgba(255,255,255,.22)", fontSize: 13, whiteSpace: "nowrap" }}><span style={{ display: "inline-block", width: 7, height: 7, borderRadius: 99, background: "#86efac", marginRight: 8 }} />หน่วยนับ: ม้วน</div>
         </div>
       </div>
+      <style>{`
+        .cloth-rolls-page { color: var(--text, #172033); }
+        .cloth-rolls-page > div:first-child {
+          background: #fff !important; color: #172033 !important;
+          padding: 16px 18px !important; margin-bottom: 14px !important;
+          border: 1px solid var(--border, #e5e7eb); border-radius: 12px !important;
+          box-shadow: none !important;
+        }
+        .cloth-rolls-page > div:first-child > div:first-child { display: none; }
+        .cloth-rolls-page > div:first-child h1 { color: #172033 !important; font-size: 23px !important; }
+        .cloth-rolls-page > div:first-child p { color: var(--muted, #64748b) !important; font-size: 14px !important; }
+        .cloth-rolls-page > div:first-child > div > div:last-child {
+          color: #475569 !important; background: #f8fafc !important;
+          border: 1px solid #e2e8f0 !important; border-radius: 8px !important;
+        }
+        .cloth-rolls-page .card { border-radius: 12px !important; box-shadow: none !important; border-color: var(--border, #e2e8f0) !important; }
+        .cloth-rolls-page section.card > div:first-child { background: #f8fafc !important; border-bottom-color: var(--border, #e2e8f0) !important; }
+        .cloth-rolls-page section.card h2 { color: var(--text, #172033) !important; font-size: 17px !important; }
+        .cloth-rolls-page section.card button.btn.primary { background: var(--primary, #2563eb); }
+        .cloth-rolls-page section.card button.btn.ghost { border-color: #dbeafe; color: #1d4ed8; }
+        .cloth-rolls-page #cloth-roll-form { border-color: var(--border, #e2e8f0) !important; }
+        .cloth-rolls-page #cloth-roll-form > div:first-child { background: #f8fafc !important; border-bottom-color: var(--border, #e2e8f0) !important; }
+        .cloth-rolls-page #cloth-roll-form > div:first-child h2 { color: #172033 !important; }
+        .cloth-rolls-page #cloth-roll-form > div:first-child span { background: #eff6ff !important; color: #1d4ed8 !important; }
+        .cloth-rolls-page #cloth-roll-form form { max-width: 680px; margin: 0 auto; }
+        .cloth-rolls-page #cloth-roll-form form > label { margin-bottom: 12px !important; }
+        .cloth-rolls-page #cloth-roll-form form > div { margin-bottom: 12px !important; }
+        .cloth-rolls-page input, .cloth-rolls-page select { border-radius: 8px; }
+        .cloth-rolls-page .data-table th { white-space: nowrap; }
+        @media (max-width: 640px) {
+          .cloth-rolls-page > div:first-child { padding: 14px !important; border-radius: 10px !important; }
+          .cloth-rolls-page > div:first-child h1 { font-size: 21px !important; }
+          .cloth-rolls-page > div:first-child > div { gap: 10px !important; }
+          .cloth-rolls-page section.card > div:first-child { padding: 12px 14px !important; }
+          .cloth-rolls-page section.card > div:last-child { padding: 12px !important; }
+          .cloth-rolls-page #cloth-roll-form form > div:nth-of-type(1) { gap: 8px !important; }
+          .cloth-rolls-page #cloth-roll-form form button { min-height: 42px; }
+        }
+      `}</style>
       {error && <Alert>{error}</Alert>}
       {loading ? <div className="empty">กำลังโหลดข้อมูล...</div> : <>
         {!isQr && <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(240px,1fr))", gap: 12, marginBottom: 16 }}>
