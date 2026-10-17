@@ -21,6 +21,9 @@ export default function BulkOrderQuotationModal({
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [result, setResult] = useState(null);
+  const [quotationVendorId, setQuotationVendorId] = useState("");
+  const [addingQuotation, setAddingQuotation] = useState(false);
+  const [quotationNotice, setQuotationNotice] = useState("");
 
   const allVendors = options.vendors || [];
   const selectedVendor = allVendors.find(
@@ -116,6 +119,54 @@ export default function BulkOrderQuotationModal({
   function removeStagedVendor(id) {
     setStagedVendorIds((current) => current.filter((item) => String(item) !== String(id)));
   }
+
+  async function addVendorToMissingQuotations() {
+    const vendor = allVendors.find((item) => String(item.id) === String(quotationVendorId));
+    if (!vendor || addingQuotation || mode === "quotation") return;
+    const missingRows = previewRows.filter((row) =>
+      !(vendorLists[String(row.id)] || []).some((item) => String(item.vendor_id) === String(vendor.id))
+    );
+    if (!missingRows.length) {
+      setQuotationNotice("Vendor นี้อยู่ใน Order Quotation ของทุกรายการแล้ว");
+      return;
+    }
+
+    setAddingQuotation(true);
+    setError("");
+    setQuotationNotice("");
+    const failures = [];
+    for (const row of missingRows) {
+      try {
+        await apiPost("/orders/" + row.id + "/vendors/", { vendor_id: vendor.id });
+      } catch (err) {
+        failures.push(row.order_number + ": " + err.message);
+      }
+    }
+
+    try {
+      const entries = await Promise.all(
+        orders.map(async (order) => {
+          const data = await apiGet("/orders/" + order.id + "/vendors/", {
+            cache: false,
+            forceRefresh: true,
+          });
+          return [String(order.id), data.results || []];
+        })
+      );
+      setVendorLists(Object.fromEntries(entries));
+      setVendorId(String(vendor.id));
+      setQuotationNotice(
+        failures.length
+          ? "เพิ่ม Vendor แล้วบางรายการ แต่มี " + failures.length + " รายการที่ไม่สำเร็จ: " + failures.join(" · ")
+          : "เพิ่ม " + vendorLabel(vendor) + " ใน Order Quotation ของรายการที่ขาดแล้ว ตรวจสอบรายการด้านล่างก่อนบันทึก Vendor Order"
+      );
+    } catch (err) {
+      setError("เพิ่ม Vendor แล้ว แต่โหลด Order Quotation ล่าสุดไม่สำเร็จ: " + err.message);
+    } finally {
+      setAddingQuotation(false);
+    }
+  }
+
   async function save() {
     if (!canSave) return;
     if (mode !== "quotation" && !selectedVendor) return;
@@ -242,6 +293,34 @@ export default function BulkOrderQuotationModal({
       </div>
 
       <Alert>{error}</Alert>
+      {quotationNotice && <div className="alert info">{quotationNotice}</div>}
+      {mode !== "quotation" && (
+        <div className="alert info" style={{ marginTop: 10 }}>
+          <b>Vendor ยังไม่อยู่ใน Order Quotation?</b>
+          <div style={{ marginTop: 6 }}>เลือก Vendor ที่ต้องการ แล้วกดเพิ่มเฉพาะ Order ที่ยังขาดได้จากตรงนี้</div>
+          <div className="form-grid" style={{ marginTop: 10 }}>
+            <label className="field span2">
+              <span>Vendor ที่ต้องการเพิ่มใน Order Quotation</span>
+              <SearchableSelect
+                value={quotationVendorId}
+                options={allVendors}
+                onChange={(value) => { setQuotationVendorId(value); setQuotationNotice(""); }}
+                getLabel={vendorLabel}
+                getSearchText={(vendor) => (vendor.code || "") + " " + (vendor.name || "") + " " + (vendor.email || "") + " " + (vendor.contact_person || "")}
+                placeholder="ค้นหาชื่อหรือรหัส Vendor"
+              />
+            </label>
+          </div>
+          <button
+            type="button"
+            className="btn ghost"
+            disabled={!quotationVendorId || loading || busy || addingQuotation}
+            onClick={addVendorToMissingQuotations}
+          >
+            {addingQuotation ? "กำลังเพิ่มใน Order Quotation..." : "เพิ่ม Vendor ใน Order Quotation ของรายการที่ขาด"}
+          </button>
+        </div>
+      )}
       {!loading && !error && mode !== "quotation" && vendorOptions.length === 0 && (
         <div className="alert warning">
           ไม่มี Vendor ที่อยู่ใน Order Quotation ครบทุก Order ที่เลือก กรุณาเพิ่ม Vendor เดียวกันใน Order Quotation ของทุกรายการก่อน แล้วจึงเลือก Vendor Order
