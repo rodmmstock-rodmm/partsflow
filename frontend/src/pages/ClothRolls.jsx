@@ -125,7 +125,7 @@ export default function ClothRolls() {
 
   return (
     <div className="page" style={{ maxWidth: 1180, margin: "0 auto" }}>
-      <PageHeader title="เบิกจ่ายเศษผ้า" subtitle="บันทึกการเบิกและรับเข้าเศษผ้า · หน่วยนับม้วน" />
+      <PageHeader title="เบิกจ่ายเศษผ้า" subtitle={isQr ? "สแกน QR เพื่อเบิกเศษผ้า · หน่วยนับม้วน" : "บันทึกการเบิกและรับเข้าเศษผ้า · หน่วยนับม้วน"} />
       {error && <Alert>{error}</Alert>}
       {loading ? <div className="empty">กำลังโหลดข้อมูล...</div> : <>
         {!isQr && <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(240px,1fr))", gap: 14, marginBottom: 20 }}>
