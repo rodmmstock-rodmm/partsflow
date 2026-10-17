@@ -21,7 +21,6 @@ export default function BulkOrderQuotationModal({
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [result, setResult] = useState(null);
-  const [quotationVendorId, setQuotationVendorId] = useState("");
   const [addingQuotation, setAddingQuotation] = useState(false);
   const [quotationNotice, setQuotationNotice] = useState("");
 
@@ -33,25 +32,20 @@ export default function BulkOrderQuotationModal({
     .map((id) => allVendors.find((vendor) => String(vendor.id) === String(id)))
     .filter(Boolean);
 
-  // Vendor Order must use a vendor already quoted on every selected Order.
-  // This keeps the single shared Vendor Order consistent across the selection.
+  // Show the union of vendors already quoted on any selected Order.
+  // If the chosen vendor is missing from some selected Orders, offer to add it there.
   const vendorOptions = useMemo(() => {
     const allVendors = options.vendors || [];
     if (mode === "quotation") return allVendors;
     if (loading || error || !orders.length) return [];
 
-    const commonIds = new Set(
-      (vendorLists[String(orders[0].id)] || []).map((row) => String(row.vendor_id))
-    );
-    for (const order of orders.slice(1)) {
-      const orderVendorIds = new Set(
-        (vendorLists[String(order.id)] || []).map((row) => String(row.vendor_id))
-      );
-      for (const id of commonIds) {
-        if (!orderVendorIds.has(id)) commonIds.delete(id);
+    const existingIds = new Set();
+    for (const order of orders) {
+      for (const row of (vendorLists[String(order.id)] || [])) {
+        existingIds.add(String(row.vendor_id));
       }
     }
-    return allVendors.filter((vendor) => commonIds.has(String(vendor.id)));
+    return allVendors.filter((vendor) => existingIds.has(String(vendor.id)));
   }, [mode, options.vendors, loading, error, orders, vendorLists]);
 
   useEffect(() => {
@@ -97,18 +91,6 @@ export default function BulkOrderQuotationModal({
     };
   }), [orders, vendorLists, stagedVendors, vendorId, allVendors]);
 
-  // Only offer vendors already present in at least one selected Order's quotation.
-  // This lets the user fill gaps without introducing unrelated vendors.
-  const existingQuotationVendors = useMemo(() => {
-    const existingIds = new Set();
-    for (const order of orders) {
-      for (const row of (vendorLists[String(order.id)] || [])) {
-        existingIds.add(String(row.vendor_id));
-      }
-    }
-    return allVendors.filter((vendor) => existingIds.has(String(vendor.id)));
-  }, [orders, vendorLists, allVendors]);
-
   const missingVendorOrders = previewRows.filter((row) => !row.hasVendor);
   const canSave = Boolean(
     !loading && !busy && !error &&
@@ -133,7 +115,7 @@ export default function BulkOrderQuotationModal({
   }
 
   async function addVendorToMissingQuotations() {
-    const vendor = allVendors.find((item) => String(item.id) === String(quotationVendorId));
+    const vendor = allVendors.find((item) => String(item.id) === String(vendorId));
     if (!vendor || addingQuotation || mode === "quotation") return;
     const existsInSelectedOrder = orders.some((order) =>
       (vendorLists[String(order.id)] || []).some((item) => String(item.vendor_id) === String(vendor.id))
@@ -313,36 +295,9 @@ export default function BulkOrderQuotationModal({
 
       <Alert>{error}</Alert>
       {quotationNotice && <div className="alert info">{quotationNotice}</div>}
-      {mode !== "quotation" && (
-        <div className="alert info" style={{ marginTop: 10 }}>
-          <b>Vendor ยังไม่อยู่ใน Order Quotation?</b>
-          <div style={{ marginTop: 6 }}>เลือก Vendor ที่ต้องการ แล้วกดเพิ่มเฉพาะ Order ที่ยังขาดได้จากตรงนี้</div>
-          <div className="form-grid" style={{ marginTop: 10 }}>
-            <label className="field span2">
-              <span>Vendor ที่ต้องการเพิ่มใน Order Quotation</span>
-              <SearchableSelect
-                value={quotationVendorId}
-                options={existingQuotationVendors}
-                onChange={(value) => { setQuotationVendorId(value); setQuotationNotice(""); }}
-                getLabel={vendorLabel}
-                getSearchText={(vendor) => (vendor.code || "") + " " + (vendor.name || "") + " " + (vendor.email || "") + " " + (vendor.contact_person || "")}
-                placeholder="ค้นหาชื่อหรือรหัส Vendor"
-              />
-            </label>
-          </div>
-          <button
-            type="button"
-            className="btn ghost"
-            disabled={!quotationVendorId || loading || busy || addingQuotation}
-            onClick={addVendorToMissingQuotations}
-          >
-            {addingQuotation ? "กำลังเพิ่มใน Order Quotation..." : "เพิ่ม Vendor ใน Order Quotation ของรายการที่ขาด"}
-          </button>
-        </div>
-      )}
       {!loading && !error && mode !== "quotation" && vendorOptions.length === 0 && (
         <div className="alert warning">
-          ไม่มี Vendor ที่อยู่ใน Order Quotation ครบทุก Order ที่เลือก กรุณาเพิ่ม Vendor เดียวกันใน Order Quotation ของทุกรายการก่อน แล้วจึงเลือก Vendor Order
+          ไม่มี Vendor ใน Order Quotation ของรายการที่เลือก กรุณาเพิ่ม Vendor ใน Order Quotation อย่างน้อยหนึ่งรายการก่อน
         </div>
       )}
       {loading ? (
@@ -357,7 +312,19 @@ export default function BulkOrderQuotationModal({
             <>
               {missingVendorOrders.length ? (
                 <div className="alert warning">
-                  Vendor นี้ยังไม่อยู่ใน Order Quotation ของ {missingVendorOrders.length} รายการ จึงยังบันทึก Vendor Order ไม่ได้ กรุณาเพิ่ม Vendor ใน Order Quotation ก่อน
+                  <b>ไม่มี Vendor นี้ใน Order Quotation ที่บันทึกไว้ของ {missingVendorOrders.length} รายการ</b>
+                  <div style={{ marginTop: 6 }}>เพิ่ม Vendor นี้เข้า Order Quotation ของรายการที่ขาดก่อน จึงจะบันทึก Vendor Order ได้</div>
+                  {orders.length > 1 && (
+                    <button
+                      type="button"
+                      className="btn ghost"
+                      style={{ marginTop: 10 }}
+                      disabled={loading || busy || addingQuotation}
+                      onClick={addVendorToMissingQuotations}
+                    >
+                      {addingQuotation ? "กำลังเพิ่มใน Order Quotation..." : "เพิ่ม Vendor นี้ใน Order Quotation ของรายการที่ขาด"}
+                    </button>
+                  )}
                 </div>
               ) : (
                 <div className="alert info">
