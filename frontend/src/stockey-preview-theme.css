@@ -118,3 +118,100 @@ tbody tr:hover, tbody tr:hover .sticky-action { background: #f5f8fd !important; 
   color: #3478f6 !important;
   background: #edf4ff !important;
 }
+
+
+/* Consistency pass: replace remaining legacy purple action controls on desktop and mobile. */
+.btn.primary,
+.btn.primary:hover,
+button.primary,
+.btn.primary:focus-visible {
+  background: #3478f6 !important;
+  border-color: #3478f6 !important;
+  color: #fff !important;
+}
+.btn.primary:hover,
+button.primary:hover { background: #2468e5 !important; }
+.mini.primary,
+.mini.primary:hover {
+  background: linear-gradient(135deg, #3478f6, #5a95ff) !important;
+  border-color: transparent !important;
+  color: #fff !important;
+}
+.m-icon-action,
+.m-back-btn {
+  border-color: #dbe6f5 !important;
+  background: #f3f7fd !important;
+  color: #3478f6 !important;
+}
+.m-icon-action:hover,
+.m-back-btn:hover {
+  border-color: #c6dcff !important;
+  background: #edf4ff !important;
+  color: #2468e5 !important;
+}
+.m-icon-action.m-add-part {
+  background: linear-gradient(135deg, #3478f6, #5a95ff) !important;
+  border-color: transparent !important;
+  color: #fff !important;
+  box-shadow: 0 4px 12px rgba(52,120,246,.20) !important;
+}
+.m-fast-button,
+.m-save-button,
+.m-safety-order-btn {
+  background: linear-gradient(135deg, #3478f6, #5a95ff) !important;
+  border-color: transparent !important;
+  color: #fff !important;
+  box-shadow: 0 4px 10px rgba(52,120,246,.16) !important;
+}
+.m-fast-button:hover,
+.m-save-button:hover,
+.m-safety-order-btn:hover {
+  background: #2468e5 !important;
+}
+.m-fast-actions > button:not(.m-fast-button):not(.danger),
+.m-card-actions > button:not(.danger),
+.m-order-actions button:not(.danger),
+.m-project-actions button:not(.danger),
+.m-step-head-actions button:not(.danger) {
+  background: #edf4ff !important;
+  color: #286ce5 !important;
+  border-color: #d7e6ff !important;
+}
+.m-segment button.active {
+  color: #286ce5 !important;
+  box-shadow: 0 2px 6px rgba(52,120,246,.10) !important;
+}
+.m-card-code,
+.m-row-between b,
+.m-fast-card > b,
+.m-fast-card b,
+.m-order-item > b,
+.m-project-card strong,
+.m-step > header b,
+.m-dashboard-spare-set > span,
+.m-spare-items b {
+  color: #286ce5 !important;
+}
+.m-part-hero,
+.m-quick-summary,
+.m-factory,
+.m-permission-chips span,
+.m-detail-button,
+.m-safety-select,
+.m-rfq-selection {
+  background: #edf4ff !important;
+  color: #286ce5 !important;
+  border-color: #d7e6ff !important;
+}
+.m-rfq-selection button:first-of-type {
+  background: #3478f6 !important;
+  color: #fff !important;
+}
+.m-safety-card.selected,
+.m-order-card.selected,
+.role-accordion-item.open {
+  border-color: #b9d2ff !important;
+  box-shadow: 0 0 0 2px rgba(52,120,246,.08) !important;
+}
+input[type="checkbox"],
+input[type="radio"] { accent-color: #3478f6 !important; }
