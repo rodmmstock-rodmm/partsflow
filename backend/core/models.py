@@ -344,6 +344,7 @@ class RoleAccess(UUIDMixin):
     can_delete_tool = models.BooleanField(default=False)
 
     can_view_qr_withdraw = models.BooleanField(default=False)
+    can_view_cloth_rolls = models.BooleanField(default=False)
     can_add_qr_withdraw_item = models.BooleanField(default=False)
     can_edit_qr_withdraw_item = models.BooleanField(default=False)
     can_delete_qr_withdraw_item = models.BooleanField(default=False)

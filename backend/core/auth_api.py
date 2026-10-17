@@ -55,6 +55,7 @@ PERMISSION_FIELDS = [
     "can_edit_tool",
     "can_delete_tool",
     "can_view_qr_withdraw",
+    "can_view_cloth_rolls",
     "can_add_qr_withdraw_item",
     "can_edit_qr_withdraw_item",
     "can_delete_qr_withdraw_item",
