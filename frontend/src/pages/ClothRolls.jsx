@@ -19,7 +19,6 @@ function Qty({ value }) {
 export default function ClothRolls() {
   const { token: qrToken } = useParams();
   const isQr = Boolean(qrToken);
-  const lockedPhase = data.qr_phase ? PHASES.find((p) => p.value === data.qr_phase) : null;
   const feedback = useFeedback();
   const [data, setData] = useState({ stocks: [], transactions: [], employees: [], line_configured: false });
   const [loading, setLoading] = useState(true);
@@ -33,6 +32,7 @@ export default function ClothRolls() {
   const [savingThreshold, setSavingThreshold] = useState("");
   const [qrImages, setQrImages] = useState({});
   const [showQr, setShowQr] = useState(false);
+  const lockedPhase = data.qr_phase ? PHASES.find((p) => p.value === data.qr_phase) : null;
 
   const load = useCallback(async () => {
     setError("");
@@ -66,7 +66,6 @@ export default function ClothRolls() {
   }, [data.qr_tokens]);
 
   const currentStock = data.stocks.find((s) => s.phase === phase);
-  const currentPhase = PHASES.find((p) => p.value === phase) || PHASES[0];
   const transactions = useMemo(() => data.transactions || [], [data.transactions]);
 
   async function saveTransaction(event) {
