@@ -72,7 +72,12 @@ urlpatterns = [
     path("tools/public/<str:code>/borrow/", tool_api.tool_public_borrow, name="web-tool-public-borrow"),
     path("tools/public/<str:code>/return/", tool_api.tool_public_return, name="web-tool-public-return"),
 
-    # Cloth roll inventory (authenticated QR and web transactions)\n    path("cloth-rolls/", cloth_roll_api.cloth_rolls, name="web-cloth-rolls"),\n    path("cloth-rolls/transactions/", cloth_roll_api.cloth_roll_transaction, name="web-cloth-roll-transaction"),\n    path("cloth-rolls/settings/<str:phase>/", cloth_roll_api.cloth_roll_settings, name="web-cloth-roll-settings"),\n\n    # QR Withdraw (admin view onto the separate qr-withdraw Supabase project;
+    # Cloth roll inventory (authenticated QR and web transactions)
+    path("cloth-rolls/", cloth_roll_api.cloth_rolls, name="web-cloth-rolls"),
+    path("cloth-rolls/transactions/", cloth_roll_api.cloth_roll_transaction, name="web-cloth-roll-transaction"),
+    path("cloth-rolls/settings/<str:phase>/", cloth_roll_api.cloth_roll_settings, name="web-cloth-roll-settings"),
+
+    # QR Withdraw (admin view onto the separate qr-withdraw Supabase project;
     # the standalone qr-withdraw.vercel.app site and its QR codes are untouched)
     path("qr-withdraw/items/", qr_withdraw_api.qr_withdraw_items, name="web-qr-withdraw-items"),
     path("qr-withdraw/items/<str:code>/", qr_withdraw_api.qr_withdraw_item_detail, name="web-qr-withdraw-item-detail"),
