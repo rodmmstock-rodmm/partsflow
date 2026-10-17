@@ -3,6 +3,7 @@ import os
 from urllib.error import HTTPError, URLError
 from urllib.request import Request, urlopen
 
+from django.core import signing
 from django.db import transaction
 from django.views.decorators.csrf import csrf_exempt
 from rest_framework.decorators import api_view, permission_classes
@@ -12,6 +13,8 @@ from rest_framework.response import Response
 from .auth_api import require_permission
 from .models import ClothRollStock, ClothRollTransaction, Employee
 
+
+QR_SIGNING_SALT = "partsflow.cloth-roll.qr"
 
 PHASES = {
     "phase-4": ClothRollStock.PHASE_4,
@@ -122,7 +125,22 @@ def cloth_rolls(request):
     employees = Employee.objects.filter(active=True).order_by("employee_code").values(
         "id", "employee_code", "name", "department"
     )[:1000]
+    qr_phase = None
+    qr_token = str(request.GET.get("qr_token") or "").strip()
+    if qr_token:
+        try:
+            qr_payload = signing.loads(qr_token, salt=QR_SIGNING_SALT)
+            if qr_payload.get("phase") in {ClothRollStock.PHASE_4, ClothRollStock.PHASE_11}:
+                qr_phase = qr_payload["phase"]
+        except signing.BadSignature:
+            qr_phase = None
+    qr_tokens = {
+        phase: signing.dumps({"phase": phase}, salt=QR_SIGNING_SALT, compress=True)
+        for phase in (ClothRollStock.PHASE_4, ClothRollStock.PHASE_11)
+    }
     return Response({
+        "qr_phase": qr_phase,
+        "qr_tokens": qr_tokens,
         "stocks": [_stock_json(row) for row in stocks],
         "transactions": [_transaction_json(row) for row in transactions],
         "employees": [
@@ -142,9 +160,17 @@ def cloth_roll_transaction(request):
     if err:
         return err
 
-    phase = _phase(request.data.get("phase"))
-    tx_type = str(request.data.get("transaction_type") or "").strip().upper()
     source = str(request.data.get("source") or "WEB").strip().upper()
+    if source == "QR":
+        qr_token = str(request.data.get("qr_token") or "").strip()
+        try:
+            qr_payload = signing.loads(qr_token, salt=QR_SIGNING_SALT)
+            phase = qr_payload.get("phase")
+        except signing.BadSignature:
+            return Response({"detail": "QR Code ไม่ถูกต้อง กรุณาสแกน QR Code ของ Phase 4 หรือ Phase 11"}, status=400)
+    else:
+        phase = _phase(request.data.get("phase"))
+    tx_type = str(request.data.get("transaction_type") or "").strip().upper()
     if phase not in {ClothRollStock.PHASE_4, ClothRollStock.PHASE_11}:
         return Response({"detail": "Phase ไม่ถูกต้อง"}, status=400)
     if tx_type not in {ClothRollTransaction.TYPE_IN, ClothRollTransaction.TYPE_OUT}:
