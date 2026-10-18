@@ -1,0 +1,147 @@
+/* Figma-inspired PartsFlow visual layer.
+   Presentation-only overrides: no routes, data, API calls, or business logic changed. */
+:root {
+  --brand: #2b63e9;
+  --brand2: #4778ec;
+  --brand-soft: #e8f0ff;
+  --bg: #f2f6fc;
+  --panel: #ffffff;
+  --border: #dbe5f3;
+  --border-soft: #edf2fa;
+  --text: #1c2b45;
+  --muted: #7185a5;
+  --sub: #667d9f;
+  --radius-s: 8px;
+  --radius-m: 12px;
+  --radius-l: 18px;
+}
+html, body, #root { min-height: 100%; }
+html, body { background: #f2f6fc; color: #1c2b45; }
+body { font-family: "IBM Plex Sans Thai", sans-serif; }
+button, input, select, textarea { font: inherit; }
+a { color: #2b63e9; }
+button:focus-visible, a:focus-visible, input:focus-visible,
+select:focus-visible, textarea:focus-visible {
+  outline: 2px solid #8bb1ff;
+  outline-offset: 2px;
+}
+/* Desktop application frame */
+.sidebar, .sidebar.open {
+  background: #fff;
+  border-color: #dbe5f3;
+  box-shadow: none;
+}
+.brand { border-bottom-color: #e7edf7; padding: 22px 18px; }
+.brand-logo, .login-logo { background: #2b63e9; border-radius: 10px; box-shadow: none; }
+.brand strong { color: #2b63e9; letter-spacing: -.025em; }
+.brand span, .sidebar-user span, .mobile-user span { color: #7185a5; }
+.nav-list { padding: 14px 10px; }
+.nav-group { margin-bottom: 16px; }
+.nav-group-label { color: #8293ad; font-size: 10px; letter-spacing: .07em; }
+.nav-link {
+  border-radius: 11px;
+  margin: 3px 0;
+  padding: 10px 12px;
+  color: #687f9f;
+  transition: background .15s ease, color .15s ease;
+}
+.nav-link:hover { background: #f2f6fc; color: #2b63e9; }
+.nav-link.active {
+  background: #2b63e9;
+  color: #fff;
+  box-shadow: none;
+  font-weight: 600;
+}
+.sidebar-user { border-top-color: #e7edf7; }
+.sidebar-user strong, .mobile-user strong { color: #1c2b45; }
+.main-content { padding-top: 28px; }
+.app-header-bar { color: #7185a5; }
+.mobile-topbar {
+  background: #e9f0ff;
+  border-bottom: 1px solid #dbe5f3;
+  box-shadow: none;
+}
+.mobile-nav {
+  background: #fff;
+  border-top: 1px solid #dbe5f3;
+  box-shadow: 0 -8px 24px rgba(27, 48, 82, .06);
+}
+.mobile-link.active { background: #e8f0ff; color: #2b63e9; box-shadow: none; }
+/* Page titles and section cards */
+.page-header { margin-bottom: 22px; align-items: flex-start; }
+.page-header h1 {
+  color: #1c2b45;
+  font-size: clamp(22px, 2vw, 30px);
+  font-weight: 650;
+  letter-spacing: -.035em;
+}
+.page-header p { color: #7185a5; font-size: 13px; line-height: 1.65; }
+.panel, .kpi-card {
+  border: 1px solid #dbe5f3;
+  border-radius: 16px;
+  background: #fff;
+  box-shadow: 0 8px 22px rgba(35, 61, 99, .045);
+}
+.panel { padding: 20px; margin-bottom: 18px; }
+.section-head { margin-bottom: 16px; }
+.section-head h2 { color: #1c2b45; font-weight: 650; font-size: 16px; }
+.section-head p { color: #7185a5; }
+/* KPI cards */
+.kpi-grid { gap: 16px; }
+.kpi-card {
+  min-height: 112px;
+  padding: 18px;
+  border-top: 1px solid #dbe5f3;
+  border-radius: 20px;
+  box-shadow: 0 9px 22px rgba(35, 61, 99, .055);
+}
+.kpi-card strong { color: #1c2b45; font-size: 27px; font-weight: 700; }
+.kpi-card span, .kpi-card small { color: #7185a5; }
+.kpi-card.danger, .kpi-card.warning, .kpi-card.success, .kpi-card.info { border-top: 1px solid #dbe5f3; }
+.kpi-card.danger strong { color: #d64b4b; }
+.kpi-card.warning strong { color: #df831f; }
+.kpi-card.success strong { color: #14966a; }
+.kpi-card.info strong { color: #2b63e9; }
+/* Inputs, buttons and status labels */
+input, select, textarea {
+  border-color: #d8e3f2;
+  border-radius: 9px;
+  background: #fff;
+  color: #1c2b45;
+}
+.btn, .mini {
+  border-radius: 10px;
+  min-height: 38px;
+  font-weight: 600;
+  box-shadow: none;
+}
+.btn.primary, .mini.primary, .tab.active, .pagination-item.active {
+  background: #2b63e9;
+  color: #fff;
+  border-color: #2b63e9;
+  box-shadow: none;
+}
+.btn.primary:hover, .mini.primary:hover { background: #2257d4; border-color: #2257d4; }
+.btn:not(.primary) { border-color: #d8e3f2; background: #fff; color: #263752; }
+.badge, .status-badge, .pill { border-radius: 999px; }
+/* Tables remain data-dense but visually calmer */
+table { border-collapse: separate; border-spacing: 0; }
+th { background: #f2f6fc; color: #7185a5; font-weight: 600; }
+td, th { border-color: #dfe7f2; }
+tbody tr:nth-child(even) { background: #f8fafd; }
+tbody tr:hover { background: #f0f5ff; }
+/* Mobile dashboard: cards and touch targets rather than compressed desktop UI */
+@media (max-width: 760px) {
+  html, body { background: #f2f6fc; }
+  .main-content { padding: 18px 14px 92px; }
+  .page-header { margin-bottom: 18px; }
+  .page-header h1 { font-size: 25px; line-height: 1.3; }
+  .page-header p { font-size: 13px; }
+  .panel { padding: 16px; border-radius: 17px; margin-bottom: 14px; }
+  .kpi-grid { gap: 12px; }
+  .kpi-card { min-height: 120px; padding: 16px; border-radius: 25px; }
+  .kpi-card strong { font-size: 25px; }
+  .btn, .mini { min-height: 42px; }
+  .mobile-topbar { padding-top: env(safe-area-inset-top); }
+  .mobile-nav { padding-bottom: env(safe-area-inset-bottom); }
+}
