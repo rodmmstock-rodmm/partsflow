@@ -2,8 +2,8 @@ from datetime import date, datetime, time, timedelta
 from decimal import Decimal, InvalidOperation
 
 from django.db import transaction
-from django.db.models import Count, Q
-from django.db.models.functions import ExtractMonth
+from django.db.models import Count, DecimalField, ExpressionWrapper, F, Q, Sum
+from django.db.models.functions import Abs, ExtractMonth, TruncDay
 from django.utils import timezone
 from django.views.decorators.csrf import csrf_exempt
 from rest_framework.decorators import api_view, permission_classes
@@ -371,6 +371,58 @@ def local_day_start(value):
         datetime.combine(value, time.min),
         timezone.get_current_timezone(),
     )
+
+
+
+@api_view(["GET"])
+@permission_classes([AllowAny])
+def withdrawal_summary(request):
+    """Return a compact daily withdrawal aggregate for the Overview chart."""
+    _, err = require_permission(request, "can_view_history")
+    if err:
+        return err
+
+    try:
+        date_from = history_date(request.GET.get("date_from"), "date_from")
+        date_to = history_date(request.GET.get("date_to"), "date_to")
+    except ValueError as exc:
+        return Response({"detail": str(exc)}, status=400)
+    if not date_from or not date_to or date_from > date_to:
+        return Response({"detail": "ช่วงวันที่ไม่ถูกต้อง"}, status=400)
+
+    start = local_day_start(date_from)
+    end = local_day_start(date_to + timedelta(days=1))
+    amount_expression = ExpressionWrapper(
+        Abs(F("quantity")) * F("part__last_purchase_price"),
+        output_field=DecimalField(max_digits=32, decimal_places=4),
+    )
+    rows = (
+        StockTransaction.objects.filter(
+            is_void=False,
+            transaction_type__in=["OUT", "ISSUE", "TRANSFER_OUT"],
+            transaction_date__gte=start,
+            transaction_date__lt=end,
+        )
+        .annotate(day=TruncDay("transaction_date", tzinfo=timezone.get_current_timezone()))
+        .values("day")
+        .annotate(
+            quantity=Sum(Abs(F("quantity"))),
+            amount=Sum(amount_expression),
+        )
+        .order_by("day")
+    )
+    return Response({
+        "date_from": date_from.isoformat(),
+        "date_to": date_to.isoformat(),
+        "results": [
+            {
+                "day": row["day"].day,
+                "quantity": float(row["quantity"] or 0),
+                "amount": float(row["amount"] or 0),
+            }
+            for row in rows
+        ],
+    })
 
 
 @api_view(["GET"])
