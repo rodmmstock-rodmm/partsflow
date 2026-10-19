@@ -71,13 +71,19 @@ def _is_truthy(value):
     return str(value or "").strip().lower() in {"1", "true", "yes", "on"}
 
 def permissions_for(employee):
+    role_name = (employee.role or "").strip()
     role = RoleAccess.objects.filter(
-        role_name__iexact=(employee.role or ""), active=True
+        role_name__iexact=role_name, active=True
     ).first()
     if role:
         return {field: bool(getattr(role, field)) for field in PERMISSION_FIELDS}
 
-    if (employee.role or "").strip().lower() in {"admin", "administrator"}:
+    # A role that exists but has been disabled must not silently inherit the
+    # legacy default permissions (or the ADMIN fallback). Fail closed instead.
+    if role_name and RoleAccess.objects.filter(role_name__iexact=role_name).exists():
+        return {field: False for field in PERMISSION_FIELDS}
+
+    if role_name.lower() in {"admin", "administrator"}:
         return {field: True for field in PERMISSION_FIELDS}
 
     defaults = {field: False for field in PERMISSION_FIELDS}
