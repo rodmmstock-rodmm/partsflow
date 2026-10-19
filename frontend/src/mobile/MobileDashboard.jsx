@@ -62,11 +62,22 @@ export default function MobileDashboard() {
       });
       if (dq) p.set("q", dq);
       if (warehouse) p.set("warehouse", warehouse);
-      const [d, r] = await Promise.all([
-        apiGet("/dashboard/", { forceRefresh: force }),
-        apiGet(`/parts/?${p}`, { forceRefresh: force }),
+      // Stock access is independent of dashboard access. Load the parts list
+      // even when this role is not allowed to view the overview KPIs.
+      const partsRequest = apiGet(`/parts/?${p}`, { forceRefresh: force });
+      const dashboardRequest = auth.can("can_view_dashboard")
+        ? apiGet("/dashboard/", { forceRefresh: force })
+        : Promise.resolve(null);
+      const [r, d] = await Promise.all([
+        partsRequest,
+        dashboardRequest.catch((error) => {
+          // A dashboard-only failure must not hide a successfully loaded stock list.
+          console.warn("Dashboard KPIs could not be loaded:", error);
+          return null;
+        }),
       ]);
-      setKpi(d.kpi || {});
+      if (d) setKpi(d.kpi || {});
+      else setKpi({});
       setParts(r.results || []);
       setMeta(r || {});
     } catch (e) {
