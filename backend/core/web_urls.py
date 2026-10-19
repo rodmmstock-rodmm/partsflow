@@ -73,6 +73,7 @@ urlpatterns = [
     path("tools/public/<str:code>/return/", tool_api.tool_public_return, name="web-tool-public-return"),
 
     # Cloth roll inventory (authenticated QR and web transactions)
+    path("cloth-rolls/issue-form/", cloth_roll_api.cloth_roll_issue_form, name="web-cloth-roll-issue-form"),
     path("cloth-rolls/", cloth_roll_api.cloth_rolls, name="web-cloth-rolls"),
     path("cloth-rolls/transactions/", cloth_roll_api.cloth_roll_transaction, name="web-cloth-roll-transaction"),
     path("cloth-rolls/settings/<str:phase>/", cloth_roll_api.cloth_roll_settings, name="web-cloth-roll-settings"),
