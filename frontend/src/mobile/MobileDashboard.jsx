@@ -315,7 +315,6 @@ export default function MobileDashboard() {
         totalPages={meta.total_pages || 1}
         onChange={setPage}
         disabled={loading}
-        compact
       />
       {scannerOpen && (
         <BarcodeScannerModal
