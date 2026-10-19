@@ -198,7 +198,7 @@ export function SkeletonRows({ count = 6, columns = 6 }) {
   );
 }
 
-export function Pagination({ page, totalPages, onChange, disabled = false, compact = false }) {
+export function Pagination({ page, totalPages, onChange, disabled = false, compact = false, mobileNumbers = false }) {
   const total = Math.max(1, Number(totalPages) || 1);
   const current = Math.min(Math.max(1, Number(page) || 1), total);
 
@@ -233,7 +233,7 @@ export function Pagination({ page, totalPages, onChange, disabled = false, compa
         disabled={disabled || current === 1}
         onClick={() => go(current - 1)}
       >
-        ← {compact ? "" : "ก่อนหน้า"}
+        {compact || mobileNumbers ? "←" : "← ก่อนหน้า"}
       </button>
       {!compact &&
         visiblePages().map((p, i) =>
@@ -265,7 +265,7 @@ export function Pagination({ page, totalPages, onChange, disabled = false, compa
         disabled={disabled || current === total}
         onClick={() => go(current + 1)}
       >
-        {compact ? "" : "ถัดไป"} →
+        {compact || mobileNumbers ? "→" : "ถัดไป →"}
       </button>
     </nav>
   );
