@@ -16,6 +16,7 @@ import RoleSettings from "./pages/RoleSettings";
 import Tools from "./pages/Tools";
 import QrWithdraw from "./pages/QrWithdraw";
 import ClothRolls from "./pages/ClothRolls";
+import ClothRollIssueForm from "./pages/ClothRollIssueForm";
 import ToolScan from "./pages/ToolScan";
 import POBalance from "./pages/POBalance";
 import Login from "./pages/Login";
@@ -103,6 +104,14 @@ function Protected({ permission, children }) {
   }
   return children;
 }
+function AuthenticatedOnly({ children }) {
+  const auth = useAuth();
+  const location = useLocation();
+  if (auth.loading) return <div className="auth-loading">กำลังตรวจสอบการเข้าสู่ระบบ...</div>;
+  if (!auth.authenticated) return <Navigate to="/login" state={{ from: location.pathname + location.search }} replace />;
+  return children;
+}
+
 function DesktopShell() {
   const auth = useAuth(); const navigate = useNavigate();
   const visibleGroups = NAV_GROUPS
@@ -127,4 +136,4 @@ function DesktopShell() {
   </div>;
 }
 function ResponsiveShell(){return useIsMobile()?<MobileShell/>:<DesktopShell/>}
-export default function App(){return <Routes><Route path="/login" element={<Login/>}/><Route path="/tool-scan/:code" element={<ToolScan/>}/><Route path="/*" element={<Protected><ResponsiveShell/></Protected>}/></Routes>}
+export default function App(){return <Routes><Route path="/login" element={<Login/>}/><Route path="/cloth-issue" element={<AuthenticatedOnly><ClothRollIssueForm /></AuthenticatedOnly>}/><Route path="/tool-scan/:code" element={<ToolScan/>}/><Route path="/*" element={<Protected><ResponsiveShell/></Protected>}/></Routes>}
