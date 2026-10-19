@@ -406,7 +406,7 @@ def withdrawal_summary(request):
         .annotate(day=TruncDay("transaction_date", tzinfo=timezone.get_current_timezone()))
         .values("day")
         .annotate(
-            quantity=Sum(Abs(F("quantity"))),
+            total_quantity=Sum(Abs(F("quantity"))),
             amount=Sum(amount_expression),
         )
         .order_by("day")
@@ -417,7 +417,7 @@ def withdrawal_summary(request):
         "results": [
             {
                 "day": row["day"].day,
-                "quantity": float(row["quantity"] or 0),
+                "quantity": float(row["total_quantity"] or 0),
                 "amount": float(row["amount"] or 0),
             }
             for row in rows
