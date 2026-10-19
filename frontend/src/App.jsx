@@ -74,7 +74,35 @@ function useIsMobile(){
   useEffect(()=>{const m=window.matchMedia("(max-width: 767px)");const fn=e=>setMobile(e.matches);fn(m);m.addEventListener?.("change",fn);return()=>m.removeEventListener?.("change",fn)},[]);
   return mobile;
 }
-function Protected({ permission, children }) { const auth = useAuth(); const location = useLocation(); if (auth.loading) return <div className="auth-loading">กำลังตรวจสอบสิทธิ์...</div>; if (!auth.authenticated) return <Navigate to="/login" state={{ from: location.pathname + location.search }} replace />; if (permission && !auth.can(permission)) return <Navigate to="/" replace />; return children; }
+const ACCESS_FALLBACKS = [
+  ["/stock", "can_view_parts"],
+  ["/overview", "can_view_dashboard"],
+  ["/history", "can_view_history"],
+  ["/safety-stock", "can_view_safety_stock"],
+  ["/cloth-rolls", "can_view_cloth_rolls"],
+  ["/qr-withdraw", "can_view_qr_withdraw"],
+  ["/tools", "can_view_tools"],
+  ["/orders", "can_view_orders"],
+  ["/order-steps", "can_view_order_step"],
+  ["/order-status", "can_view_order_status"],
+  ["/po-balance", "can_view_po_balance"],
+  ["/vendors", "can_view_suppliers"],
+  ["/machines", "can_view_machines"],
+  ["/settings/roles", "can_manage_roles"],
+];
+
+function Protected({ permission, children }) {
+  const auth = useAuth();
+  const location = useLocation();
+  if (auth.loading) return <div className="auth-loading">กำลังตรวจสอบสิทธิ์...</div>;
+  if (!auth.authenticated) return <Navigate to="/login" state={{ from: location.pathname + location.search }} replace />;
+  if (permission && !auth.can(permission)) {
+    const fallback = ACCESS_FALLBACKS.find(([, required]) => auth.can(required));
+    if (fallback) return <Navigate to={fallback[0]} replace />;
+    return <div className="auth-loading"><strong>ไม่มีสิทธิ์เข้าใช้งาน</strong><p>บัญชีนี้ยังไม่มีสิทธิ์เข้าถึงหน้าใด กรุณาติดต่อผู้ดูแลระบบ</p></div>;
+  }
+  return children;
+}
 function DesktopShell() {
   const auth = useAuth(); const navigate = useNavigate();
   const visibleGroups = NAV_GROUPS
