@@ -10,7 +10,7 @@ from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 
-from .auth_api import require_permission
+from .auth_api import permissions_for, require_permission
 from .models import ClothRollStock, ClothRollTransaction, Employee
 
 
@@ -114,6 +114,28 @@ def _transaction_json(row):
 @csrf_exempt
 @api_view(["GET"])
 @permission_classes([AllowAny])
+def cloth_roll_issue_form(request):
+    """Minimal authenticated payload for the standalone, all-role issue form."""
+    actor, err = require_permission(request)
+    if err:
+        return err
+    stocks = [_stock_row(phase) for phase in (ClothRollStock.PHASE_4, ClothRollStock.PHASE_11)]
+    employees = Employee.objects.filter(active=True).order_by("employee_code").values(
+        "id", "employee_code", "name", "department"
+    )[:1000]
+    return Response({
+        "stocks": [_stock_json(row) for row in stocks],
+        "employees": [
+            {"id": str(e["id"]), "employee_code": e["employee_code"], "name": e["name"], "department": e["department"]}
+            for e in employees
+        ],
+        "current_employee_id": str(actor.id),
+    })
+
+
+@csrf_exempt
+@api_view(["GET"])
+@permission_classes([AllowAny])
 def cloth_rolls(request):
     qr_token = str(request.GET.get("qr_token") or "").strip()
     permission = "can_view_qr_withdraw" if qr_token else "can_view_cloth_rolls"
@@ -158,8 +180,17 @@ def cloth_rolls(request):
 @permission_classes([AllowAny])
 def cloth_roll_transaction(request):
     source = str(request.data.get("source") or "WEB").strip().upper()
-    permission = "can_view_qr_withdraw" if source == "QR" else "can_view_cloth_rolls"
-    actor, err = require_permission(request, permission)
+    tx_type = str(request.data.get("transaction_type") or "").strip().upper()
+    if source == "QR":
+        actor, err = require_permission(request, "can_view_qr_withdraw")
+    elif source == "WEB":
+        # Any authenticated role may submit a cloth-roll withdrawal.
+        # Receiving stock remains restricted to users with the existing permission.
+        actor, err = require_permission(request)
+        if not err and tx_type == ClothRollTransaction.TYPE_IN and not permissions_for(actor).get("can_view_cloth_rolls"):
+            return Response({"detail": "คุณไม่มีสิทธิ์ใช้งานส่วนนี้"}, status=403)
+    else:
+        return Response({"detail": "แหล่งบันทึกไม่ถูกต้อง"}, status=400)
     if err:
         return err
     if source == "QR":
@@ -171,7 +202,6 @@ def cloth_roll_transaction(request):
             return Response({"detail": "QR Code ไม่ถูกต้อง กรุณาสแกน QR Code ของ Phase 4 หรือ Phase 11"}, status=400)
     else:
         phase = _phase(request.data.get("phase"))
-    tx_type = str(request.data.get("transaction_type") or "").strip().upper()
     if source == "QR" and tx_type != ClothRollTransaction.TYPE_OUT:
         return Response({"detail": "QR Code นี้ใช้สำหรับเบิกเศษผ้าเท่านั้น"}, status=400)
     if phase not in {ClothRollStock.PHASE_4, ClothRollStock.PHASE_11}:
