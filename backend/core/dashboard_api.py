@@ -1,5 +1,5 @@
 from decimal import Decimal
-from datetime import date
+from django.utils import timezone
 
 from django.db.models import DecimalField, Exists, F, OuterRef, Subquery, Sum, Value
 from django.db.models.functions import Coalesce
@@ -53,7 +53,7 @@ def dashboard(request):
         .filter(stock_qty__lt=F("min_stock"))
     )
 
-    today = date.today()
+    today = timezone.localdate()
     month_start = today.replace(day=1)
     month_end = today.replace(year=today.year + 1, month=1, day=1) if today.month == 12 else today.replace(month=today.month + 1, day=1)
     monthly_spend = OrderRecord.objects.filter(
