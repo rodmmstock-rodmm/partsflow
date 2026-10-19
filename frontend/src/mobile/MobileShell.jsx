@@ -1,6 +1,5 @@
 import { NavLink, Navigate, Route, Routes, useNavigate } from "react-router-dom";
 import { useAuth } from "../auth";
-import { NotificationBell } from "../components/Common";
 import MobileDashboard from "./MobileDashboard";
 import MobileOverviewDashboard from "./MobileOverviewDashboard";
 import MobileHistory from "./MobileHistory";
@@ -19,7 +18,7 @@ import QrWithdraw from "../pages/QrWithdraw";
 import ClothRolls from "../pages/ClothRolls";
 
 const NAV = [
-  ["/", "Overview", "chart", "can_view_dashboard"],
+  ["/overview", "Overview", "chart", "can_view_dashboard"],
   ["/stock", "Stock", "box", "can_view_parts"],
   ["/history", "History", "clock", "can_view_history"],
   ["/safety-stock", "Safety", "alert", "can_view_safety_stock"],
@@ -83,7 +82,6 @@ export default function MobileShell() {
           </div>
         </div>
         <div className="m-topbar-actions">
-          <NotificationBell compact />
           <button onClick={logout} aria-label="ออกจากระบบ">
             <svg className="nav-icon"><use href="#ic-power" /></svg>
           </button>
@@ -92,8 +90,9 @@ export default function MobileShell() {
 
       <main className="m-main">
         <Routes>
-          <Route path="/" element={<Protected permission="can_view_dashboard"><MobileOverviewDashboard /></Protected>} />
+          <Route path="/" element={<Navigate to="/stock" replace />} />
           <Route path="/stock" element={<Protected permission="can_view_parts"><MobileDashboard /></Protected>} />
+          <Route path="/overview" element={<Protected permission="can_view_dashboard"><MobileOverviewDashboard /></Protected>} />
           <Route path="/spare-sets" element={<Protected permission="can_view_dashboard"><MobileSpareSets /></Protected>} />
           <Route path="/history" element={<Protected permission="can_view_history"><MobileHistory /></Protected>} />
           <Route path="/safety-stock" element={<Protected permission="can_view_safety_stock"><MobileSafetyStock /></Protected>} />
