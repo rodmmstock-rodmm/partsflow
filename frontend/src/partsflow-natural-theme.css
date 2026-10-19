@@ -1,71 +1,71 @@
-/* PartsFlow — restrained, production-oriented visual system.
+/* PartsFlow — restrained, human-designed ERP visual system.
    Presentation only. Keep existing content, routes, forms, and interactions unchanged. */
 :root {
-  --brand: #426b8a;
-  --brand2: #5d819c;
-  --brand-soft: #edf3f7;
-  --bg: #f5f7f9;
+  --brand: #2f80ed;
+  --brand2: #58a6f6;
+  --brand-soft: #eaf4ff;
+  --bg: #f6f8fb;
   --panel: #ffffff;
-  --border: #dfe5ea;
-  --border-soft: #ebeff2;
-  --text: #263746;
-  --muted: #788794;
-  --sub: #5d6f7d;
+  --border: #e0e6ed;
+  --border-soft: #edf1f5;
+  --text: #26384a;
+  --muted: #758496;
+  --sub: #526578;
   --radius-s: 5px;
-  --radius-m: 8px;
-  --radius-l: 10px;
+  --radius-m: 7px;
+  --radius-l: 9px;
 }
 
-/* Neutral surfaces and predictable typography */
+/* Clear, readable defaults */
 html, body { background: var(--bg); color: var(--text); }
 body { font-family: "IBM Plex Sans Thai", sans-serif; -webkit-font-smoothing: antialiased; }
 button, input, select, textarea { font: inherit; }
 a { color: inherit; }
 button:focus-visible, a:focus-visible, input:focus-visible,
 select:focus-visible, textarea:focus-visible {
-  outline: 2px solid #8aaec5;
+  outline: 2px solid #79b9f5;
   outline-offset: 2px;
 }
 
-/* App navigation: quiet by default, one clear active state */
+/* Navigation: neutral shell, bright blue used only for clear selection */
 .sidebar, .sidebar.open { background: #fff; border-color: var(--border); box-shadow: none; }
 .brand { padding: 19px 18px; border-bottom-color: var(--border-soft); }
 .brand-logo, .login-logo { background: var(--brand); border-radius: 7px; box-shadow: none; }
-.brand strong { color: #263746; letter-spacing: 0; }
+.brand strong { color: var(--text); letter-spacing: 0; }
 .brand span, .sidebar-user span, .mobile-user span { color: var(--muted); }
 .nav-list { padding: 12px 10px; }
 .nav-group { margin-bottom: 12px; }
-.nav-group-label { color: #8a969f; font-size: 10px; letter-spacing: .045em; }
+.nav-group-label { color: #8794a2; font-size: 10px; letter-spacing: .035em; }
 .nav-link {
   margin: 2px 0;
   padding: 9px 11px;
   border-radius: 6px;
-  color: #61717e;
+  color: #5c6e80;
   box-shadow: none;
   transition: background-color .12s ease, color .12s ease;
 }
-.nav-link:hover { background: #f3f6f8; color: #345b77; }
+.nav-link:hover { background: #f4f8fc; color: #216fc0; }
 .nav-link.active {
-  color: #315a77;
-  background: #eaf1f6;
-  box-shadow: inset 3px 0 0 #5d819c;
+  color: #176fc5;
+  background: #eaf4ff;
+  box-shadow: inset 3px 0 0 var(--brand);
   font-weight: 600;
 }
 .sidebar-user { border-top-color: var(--border-soft); }
-.sidebar-user strong, .mobile-user strong { color: #344653; }
+.sidebar-user strong, .mobile-user strong { color: #34495d; }
 .main-content { padding-top: 26px; }
 .app-header-bar { color: var(--muted); }
 .mobile-topbar { background: #fff; border-bottom: 1px solid var(--border); box-shadow: none; }
-.mobile-nav { background: #fff; border-top: 1px solid var(--border); box-shadow: 0 -2px 8px rgba(25, 43, 57, .035); }
-.mobile-link.active { background: #edf3f7; color: #345b77; box-shadow: none; }
+.mobile-nav { background: #fff; border-top: 1px solid var(--border); box-shadow: 0 -2px 8px rgba(35, 58, 82, .04); }
+.mobile-link.active { background: #eaf4ff; color: #176fc5; box-shadow: none; }
 
-/* Page headings and panels: restrained scale and consistent alignment */
+/* Page hierarchy: strong headings, restrained secondary copy */
 .page-header { margin-bottom: 20px; align-items: center; }
 .page-header h1 {
-  color: #263746;
+  color: #26384a;
   font-size: clamp(21px, 1.65vw, 27px);
   font-weight: 600;
-  letter-spacing: -.015em;
+  letter-spacing: -.02em;
   line-height: 1.35;
 }
 .page-header p { color: var(--muted); font-size: 12.5px; line-height: 1.55; }
@@ -73,42 +73,42 @@ select:focus-visible, textarea:focus-visible {
   padding: 18px;
   margin-bottom: 16px;
   border: 1px solid var(--border);
-  border-radius: 9px;
-  background: #fff;
-  box-shadow: 0 1px 2px rgba(26, 42, 55, .025);
+  border-radius: 8px;
+  background: var(--panel);
+  box-shadow: 0 1px 2px rgba(35, 58, 82, .025);
 }
 .section-head { margin-bottom: 14px; }
-.section-head h2 { color: #344653; font-weight: 600; font-size: 15px; }
+.section-head h2 { color: #34495d; font-weight: 600; font-size: 15px; }
 .section-head p { color: var(--muted); }
 
-/* KPI summaries: simple rectangular cards, not oversized floating pills */
+/* KPI summaries: compact and consistent, not oversized floating cards */
 .kpi-grid { gap: 12px; }
 .kpi-card {
-  min-height: 100px;
+  min-height: 98px;
   padding: 15px 16px;
   border: 1px solid var(--border);
   border-top: 1px solid var(--border);
-  border-radius: 9px;
+  border-radius: 8px;
   background: #fff;
-  box-shadow: 0 1px 2px rgba(26, 42, 55, .025);
+  box-shadow: 0 1px 2px rgba(35, 58, 82, .025);
 }
-.kpi-card strong { color: #263746; font-size: 24px; font-weight: 650; letter-spacing: -.02em; }
+.kpi-card strong { color: #26384a; font-size: 24px; font-weight: 650; letter-spacing: -.02em; }
 .kpi-card span, .kpi-card small { color: var(--muted); }
 .kpi-card.danger, .kpi-card.warning, .kpi-card.success, .kpi-card.info { border-top: 1px solid var(--border); }
-.kpi-card.danger strong { color: #b64d4d; }
+.kpi-card.danger strong { color: #b94b50; }
 .kpi-card.warning strong { color: #a96b27; }
-.kpi-card.success strong { color: #39785e; }
-.kpi-card.info strong { color: #426b8a; }
+.kpi-card.success strong { color: #34795d; }
+.kpi-card.info strong { color: var(--brand); }
 
-/* Controls: consistent height, clear hierarchy, no gradients */
+/* Controls: clear primary action, quiet secondary actions */
 input, select, textarea {
-  border-color: #d6dfe5;
+  border-color: #d6e0e9;
   border-radius: 6px;
   background: #fff;
-  color: #263746;
+  color: var(--text);
   box-shadow: none;
 }
-input::placeholder, textarea::placeholder { color: #9aa6af; }
+input::placeholder, textarea::placeholder { color: #9aa7b4; }
 .btn, .mini {
   min-height: 36px;
   border-radius: 6px;
@@ -116,36 +116,40 @@ input::placeholder, textarea::placeholder { color: #9aa6af; }
   box-shadow: none;
 }
 .btn.primary, .mini.primary, .tab.active, .pagination-item.active {
-  background: #426b8a;
+  background: var(--brand);
   color: #fff;
-  border-color: #426b8a;
+  border-color: var(--brand);
   box-shadow: none;
 }
-.btn.primary:hover, .mini.primary:hover { background: #355a76; border-color: #355a76; }
-.btn:not(.primary) { border-color: #d6dfe5; background: #fff; color: #405563; }
-.btn.ghost { background: #f3f6f8; color: #526572; }
+.btn.primary:hover, .mini.primary:hover { background: #216fc8; border-color: #216fc8; }
+.btn:not(.primary) { border-color: #d6e0e9; background: #fff; color: #40576b; }
+.btn.ghost { background: #f4f7fa; color: #526578; }
 .tab { border-radius: 6px; }
 .badge, .status-badge, .pill { border-radius: 5px; }
 
-/* Tables: compact, legible, with low-contrast striping */
+/* Tables: strong column labels, fine dividers, very subtle row cues */
 table { border-collapse: separate; border-spacing: 0; }
-th { background: #f4f6f8; color: #667783; font-weight: 600; }
-td, th { border-color: #e2e7eb; }
-tbody tr:nth-child(even) { background: #fafbfc; }
-tbody tr:hover { background: #f2f6f8; }
+th { background: #f3f6f9; color: #637487; font-weight: 600; }
+td, th { border-color: #e2e8ef; }
+tbody tr:nth-child(even) { background: #fbfcfe; }
+tbody tr:hover { background: #f0f7ff; }
 
-/* Mobile: retain density without squeezing controls or increasing decoration */
+/* Mobile: keep touch targets comfortable without adding visual clutter */
 @media (max-width: 760px) {
-  html, body { background: #f5f7f9; }
+  html, body { background: #f6f8fb; }
   .main-content { padding: 16px 13px 88px; }
   .page-header { margin-bottom: 16px; }
   .page-header h1 { font-size: 23px; line-height: 1.35; }
   .page-header p { font-size: 12.5px; }
   .panel { padding: 14px; border-radius: 8px; margin-bottom: 12px; }
   .kpi-grid { gap: 10px; }
-  .kpi-card { min-height: 104px; padding: 13px; border-radius: 8px; }
+  .kpi-card { min-height: 102px; padding: 13px; border-radius: 8px; }
   .kpi-card strong { font-size: 22px; }
   .btn, .mini { min-height: 40px; }
   .mobile-topbar { padding-top: env(safe-area-inset-top); }
   .mobile-nav { padding-bottom: env(safe-area-inset-bottom); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .nav-link { transition: none; }
 }
