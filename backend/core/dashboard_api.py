@@ -1,4 +1,5 @@
 from decimal import Decimal
+from datetime import date
 
 from django.db.models import DecimalField, Exists, F, OuterRef, Subquery, Sum, Value
 from django.db.models.functions import Coalesce
@@ -52,12 +53,28 @@ def dashboard(request):
         .filter(stock_qty__lt=F("min_stock"))
     )
 
+    today = date.today()
+    month_start = today.replace(day=1)
+    month_end = today.replace(year=today.year + 1, month=1, day=1) if today.month == 12 else today.replace(month=today.month + 1, day=1)
+    monthly_spend = OrderRecord.objects.filter(
+        is_deleted=False,
+        cancel_status=False,
+        lifecycle_status__in=[OrderRecord.LIFECYCLE_ACTIVE, OrderRecord.LIFECYCLE_COMPLETED],
+        procurement_phase=OrderRecord.PROCUREMENT_PURCHASE,
+        status__in=[OrderRecord.STATUS_ITEM, OrderRecord.STATUS_COMPLETE],
+        order_date__gte=month_start,
+        order_date__lt=month_end,
+        currency__iexact="THB",
+    ).aggregate(total=Coalesce(Sum("price_total"), Value(Decimal("0"))))["total"]
+
     return Response(
         {
             "kpi": {
                 "parts": Part.objects.filter(active=True).count(),
                 "safety_stock": low_parts.filter(active_ordering=False).count(),
                 "safety_stock_ordered": low_parts.filter(active_ordering=True).count(),
+                "monthly_purchase_spend": str(monthly_spend or Decimal("0")),
+                "spend_month": month_start.strftime("%Y-%m"),
             }
         }
     )
