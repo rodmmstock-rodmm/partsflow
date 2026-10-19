@@ -4,6 +4,7 @@ import { apiGet } from "../api";
 import { useAuth } from "../auth";
 import { PageHeader, fmt } from "../components/Common";
 import { useFeedback } from "../feedback";
+import MonthlySpendCard from "../components/MonthlySpendCard";
 
 export default function DashboardOverview() {
   const auth = useAuth();
@@ -21,19 +22,20 @@ export default function DashboardOverview() {
 
   return (
     <>
-      <PageHeader title="Dashboard" subtitle="ภาพรวมสถานะคลังอะไหล่และงานที่ควรติดตาม" />
-      <div className="kpi-grid three dashboard-overview-kpi">
-        <button type="button" className="kpi-card kpi-card-link" onClick={() => navigate("/stock")}>
+      <PageHeader title="Overview" subtitle="ภาพรวมสถานะคลังอะไหล่และงานที่ควรติดตาม" />
+      <div className="kpi-grid four dashboard-overview-kpi">
+        <MonthlySpendCard amount={kpi.monthly_purchase_spend} showToast={showToast} />
+        <button type="button" className="kpi-card kpi-card-link overview-kpi-card" onClick={() => navigate("/stock")}>
           <span>จำนวนรายการอะไหล่</span>
           <strong>{fmt(kpi.parts)}</strong>
           <small>ดูและจัดการรายการสินค้าในคลัง</small>
         </button>
-        <button type="button" className="kpi-card danger kpi-card-link" onClick={() => navigate("/safety-stock")}>
+        <button type="button" className="kpi-card danger kpi-card-link overview-kpi-card" onClick={() => navigate("/safety-stock")}>
           <span>Safety Stock</span>
           <strong>{fmt(kpi.safety_stock)}</strong>
           <small>ต่ำกว่า Min และยังไม่ได้สั่ง</small>
         </button>
-        <button type="button" className="kpi-card warning kpi-card-link" onClick={() => navigate("/orders")}>
+        <button type="button" className="kpi-card warning kpi-card-link overview-kpi-card" onClick={() => navigate("/orders")}>
           <span>Safety Stock currently Order</span>
           <strong>{fmt(kpi.safety_stock_ordered)}</strong>
           <small>ต่ำกว่า Min แต่มี Order อยู่</small>

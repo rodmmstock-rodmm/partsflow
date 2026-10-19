@@ -193,3 +193,37 @@ tbody tr:hover .sticky-action{background:#fafafa!important}
   /* Prevent iOS focus zoom while preserving pinch zoom. */
   input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="file"]),select,textarea{font-size:16px!important}
 }
+
+/* Overview KPI cards: clean white surfaces with consistent spacing and budget progress. */
+.dashboard-overview-kpi{grid-template-columns:repeat(4,minmax(0,1fr));align-items:stretch}
+.dashboard-overview-kpi .kpi-card,.dashboard-budget-card{min-width:0;min-height:156px;border:1px solid #edf0f4;border-top:1px solid #edf0f4;border-radius:12px;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.08);padding:18px 18px 15px}
+.dashboard-overview-kpi .kpi-card{gap:3px;text-align:left;align-items:flex-start;justify-content:flex-start}
+.dashboard-overview-kpi .kpi-card span,.budget-kpi-label{font-size:12px;color:#898989;letter-spacing:0;font-weight:400}
+.dashboard-overview-kpi .kpi-card strong,.budget-kpi-amount{font-family:inherit;font-size:24px;line-height:1.25;font-weight:700;letter-spacing:-.02em;color:#202020;margin-top:7px;overflow-wrap:anywhere}
+.dashboard-overview-kpi .kpi-card small{font-size:11px;color:#898989;margin-top:auto;line-height:1.4}
+.dashboard-overview-kpi .kpi-card.danger strong,.dashboard-overview-kpi .kpi-card.warning strong{color:#202020}
+.dashboard-overview-kpi .kpi-card:focus-visible{outline:2px solid #78a9d8;outline-offset:2px}
+.budget-kpi-card{display:flex;flex-direction:column;gap:12px}
+.budget-kpi-top{display:flex;align-items:flex-start;justify-content:space-between;gap:10px}
+.budget-kpi-top>div{display:flex;flex-direction:column;min-width:0}
+.budget-kpi-icon{display:grid;place-items:center;width:32px;height:32px;flex:0 0 32px;border-radius:9px;background:#eef6fd;color:#3978b8;font-size:17px;font-weight:700}
+.budget-kpi-meta{display:flex;flex-direction:column;gap:5px;color:#898989;font-size:11px}
+.budget-kpi-form{display:flex;align-items:center;gap:5px;min-width:0}
+.budget-kpi-form>span{color:#64748b;font-size:12px}
+.budget-kpi-form input{width:100%;min-width:0;height:30px;padding:4px 7px;border:1px solid #e2e8f0;border-radius:6px;color:#334155;font-size:12px}
+.budget-kpi-form button{height:30px;flex:0 0 auto;padding:0 9px;border:0;border-radius:6px;background:#3978b8;color:#fff;font-size:11px}
+.budget-kpi-progress-track{height:5px;width:100%;overflow:hidden;border-radius:3px;background:#dcdcdc}
+.budget-kpi-progress-track>span{display:block;height:100%;border-radius:3px;background:#78a9d8;transition:width .2s ease}
+.budget-kpi-footer{display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap;color:#898989;font-size:10px;line-height:1.35}
+.budget-kpi-over{color:#b45309;font-size:10px}
+.dashboard-overview-actions{border-radius:12px;box-shadow:0 1px 3px rgba(0,0,0,.05)}
+@media(max-width:1100px){.dashboard-overview-kpi{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:767px){
+ .dashboard-overview-kpi-mobile{gap:10px}
+ .dashboard-overview-kpi-mobile>button{min-width:0;min-height:96px;border:1px solid #edf0f4!important;border-radius:12px!important;background:#fff!important;box-shadow:0 1px 3px rgba(0,0,0,.08)!important;padding:14px!important;display:flex;flex-direction:column;align-items:flex-start;justify-content:center;gap:8px}
+ .dashboard-overview-kpi-mobile>button span{font-size:11px;color:#898989}
+ .dashboard-overview-kpi-mobile>button b{font-size:21px;font-weight:700;color:#202020!important}
+ .dashboard-budget-card{min-height:0;margin-bottom:12px;padding:16px}
+ .budget-kpi-amount{font-size:23px}
+ .budget-kpi-footer{font-size:10px}
+}

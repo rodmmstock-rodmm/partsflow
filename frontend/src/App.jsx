@@ -28,7 +28,7 @@ import MobileShell from "./mobile/MobileShell";
 // have to re-flatten NAV_GROUPS itself).
 const NAV_GROUPS = [
   ["Stock", [
-    ["/", "Dashboard", "chart", "can_view_dashboard"],
+    ["/", "Overview", "chart", "can_view_dashboard"],
     ["/stock", "Stock", "box", "can_view_parts"],
     ["/history", "History", "clock", "can_view_history"],
     ["/safety-stock", "Safety Stock", "alert", "can_view_safety_stock"],
