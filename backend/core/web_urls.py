@@ -28,6 +28,7 @@ urlpatterns = [
     path("stock/issue/", stock_api.issue_stock, name="web-stock-issue"),
     path("stock/receive/", stock_api.receive_stock, name="web-stock-receive"),
     path("stock/adjust/", stock_api.adjust_stock, name="web-stock-adjust"),
+    path("history/withdrawal-summary/", stock_api.withdrawal_summary, name="web-history-withdrawal-summary"),
     path("history/", stock_api.history_list, name="web-history"),
     path("history/<uuid:pk>/", stock_api.history_update, name="web-history-update"),
     path("history/<uuid:pk>/delete/", stock_api.history_delete, name="web-history-delete"),
