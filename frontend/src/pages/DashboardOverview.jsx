@@ -5,6 +5,16 @@ import { useAuth } from "../auth";
 import { PageHeader, fmt } from "../components/Common";
 import { useFeedback } from "../feedback";
 import MonthlySpendCard from "../components/MonthlySpendCard";
+import DailyWithdrawalChart from "../components/DailyWithdrawalChart";
+
+function OverviewIcon({ type }) {
+  const shapes = {
+    parts: <><path d="m12 3 8 4.5v9L12 21l-8-4.5v-9L12 3Z" /><path d="m4.5 7.7 7.5 4.4 7.5-4.4M12 12v9" /></>,
+    safety: <><path d="m12 3 9 16H3L12 3Z" /><path d="M12 9v4M12 16h.01" /></>,
+    orders: <><path d="M8 6h13M8 12h13M8 18h13" /><path d="M3 6h.01M3 12h.01M3 18h.01" /></>,
+  };
+  return <span className="overview-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">{shapes[type]}</svg></span>;
+}
 
 export default function DashboardOverview() {
   const auth = useAuth();
@@ -24,23 +34,27 @@ export default function DashboardOverview() {
     <>
       <PageHeader title="Overview" subtitle="ภาพรวมสถานะคลังอะไหล่และงานที่ควรติดตาม" />
       <div className="kpi-grid four dashboard-overview-kpi">
-        <MonthlySpendCard amount={kpi.monthly_purchase_spend} showToast={showToast} />
+        <MonthlySpendCard amount={kpi.monthly_purchase_spend} />
         <button type="button" className="kpi-card kpi-card-link overview-kpi-card" onClick={() => navigate("/stock")}>
           <span>จำนวนรายการอะไหล่</span>
+          <OverviewIcon type="parts" />
           <strong>{fmt(kpi.parts)}</strong>
           <small>ดูและจัดการรายการสินค้าในคลัง</small>
         </button>
         <button type="button" className="kpi-card danger kpi-card-link overview-kpi-card" onClick={() => navigate("/safety-stock")}>
           <span>Safety Stock</span>
+          <OverviewIcon type="safety" />
           <strong>{fmt(kpi.safety_stock)}</strong>
           <small>ต่ำกว่า Min และยังไม่ได้สั่ง</small>
         </button>
         <button type="button" className="kpi-card warning kpi-card-link overview-kpi-card" onClick={() => navigate("/orders")}>
           <span>Safety Stock currently Order</span>
+          <OverviewIcon type="orders" />
           <strong>{fmt(kpi.safety_stock_ordered)}</strong>
           <small>ต่ำกว่า Min แต่มี Order อยู่</small>
         </button>
       </div>
+      <DailyWithdrawalChart />
 
       <section className="panel dashboard-overview-actions">
         <div className="section-head">
