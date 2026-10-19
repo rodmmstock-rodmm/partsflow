@@ -210,3 +210,29 @@ tbody tr:hover { background: #f0f7ff; }
   .dashboard-overview-kpi-mobile > button { padding: 10px 8px; }
   .dashboard-overview-kpi-mobile > button b { font-size: 19px; }
 }
+
+
+/* Mobile stock pagination: show direct page numbers with thumb-friendly targets. */
+.mobile-app-shell .pagination {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 5px;
+  margin: 16px 0 8px;
+}
+.mobile-app-shell .pagination-nav,
+.mobile-app-shell .pagination-item {
+  min-width: 34px;
+  min-height: 36px;
+  padding: 0 8px;
+  border-radius: 7px;
+  font-size: 12px;
+}
+.mobile-app-shell .pagination-item { width: 34px; padding: 0; }
+@media (max-width: 360px) {
+  .mobile-app-shell .pagination { gap: 3px; }
+  .mobile-app-shell .pagination-nav,
+  .mobile-app-shell .pagination-item { min-width: 30px; min-height: 34px; padding: 0 6px; }
+  .mobile-app-shell .pagination-item { width: 30px; padding: 0; }
+}
