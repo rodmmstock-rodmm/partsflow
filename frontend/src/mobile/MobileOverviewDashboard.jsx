@@ -4,6 +4,7 @@ import { apiGet } from "../api";
 import { useFeedback } from "../feedback";
 import { MobilePage } from "./MobileCommon";
 import { fmt } from "../components/Common";
+import MonthlySpendCard from "../components/MonthlySpendCard";
 
 export default function MobileOverviewDashboard() {
   const navigate = useNavigate();
@@ -19,7 +20,8 @@ export default function MobileOverviewDashboard() {
   }, []);
 
   return (
-    <MobilePage title="Dashboard" subtitle="ภาพรวมสถานะคลังอะไหล่">
+    <MobilePage title="Overview" subtitle="ภาพรวมสถานะคลังอะไหล่">
+      <MonthlySpendCard amount={kpi.monthly_purchase_spend} showToast={showToast} />
       <div className="m-kpi-row dashboard-overview-kpi-mobile">
         <button type="button" onClick={() => navigate("/stock")}>
           <span>รายการอะไหล่</span><b>{fmt(kpi.parts)}</b>
