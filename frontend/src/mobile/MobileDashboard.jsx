@@ -13,6 +13,7 @@ import {
 import { useFeedback } from "../feedback";
 import PartDetailModal from "../components/PartDetailModal";
 import BarcodeScannerModal from "../components/BarcodeScannerModal";
+import QrCode01Icon from "../components/QrCode01Icon";
 import { useOptions } from "../optionsContext";
 import { PartModal } from "../pages/Dashboard";
 import {
@@ -159,7 +160,7 @@ export default function MobileDashboard() {
           aria-label="สแกน Barcode หรือ QR Code"
           onClick={() => setScannerOpen(true)}
         >
-          🔳
+          <QrCode01Icon size={22} aria-hidden="true" />
         </button>
       </div>
       <div className="m-filter-row">
