@@ -508,7 +508,9 @@ export default function Dashboard() {
   }
 
   async function refreshAfterMutation() {
-    await Promise.all([loadKpi(true), loadParts(true)]);
+    const requests = [loadParts(true)];
+    if (auth.can("can_view_dashboard")) requests.push(loadKpi(true));
+    await Promise.all(requests);
   }
 
   async function deletePart(part) {
@@ -536,8 +538,15 @@ export default function Dashboard() {
   }
 
   useEffect(() => {
+    // The Stock page is available to roles that do not have Dashboard access.
+    // Do not call the protected dashboard KPI endpoint for those roles,
+    // otherwise the expected 403 response shows a misleading permission popup.
+    if (!auth.can("can_view_dashboard")) {
+      setKpi({});
+      return;
+    }
     loadKpi().catch((err) => showToast(err.message, "error"));
-  }, []);
+  }, [auth.employee?.permissions?.can_view_dashboard]);
 
   useEffect(() => {
     loadParts();
