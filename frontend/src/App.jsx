@@ -1,7 +1,6 @@
 import { useEffect, useState } from "react";
 import { Navigate, NavLink, Route, Routes, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "./auth";
-import { NotificationBell } from "./components/Common";
 import Dashboard from "./pages/Dashboard";
 import DashboardOverview from "./pages/DashboardOverview";
 import History from "./pages/History";
@@ -28,7 +27,7 @@ import MobileShell from "./mobile/MobileShell";
 // have to re-flatten NAV_GROUPS itself).
 const NAV_GROUPS = [
   ["Stock", [
-    ["/", "Overview", "chart", "can_view_dashboard"],
+    ["/overview", "Overview", "chart", "can_view_dashboard"],
     ["/stock", "Stock", "box", "can_view_parts"],
     ["/history", "History", "clock", "can_view_history"],
     ["/safety-stock", "Safety Stock", "alert", "can_view_safety_stock"],
@@ -85,9 +84,6 @@ function DesktopShell() {
   async function logout() { await auth.logout(); navigate("/login", { replace: true }); }
   return <div className="app-shell">
     {ICON_SPRITE}
-    <div className="app-header-bar">
-      <NotificationBell />
-    </div>
     {!sidebarOpen && <button className="hamburger-btn" onClick={() => setSidebarOpen(true)} aria-label="เปิดเมนู">☰</button>}
     {sidebarOpen && <div className="sidebar-backdrop" onClick={() => setSidebarOpen(false)} />}
     <aside className={sidebarOpen ? "sidebar open" : "sidebar"}>
@@ -99,7 +95,7 @@ function DesktopShell() {
       <nav className="nav-list">{visibleGroups.map(([group,items])=><div className="nav-group" key={group}><div className="nav-group-label">{group}</div>{items.map(([to,label,icon])=><NavLink key={to} to={to} end={to==="/"} onClick={()=>setSidebarOpen(false)} className={({isActive})=>isActive?"nav-link active":"nav-link"}><svg className="nav-icon"><use href={`#ic-${icon}`}/></svg><span>{label}</span></NavLink>)}</div>)}</nav>
       <div className="sidebar-user"><div><strong>{auth.employee?.name}</strong><span>{auth.employee?.employee_code} · {auth.employee?.role||"No Role"}</span></div><button className="icon-btn" onClick={logout}>⏻</button></div>
     </aside>
-    <main className="main-content"><Routes><Route path="/" element={<Protected permission="can_view_dashboard"><DashboardOverview/></Protected>}/><Route path="/stock" element={<Protected permission="can_view_parts"><Dashboard/></Protected>}/><Route path="/spare-sets" element={<Protected permission="can_view_dashboard"><SpareSets/></Protected>}/><Route path="/history" element={<Protected permission="can_view_history"><History/></Protected>}/><Route path="/safety-stock" element={<Protected permission="can_view_safety_stock"><SafetyStock/></Protected>}/><Route path="/orders" element={<Protected permission="can_view_orders"><div className="orders-workspace"><OrdersV2/></div></Protected>}/><Route path="/po-balance" element={<Protected permission="can_view_po_balance"><POBalance/></Protected>}/><Route path="/order-steps" element={<Protected permission="can_view_order_step"><div className="order-step-workspace"><Orders mode="steps"/></div></Protected>}/><Route path="/order-status" element={<Protected permission="can_view_order_status"><OrderStatusDashboard/></Protected>}/><Route path="/fast-orders" element={<Protected permission="can_view_orders"><FastOrders/></Protected>}/><Route path="/vendors" element={<Protected permission="can_view_suppliers"><Vendors/></Protected>}/><Route path="/machines" element={<Protected permission="can_view_machines"><Machines/></Protected>}/><Route path="/tools" element={<Protected permission="can_view_tools"><Tools/></Protected>}/><Route path="/qr-withdraw" element={<Protected permission="can_view_qr_withdraw"><QrWithdraw/></Protected>}/><Route path="/cloth-rolls/scan/:token" element={<Protected permission="can_view_qr_withdraw"><ClothRolls/></Protected>}/><Route path="/cloth-rolls/:phase?" element={<Protected permission="can_view_cloth_rolls"><ClothRolls/></Protected>}/><Route path="/settings/roles" element={<Protected permission="can_manage_roles"><RoleSettings/></Protected>}/></Routes></main>
+    <main className="main-content"><Routes><Route path="/" element={<Navigate to="/stock" replace />}/><Route path="/stock" element={<Protected permission="can_view_parts"><Dashboard/></Protected>}/><Route path="/overview" element={<Protected permission="can_view_dashboard"><DashboardOverview/></Protected>}/><Route path="/spare-sets" element={<Protected permission="can_view_dashboard"><SpareSets/></Protected>}/><Route path="/history" element={<Protected permission="can_view_history"><History/></Protected>}/><Route path="/safety-stock" element={<Protected permission="can_view_safety_stock"><SafetyStock/></Protected>}/><Route path="/orders" element={<Protected permission="can_view_orders"><div className="orders-workspace"><OrdersV2/></div></Protected>}/><Route path="/po-balance" element={<Protected permission="can_view_po_balance"><POBalance/></Protected>}/><Route path="/order-steps" element={<Protected permission="can_view_order_step"><div className="order-step-workspace"><Orders mode="steps"/></div></Protected>}/><Route path="/order-status" element={<Protected permission="can_view_order_status"><OrderStatusDashboard/></Protected>}/><Route path="/fast-orders" element={<Protected permission="can_view_orders"><FastOrders/></Protected>}/><Route path="/vendors" element={<Protected permission="can_view_suppliers"><Vendors/></Protected>}/><Route path="/machines" element={<Protected permission="can_view_machines"><Machines/></Protected>}/><Route path="/tools" element={<Protected permission="can_view_tools"><Tools/></Protected>}/><Route path="/qr-withdraw" element={<Protected permission="can_view_qr_withdraw"><QrWithdraw/></Protected>}/><Route path="/cloth-rolls/scan/:token" element={<Protected permission="can_view_qr_withdraw"><ClothRolls/></Protected>}/><Route path="/cloth-rolls/:phase?" element={<Protected permission="can_view_cloth_rolls"><ClothRolls/></Protected>}/><Route path="/settings/roles" element={<Protected permission="can_manage_roles"><RoleSettings/></Protected>}/></Routes></main>
   </div>;
 }
 function ResponsiveShell(){return useIsMobile()?<MobileShell/>:<DesktopShell/>}
