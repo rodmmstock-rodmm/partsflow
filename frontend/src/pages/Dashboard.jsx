@@ -6,6 +6,7 @@ import { Alert, Modal, PageHeader, Pagination, PartImage, SearchableSelect, Skel
 import { useFeedback } from "../feedback";
 import { useOptions } from "../optionsContext";
 import BarcodeScannerModal from "../components/BarcodeScannerModal";
+import QrCode01Icon from "../components/QrCode01Icon";
 import PartDetailModal from "../components/PartDetailModal";
 
 const blankPart = {
@@ -634,7 +635,7 @@ export default function Dashboard() {
             aria-label="สแกน Barcode หรือ QR Code"
             onClick={() => setScannerOpen(true)}
           >
-            🔳 สแกน Barcode / QR
+            <QrCode01Icon size={18} aria-hidden="true" /> สแกน Barcode / QR
           </button>
           <select value={warehouse} onChange={(e) => { setWarehouse(e.target.value); setPage(1); }}>
             <option value="">คลังทั้งหมด</option>
