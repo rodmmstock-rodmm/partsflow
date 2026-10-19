@@ -19,7 +19,7 @@ import QrWithdraw from "../pages/QrWithdraw";
 import ClothRolls from "../pages/ClothRolls";
 
 const NAV = [
-  ["/", "Dashboard", "chart", "can_view_dashboard"],
+  ["/", "Overview", "chart", "can_view_dashboard"],
   ["/stock", "Stock", "box", "can_view_parts"],
   ["/history", "History", "clock", "can_view_history"],
   ["/safety-stock", "Safety", "alert", "can_view_safety_stock"],
