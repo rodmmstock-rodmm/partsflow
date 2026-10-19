@@ -54,9 +54,30 @@ const ICON_SPRITE = (
   </svg>
 );
 
+const MOBILE_ACCESS_FALLBACKS = [
+  ["/stock", "can_view_parts"],
+  ["/overview", "can_view_dashboard"],
+  ["/history", "can_view_history"],
+  ["/safety-stock", "can_view_safety_stock"],
+  ["/cloth-rolls", "can_view_cloth_rolls"],
+  ["/qr-withdraw", "can_view_qr_withdraw"],
+  ["/tools", "can_view_tools"],
+  ["/orders", "can_view_orders"],
+  ["/order-steps", "can_view_order_step"],
+  ["/order-status", "can_view_order_status"],
+  ["/po-balance", "can_view_po_balance"],
+  ["/vendors", "can_view_suppliers"],
+  ["/machines", "can_view_machines"],
+  ["/settings/roles", "can_manage_roles"],
+];
+
 function Protected({ permission, children }) {
   const auth = useAuth();
-  if (permission && !auth.can(permission)) return <Navigate to="/" replace />;
+  if (permission && !auth.can(permission)) {
+    const fallback = MOBILE_ACCESS_FALLBACKS.find(([, required]) => auth.can(required));
+    if (fallback) return <Navigate to={fallback[0]} replace />;
+    return <div className="auth-loading"><strong>ไม่มีสิทธิ์เข้าใช้งาน</strong><p>บัญชีนี้ยังไม่มีสิทธิ์เข้าถึงหน้าใด กรุณาติดต่อผู้ดูแลระบบ</p></div>;
+  }
   return children;
 }
 
