@@ -112,30 +112,6 @@ export default function MobileDashboard() {
         </>
       }
     >
-      <div className="m-kpi-row dashboard-stock-kpi-mobile">
-        <div>
-          <span>Parts</span>
-          <b>{fmt(kpi.parts)}</b>
-        </div>
-        <button
-          type="button"
-          className="danger m-kpi-link"
-          onClick={() => navigate("/safety-stock")}
-          aria-label="เปิดหน้า Safety Stock"
-        >
-          <span>ต่ำกว่า Min</span>
-          <b>{fmt(kpi.safety_stock)}</b>
-        </button>
-        <button
-          type="button"
-          className="warning m-kpi-link"
-          onClick={() => navigate("/orders")}
-          aria-label="เปิดหน้า Order สำหรับ Safety Stock ที่กำลังสั่ง"
-        >
-          <span>กำลัง Order</span>
-          <b>{fmt(kpi.safety_stock_ordered)}</b>
-        </button>
-      </div>
       <button
         className="m-dashboard-spare-set"
         onClick={() => navigate("/spare-sets")}
@@ -339,7 +315,7 @@ export default function MobileDashboard() {
         totalPages={meta.total_pages || 1}
         onChange={setPage}
         disabled={loading}
-        compact
+        mobileNumbers
       />
       {scannerOpen && (
         <BarcodeScannerModal

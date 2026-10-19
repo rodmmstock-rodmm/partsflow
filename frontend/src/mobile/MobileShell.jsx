@@ -2,6 +2,7 @@ import { NavLink, Navigate, Route, Routes, useNavigate } from "react-router-dom"
 import { useAuth } from "../auth";
 import { NotificationBell } from "../components/Common";
 import MobileDashboard from "./MobileDashboard";
+import MobileOverviewDashboard from "./MobileOverviewDashboard";
 import MobileHistory from "./MobileHistory";
 import MobileSafetyStock from "./MobileSafetyStock";
 import MobileSpareSets from "./MobileSpareSets";
@@ -18,7 +19,8 @@ import QrWithdraw from "../pages/QrWithdraw";
 import ClothRolls from "../pages/ClothRolls";
 
 const NAV = [
-  ["/", "Stock", "box", "can_view_dashboard"],
+  ["/", "Dashboard", "chart", "can_view_dashboard"],
+  ["/stock", "Stock", "box", "can_view_dashboard"],
   ["/history", "History", "clock", "can_view_history"],
   ["/safety-stock", "Safety", "alert", "can_view_safety_stock"],
   ["/orders", "Order", "cart", "can_view_orders"],
@@ -90,7 +92,8 @@ export default function MobileShell() {
 
       <main className="m-main">
         <Routes>
-          <Route path="/" element={<Protected permission="can_view_dashboard"><MobileDashboard /></Protected>} />
+          <Route path="/" element={<Protected permission="can_view_dashboard"><MobileOverviewDashboard /></Protected>} />
+          <Route path="/stock" element={<Protected permission="can_view_dashboard"><MobileDashboard /></Protected>} />
           <Route path="/spare-sets" element={<Protected permission="can_view_dashboard"><MobileSpareSets /></Protected>} />
           <Route path="/history" element={<Protected permission="can_view_history"><MobileHistory /></Protected>} />
           <Route path="/safety-stock" element={<Protected permission="can_view_safety_stock"><MobileSafetyStock /></Protected>} />

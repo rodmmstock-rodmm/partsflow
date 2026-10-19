@@ -571,7 +571,7 @@ export default function Dashboard() {
   return (
     <>
       <PageHeader
-        title="Dashboard Stock"
+        title="Stock"
         actions={
           <>
             <button className="btn ghost" onClick={() => navigate("/spare-sets")}>⚙ ชุดอะไหล่เครื่องจักร</button>
@@ -583,33 +583,6 @@ export default function Dashboard() {
           </>
         }
       />
-
-      <div className="kpi-grid three dashboard-stock-kpi">
-        <div className="kpi-card">
-          <span>จำนวนรายการอะไหล่</span>
-          <strong>{fmt(kpi.parts)}</strong>
-        </div>
-        <button
-          type="button"
-          className="kpi-card danger kpi-card-link"
-          onClick={() => navigate("/safety-stock")}
-          aria-label="เปิดหน้า Safety Stock"
-        >
-          <span>Safety Stock</span>
-          <strong>{fmt(kpi.safety_stock)}</strong>
-          <small>ต่ำกว่า Min และยังไม่ได้สั่ง</small>
-        </button>
-        <button
-          type="button"
-          className="kpi-card warning kpi-card-link"
-          onClick={() => navigate("/orders")}
-          aria-label="เปิดหน้า Order สำหรับ Safety Stock ที่กำลังสั่ง"
-        >
-          <span>Safety Stock currently Order</span>
-          <strong>{fmt(kpi.safety_stock_ordered)}</strong>
-          <small>ต่ำกว่า Min แต่มี Order อยู่</small>
-        </button>
-      </div>
 
       <div className="tab-row page-tabs">
         <button className={`tab ${partView === "active" ? "active" : ""}`} onClick={() => { setPartView("active"); setPage(1); }}>
