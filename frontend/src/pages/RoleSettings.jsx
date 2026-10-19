@@ -11,14 +11,14 @@ import { useFeedback } from "../feedback";
 // links (Employee and Audit Log are tabs on this very page) but are kept as
 // their own groups at the end since they are still real permission areas.
 export const PERMISSIONS = [
-  ["can_view_dashboard", "View Dashboard Stock", "Dashboard Stock"],
-  ["can_view_parts", "View Part & Stock", "Dashboard Stock"],
-  ["can_edit_parts", "Add / Edit Part", "Dashboard Stock"],
-  ["can_delete_parts", "ลบ Part (เฉพาะที่ Inactive แล้ว)", "Dashboard Stock"],
-  ["can_adjust_stock", "Adjust Stock", "Dashboard Stock"],
-  ["can_receive_stock", "Receive Stock", "Dashboard Stock"],
-  ["can_issue_stock", "Issue Stock", "Dashboard Stock"],
-  ["can_select_issue_requester", "เลือกชื่อผู้เบิก (เลือกแทนบุคคลอื่น)", "Dashboard Stock"],
+  ["can_view_dashboard", "View Dashboard", "Dashboard"],
+  ["can_view_parts", "View Stock / Part List", "Stock"],
+  ["can_edit_parts", "Add / Edit Part", "Stock"],
+  ["can_delete_parts", "ลบ Part (เฉพาะที่ Inactive แล้ว)", "Stock"],
+  ["can_adjust_stock", "Adjust Stock", "Stock"],
+  ["can_receive_stock", "Receive Stock", "Stock"],
+  ["can_issue_stock", "Issue Stock", "Stock"],
+  ["can_select_issue_requester", "เลือกชื่อผู้เบิก (เลือกแทนบุคคลอื่น)", "Stock"],
 
   ["can_view_history", "View History", "History"],
   ["can_edit_history", "Edit History", "History"],
