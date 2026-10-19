@@ -153,3 +153,60 @@ tbody tr:hover { background: #f0f7ff; }
 @media (prefers-reduced-motion: reduce) {
   .nav-link { transition: none; }
 }
+
+
+/* Dashboard overview is a summary landing page; Stock is the dedicated work area. */
+.dashboard-overview-actions { margin-top: 18px; }
+.dashboard-overview-links { display: flex; flex-wrap: wrap; gap: 10px; }
+.dashboard-overview-links .btn { display: inline-flex; align-items: center; justify-content: center; text-decoration: none; }
+.dashboard-overview-kpi .kpi-card { text-align: left; cursor: pointer; }
+.dashboard-overview-kpi .kpi-card small { display: block; margin-top: 6px; font-size: 11px; font-weight: 400; }
+.dashboard-overview-mobile-links {
+  margin-top: 16px;
+  padding: 15px;
+  border: 1px solid var(--border);
+  border-radius: 9px;
+  background: #fff;
+}
+.dashboard-overview-mobile-links h2 { margin: 0 0 8px; color: var(--text); font-size: 15px; font-weight: 600; }
+.dashboard-overview-mobile-links > button {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 13px 2px;
+  border: 0;
+  border-bottom: 1px solid var(--border-soft);
+  background: transparent;
+  color: var(--text);
+  text-align: left;
+}
+.dashboard-overview-mobile-links > button:last-child { border-bottom: 0; }
+.dashboard-overview-mobile-links > button span { display: grid; gap: 4px; }
+.dashboard-overview-mobile-links > button b { font-size: 13px; font-weight: 600; }
+.dashboard-overview-mobile-links > button small { color: var(--muted); font-size: 11px; line-height: 1.45; }
+.dashboard-overview-mobile-links > button > strong { color: var(--brand); font-size: 22px; font-weight: 400; }
+.dashboard-overview-kpi-mobile > button {
+  display: grid;
+  gap: 7px;
+  flex: 1;
+  min-width: 0;
+  padding: 12px 10px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: #fff;
+  color: var(--text);
+  text-align: left;
+}
+.dashboard-overview-kpi-mobile > button span { color: var(--muted); font-size: 11px; line-height: 1.35; }
+.dashboard-overview-kpi-mobile > button b { font-size: 21px; font-weight: 650; }
+.dashboard-overview-kpi-mobile > button.danger b { color: #b94b50; }
+.dashboard-overview-kpi-mobile > button.warning b { color: #a96b27; }
+@media (max-width: 760px) {
+  .dashboard-overview-actions { padding: 14px; }
+  .dashboard-overview-links { display: grid; grid-template-columns: 1fr; }
+  .dashboard-overview-kpi-mobile { gap: 8px; }
+  .dashboard-overview-kpi-mobile > button { padding: 10px 8px; }
+  .dashboard-overview-kpi-mobile > button b { font-size: 19px; }
+}
