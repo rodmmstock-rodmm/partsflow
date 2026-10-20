@@ -420,3 +420,7 @@ tbody tr:hover .sticky-action { background:#f7fbff; }
 @media (prefers-reduced-motion: reduce) {
   .nav-link, .kpi-card, .btn { transition:none!important; }
 }
+
+
+/* Employee identity and logout live exclusively in the top-right app bar. */
+.sidebar-user { display: none !important; }
