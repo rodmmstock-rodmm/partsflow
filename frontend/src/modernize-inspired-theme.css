@@ -426,17 +426,17 @@ tbody tr:hover .sticky-action { background:#f7fbff; }
 .sidebar-user { display: none !important; }
 
 
-/* Order rows use subtle status colors for quick scanning. */
+/* Very soft status tints for calm, low-contrast order scanning. */
 .order-table-v9 tbody tr.order-row-new-order > td { background-color: #ffffff; }
-.order-table-v9 tbody tr.order-row-wait-quotation > td { background-color: #eaf5ff; }
-.order-table-v9 tbody tr.order-row-wait-issue-p-r > td { background-color: #fff6d9; }
-.order-table-v9 tbody tr.order-row-wait-part > td { background-color: #fff0e2; }
-.order-table-v9 tbody tr.order-row-new-order:hover > td { background-color: #f7fbff; }
-.order-table-v9 tbody tr.order-row-wait-quotation:hover > td { background-color: #dff0ff; }
-.order-table-v9 tbody tr.order-row-wait-issue-p-r:hover > td { background-color: #ffefbf; }
-.order-table-v9 tbody tr.order-row-wait-part:hover > td { background-color: #ffe5cf; }
-.order-table-v9 tbody tr.order-status-row.selected > td { box-shadow: inset 0 0 0 9999px rgba(55, 130, 210, .07); }
+.order-table-v9 tbody tr.order-row-wait-quotation > td { background-color: #f5f9fd; }
+.order-table-v9 tbody tr.order-row-wait-issue-p-r > td { background-color: #fffdf5; }
+.order-table-v9 tbody tr.order-row-wait-part > td { background-color: #fffaf6; }
+.order-table-v9 tbody tr.order-row-new-order:hover > td { background-color: #fbfcfe; }
+.order-table-v9 tbody tr.order-row-wait-quotation:hover > td { background-color: #eff6fc; }
+.order-table-v9 tbody tr.order-row-wait-issue-p-r:hover > td { background-color: #fffaf0; }
+.order-table-v9 tbody tr.order-row-wait-part:hover > td { background-color: #fff5ee; }
+.order-table-v9 tbody tr.order-status-row.selected > td { box-shadow: inset 0 0 0 9999px rgba(55, 130, 210, .035); }
 .m-order-card-v9.order-row-new-order { background-color: #ffffff; }
-.m-order-card-v9.order-row-wait-quotation { background-color: #eaf5ff; }
-.m-order-card-v9.order-row-wait-issue-p-r { background-color: #fff6d9; }
-.m-order-card-v9.order-row-wait-part { background-color: #fff0e2; }
+.m-order-card-v9.order-row-wait-quotation { background-color: #f5f9fd; }
+.m-order-card-v9.order-row-wait-issue-p-r { background-color: #fffdf5; }
+.m-order-card-v9.order-row-wait-part { background-color: #fffaf6; }
