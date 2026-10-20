@@ -426,17 +426,11 @@ tbody tr:hover .sticky-action { background:#f7fbff; }
 .sidebar-user { display: none !important; }
 
 
-/* Very soft status tints for calm, low-contrast order scanning. */
-.order-table-v9 tbody tr.order-row-new-order > td { background-color: #ffffff; }
-.order-table-v9 tbody tr.order-row-wait-quotation > td { background-color: #f5f9fd; }
-.order-table-v9 tbody tr.order-row-wait-issue-p-r > td { background-color: #fffdf5; }
-.order-table-v9 tbody tr.order-row-wait-part > td { background-color: #fffaf6; }
-.order-table-v9 tbody tr.order-row-new-order:hover > td { background-color: #fbfcfe; }
-.order-table-v9 tbody tr.order-row-wait-quotation:hover > td { background-color: #eff6fc; }
-.order-table-v9 tbody tr.order-row-wait-issue-p-r:hover > td { background-color: #fffaf0; }
-.order-table-v9 tbody tr.order-row-wait-part:hover > td { background-color: #fff5ee; }
+/* Keep all order rows and mobile cards white regardless of status. */
+.order-table-v9 tbody tr.order-status-row > td { background-color: #ffffff !important; }
+.order-table-v9 tbody tr.order-status-row:hover > td { background-color: #ffffff !important; }
 .order-table-v9 tbody tr.order-status-row.selected > td { box-shadow: inset 0 0 0 9999px rgba(55, 130, 210, .035); }
-.m-order-card-v9.order-row-new-order { background-color: #ffffff; }
-.m-order-card-v9.order-row-wait-quotation { background-color: #f5f9fd; }
-.m-order-card-v9.order-row-wait-issue-p-r { background-color: #fffdf5; }
-.m-order-card-v9.order-row-wait-part { background-color: #fffaf6; }
+.m-order-card-v9.order-row-new-order,
+.m-order-card-v9.order-row-wait-quotation,
+.m-order-card-v9.order-row-wait-issue-p-r,
+.m-order-card-v9.order-row-wait-part { background-color: #ffffff !important; }
