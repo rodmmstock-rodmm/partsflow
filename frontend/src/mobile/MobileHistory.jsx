@@ -108,7 +108,7 @@ export default function MobileHistory() {
       <div className="m-month-tabs-v9">
         {MONTHS.map((label, index) => (
           <button key={label} className={month === index ? "active" : ""} onClick={() => { setMonth(index); setPage(1); }}>
-            {label}{Array.isArray(monthlyCounts) && ` (${fmt(monthlyCounts[index] || 0)})`}
+            {label}{Array.isArray(monthlyCounts) && Number(monthlyCounts[index] || 0) > 0 ? ` ${fmt(monthlyCounts[index])}` : ""}
             {year === now.getFullYear() && index === now.getMonth() && <small>ปัจจุบัน</small>}
           </button>
         ))}
@@ -117,7 +117,7 @@ export default function MobileHistory() {
 
     <MobileSearch value={q} onChange={setQ} placeholder="Item / Part / Machine / Employee..." />
     {loading ? <MobileLoading text={`กำลังโหลด ${MONTHS[month]} ${year}...`} /> : rows.length === 0 ? <MobileEmpty text="ไม่พบ History ในเดือนนี้" /> : <div className="m-card-list">{rows.map((row) => <article className="m-history-card" key={row.id}>
-      <div className="m-row-between"><div><b>{row.item_id}</b><small>{row.date} {row.time}</small></div><span className={`m-tx ${row.type === "IN" ? "receive" : row.type === "OUT" ? "issue" : "adjust"}`}>{row.type === "IN" ? "รับเข้า" : row.type === "OUT" ? "เบิกออก" : "ปรับยอด"}</span></div>
+      <div className="m-row-between"><div><b>{row.item_id}</b><small style={{ display: "block" }}>{row.date}</small><small style={{ display: "block" }}>{row.time}</small></div><span className={`m-tx ${row.type === "IN" ? "receive" : row.type === "OUT" ? "issue" : "adjust"}`}>{row.type === "IN" ? "รับเข้า" : row.type === "OUT" ? "เบิกออก" : "ปรับยอด"}</span></div>
       <h3>{row.part_name}</h3><p>{row.part_detail || "-"}</p>
       <div className="m-history-qty"><span>จำนวน</span><strong>{fmt(row.quantity)} {row.unit}</strong></div>
       <div className="m-info-grid"><span>Machine<b>{row.machine || "-"}</b></span><span>ผู้เบิก<b>{row.requester || "-"}</b></span><span>ผู้บันทึก<b>{row.recorder || "-"}</b></span><span>Location<b>{row.location || "-"}</b></span></div>
