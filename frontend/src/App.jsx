@@ -132,7 +132,7 @@ function DesktopShell() {
         <button className="icon-btn sidebar-close" onClick={() => setSidebarOpen(false)} aria-label="ปิดเมนู">✕</button>
       </div>
       <nav className="nav-list">{visibleGroups.map(([group,items])=><div className="nav-group" key={group}><div className="nav-group-label">{group}</div>{items.map(([to,label,icon])=><NavLink key={to} to={to} end={to==="/"} onClick={()=>setSidebarOpen(false)} className={({isActive})=>isActive?"nav-link active":"nav-link"}><svg className="nav-icon"><use href={`#ic-${icon}`}/></svg><span>{label}</span></NavLink>)}</div>)}</nav>
-      <div className="sidebar-user"><div><strong>{auth.employee?.name}</strong><span>{auth.employee?.employee_code} · {auth.employee?.role||"No Role"}</span></div><button className="icon-btn" onClick={logout}>⏻</button></div>
+      {/* Employee profile and logout are shown only in the top-right bar. */}
     </aside>
     <main className="main-content">
       <header className="modernize-topbar">
