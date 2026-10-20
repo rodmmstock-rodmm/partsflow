@@ -212,3 +212,33 @@ tbody tr:hover .sticky-action { background: #f5faff; }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; }
 }
+
+
+/* Actual desktop app frame: persistent navigation like the reference dashboard.
+   The previous pass only recolored the existing off-canvas shell, which was too subtle. */
+@media (min-width: 1024px) {
+  .sidebar, .sidebar.open {
+    width: 256px;
+    transform: translateX(0);
+    visibility: visible;
+  }
+  .sidebar-close { display: none !important; }
+  .hamburger-btn { display: none !important; }
+  .sidebar-backdrop { display: none !important; }
+  .main-content {
+    margin-left: 256px;
+    padding: 28px 32px 36px;
+    max-width: none;
+    min-height: 100vh;
+  }
+  .nav-list { padding: 14px 12px; }
+  .nav-link { min-height: 42px; }
+  .page-header { margin-bottom: 26px; }
+  .page-header h1 { font-size: 26px; }
+  .kpi-grid { gap: 18px; }
+  .panel { padding: 22px; margin-bottom: 20px; }
+}
+@media (min-width: 1024px) and (max-width: 1279px) {
+  .main-content { padding-right: 22px; padding-left: 22px; }
+  .kpi-grid { gap: 12px; }
+}
