@@ -113,7 +113,9 @@ function AuthenticatedOnly({ children }) {
 }
 
 function DesktopShell() {
-  const auth = useAuth(); const navigate = useNavigate();
+  const auth = useAuth(); const navigate = useNavigate(); const location = useLocation();
+  const currentPage = NAV.find(([to]) => location.pathname === to || location.pathname.startsWith(to + "/"));
+  const currentPageLabel = currentPage?.[1] || "Workspace";
   const visibleGroups = NAV_GROUPS
     .map(([group, items]) => [group, items.filter(([, , , permission]) => auth.can(permission))])
     .filter(([, items]) => items.length > 0);
@@ -132,7 +134,26 @@ function DesktopShell() {
       <nav className="nav-list">{visibleGroups.map(([group,items])=><div className="nav-group" key={group}><div className="nav-group-label">{group}</div>{items.map(([to,label,icon])=><NavLink key={to} to={to} end={to==="/"} onClick={()=>setSidebarOpen(false)} className={({isActive})=>isActive?"nav-link active":"nav-link"}><svg className="nav-icon"><use href={`#ic-${icon}`}/></svg><span>{label}</span></NavLink>)}</div>)}</nav>
       <div className="sidebar-user"><div><strong>{auth.employee?.name}</strong><span>{auth.employee?.employee_code} · {auth.employee?.role||"No Role"}</span></div><button className="icon-btn" onClick={logout}>⏻</button></div>
     </aside>
-    <main className="main-content"><Routes><Route path="/" element={<Navigate to="/stock" replace />}/><Route path="/stock" element={<Protected permission="can_view_parts"><Dashboard/></Protected>}/><Route path="/overview" element={<Protected permission="can_view_dashboard"><DashboardOverview/></Protected>}/><Route path="/spare-sets" element={<Protected permission="can_view_dashboard"><SpareSets/></Protected>}/><Route path="/history" element={<Protected permission="can_view_history"><History/></Protected>}/><Route path="/safety-stock" element={<Protected permission="can_view_safety_stock"><SafetyStock/></Protected>}/><Route path="/orders" element={<Protected permission="can_view_orders"><div className="orders-workspace"><OrdersV2/></div></Protected>}/><Route path="/po-balance" element={<Protected permission="can_view_po_balance"><POBalance/></Protected>}/><Route path="/order-steps" element={<Protected permission="can_view_order_step"><div className="order-step-workspace"><Orders mode="steps"/></div></Protected>}/><Route path="/order-status" element={<Protected permission="can_view_order_status"><OrderStatusDashboard/></Protected>}/><Route path="/fast-orders" element={<Protected permission="can_view_orders"><FastOrders/></Protected>}/><Route path="/vendors" element={<Protected permission="can_view_suppliers"><Vendors/></Protected>}/><Route path="/machines" element={<Protected permission="can_view_machines"><Machines/></Protected>}/><Route path="/tools" element={<Protected permission="can_view_tools"><Tools/></Protected>}/><Route path="/qr-withdraw" element={<Protected permission="can_view_qr_withdraw"><QrWithdraw/></Protected>}/><Route path="/cloth-rolls/scan/:token" element={<Protected permission="can_view_qr_withdraw"><ClothRolls/></Protected>}/><Route path="/cloth-rolls/:phase?" element={<Protected permission="can_view_cloth_rolls"><ClothRolls/></Protected>}/><Route path="/settings/roles" element={<Protected permission="can_manage_roles"><RoleSettings/></Protected>}/></Routes></main>
+    <main className="main-content">
+      <header className="modernize-topbar">
+        <div className="modernize-breadcrumbs">
+          <span>PartsFlow</span>
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m9 18 6-6-6-6"/></svg>
+          <strong>{currentPageLabel}</strong>
+        </div>
+        <div className="modernize-profile">
+          <div className="modernize-profile-avatar" aria-hidden="true">{(auth.employee?.name || "PF").trim().slice(0, 1).toUpperCase()}</div>
+          <div className="modernize-profile-copy">
+            <strong>{auth.employee?.name || "ผู้ใช้งาน"}</strong>
+            <span>{auth.employee?.role || "PartsFlow"}</span>
+          </div>
+          <button className="modernize-logout" onClick={logout} aria-label="ออกจากระบบ" title="ออกจากระบบ">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M10 17l5-5-5-5M15 12H3"/><path d="M12 3h6a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-6"/></svg>
+          </button>
+        </div>
+      </header>
+      <div className="modernize-page-content"><Routes><Route path="/" element={<Navigate to="/stock" replace />}/><Route path="/stock" element={<Protected permission="can_view_parts"><Dashboard/></Protected>}/><Route path="/overview" element={<Protected permission="can_view_dashboard"><DashboardOverview/></Protected>}/><Route path="/spare-sets" element={<Protected permission="can_view_dashboard"><SpareSets/></Protected>}/><Route path="/history" element={<Protected permission="can_view_history"><History/></Protected>}/><Route path="/safety-stock" element={<Protected permission="can_view_safety_stock"><SafetyStock/></Protected>}/><Route path="/orders" element={<Protected permission="can_view_orders"><div className="orders-workspace"><OrdersV2/></div></Protected>}/><Route path="/po-balance" element={<Protected permission="can_view_po_balance"><POBalance/></Protected>}/><Route path="/order-steps" element={<Protected permission="can_view_order_step"><div className="order-step-workspace"><Orders mode="steps"/></div></Protected>}/><Route path="/order-status" element={<Protected permission="can_view_order_status"><OrderStatusDashboard/></Protected>}/><Route path="/fast-orders" element={<Protected permission="can_view_orders"><FastOrders/></Protected>}/><Route path="/vendors" element={<Protected permission="can_view_suppliers"><Vendors/></Protected>}/><Route path="/machines" element={<Protected permission="can_view_machines"><Machines/></Protected>}/><Route path="/tools" element={<Protected permission="can_view_tools"><Tools/></Protected>}/><Route path="/qr-withdraw" element={<Protected permission="can_view_qr_withdraw"><QrWithdraw/></Protected>}/><Route path="/cloth-rolls/scan/:token" element={<Protected permission="can_view_qr_withdraw"><ClothRolls/></Protected>}/><Route path="/cloth-rolls/:phase?" element={<Protected permission="can_view_cloth_rolls"><ClothRolls/></Protected>}/><Route path="/settings/roles" element={<Protected permission="can_manage_roles"><RoleSettings/></Protected>}/></Routes></div>
+    </main>
   </div>;
 }
 function ResponsiveShell(){return useIsMobile()?<MobileShell/>:<DesktopShell/>}
