@@ -136,7 +136,7 @@ function CompactOrderTable({
       <th>REMARK</th>
       <th></th>
     </tr></thead>
-    <tbody>{rows.map(o=>{const s=displayStatus(o); return <tr key={o.id} className={selected.has(o.id)?"selected":""}>
+    <tbody>{rows.map(o=>{const s=displayStatus(o); return <tr key={o.id} className={`order-status-row order-row-${String(s).toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "")}${selected.has(o.id) ? " selected" : ""}`}>
       <td><input type="checkbox" checked={selected.has(o.id)} onChange={e=>onToggle(o.id,e.target.checked)} /></td>
       <td><b className="mono-cell">{o.order_number}</b></td>
       <td className="mono-cell">{o.date ? formatDMY(o.date) : "-"}</td>
