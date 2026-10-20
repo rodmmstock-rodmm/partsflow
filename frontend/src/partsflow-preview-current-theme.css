@@ -273,3 +273,22 @@ tbody tr:hover { background: #f5faff; }
 @media (prefers-reduced-motion: reduce) {
   .withdrawal-chart-loading { animation: none; }
 }
+
+
+/* Overview KPI icons use restrained colors that match each card's meaning. */
+.dashboard-overview-kpi > .dashboard-budget-card .budget-kpi-icon {
+  color: #258a83;
+  background: #eaf7f5;
+}
+.dashboard-overview-kpi > .overview-kpi-card:nth-child(2) .overview-icon {
+  color: #3285d6;
+  background: #eaf4ff;
+}
+.dashboard-overview-kpi > .overview-kpi-card:nth-child(3) .overview-icon {
+  color: #d45b62;
+  background: #fff0f0;
+}
+.dashboard-overview-kpi > .overview-kpi-card:nth-child(4) .overview-icon {
+  color: #c9852b;
+  background: #fff5e8;
+}
