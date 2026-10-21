@@ -292,3 +292,26 @@ tbody tr:hover { background: #f5faff; }
   color: #c9852b;
   background: #fff5e8;
 }
+
+
+/* Overview KPI icon colors: explicit semantic classes for desktop and mobile. */
+.dashboard-overview-kpi .budget-kpi-icon-spend,
+.dashboard-overview-kpi-mobile .budget-kpi-icon-spend {
+  color: #258a83;
+  background: #eaf7f5;
+}
+.dashboard-overview-kpi .overview-icon-parts,
+.dashboard-overview-kpi-mobile .overview-icon-parts {
+  color: #3285d6;
+  background: #eaf4ff;
+}
+.dashboard-overview-kpi .overview-icon-safety,
+.dashboard-overview-kpi-mobile .overview-icon-safety {
+  color: #d45b62;
+  background: #fff0f0;
+}
+.dashboard-overview-kpi .overview-icon-orders,
+.dashboard-overview-kpi-mobile .overview-icon-orders {
+  color: #c9852b;
+  background: #fff5e8;
+}
