@@ -427,7 +427,10 @@ const WORKING_STAGES = [
   "Wait Part",
   "Wait Confirm",
 ];
-const WORKING_STAGE_COLORS = ["#b8d9f7", "#78a9d8", "#4f9be8", "#d97706", "#3978b8"];
+// Match status semantics: active workflow stages use blue shades; Wait Confirm uses warning orange.
+const WORKING_STAGE_COLORS = ["#b8d9f7", "#78a9d8", "#4f9be8", "#3978b8", "#d97706"];
+const FINAL_STAGE_LABELS = new Set(["Complete Order", "Completed", "Complete", "CANCELLED", "Cancelled", "DELETED", "Deleted"]);
+const WARNING_STAGE_LABELS = new Set(["Wait Confirm"]);
 
 function aggregateStages(segments) {
   const totals = {};
@@ -464,7 +467,7 @@ function OrderDurationDisplay({ timeline }) {
   return (
     <div className="order-status-lookup-result">
       <div className="order-status-lookup-summary">
-        <span className={`status ${isFinal ? "success" : "info"}`}>
+        <span className={`status ${FINAL_STAGE_LABELS.has(timeline.current_stage_label) ? (String(timeline.current_stage_label).toLowerCase().includes("cancel") || String(timeline.current_stage_label).toLowerCase().includes("delet") ? "danger" : "success") : WARNING_STAGE_LABELS.has(timeline.current_stage_label) ? "warning" : "info"}`}>
           {timeline.current_stage_label}
         </span>
         {timeline.order_number && (
