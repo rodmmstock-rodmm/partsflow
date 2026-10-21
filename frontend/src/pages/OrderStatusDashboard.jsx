@@ -422,7 +422,7 @@ const WORKING_STAGES = [
   "Wait Confirm",
 ];
 // Match status semantics: active workflow stages use blue shades; Wait Confirm uses warning orange.
-const WORKING_STAGE_COLORS = ["#b8d9f7", "#78a9d8", "#4f9be8", "#3978b8", "#d97706"];
+const WORKING_STAGE_COLORS = ["#7C3AED", "#0284C7", "#16A34A", "#DB2777", "#EA580C"];
 const FINAL_STAGE_LABELS = new Set(["Complete Order", "Completed", "Complete", "CANCELLED", "Cancelled", "DELETED", "Deleted"]);
 const WARNING_STAGE_LABELS = new Set(["Wait Confirm"]);
 
