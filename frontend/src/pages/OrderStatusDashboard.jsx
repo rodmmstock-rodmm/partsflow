@@ -142,23 +142,17 @@ function HalfRadialStacked({ pending, completed, width = 260, strokeWidth = 26 }
         <path
           d={arcPath(cx, cy, r, pendingStart, pendingEnd)}
           fill="none"
-          stroke="#dbeafe"
+          stroke={MONTH_SLICE_COLORS.pending}
           strokeWidth={strokeWidth}
           strokeLinecap="round"
         />
         <path
           d={arcPath(cx, cy, r, completedStart, completedEnd)}
           fill="none"
-          stroke="url(#completedGrad)"
+          stroke={MONTH_SLICE_COLORS.completed}
           strokeWidth={strokeWidth}
           strokeLinecap="round"
         />
-        <defs>
-          <linearGradient id="completedGrad" x1="0%" y1="0%" x2="100%" y2="0%">
-            <stop offset="0%" stopColor="var(--brand2, #78a9d8)" />
-            <stop offset="100%" stopColor="var(--brand, #3978b8)" />
-          </linearGradient>
-        </defs>
       </svg>
       <div className="order-status-half-center">
         <span className="order-status-half-num completed">{completed}</span>
