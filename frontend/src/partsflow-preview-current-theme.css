@@ -315,3 +315,67 @@ tbody tr:hover { background: #f5faff; }
   color: #c9852b;
   background: #fff5e8;
 }
+
+
+/* Dashboard Order: remove legacy purple accents and use the PartsFlow blue palette. */
+.order-status-panel,
+.order-status-lookup-panel {
+  border-color: #e1eaf3 !important;
+  border-radius: 15px !important;
+  box-shadow: 0 5px 18px rgba(37, 88, 137, .055) !important;
+  background: #fff !important;
+}
+.order-status-panel .order-status-pending-list,
+.order-status-panel .order-status-half-block,
+.order-status-lookup-panel .order-status-lookup-result,
+.order-status-lookup-panel .order-status-donut-row {
+  border-color: #e1eaf3;
+}
+.order-status-panel .order-status-pending-list-head,
+.order-status-panel .order-status-radial-total,
+.order-status-lookup-panel .order-status-total-box {
+  color: #2e557a;
+}
+.order-status-panel .order-status-half-wrap,
+.order-status-lookup-panel .order-status-pie-wrap {
+  filter: drop-shadow(0 3px 7px rgba(50, 133, 214, .08));
+}
+.order-status-panel .order-status-pending-table-wrap,
+.order-status-lookup-panel .order-status-legend,
+.order-status-lookup-panel .order-status-total-box {
+  border-color: #e1eaf3;
+  box-shadow: 0 3px 12px rgba(37, 88, 137, .045);
+}
+.order-status-lookup-panel .order-status-legend-item.active {
+  background: #f1f8ff;
+  border-color: #cce4fb;
+}
+.order-status-lookup-panel .order-status-legend-dot {
+  box-shadow: 0 0 0 3px #f1f8ff;
+}
+.order-status-panel .order-status-radial-track {
+  stroke: #edf3f9;
+}
+.order-status-panel .order-status-half-legend-item,
+.order-status-lookup-panel .order-status-legend-text,
+.order-status-lookup-panel .order-status-legend-value {
+  color: #607c97;
+}
+.order-status-panel .order-status-pending-table tbody tr.active,
+.order-status-panel .order-status-pending-table tbody tr:hover {
+  background: #f5faff;
+}
+.order-status-panel .order-status-view-btn {
+  background: #eaf4ff;
+  color: #246db6;
+  box-shadow: none;
+}
+.order-status-panel .order-status-view-btn:hover {
+  background: #dceeff;
+}
+@media (max-width: 767px) {
+  .order-status-panel,
+  .order-status-lookup-panel {
+    box-shadow: 0 4px 14px rgba(37, 88, 137, .05) !important;
+  }
+}
