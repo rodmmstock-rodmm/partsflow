@@ -65,8 +65,8 @@ function Donut({ size, slices, holeRatio = 0.62, gradientId, children }) {
         {gradientId && (
           <defs>
             <linearGradient id={gradientId} x1="0%" y1="0%" x2="100%" y2="100%">
-              <stop offset="0%" stopColor="var(--brand, #7c3aed)" />
-              <stop offset="100%" stopColor="var(--brand2, #a78bfa)" />
+              <stop offset="0%" stopColor="var(--brand, #3978b8)" />
+              <stop offset="100%" stopColor="var(--brand2, #78a9d8)" />
             </linearGradient>
           </defs>
         )}
@@ -85,7 +85,7 @@ function Donut({ size, slices, holeRatio = 0.62, gradientId, children }) {
  * ------------------------------------------------------------------- */
 
 const MONTH_SLICE_COLORS = {
-  pending: "var(--brand, #7c3aed)",
+  pending: "var(--brand, #3978b8)",
   completed: "var(--success, #059669)",
   cancelled: "var(--danger, #e11d48)",
 };
@@ -142,7 +142,7 @@ function HalfRadialStacked({ pending, completed, width = 260, strokeWidth = 26 }
         <path
           d={arcPath(cx, cy, r, pendingStart, pendingEnd)}
           fill="none"
-          stroke="#E4DBFB"
+          stroke="#dbeafe"
           strokeWidth={strokeWidth}
           strokeLinecap="round"
         />
@@ -155,8 +155,8 @@ function HalfRadialStacked({ pending, completed, width = 260, strokeWidth = 26 }
         />
         <defs>
           <linearGradient id="completedGrad" x1="0%" y1="0%" x2="100%" y2="0%">
-            <stop offset="0%" stopColor="var(--brand2, #a78bfa)" />
-            <stop offset="100%" stopColor="var(--brand, #7c3aed)" />
+            <stop offset="0%" stopColor="var(--brand2, #78a9d8)" />
+            <stop offset="100%" stopColor="var(--brand, #3978b8)" />
           </linearGradient>
         </defs>
       </svg>
@@ -427,7 +427,7 @@ const WORKING_STAGES = [
   "Wait Part",
   "Wait Confirm",
 ];
-const WORKING_STAGE_COLORS = ["#ede9fe", "#c4b5fd", "#a78bfa", "#7c3aed", "var(--warning, #d97706)"];
+const WORKING_STAGE_COLORS = ["#b8d9f7", "#78a9d8", "#4f9be8", "#d97706", "#3978b8"];
 
 function aggregateStages(segments) {
   const totals = {};
