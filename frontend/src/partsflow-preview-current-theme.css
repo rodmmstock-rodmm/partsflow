@@ -381,19 +381,22 @@ tbody tr:hover { background: #f5faff; }
 }
 
 
-/* Dashboard Order monthly overview: remove residual purple from center values and Wait Part legend. */
-.order-status-panel .order-status-half-num.completed {
+/* Monthly overview: keep each status color identical across arc, number, dot, and legend. */
+.order-status-panel .order-status-half-num.completed,
+.order-status-panel .order-status-half-legend-item:has(.order-status-radial-dot.completed) {
   color: #258a83 !important;
 }
-.order-status-panel .order-status-half-num.pending {
-  color: #3978b8 !important;
-}
-.order-status-panel .order-status-radial-dot.pending {
-  background: #78a9d8 !important;
-  border-color: #78a9d8 !important;
-}
+.order-status-panel .order-status-half-num.pending,
 .order-status-panel .order-status-half-legend-item:has(.order-status-radial-dot.pending) {
   color: #3978b8 !important;
+}
+.order-status-panel .order-status-radial-dot.completed {
+  background: #258a83 !important;
+  border-color: #258a83 !important;
+}
+.order-status-panel .order-status-radial-dot.pending {
+  background: #3978b8 !important;
+  border-color: #3978b8 !important;
 }
 
 
