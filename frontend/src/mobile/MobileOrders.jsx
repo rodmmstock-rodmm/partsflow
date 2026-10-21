@@ -375,7 +375,7 @@ export default function MobileOrders() {
       ) : (
         <div className="m-card-list">
           {shown.map((order) => (
-            <article className={`m-order-card m-order-card-v9 ${selected.has(order.id) ? "selected" : ""}`} key={order.id}>
+            <article className={`m-order-card m-order-card-v9 order-row-${orderStatus(order).toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "")} ${selected.has(order.id) ? "selected" : ""}`} key={order.id}>
               {auth.can("can_edit_purchase_info") && ["ACTIVE", "WAIT_CONFIRM"].includes(order.lifecycle_status) && (
                 <label className="m-rfq-check">
                   <input
