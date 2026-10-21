@@ -379,3 +379,34 @@ tbody tr:hover { background: #f5faff; }
     box-shadow: 0 4px 14px rgba(37, 88, 137, .05) !important;
   }
 }
+
+
+/* Dashboard Order monthly overview: remove residual purple from center values and Wait Part legend. */
+.order-status-panel .order-status-half-num.completed {
+  color: #258a83 !important;
+}
+.order-status-panel .order-status-half-num.pending {
+  color: #3978b8 !important;
+}
+.order-status-panel .order-status-radial-dot.pending {
+  background: #78a9d8 !important;
+  border-color: #78a9d8 !important;
+}
+.order-status-panel .order-status-half-legend-item:has(.order-status-radial-dot.pending) {
+  color: #3978b8 !important;
+}
+
+
+/* Per-order duration chart: keep legend colors consistent with each status family. */
+.order-status-lookup-panel .order-status-legend-item:nth-child(2) .order-status-legend-dot,
+.order-status-lookup-panel .order-status-legend-item:nth-child(3) .order-status-legend-dot,
+.order-status-lookup-panel .order-status-legend-item:nth-child(4) .order-status-legend-dot,
+.order-status-lookup-panel .order-status-legend-item:nth-child(5) .order-status-legend-dot {
+  box-shadow: 0 0 0 3px #edf6ff;
+}
+.order-status-lookup-panel .order-status-legend-item:nth-child(6) .order-status-legend-dot {
+  box-shadow: 0 0 0 3px #fff5e8;
+}
+.order-status-lookup-panel .order-status-legend-item:nth-child(6) .order-status-legend-text {
+  color: #b7791f;
+}
