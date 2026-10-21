@@ -395,3 +395,18 @@ tbody tr:hover { background: #f5faff; }
 .order-status-panel .order-status-half-legend-item:has(.order-status-radial-dot.pending) {
   color: #3978b8 !important;
 }
+
+
+/* Per-order duration chart: keep legend colors consistent with each status family. */
+.order-status-lookup-panel .order-status-legend-item:nth-child(2) .order-status-legend-dot,
+.order-status-lookup-panel .order-status-legend-item:nth-child(3) .order-status-legend-dot,
+.order-status-lookup-panel .order-status-legend-item:nth-child(4) .order-status-legend-dot,
+.order-status-lookup-panel .order-status-legend-item:nth-child(5) .order-status-legend-dot {
+  box-shadow: 0 0 0 3px #edf6ff;
+}
+.order-status-lookup-panel .order-status-legend-item:nth-child(6) .order-status-legend-dot {
+  box-shadow: 0 0 0 3px #fff5e8;
+}
+.order-status-lookup-panel .order-status-legend-item:nth-child(6) .order-status-legend-text {
+  color: #b7791f;
+}
