@@ -33,27 +33,7 @@ export default function DashboardOverview() {
   return (
     <>
       <PageHeader title="Overview" subtitle="ภาพรวมสถานะคลังอะไหล่และงานที่ควรติดตาม" />
-      <div className="kpi-grid four dashboard-overview-kpi">
-        <MonthlySpendCard amount={kpi.monthly_purchase_spend} />
-        <button type="button" className="kpi-card kpi-card-link overview-kpi-card" onClick={() => navigate("/stock")}>
-          <span>จำนวนรายการอะไหล่</span>
-          <OverviewIcon type="parts" />
-          <strong>{fmt(kpi.parts)}</strong>
-          <small>ดูและจัดการรายการสินค้าในคลัง</small>
-        </button>
-        <button type="button" className="kpi-card danger kpi-card-link overview-kpi-card" onClick={() => navigate("/safety-stock")}>
-          <span>Safety Stock</span>
-          <OverviewIcon type="safety" />
-          <strong>{fmt(kpi.safety_stock)}</strong>
-          <small>ต่ำกว่า Min และยังไม่ได้สั่ง</small>
-        </button>
-        <button type="button" className="kpi-card warning kpi-card-link overview-kpi-card" onClick={() => navigate("/orders")}>
-          <span>Safety Stock currently Order</span>
-          <OverviewIcon type="orders" />
-          <strong>{fmt(kpi.safety_stock_ordered)}</strong>
-          <small>ต่ำกว่า Min แต่มี Order อยู่</small>
-        </button>
-      </div>
+      <MonthlySpendCard amount={kpi.monthly_purchase_spend} />
       <DailyWithdrawalChart />
 
       <section className="panel dashboard-overview-actions">
