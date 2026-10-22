@@ -691,3 +691,20 @@ html body input[type="radio"]:focus-visible{outline:2px solid var(--brand, #3978
 .tool-scan-success h2{margin:0 0 6px;font-size:17px}
 .tool-scan-success p,.tool-scan-error p{margin:0;font-size:13px;color:var(--sub)}
 .tool-scan-success small,.tool-scan-error small{display:block;margin-top:6px;font-size:11px;color:var(--muted)}
+
+
+/* Restore semantic colors for Overview KPI icons on mobile only. */
+@media (max-width: 767px) {
+  .dashboard-overview-kpi-mobile .overview-icon-parts {
+    color: #3285d6;
+    background: #eaf4ff;
+  }
+  .dashboard-overview-kpi-mobile .overview-icon-safety {
+    color: #d45b62;
+    background: #fff0f0;
+  }
+  .dashboard-overview-kpi-mobile .overview-icon-orders {
+    color: #c9852b;
+    background: #fff5e8;
+  }
+}
