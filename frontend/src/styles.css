@@ -691,3 +691,8 @@ html body input[type="radio"]:focus-visible{outline:2px solid var(--brand, #3978
 .tool-scan-success h2{margin:0 0 6px;font-size:17px}
 .tool-scan-success p,.tool-scan-error p{margin:0;font-size:13px;color:var(--sub)}
 .tool-scan-success small,.tool-scan-error small{display:block;margin-top:6px;font-size:11px;color:var(--muted)}
+
+/* Use the original PartsFlow artwork in all primary brand placements. */
+.brand-logo-image{width:38px;height:38px;object-fit:cover;border-radius:12px;flex-shrink:0;display:block}
+.brand-logo-image.small{width:32px;height:32px;border-radius:9px}
+.login-logo-image{width:58px;height:58px;object-fit:cover;border-radius:16px;margin-bottom:12px;display:block}
