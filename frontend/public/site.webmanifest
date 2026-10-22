@@ -1,0 +1,16 @@
+{
+  "name": "PartsFlow",
+  "short_name": "PartsFlow",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#17449d",
+  "theme_color": "#17449d",
+  "icons": [
+    {
+      "src": "/partsflow-icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ]
+}
