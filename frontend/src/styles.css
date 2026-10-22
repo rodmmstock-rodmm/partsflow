@@ -706,13 +706,22 @@ html body input[type="radio"]:focus-visible{outline:2px solid var(--brand, #3978
 .stock-summary-kpis-mobile .overview-icon-safety { color: #d45b62; background: #fff0f0; }
 .stock-summary-kpis .overview-icon-orders,
 .stock-summary-kpis-mobile .overview-icon-orders { color: #c9852b; background: #fff5e8; }
-.stock-summary-kpis .overview-icon { width: 34px; height: 34px; margin: 8px 0 4px; border-radius: 10px; display: inline-flex; align-items: center; justify-content: center; }
+.stock-summary-kpis > .kpi-card { position: relative; align-items: flex-start; text-align: left; padding-right: 58px; }
+.stock-summary-kpis > .kpi-card > span:first-child { max-width: 100%; }
+.stock-summary-kpis .overview-icon { position: absolute; top: 14px; right: 14px; width: 34px; height: 34px; margin: 0; border-radius: 10px; display: inline-flex; align-items: center; justify-content: center; }
 .stock-summary-kpis .overview-icon svg { width: 19px; height: 19px; }
+.stock-summary-kpis > .kpi-card > strong,
+.stock-summary-kpis > .kpi-card > small { align-self: flex-start; text-align: left; }
 .stock-summary-kpis-mobile { margin: 0 0 12px; }
 .stock-summary-kpis-mobile > button { position: relative; padding-top: 14px !important; }
 .stock-summary-kpis-mobile > button .overview-icon { position: absolute; top: 8px; right: 8px; width: 25px; height: 25px; display: grid; place-items: center; border-radius: 7px; }
 .stock-summary-kpis-mobile > button .overview-icon svg { width: 15px; height: 15px; }
-.stock-summary-kpis-mobile > button span { max-width: calc(100% - 28px); }
+.stock-summary-kpis-mobile > button span { max-width: calc(100% - 28px); text-align: left !important; }
+.stock-summary-kpis-mobile > button,
+.stock-summary-kpis-mobile > button > b { text-align: left !important; }
+.stock-summary-kpis-mobile > button .overview-icon-parts { color: #3285d6 !important; background: #eaf4ff !important; }
+.stock-summary-kpis-mobile > button .overview-icon-safety { color: #d45b62 !important; background: #fff0f0 !important; }
+.stock-summary-kpis-mobile > button .overview-icon-orders { color: #c9852b !important; background: #fff5e8 !important; }
 @media (max-width: 767px) {
   .stock-summary-kpis { display: none; }
 }
