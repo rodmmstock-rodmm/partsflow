@@ -716,7 +716,12 @@ html body input[type="radio"]:focus-visible{outline:2px solid var(--brand, #3978
 .stock-summary-kpis-mobile > button { position: relative; padding-top: 14px !important; }
 .stock-summary-kpis-mobile > button .overview-icon { position: absolute; top: 8px; right: 8px; width: 25px; height: 25px; display: grid; place-items: center; border-radius: 7px; }
 .stock-summary-kpis-mobile > button .overview-icon svg { width: 15px; height: 15px; }
-.stock-summary-kpis-mobile > button span { max-width: calc(100% - 28px); }
+.stock-summary-kpis-mobile > button span { max-width: calc(100% - 28px); text-align: left !important; }
+.stock-summary-kpis-mobile > button,
+.stock-summary-kpis-mobile > button > b { text-align: left !important; }
+.stock-summary-kpis-mobile > button .overview-icon-parts { color: #3285d6 !important; background: #eaf4ff !important; }
+.stock-summary-kpis-mobile > button .overview-icon-safety { color: #d45b62 !important; background: #fff0f0 !important; }
+.stock-summary-kpis-mobile > button .overview-icon-orders { color: #c9852b !important; background: #fff5e8 !important; }
 @media (max-width: 767px) {
   .stock-summary-kpis { display: none; }
 }
