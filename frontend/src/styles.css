@@ -713,12 +713,53 @@ html body input[type="radio"]:focus-visible{outline:2px solid var(--brand, #3978
 .stock-summary-kpis > .kpi-card > strong,
 .stock-summary-kpis > .kpi-card > small { align-self: flex-start; text-align: left; }
 .stock-summary-kpis-mobile { margin: 0 0 12px; }
-.stock-summary-kpis-mobile > button { position: relative; padding-top: 14px !important; }
-.stock-summary-kpis-mobile > button .overview-icon { position: absolute; top: 8px; right: 8px; width: 25px; height: 25px; display: grid; place-items: center; border-radius: 7px; }
-.stock-summary-kpis-mobile > button .overview-icon svg { width: 15px; height: 15px; }
-.stock-summary-kpis-mobile > button span { max-width: calc(100% - 28px); text-align: left !important; }
-.stock-summary-kpis-mobile > button,
-.stock-summary-kpis-mobile > button > b { text-align: left !important; }
+/* Use an explicit two-column grid so the label and value never sit beneath the icon. */
+.stock-summary-kpis-mobile > button.m-kpi-link {
+  display: grid !important;
+  grid-template-columns: minmax(0, 1fr) 25px;
+  grid-template-rows: auto auto;
+  align-items: start;
+  justify-items: stretch;
+  column-gap: 4px;
+  row-gap: 6px;
+  padding: 12px 9px !important;
+  text-align: left !important;
+}
+.stock-summary-kpis-mobile > button.m-kpi-link > span:first-child {
+  grid-column: 1;
+  grid-row: 1;
+  display: block;
+  width: 100%;
+  min-width: 0;
+  max-width: none !important;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  text-align: left !important;
+}
+.stock-summary-kpis-mobile > button.m-kpi-link > .overview-icon {
+  position: static !important;
+  grid-column: 2;
+  grid-row: 1;
+  justify-self: end;
+  align-self: start;
+  width: 25px;
+  height: 25px;
+  margin: 0;
+  display: grid;
+  place-items: center;
+  border-radius: 7px;
+}
+.stock-summary-kpis-mobile > button.m-kpi-link > .overview-icon svg { width: 15px; height: 15px; }
+.stock-summary-kpis-mobile > button.m-kpi-link > b {
+  grid-column: 1;
+  grid-row: 2;
+  display: block;
+  width: 100%;
+  min-width: 0;
+  margin-top: 0 !important;
+  justify-self: start;
+  text-align: left !important;
+}
 .stock-summary-kpis-mobile > button .overview-icon-parts { color: #3285d6 !important; background: #eaf4ff !important; }
 .stock-summary-kpis-mobile > button .overview-icon-safety { color: #d45b62 !important; background: #fff0f0 !important; }
 .stock-summary-kpis-mobile > button .overview-icon-orders { color: #c9852b !important; background: #fff5e8 !important; }
