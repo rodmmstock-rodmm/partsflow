@@ -127,7 +127,7 @@ function DesktopShell() {
     {sidebarOpen && <div className="sidebar-backdrop" onClick={() => setSidebarOpen(false)} />}
     <aside className={sidebarOpen ? "sidebar open" : "sidebar"}>
       <div className="brand">
-        <div className="brand-logo">PF</div>
+        <img className="brand-logo-image" src="/apple-touch-icon.png" alt="PartsFlow" />
         <div><strong>PartsFlow</strong><span>Spare Parts & Purchasing</span></div>
         <button className="icon-btn sidebar-close" onClick={() => setSidebarOpen(false)} aria-label="ปิดเมนู">✕</button>
       </div>
