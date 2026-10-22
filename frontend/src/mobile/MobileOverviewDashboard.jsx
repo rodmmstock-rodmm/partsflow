@@ -32,17 +32,6 @@ export default function MobileOverviewDashboard() {
   return (
     <MobilePage title="Overview" subtitle="ภาพรวมสถานะคลังอะไหล่">
       <MonthlySpendCard amount={kpi.monthly_purchase_spend} />
-      <div className="m-kpi-row dashboard-overview-kpi-mobile">
-        <button type="button" onClick={() => navigate("/stock")}>
-          <span>รายการอะไหล่</span><MobileKpiIcon type="parts" /><b>{fmt(kpi.parts)}</b>
-        </button>
-        <button type="button" className="danger" onClick={() => navigate("/safety-stock")}>
-          <span>ต่ำกว่า Min</span><MobileKpiIcon type="safety" /><b>{fmt(kpi.safety_stock)}</b>
-        </button>
-        <button type="button" className="warning" onClick={() => navigate("/orders")}>
-          <span>กำลัง Order</span><MobileKpiIcon type="orders" /><b>{fmt(kpi.safety_stock_ordered)}</b>
-        </button>
-      </div>
       <DailyWithdrawalChart />
       <section className="dashboard-overview-mobile-links">
         <h2>ทางลัด</h2>
