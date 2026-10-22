@@ -24,6 +24,16 @@ import {
   MobileStockModal,
   StockBadge,
 } from "./MobileCommon";
+
+function StockKpiIcon({ type }) {
+  const shapes = {
+    parts: <><path d="m12 3 8 4.5v9L12 21l-8-4.5v-9L12 3Z" /><path d="m4.5 7.7 7.5 4.4 7.5-4.4M12 12v9" /></>,
+    safety: <><path d="m12 3 9 16H3L12 3Z" /><path d="M12 9v4M12 16h.01" /></>,
+    orders: <><path d="M8 6h13M8 12h13M8 18h13" /><path d="M3 6h.01M3 12h.01M3 18h.01" /></>,
+  };
+  return <span className={`overview-icon overview-icon-${type}`} aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">{shapes[type]}</svg></span>;
+}
+
 export default function MobileDashboard() {
   const auth = useAuth(),
     navigate = useNavigate(),
@@ -123,6 +133,21 @@ export default function MobileDashboard() {
         </>
       }
     >
+
+      {auth.can("can_view_dashboard") && (
+        <div className="m-kpi-row dashboard-overview-kpi-mobile stock-summary-kpis-mobile">
+          <button type="button" onClick={() => navigate("/stock")}>
+            <span>รายการอะไหล่</span><StockKpiIcon type="parts" /><b>{fmt(kpi.parts)}</b>
+          </button>
+          <button type="button" className="danger" onClick={() => navigate("/safety-stock")}>
+            <span>ต่ำกว่า Min</span><StockKpiIcon type="safety" /><b>{fmt(kpi.safety_stock)}</b>
+          </button>
+          <button type="button" className="warning" onClick={() => navigate("/orders")}>
+            <span>กำลัง Order</span><StockKpiIcon type="orders" /><b>{fmt(kpi.safety_stock_ordered)}</b>
+          </button>
+        </div>
+      )}
+
       <button
         className="m-dashboard-spare-set"
         onClick={() => navigate("/spare-sets")}
