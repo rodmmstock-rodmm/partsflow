@@ -96,7 +96,7 @@ export default function MobileShell() {
       {ICON_SPRITE}
       <header className="m-topbar">
         <div className="m-brand">
-          <div className="brand-logo small">PF</div>
+          <img className="brand-logo-image small" src="/apple-touch-icon.png" alt="PartsFlow" />
           <div>
             <strong>PartsFlow</strong>
             <span>{auth.employee?.name} · {auth.employee?.role}</span>
