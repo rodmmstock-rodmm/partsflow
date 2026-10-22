@@ -413,6 +413,16 @@ function AdjustModal({ part, onClose, onSaved }) {
   );
 }
 
+
+function StockKpiIcon({ type }) {
+  const shapes = {
+    parts: <><path d="m12 3 8 4.5v9L12 21l-8-4.5v-9L12 3Z" /><path d="m4.5 7.7 7.5 4.4 7.5-4.4M12 12v9" /></>,
+    safety: <><path d="m12 3 9 16H3L12 3Z" /><path d="M12 9v4M12 16h.01" /></>,
+    orders: <><path d="M8 6h13M8 12h13M8 18h13" /><path d="M3 6h.01M3 12h.01M3 18h.01" /></>,
+  };
+  return <span className={`overview-icon overview-icon-${type}`} aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">{shapes[type]}</svg></span>;
+}
+
 export default function Dashboard() {
   const auth = useAuth();
   const navigate = useNavigate();
@@ -592,6 +602,30 @@ export default function Dashboard() {
           </>
         }
       />
+
+
+      {auth.can("can_view_dashboard") && (
+        <div className="kpi-grid three stock-summary-kpis">
+          <button type="button" className="kpi-card kpi-card-link overview-kpi-card" onClick={() => navigate("/stock")}>
+            <span>จำนวนรายการอะไหล่</span>
+            <StockKpiIcon type="parts" />
+            <strong>{fmt(kpi.parts)}</strong>
+            <small>รายการอะไหล่ทั้งหมด</small>
+          </button>
+          <button type="button" className="kpi-card danger kpi-card-link overview-kpi-card" onClick={() => navigate("/safety-stock")}>
+            <span>Safety Stock</span>
+            <StockKpiIcon type="safety" />
+            <strong>{fmt(kpi.safety_stock)}</strong>
+            <small>ต่ำกว่า Min และยังไม่ได้สั่ง</small>
+          </button>
+          <button type="button" className="kpi-card warning kpi-card-link overview-kpi-card" onClick={() => navigate("/orders")}>
+            <span>Safety Stock currently Order</span>
+            <StockKpiIcon type="orders" />
+            <strong>{fmt(kpi.safety_stock_ordered)}</strong>
+            <small>ต่ำกว่า Min แต่มี Order อยู่</small>
+          </button>
+        </div>
+      )}
 
       <div className="tab-row page-tabs">
         <button className={`tab ${partView === "active" ? "active" : ""}`} onClick={() => { setPartView("active"); setPage(1); }}>
