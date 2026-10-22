@@ -742,14 +742,31 @@ html body input[type="radio"]:focus-visible{outline:2px solid var(--brand, #3978
   grid-row: 1;
   justify-self: end;
   align-self: start;
-  width: 25px;
-  height: 25px;
+  flex-shrink: 0;
+  width: 25px !important;
+  min-width: 25px;
+  height: 25px !important;
+  min-height: 25px;
   margin: 0;
-  display: grid;
+  padding: 0;
+  display: grid !important;
   place-items: center;
+  visibility: visible !important;
+  opacity: 1 !important;
+  z-index: 1;
   border-radius: 7px;
+  overflow: visible;
 }
-.stock-summary-kpis-mobile > button.m-kpi-link > .overview-icon svg { width: 15px; height: 15px; }
+.stock-summary-kpis-mobile > button.m-kpi-link > .overview-icon svg {
+  display: block !important;
+  width: 15px !important;
+  min-width: 15px;
+  height: 15px !important;
+  min-height: 15px;
+  visibility: visible !important;
+  opacity: 1 !important;
+  stroke: currentColor;
+}
 .stock-summary-kpis-mobile > button.m-kpi-link > b {
   grid-column: 1;
   grid-row: 2;
