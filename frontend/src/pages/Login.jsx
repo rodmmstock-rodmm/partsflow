@@ -29,7 +29,7 @@ export default function Login() {
     <div className="login-screen">
       <form className="login-card" onSubmit={submit}>
         <div className="login-brand">
-          <div className="login-logo">PF</div>
+          <img className="login-logo-image" src="/apple-touch-icon.png" alt="PartsFlow" />
           <div className="login-name">PartsFlow</div>
           <div className="login-subtitle">Spare Parts & Purchasing Management</div>
         </div>
