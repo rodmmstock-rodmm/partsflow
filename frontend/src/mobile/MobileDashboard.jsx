@@ -136,13 +136,13 @@ export default function MobileDashboard() {
 
       {auth.can("can_view_dashboard") && (
         <div className="m-kpi-row dashboard-overview-kpi-mobile stock-summary-kpis-mobile">
-          <button type="button" onClick={() => navigate("/stock")}>
+          <button type="button" className="m-kpi-link" onClick={() => navigate("/stock")}>
             <span>รายการอะไหล่</span><StockKpiIcon type="parts" /><b>{fmt(kpi.parts)}</b>
           </button>
-          <button type="button" className="danger" onClick={() => navigate("/safety-stock")}>
+          <button type="button" className="m-kpi-link danger" onClick={() => navigate("/safety-stock")}>
             <span>ต่ำกว่า Min</span><StockKpiIcon type="safety" /><b>{fmt(kpi.safety_stock)}</b>
           </button>
-          <button type="button" className="warning" onClick={() => navigate("/orders")}>
+          <button type="button" className="m-kpi-link warning" onClick={() => navigate("/orders")}>
             <span>กำลัง Order</span><StockKpiIcon type="orders" /><b>{fmt(kpi.safety_stock_ordered)}</b>
           </button>
         </div>
