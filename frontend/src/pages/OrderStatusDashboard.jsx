@@ -344,11 +344,11 @@ function MonthlyStatusSection({ onView, activeOrderId }) {
                 <div className="order-status-half-block">
                   <HalfRadialStacked pending={selectedMonth.pending} completed={selectedMonth.completed} />
                   <div className="order-status-half-legend">
-                    <span className="order-status-half-legend-item">
+                    <span className="order-status-half-legend-item completed">
                       <span className="order-status-radial-dot completed" />
                       รับของแล้ว
                     </span>
-                    <span className="order-status-half-legend-item">
+                    <span className="order-status-half-legend-item pending">
                       <span className="order-status-radial-dot pending" />
                       รอของ
                     </span>
