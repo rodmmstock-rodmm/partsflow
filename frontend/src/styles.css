@@ -532,6 +532,13 @@
 
 /* per-order lookup: full donut (unchanged design from the previous pass) */
 .order-status-pie-wrap{position:relative;flex-shrink:0}
+.order-status-donut-slice{cursor:pointer;transform-origin:50% 50%;transition:opacity .2s ease,filter .2s ease}
+.order-status-donut-slice:focus{outline:none;filter:drop-shadow(0 2px 5px rgba(42,104,168,.28))}
+.order-status-donut-slice.is-hovered{filter:drop-shadow(0 3px 6px rgba(42,104,168,.24))}
+.order-status-legend-item{cursor:pointer;transition:background-color .18s ease,color .18s ease,transform .18s ease}
+.order-status-legend-item:hover,.order-status-legend-item:focus-visible{background:var(--brand-soft);transform:translateX(2px);outline:none}
+@media(prefers-reduced-motion:reduce){.order-status-donut-slice,.order-status-legend-item{transition:none}}
+
 .order-status-pie-wrap svg{display:block}
 .order-status-donut-hole{fill:var(--panel,#fff)}
 .order-status-pie-center{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;pointer-events:none;text-align:center;padding:0 16px}
