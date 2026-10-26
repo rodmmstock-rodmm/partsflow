@@ -772,3 +772,20 @@ html body input[type="radio"]:focus-visible{outline:2px solid var(--brand, #3978
 @media (min-width: 768px) {
   .stock-summary-kpis-mobile { display: none; }
 }
+
+
+/* History: show the part detail as a secondary line beneath the part name. */
+.history-part-name {
+  font-weight: 600;
+  color: #24364b;
+  line-height: 1.35;
+}
+.history-part-detail {
+  display: block;
+  margin-top: 3px;
+  color: #718096;
+  font-size: 11px;
+  line-height: 1.4;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
