@@ -51,7 +51,7 @@ const ICON_SPRITE = (
     <symbol id="ic-power" viewBox="0 0 24 24"><path d="M12 3v8"/><path d="M6.3 6.3a8 8 0 1011.4 0"/></symbol>
     <symbol id="ic-wrench" viewBox="0 0 24 24"><path d="M14.7 6.3a4 4 0 00-5.4 5.4L3 18l3 3 6.3-6.3a4 4 0 005.4-5.4l-2.6 2.6-2-2z"/></symbol>
     <symbol id="ic-qrcode" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><path d="M14 14h3v3h-3zM19 14h2v2h-2zM14 19h2v2h-2zM19 19h2v2h-2z"/></symbol>
-    <symbol id="ic-screw" viewBox="0 0 24 24"><path d="M8 4.5l3.5-2 4.5 2.6-3.5 2z"/><path d="M8 4.5v4l4.5 2.6v-4M12.5 11.1l-7 9.8M14.2 9.7l-2.3 1.4M16 11l-2.3 1.4M17.8 12.3l-2.3 1.4M19.6 13.6l-2.3 1.4M21 15l-2.3 1.4"/></symbol>
+    <symbol id="ic-screw" viewBox="0 0 24 24"><path d="M7 4.5h10l-1.5 3H8.5L7 4.5z"/><path d="M9 7.5h6v2H9z"/><path d="M12 9.5v11"/><path d="M12 11.5l-2 1.5M12 14.5l-2 1.5M12 17.5l-2 1.5M12 20.5l-2 1.5"/></symbol>
     <symbol id="ic-fabric" viewBox="0 0 24 24"><ellipse cx="7" cy="12" rx="3.5" ry="7.5"/><path d="M7 4.5h9a3 3 0 013 3v9a3 3 0 01-3 3H7"/><ellipse cx="16" cy="12" rx="3" ry="7.5"/><ellipse cx="16" cy="12" rx="1" ry="3.5"/></symbol>
   </svg>
 );
