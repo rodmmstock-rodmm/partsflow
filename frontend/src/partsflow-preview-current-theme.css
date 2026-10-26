@@ -384,19 +384,19 @@ tbody tr:hover { background: #f5faff; }
 /* Monthly overview: keep each status color identical across arc, number, dot, and legend. */
 .order-status-panel .order-status-half-num.completed,
 .order-status-panel .order-status-half-legend-item:has(.order-status-radial-dot.completed) {
-  color: #8e97fc !important;
+  color: #3a639b !important;
 }
 .order-status-panel .order-status-half-num.pending,
 .order-status-panel .order-status-half-legend-item:has(.order-status-radial-dot.pending) {
-  color: #dde0fe !important;
+  color: #eef6fd !important;
 }
 .order-status-panel .order-status-radial-dot.completed {
-  background: #8e97fc !important;
-  border-color: #8e97fc !important;
+  background: #3a639b !important;
+  border-color: #3a639b !important;
 }
 .order-status-panel .order-status-radial-dot.pending {
-  background: #dde0fe !important;
-  border-color: #dde0fe !important;
+  background: #eef6fd !important;
+  border-color: #eef6fd !important;
 }
 
 
