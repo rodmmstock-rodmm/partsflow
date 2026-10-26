@@ -37,7 +37,8 @@ function formatDuration(seconds) {
 /* A donut: pie wedges with a solid center disc on top, so the readout in
  * the middle always sits on one flat surface instead of straddling
  * whichever slice colors happen to pass behind it. */
-function Donut({ size, slices, holeRatio = 0.62, gradientId, children }) {
+function Donut({ size, slices, holeRatio = 0.62, gradientId, children, onSliceHover }) {
+  const [hoveredKey, setHoveredKey] = useState(null);
   const r = size / 2;
   const cx = r;
   const cy = r;
@@ -46,13 +47,23 @@ function Donut({ size, slices, holeRatio = 0.62, gradientId, children }) {
   const paths = [];
   for (const slice of slices) {
     if (!slice.value) continue;
-    const rOuter = slice.active ? r : r * 0.92;
+    const isHovered = slice.key === hoveredKey;
+    const rOuter = isHovered ? r : r * 0.96;
     const angleEnd = angleStart + slice.angle;
     paths.push(
       <path
         key={slice.key}
         d={pieSlicePath(cx, cy, rOuter, angleStart, angleEnd)}
-        fill={slice.active && gradientId ? `url(#${gradientId})` : slice.color}
+        fill={isHovered && gradientId ? `url(#${gradientId})` : slice.color}
+        className={`order-status-donut-slice${isHovered ? " is-hovered" : ""}`}
+        tabIndex={0}
+        role="button"
+        aria-label={slice.title}
+        onMouseEnter={() => { setHoveredKey(slice.key); onSliceHover?.(slice); }}
+        onMouseLeave={() => { setHoveredKey(null); onSliceHover?.(null); }}
+        onFocus={() => { setHoveredKey(slice.key); onSliceHover?.(slice); }}
+        onBlur={() => { setHoveredKey(null); onSliceHover?.(null); }}
+        onClick={() => { setHoveredKey(slice.key); onSliceHover?.(slice); }}
       >
         <title>{slice.title}</title>
       </path>
@@ -446,6 +457,7 @@ function OrderDurationDisplay({ timeline }) {
   const total = Object.values(totals).reduce((a, b) => a + b, 0);
   const isFinal = timeline.is_final;
   const activeLabel = isFinal ? null : currentLabel;
+  const [hoveredSlice, setHoveredSlice] = useState(null);
 
   const slices = total
     ? WORKING_STAGES.map((label, i) => ({
@@ -453,7 +465,9 @@ function OrderDurationDisplay({ timeline }) {
         value: totals[label] || 0,
         angle: Math.min(((totals[label] || 0) / total) * 360, 359.999),
         color: WORKING_STAGE_COLORS[i],
-        active: label === activeLabel,
+        active: false,
+        label,
+        duration: formatDuration(totals[label]),
         title: `${label}: ${formatDuration(totals[label])}`,
       }))
     : [];
@@ -471,7 +485,7 @@ function OrderDurationDisplay({ timeline }) {
 
       <div className="order-status-donut-row">
         {total ? (
-          <Donut size={216} slices={slices} gradientId="orderCurrentGradient">
+          <Donut size={216} slices={slices} gradientId="orderCurrentGradient" onSliceHover={setHoveredSlice}>
             {isFinal ? (
               <>
                 <span className="order-status-pie-check">✓</span>
@@ -479,8 +493,8 @@ function OrderDurationDisplay({ timeline }) {
               </>
             ) : (
               <>
-                <span className="order-status-pie-center-dur">{formatDuration(currentSegSeconds)}</span>
-                <span className="order-status-pie-center-label">{currentLabel || "-"}</span>
+                <span className="order-status-pie-center-dur">{hoveredSlice ? hoveredSlice.duration : formatDuration(currentSegSeconds)}</span>
+                <span className="order-status-pie-center-label">{hoveredSlice ? hoveredSlice.label : (currentLabel || "-")}</span>
               </>
             )}
           </Donut>
@@ -497,7 +511,12 @@ function OrderDurationDisplay({ timeline }) {
           </div>
           {WORKING_STAGES.map((label, i) => (
             <div
-              className={`order-status-legend-item${label === activeLabel ? " active" : ""}`}
+              className={`order-status-legend-item${(hoveredSlice?.label || activeLabel) === label ? " active" : ""}`}
+              onMouseEnter={() => setHoveredSlice({ label, duration: formatDuration(totals[label]) })}
+              onMouseLeave={() => setHoveredSlice(null)}
+              onFocus={() => setHoveredSlice({ label, duration: formatDuration(totals[label]) })}
+              onBlur={() => setHoveredSlice(null)}
+              tabIndex={0}
               key={label}
             >
               <span className="order-status-legend-dot" style={{ background: WORKING_STAGE_COLORS[i] }} />
