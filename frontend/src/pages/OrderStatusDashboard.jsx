@@ -96,8 +96,8 @@ function Donut({ size, slices, holeRatio = 0.62, gradientId, children, onSliceHo
  * ------------------------------------------------------------------- */
 
 const MONTH_SLICE_COLORS = {
-  pending: "#DCE7F0",
-  completed: "var(--success, #059669)",
+  pending: "#dde0fe",
+  completed: "#8e97fc",
   cancelled: "var(--danger, #e11d48)",
 };
 const MONTH_SLICE_ORDER = ["pending", "completed", "cancelled"];
