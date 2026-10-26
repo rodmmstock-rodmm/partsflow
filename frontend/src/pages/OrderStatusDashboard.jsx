@@ -168,7 +168,7 @@ function HalfRadialStacked({ pending, completed, width = 260, strokeWidth = 26 }
       <div className="order-status-half-center">
         <span className="order-status-half-num completed">{completed}</span>
         <span className="order-status-half-sep">/</span>
-        <span className="order-status-half-num pending">{pending}</span>
+        <span className="order-status-half-num pending">{pending + completed}</span>
       </div>
     </div>
   );
@@ -350,10 +350,10 @@ function MonthlyStatusSection({ onView, activeOrderId }) {
                     </span>
                     <span className="order-status-half-legend-item pending">
                       <span className="order-status-radial-dot pending" />
-                      รอของ
+                      ออเดอร์ทั้งหมด
                     </span>
                   </div>
-                  <div className="order-status-radial-total">รวมทั้งเดือน {selectedMonth.total} Order</div>
+                  <div className="order-status-radial-total">รายการที่รอของ {selectedMonth.pending} ออเดอร์</div>
                 </div>
 
                 <div className="order-status-pending-list">
