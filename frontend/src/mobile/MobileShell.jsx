@@ -52,7 +52,7 @@ const ICON_SPRITE = (
     <symbol id="ic-power" viewBox="0 0 24 24"><path d="M12 3v8"/><path d="M6.3 6.3a8 8 0 1011.4 0"/></symbol>
     <symbol id="ic-wrench" viewBox="0 0 24 24"><path d="M14.7 6.3a4 4 0 00-5.4 5.4L3 18l3 3 6.3-6.3a4 4 0 005.4-5.4l-2.6 2.6-2-2z"/></symbol>
     <symbol id="ic-qrcode" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><path d="M14 14h3v3h-3zM19 14h2v2h-2zM14 19h2v2h-2zM19 19h2v2h-2z"/></symbol>
-    <symbol id="ic-screw" viewBox="0 0 24 24"><path d="M5.3 2.2C8.7.7 15.3.7 18.7 2.2c.8.4 1.3 1.1 1.3 2v1.7c0 .7-.3 1.3-.8 1.8l-3.8 3.8-.5 9.1c0 .7-.3 1.3-.8 1.8l-2.1 2a1.4 1.4 0 01-2 0l-2.1-2a2.6 2.6 0 01-.8-1.8l-.5-9.1L2.8 7.7A2.5 2.5 0 012 5.9V4.2c0-.9.5-1.6 1.3-2z"/><path d="M4.2 4.4c5.1-1.6 10.5-1.6 15.6 0M9 10.2l6-1.4M8.9 14.1l6.2-1.5M9 18l5.8-1.5" fill="none" stroke="white" stroke-width="1.2"/><path d="M15.8 14.4c2.3-2.1 5.8-2.1 7.4 0-1.6 2.2-5.1 2.2-7.4 0z" fill="none" stroke="currentColor" stroke-width="1.5"/></symbol>
+    <symbol id="ic-screw" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5.1 2.8a3.2 3.2 0 014.5 0l1.6 1.6-4.5 4.5-1.6-1.6a3.2 3.2 0 010-4.5z"/><path d="M7.4 7.4l9.5 9.5"/><path d="M14.4 14.4l-2 2M16.4 16.4l-2 2M12.4 12.4l-2 2"/><path d="M16.9 16.9l4.3 4.3-3.2-.8-.8 3.2-4.3-4.3"/><path d="M5.7 4.1l2.2 2.2"/></g></symbol>
     <symbol id="ic-fabric" viewBox="0 0 24 24"><ellipse cx="7" cy="12" rx="3.5" ry="7.5"/><path d="M7 4.5h9a3 3 0 013 3v9a3 3 0 01-3 3H7"/><ellipse cx="16" cy="12" rx="3" ry="7.5"/><ellipse cx="16" cy="12" rx="1" ry="3.5"/></symbol>
   </svg>
 );
