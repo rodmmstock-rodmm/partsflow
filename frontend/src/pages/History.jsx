@@ -95,20 +95,20 @@ export function EditHistory({ row, options, onClose, onSaved }) {
   );
 }
 
-function HistoryTable({ rows, auth, onEdit, onDelete }) {
+function HistoryTable({ rows, auth, onEdit, onDelete, showMachineRequester }) {
   const canAction = auth.can("can_edit_history") || auth.can("can_delete_history");
   const head = { position: "sticky", right: 0, zIndex: 4, background: "#f8fafc", boxShadow: "-8px 0 12px rgba(15,23,42,.04)" };
   const cell = { position: "sticky", right: 0, zIndex: 3, background: "#fff", boxShadow: "-8px 0 12px rgba(15,23,42,.04)" };
   return (
     <div className="history-table-wrap" style={{ overflowX: "auto", width: "100%" }}>
       <table className="history-table">
-        <thead><tr><th>วัน / เวลา</th><th>ประเภท</th><th>Part ID</th><th>Part Name</th><th>Maker</th><th>Location</th><th>เครื่องจักร</th><th>ผู้เบิก</th><th>ผู้บันทึก</th><th>จำนวน</th><th>Unit</th><th>Remark</th>{canAction && <th style={head}>Action</th>}</tr></thead>
+        <thead><tr><th>วัน / เวลา</th><th>ประเภท</th><th>Part ID</th><th>Part Name</th><th>Maker</th><th>Location</th>{showMachineRequester && <><th>เครื่องจักร</th><th>ผู้เบิก</th></>}<th>ผู้บันทึก</th><th>จำนวน</th><th>Unit</th><th>Remark</th>{canAction && <th style={head}>Action</th>}</tr></thead>
         <tbody>{rows.map((row) => (
           <tr key={row.id}>
             <td><b>{row.date}</b><small style={{ display: "block" }}>{row.time}</small></td>
             <td><span className={`status ${row.type === "IN" ? "success" : row.type === "OUT" ? "danger" : "warning"}`}>{row.type === "IN" ? "รับเข้า" : row.type === "OUT" ? "เบิกออก" : "ปรับยอด"}</span></td>
             <td><b>{row.item_id}</b></td><td><div className="history-part-name">{row.part_name || "-"}</div><small className="history-part-detail">{row.part_detail || "-"}</small></td><td>{row.maker || "-"}</td><td>{row.location || "-"}</td>
-            <td>{row.type === "OUT" ? row.machine || "-" : "-"}</td><td>{row.type === "OUT" ? row.requester || "-" : "-"}</td><td>{row.recorder || "-"}</td>
+            {showMachineRequester && <><td>{row.type === "OUT" ? row.machine || "-" : "-"}</td><td>{row.type === "OUT" ? row.requester || "-" : "-"}</td></>}<td>{row.recorder || "-"}</td>
             <td><b>{fmt(row.quantity)}</b></td><td>{row.unit}</td><td>{row.remark || "-"}</td>
             {canAction && <td style={cell}><div className="history-actions" style={{ display: "flex", gap: 5, flexWrap: "nowrap" }}>{auth.can("can_edit_history") && <button className="mini" onClick={() => onEdit(row)}>แก้ไข</button>}{auth.can("can_delete_history") && <button className="mini danger" onClick={() => onDelete(row)}>ลบ</button>}</div></td>}
           </tr>
@@ -235,7 +235,7 @@ export default function History() {
       ) : rows.length === 0 ? (
         <div className="empty">ไม่พบ History ในเดือนนี้</div>
       ) : (
-        <HistoryTable rows={rows} auth={auth} onEdit={setEdit} onDelete={remove} />
+        <HistoryTable rows={rows} auth={auth} onEdit={setEdit} onDelete={remove} showMachineRequester={type !== "IN" && type !== "ADJUSTMENT"} />
       )}
 
       {!loading && (
