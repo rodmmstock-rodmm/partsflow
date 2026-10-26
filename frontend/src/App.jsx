@@ -28,7 +28,7 @@ import MobileShell from "./mobile/MobileShell";
 // have to re-flatten NAV_GROUPS itself).
 const NAV_GROUPS = [
   ["Stock", [
-    ["/overview", "Overview", "chart", "can_view_dashboard"],
+    ["/overview", "Overview", "overview-chart", "can_view_dashboard"],
     ["/stock", "Stock", "box", "can_view_parts"],
     ["/history", "History", "clock", "can_view_history"],
     ["/safety-stock", "Safety Stock", "alert", "can_view_safety_stock"],
@@ -58,7 +58,8 @@ const ICON_SPRITE = (
     <symbol id="ic-alert" viewBox="0 0 24 24"><path d="M10.6 3.9L2.4 18a1.8 1.8 0 001.6 2.7h16a1.8 1.8 0 001.6-2.7L13.4 3.9a1.8 1.8 0 00-2.8 0z"/><path d="M12 9.5v4"/><circle cx="12" cy="17" r="0.9" fill="currentColor" stroke="none"/></symbol>
     <symbol id="ic-cart" viewBox="0 0 24 24"><circle cx="9.5" cy="20" r="1.1" fill="currentColor" stroke="none"/><circle cx="17.5" cy="20" r="1.1" fill="currentColor" stroke="none"/><path d="M2.5 3h2l2.3 12a1.8 1.8 0 001.8 1.5h8.4a1.8 1.8 0 001.8-1.4L21 7.5H6.2"/></symbol>
     <symbol id="ic-steps" viewBox="0 0 24 24"><rect x="6" y="3.2" width="12" height="17.6" rx="2"/><path d="M9.3 3.2v-.4a1 1 0 011-1h3.4a1 1 0 011 1v.4"/><path d="M9 9.5h6M9 13h6M9 16.5h3.5"/></symbol>
-    <symbol id="ic-chart" viewBox="0 0 24 24"><path d="M3 20.5h18"/><rect x="5" y="11" width="3.5" height="7.5" rx=".7"/><rect x="10.3" y="6.5" width="3.5" height="12" rx=".7"/><rect x="15.6" y="3.5" width="3.5" height="15" rx=".7"/></symbol>
+    <symbol id="ic-chart" viewBox="0 0 24 24"><path d="M12 3a9 9 0 100 18 9 9 0 000-18z"/><path d="M12 3v9l6.4-4.9A9 9 0 0012 3z"/></symbol>
+    <symbol id="ic-overview-chart" viewBox="0 0 24 24"><path d="M3 2.5v15.2A3.8 3.8 0 006.8 21.5H21"/><path d="M5.5 9.5l4.2-4.1a2.5 2.5 0 013.5 0l2.1 2.1a2.5 2.5 0 003.5 0L22 4.3"/><path d="M6 13v4M10 10.5V17M14 12v5M18 9.5V17" stroke-width="1.8"/></symbol>
     <symbol id="ic-mail" viewBox="0 0 24 24"><rect x="3" y="5.5" width="18" height="13" rx="2"/><path d="M3.5 7l8.5 6 8.5-6"/></symbol>
     <symbol id="ic-vendor" viewBox="0 0 24 24"><rect x="4.5" y="3" width="15" height="18" rx="1.2"/><path d="M9 7.3h.9M14.1 7.3h.9M9 11.3h.9M14.1 11.3h.9M9 15.3h.9M14.1 15.3h.9"/><path d="M10.2 21v-3.4h3.6V21"/></symbol>
     <symbol id="ic-gear" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 13.5c.1.6.1 1.2 0 1.8l1.7 1.3-1.5 2.6-2-.6a7 7 0 01-1.6.9l-.3 2.1H10.3l-.3-2.1a7 7 0 01-1.6-.9l-2 .6-1.5-2.6L6.6 15c-.1-.6-.1-1.2 0-1.8L4.9 11.9l1.5-2.6 2 .6c.5-.4 1-.7 1.6-.9l.3-2.1h3.4l.3 2.1c.6.2 1.1.5 1.6.9l2-.6 1.5 2.6z"/></symbol>
@@ -67,7 +68,7 @@ const ICON_SPRITE = (
     <symbol id="ic-search" viewBox="0 0 24 24"><circle cx="10.5" cy="10.5" r="6.5"/><path d="M20 20l-4.8-4.8"/></symbol>
     <symbol id="ic-wrench" viewBox="0 0 24 24"><path d="M14.7 6.3a4 4 0 00-5.4 5.4L3 18l3 3 6.3-6.3a4 4 0 005.4-5.4l-2.6 2.6-2-2z"/></symbol>
     <symbol id="ic-qrcode" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><path d="M14 14h3v3h-3zM19 14h2v2h-2zM14 19h2v2h-2zM19 19h2v2h-2z"/></symbol>
-    <symbol id="ic-screw" viewBox="0 0 24 24"><path d="M7 4.5h10l-1.5 3H8.5L7 4.5z"/><path d="M9 7.5h6v2H9z"/><path d="M12 9.5v11"/><path d="M12 11.5l-2 1.5M12 14.5l-2 1.5M12 17.5l-2 1.5M12 20.5l-2 1.5"/></symbol>
+    <symbol id="ic-screw" viewBox="0 0 24 24"><path d="M5.3 2.2C8.7.7 15.3.7 18.7 2.2c.8.4 1.3 1.1 1.3 2v1.7c0 .7-.3 1.3-.8 1.8l-3.8 3.8-.5 9.1c0 .7-.3 1.3-.8 1.8l-2.1 2a1.4 1.4 0 01-2 0l-2.1-2a2.6 2.6 0 01-.8-1.8l-.5-9.1L2.8 7.7A2.5 2.5 0 012 5.9V4.2c0-.9.5-1.6 1.3-2z"/><path d="M4.2 4.4c5.1-1.6 10.5-1.6 15.6 0M9 10.2l6-1.4M8.9 14.1l6.2-1.5M9 18l5.8-1.5" fill="none" stroke="white" stroke-width="1.2"/><path d="M15.8 14.4c2.3-2.1 5.8-2.1 7.4 0-1.6 2.2-5.1 2.2-7.4 0z" fill="none" stroke="currentColor" stroke-width="1.5"/></symbol>
     <symbol id="ic-fabric" viewBox="0 0 24 24"><ellipse cx="7" cy="12" rx="3.5" ry="7.5"/><path d="M7 4.5h9a3 3 0 013 3v9a3 3 0 01-3 3H7"/><ellipse cx="16" cy="12" rx="3" ry="7.5"/><ellipse cx="16" cy="12" rx="1" ry="3.5"/></symbol>
   </svg>
 );
