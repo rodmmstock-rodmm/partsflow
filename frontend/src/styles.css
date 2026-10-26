@@ -789,3 +789,6 @@ html body input[type="radio"]:focus-visible{outline:2px solid var(--brand, #3978
   white-space: normal;
   overflow-wrap: anywhere;
 }
+
+/* History actions: quiet, inline controls that sit naturally within each table row. */
+.history-table .history-action-cell{background:#fff;box-shadow:-8px 0 12px rgba(15,23,42,.035);transition:background .15s}.history-table tbody tr:hover .history-action-cell{background:#f8fafc}.history-actions{display:flex;align-items:center;gap:3px;flex-wrap:nowrap}.history-actions button{border:0;border-radius:6px;background:transparent;padding:5px 7px;font-size:10px;font-weight:500;line-height:1.4;white-space:nowrap;transition:background .15s,color .15s}.history-actions .history-action-edit{color:#3978b8}.history-actions .history-action-edit:hover{background:#eaf3fc;color:#285783}.history-actions .history-action-delete{color:#c66a78}.history-actions .history-action-delete:hover{background:#fff0f1;color:#be344b}.history-actions button:focus-visible{outline:2px solid #a9c9e8;outline-offset:1px}
