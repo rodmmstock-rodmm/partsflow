@@ -391,12 +391,12 @@ tbody tr:hover { background: #f5faff; }
   color: #dde0fe !important;
 }
 .order-status-panel .order-status-radial-dot.completed {
-  background: #258a83 !important;
-  border-color: #258a83 !important;
+  background: #8e97fc !important;
+  border-color: #8e97fc !important;
 }
 .order-status-panel .order-status-radial-dot.pending {
-  background: #3978b8 !important;
-  border-color: #3978b8 !important;
+  background: #dde0fe !important;
+  border-color: #dde0fe !important;
 }
 
 
