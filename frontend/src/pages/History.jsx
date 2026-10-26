@@ -97,8 +97,8 @@ export function EditHistory({ row, options, onClose, onSaved }) {
 
 function HistoryTable({ rows, auth, onEdit, onDelete, showMachineRequester }) {
   const canAction = auth.can("can_edit_history") || auth.can("can_delete_history");
-  const head = { position: "sticky", right: 0, zIndex: 4, background: "#f8fafc", boxShadow: "-8px 0 12px rgba(15,23,42,.04)" };
-  const cell = { position: "sticky", right: 0, zIndex: 3, background: "#fff", boxShadow: "-8px 0 12px rgba(15,23,42,.04)" };
+  const head = { position: "sticky", right: 0, zIndex: 4 };
+  const cell = { position: "sticky", right: 0, zIndex: 3 };
   return (
     <div className="history-table-wrap" style={{ overflowX: "auto", width: "100%" }}>
       <table className="history-table">
@@ -110,7 +110,7 @@ function HistoryTable({ rows, auth, onEdit, onDelete, showMachineRequester }) {
             <td><b>{row.item_id}</b></td><td><div className="history-part-name">{row.part_name || "-"}</div><small className="history-part-detail">{row.part_detail || "-"}</small></td><td>{row.maker || "-"}</td><td>{row.location || "-"}</td>
             {showMachineRequester && <><td>{row.type === "OUT" ? row.machine || "-" : "-"}</td><td>{row.type === "OUT" ? row.requester || "-" : "-"}</td></>}<td>{row.recorder || "-"}</td>
             <td><b>{fmt(row.quantity)}</b></td><td>{row.unit}</td><td>{row.remark || "-"}</td>
-            {canAction && <td style={cell}><div className="history-actions" style={{ display: "flex", gap: 5, flexWrap: "nowrap" }}>{auth.can("can_edit_history") && <button className="mini" onClick={() => onEdit(row)}>แก้ไข</button>}{auth.can("can_delete_history") && <button className="mini danger" onClick={() => onDelete(row)}>ลบ</button>}</div></td>}
+            {canAction && <td className="history-action-cell" style={cell}><div className="history-actions">{auth.can("can_edit_history") && <button className="history-action-edit" onClick={() => onEdit(row)}>แก้ไข</button>}{auth.can("can_delete_history") && <button className="history-action-delete" onClick={() => onDelete(row)}>ลบ</button>}</div></td>}
           </tr>
         ))}</tbody>
       </table>
