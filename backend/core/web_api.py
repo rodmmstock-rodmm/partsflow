@@ -22,6 +22,7 @@ from .drive_images import (
     is_drive_relative_path,
     resolve_drive_file,
 )
+from .drive_image_backup import backup_web_upload
 from .supabase_storage import (
     SupabaseStorageConfigError,
     SupabaseStorageRequestError,
@@ -725,6 +726,29 @@ def part_image(request, pk):
                 status=502,
             )
 
+        # Supabase remains the delivery path. Google Drive is a secondary,
+        # verified backup; failure must not make the new image unusable.
+        backup_result = {"status": "pending", "verified": False}
+        try:
+            backup_result = backup_web_upload(
+                sku_folder=sku_folder,
+                filename=f"{digest[:24]}{extension}",
+                payload=payload,
+                content_type=content_type,
+            )
+        except DriveImageConfigError as exc:
+            backup_result = {
+                "status": "pending",
+                "verified": False,
+                "detail": str(exc)[:300],
+            }
+        except Exception:
+            backup_result = {
+                "status": "pending",
+                "verified": False,
+                "detail": "สำรอง Google Drive ไม่สำเร็จ ต้องตรวจสอบและลองใหม่",
+            }
+
         before = part_json(base_parts().get(pk=pk))
         part.image_path = logical_path
         part.save()
@@ -744,10 +768,12 @@ def part_image(request, pk):
                     "size": size,
                     "sha256": digest,
                     "storage_object": object_path,
+                    "drive_backup": backup_result,
                 },
             },
         )
 
+        after['image_backup'] = backup_result
         return Response(after)
 
     # ------------------------------------------------------------------
