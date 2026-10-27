@@ -18,6 +18,8 @@ WEBP_QUALITY = 82
 def optimize_part_image(payload: bytes, content_type: str) -> tuple[bytes, str]:
     """Return (optimized bytes, content type); animated GIFs remain untouched."""
     normalized_type = str(content_type or "").lower().split(";", 1)[0].strip()
+    if normalized_type == "image/jpg":
+        normalized_type = "image/jpeg"
     if normalized_type == "image/gif":
         return payload, normalized_type
 
