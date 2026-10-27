@@ -1,0 +1,126 @@
+name: Temporary Supabase Storage backup
+
+on:
+  workflow_dispatch:
+    inputs:
+      confirm_backup:
+        description: "Type BACKUP to download the complete parts-images bucket"
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  backup:
+    if: ${{ inputs.confirm_backup == 'BACKUP' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 180
+    env:
+      SUPABASE_URL: https://cyacvmjkqgnbihivsrtf.supabase.co
+      SUPABASE_SECRET_KEY: ${{ secrets.SUPABASE_SECRET_KEY }}
+      BUCKET: parts-images
+    steps:
+      - name: Check required secret
+        shell: bash
+        run: |
+          test -n "$SUPABASE_SECRET_KEY" || { echo "::error::Missing repository secret SUPABASE_SECRET_KEY"; exit 1; }
+
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Download and verify every object
+        shell: bash
+        run: |
+          python - <<'PY'
+          import hashlib, json, os, pathlib, sys, time
+          from urllib.parse import quote
+          import urllib.error, urllib.request
+
+          base = os.environ["SUPABASE_URL"].rstrip("/")
+          key = os.environ["SUPABASE_SECRET_KEY"]
+          bucket = os.environ["BUCKET"]
+          root = pathlib.Path("storage-backup") / bucket
+          root.mkdir(parents=True, exist_ok=True)
+          headers = {"apikey": key, "Authorization": f"Bearer {key}", "Content-Type": "application/json"}
+          manifest = []
+          offset = 0
+          page_size = 100
+          while True:
+              req = urllib.request.Request(
+                  f"{base}/storage/v1/object/list/{quote(bucket, safe='')}",
+                  data=json.dumps({"prefix": "", "limit": page_size, "offset": offset, "sortBy": {"column": "name", "order": "asc"}}).encode(),
+                  headers=headers, method="POST")
+              with urllib.request.urlopen(req, timeout=60) as resp:
+                  items = json.load(resp)
+              if not items:
+                  break
+              for item in items:
+                  name = item.get("name")
+                  if not name or item.get("id") is None and item.get("metadata") is None:
+                      # Folder placeholders are not downloadable objects.
+                      continue
+                  if item.get("metadata") is None:
+                      continue
+                  rel = pathlib.PurePosixPath(name)
+                  if rel.is_absolute() or ".." in rel.parts:
+                      raise RuntimeError(f"Unsafe object path: {name}")
+                  dest = root.joinpath(*rel.parts)
+                  dest.parent.mkdir(parents=True, exist_ok=True)
+                  encoded = quote(name, safe="/")
+                  url = f"{base}/storage/v1/object/{quote(bucket, safe='')}/{encoded}"
+                  req = urllib.request.Request(url, headers={"apikey": key, "Authorization": f"Bearer {key}"})
+                  for attempt in range(4):
+                      try:
+                          with urllib.request.urlopen(req, timeout=120) as resp, open(dest, "wb") as out:
+                              while True:
+                                  chunk = resp.read(1024 * 1024)
+                                  if not chunk: break
+                                  out.write(chunk)
+                          break
+                      except Exception:
+                          if attempt == 3: raise
+                          time.sleep(2 ** attempt)
+                  digest = hashlib.sha256()
+                  size = 0
+                  with open(dest, "rb") as f:
+                      for chunk in iter(lambda: f.read(1024 * 1024), b""):
+                          size += len(chunk); digest.update(chunk)
+                  expected = (item.get("metadata") or {}).get("size")
+                  if expected is not None and int(expected) != size:
+                      raise RuntimeError(f"Size mismatch for {name}: expected {expected}, downloaded {size}")
+                  manifest.append({"path": name, "size": size, "sha256": digest.hexdigest()})
+              offset += len(items)
+              print(f"Downloaded metadata page through offset {offset}; files verified: {len(manifest)}")
+              if len(items) < page_size:
+                  break
+          if not manifest:
+              raise RuntimeError("No objects were downloaded; refusing to publish an empty backup.")
+          pathlib.Path("storage-backup-manifest.json").write_text(json.dumps({
+              "bucket": bucket, "objects": len(manifest), "total_bytes": sum(x["size"] for x in manifest),
+              "files": manifest
+          }, indent=2))
+          print(f"BACKUP VERIFIED: objects={len(manifest)}, bytes={sum(x['size'] for x in manifest)}")
+          PY
+
+      - name: Package backup
+        run: tar -czf parts-images-backup.tar.gz storage-backup storage-backup-manifest.json
+
+      - name: Upload temporary backup artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: parts-images-original-backup
+          path: parts-images-backup.tar.gz
+          if-no-files-found: error
+          retention-days: 7
+
+      - name: Upload verification manifest
+        uses: actions/upload-artifact@v4
+        with:
+          name: parts-images-backup-manifest
+          path: storage-backup-manifest.json
+          if-no-files-found: error
+          retention-days: 7
