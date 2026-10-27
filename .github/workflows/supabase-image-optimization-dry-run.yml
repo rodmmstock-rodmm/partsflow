@@ -25,13 +25,14 @@ jobs:
       run:
         working-directory: backend
     env:
-      SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+      # Project URL is public configuration, not a secret.
+      SUPABASE_URL: https://cyacvmjkqgnbihivsrtf.supabase.co
+      # Keep the privileged Storage key in GitHub Actions Secrets.
       SUPABASE_SECRET_KEY: ${{ secrets.SUPABASE_SECRET_KEY }}
     steps:
-      - name: Check required secrets
+      - name: Check required secret
         shell: bash
         run: |
-          test -n "$SUPABASE_URL" || { echo "::error::Missing repository secret SUPABASE_URL"; exit 1; }
           test -n "$SUPABASE_SECRET_KEY" || { echo "::error::Missing repository secret SUPABASE_SECRET_KEY"; exit 1; }
 
       - uses: actions/checkout@v4
