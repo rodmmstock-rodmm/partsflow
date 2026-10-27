@@ -81,7 +81,7 @@ class Command(BaseCommand):
                     break
                 offset += len(rows)
 
-        inspected = optimized_count = saved_total = skipped = 0
+        inspected = optimized_count = saved_total = skipped = would_optimize = 0
         for path, row in objects:
             guessed = mimetypes.guess_type(path)[0] or ""
             metadata = row.get("metadata") or {}
@@ -108,6 +108,7 @@ class Command(BaseCommand):
             saved = len(original) - len(optimized)
             if saved <= 0:
                 continue
+            would_optimize += 1
             self.stdout.write(
                 f"{'WOULD OPTIMIZE' if not apply_changes else 'OPTIMIZE'} {path}: "
                 f"{len(original)} -> {len(optimized)} bytes (saved {saved})"
@@ -120,7 +121,7 @@ class Command(BaseCommand):
         self.stdout.write(
             f"Mode={'APPLY' if apply_changes else 'DRY-RUN'}; "
             f"images_inspected={inspected}; would_save_or_saved_objects="
-            f"{optimized_count if apply_changes else sum(1 for _ in [])}; "
+            f"{optimized_count if apply_changes else would_optimize}; "
             f"skipped={skipped}; bytes_saved={saved_total}"
         )
         if not apply_changes:
