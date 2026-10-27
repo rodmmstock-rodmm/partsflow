@@ -195,7 +195,7 @@ def oauth_callback(request):
         "max-width:680px;margin:60px auto;padding:28px;"
         "border:1px solid #e2e8f0;border-radius:18px'>"
         "<h2 style='margin-top:0'>✓ เชื่อม Google Drive สำเร็จ</h2>"
-        "<p>PartsFlow ได้รับสิทธิ์แบบ Read-only "
+        "<p>PartsFlow ได้รับสิทธิ์อ่านและสร้างไฟล์สำรอง "
         "โดยบัญชีที่อนุญาตไว้แล้ว</p>"
         f"<p>ผู้ตั้งค่า PartsFlow: "
         f"<strong>{escape(actor.name)}</strong></p>"
