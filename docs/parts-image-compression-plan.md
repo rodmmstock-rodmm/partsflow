@@ -1,6 +1,6 @@
 # PartsFlow: Safe plan to reduce Supabase part-image storage
 
-Status: planning only. This document does not change production data, upload files, update database rows, or delete Storage objects.
+Status: planning and local-tool preparation only. No production data was changed, and no image was uploaded, overwritten, or deleted.
 
 ## Goal
 
@@ -14,6 +14,29 @@ Reduce the size of images served by the existing Supabase Storage bucket while p
 - The current upload helper sends the supplied bytes unchanged; it does not resize or recompress images before upload.
 - The sync command sets Content-Type from Google Drive MIME type, so the compression implementation must set the correct output MIME type and file extension/object path consistently. Simply converting JPEG/PNG bytes to WebP at the same path is unsafe because the extension and metadata may no longer match.
 
+## Existing read-only inventory snapshot
+
+The prior read-only Storage metadata query found 1,352 objects in bucket `parts-images`, about 910.76 MB in total: 852 JPEG (~664.69 MB), 426 PNG (~240.29 MB), and 74 WebP (~5.77 MB). The snapshot flagged 163 files at least 2 MB and 8 files over 5 MB. This is metadata-based inventory, not a compression test; exact savings cannot be estimated reliably until actual image bytes are processed. Similar filenames are not confirmed content duplicates without checksum comparison.
+
+## Local dry-run utility
+
+A no-network, no-Supabase-write estimator is included at `scripts/estimate_part_image_compression.py`. It scans a local folder containing a read-only copy of images, writes a CSV report, and never changes source files. It uses same-format output (JPEG→JPEG, PNG→PNG, WebP→WebP); PNG optimization is lossless. JPEG/WebP quality defaults to 88. This first utility intentionally does not resize images or change formats, to reduce compatibility risk.
+
+Example from a trusted local copy of the images:
+
+```bash
+python -m pip install Pillow
+python scripts/estimate_part_image_compression.py ./parts-images-copy --report ./reports/image-compression-dry-run.csv
+```
+
+Optional: save only smaller candidate files in a separate directory for visual review. This still does not upload anything or overwrite the source:
+
+```bash
+python scripts/estimate_part_image_compression.py ./parts-images-copy --report ./reports/image-compression-dry-run.csv --write-candidates ./parts-images-candidates
+```
+
+The CSV is generated on the machine where the command runs. A real image-by-image dry-run report has not yet been generated because the actual object bytes have not been exported to a local working folder. The existing 910.76 MB inventory alone cannot tell us the true savings.
+
 ## Proposed implementation
 
 ### Phase 0 — read-only inventory and backup (no production writes)
@@ -26,11 +49,11 @@ Reduce the size of images served by the existing Supabase Storage bucket while p
 
 ### Phase 1 — dry-run compression report
 
-1. Build a local/offline compression utility that reads downloaded Drive originals and writes compressed derivatives to a separate temporary directory only.
-2. Preserve originals and never overwrite Drive files. Preserve EXIF/orientation where required, and do not crop or alter product details.
-3. For product thumbnails, test JPEG/WebP output with a maximum long edge around 1200 px and quality around 82–86; keep PNG only where transparency or image characteristics require it. These are initial test values, not production defaults.
-4. Produce a CSV report with SKU, source path, original bytes, proposed output bytes, output MIME type/extension, percentage saved, and conversion status.
-5. Stop for manual review if an output is larger, unreadable, unexpectedly loses transparency/orientation, or changes visible product details. Do not upload anything in this phase.
+1. Download/copy images to a controlled local folder without changing Drive or Storage originals.
+2. Run the local estimator above and review the CSV for errors, files that become larger, and estimated savings.
+3. Visually compare representative candidates against originals at full resolution, especially product labels, small fittings, edges, and transparency.
+4. The first pass is same-format only and does not resize. Any resize or lossy PNG/WebP conversion must be a separate, reviewed proposal.
+5. Do not upload anything in this phase.
 
 ### Phase 2 — compatibility design
 
@@ -76,4 +99,4 @@ If WebP is chosen later, use a new versioned path/extension and an explicit URL 
 
 ## Explicit safety boundary
 
-This PR adds documentation only. It does not run the sync command, does not use `--apply` or `--force`, does not upload/rewrite/delete Storage objects, does not edit Supabase rows, and does not change production environment variables. Implementation and any production write require separate approval.
+This PR adds documentation and a local-only estimator. The estimator makes no network calls and cannot access Supabase or Google Drive. No production sync command was run; no `--apply` or `--force` was used; no Storage objects were uploaded, rewritten, or deleted; no Supabase rows were edited; and no production environment variables were changed. A separate explicit approval is required before any production write or live pilot.
