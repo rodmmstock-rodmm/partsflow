@@ -28,6 +28,14 @@ class OptimizePartImageTests(unittest.TestCase):
             self.assertIn("A", result.getbands())
             self.assertEqual(result.getpixel((0, 0))[3], 0)
 
+    def test_large_image_is_resized_without_changing_aspect_ratio(self):
+        payload = make_image("PNG", size=(2400, 1200))
+        optimized, content_type = optimize_part_image(payload, "image/png")
+        self.assertEqual(content_type, "image/png")
+        with Image.open(BytesIO(optimized)) as result:
+            self.assertLessEqual(max(result.size), MAX_IMAGE_EDGE)
+            self.assertEqual(result.size, (MAX_IMAGE_EDGE, 800))
+
     def test_invalid_payload_is_rejected(self):
         with self.assertRaises(ValueError):
             optimize_part_image(b"not an image", "image/jpeg")
