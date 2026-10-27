@@ -10,6 +10,7 @@ urlpatterns = [
     path("health/", web_api.health_check, name="web-health-check"),
 
     path("drive/oauth/status/", drive_oauth.oauth_status, name="drive-oauth-status"),
+    path("drive/oauth/prepare/", drive_oauth.oauth_prepare, name="drive-oauth-prepare"),
     path("drive/oauth/start/", drive_oauth.oauth_start, name="drive-oauth-start"),
     path("drive/oauth/callback/", drive_oauth.oauth_callback, name="drive-oauth-callback"),
 
