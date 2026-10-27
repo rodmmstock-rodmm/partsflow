@@ -3,6 +3,7 @@
 
 from html import escape
 
+from django.core.cache import cache
 from django.http import HttpResponse
 from django.shortcuts import redirect
 from rest_framework.decorators import api_view, permission_classes
@@ -10,6 +11,7 @@ from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 
 from .auth_api import require_permission
+from .models import Employee
 from .drive_images import (
     DRIVE_SCOPE,
     DriveImageConfigError,
@@ -23,6 +25,7 @@ from .drive_images import (
 
 SESSION_STATE_KEY = "partsflow_google_drive_oauth_state"
 SESSION_CODE_VERIFIER_KEY = "partsflow_google_drive_oauth_code_verifier"
+OAUTH_PREPARED_PREFIX = "partsflow_google_drive_oauth_prepared:"
 
 
 def _flow(
@@ -48,6 +51,35 @@ def _flow(
 
     flow.redirect_uri = oauth_redirect_uri()
     return flow
+
+
+@api_view(["POST"])
+@permission_classes([AllowAny])
+def oauth_prepare(request):
+    """Prepare OAuth from the logged-in frontend, which authenticates by Bearer token."""
+    actor, err = require_permission(request, "can_manage_roles")
+    if err:
+        return err
+
+    try:
+        flow = _flow(autogenerate_code_verifier=True)
+        authorization_url, state = flow.authorization_url(
+            access_type="offline",
+            include_granted_scopes="true",
+            prompt="consent",
+        )
+        code_verifier = flow.code_verifier
+        if not code_verifier:
+            raise DriveImageConfigError("ไม่สามารถสร้าง OAuth PKCE code verifier ได้")
+    except DriveImageConfigError as exc:
+        return Response({"detail": str(exc)}, status=500)
+
+    cache.set(
+        OAUTH_PREPARED_PREFIX + state,
+        {"employee_id": str(actor.id), "code_verifier": code_verifier},
+        timeout=600,
+    )
+    return Response({"authorization_url": authorization_url})
 
 
 @api_view(["GET"])
@@ -121,18 +153,33 @@ def oauth_start(request):
 @api_view(["GET"])
 @permission_classes([AllowAny])
 def oauth_callback(request):
-    actor, err = require_permission(request, "can_manage_roles")
-    if err:
-        return err
-
-    expected_state = request.session.pop(SESSION_STATE_KEY, "")
-    code_verifier = request.session.pop(
-        SESSION_CODE_VERIFIER_KEY,
-        "",
-    )
-    request.session.modified = True
-
     returned_state = str(request.GET.get("state", ""))
+    prepared = cache.get(OAUTH_PREPARED_PREFIX + returned_state) if returned_state else None
+
+    if prepared:
+        # The frontend started OAuth using its Bearer token. The short-lived,
+        # one-time state record safely carries identity across Google's redirect,
+        # where the browser cannot send the frontend's Authorization header.
+        cache.delete(OAUTH_PREPARED_PREFIX + returned_state)
+        expected_state = returned_state
+        code_verifier = str(prepared.get("code_verifier") or "")
+        actor = Employee.objects.filter(
+            id=prepared.get("employee_id"), active=True
+        ).first()
+        if not actor:
+            return HttpResponse(
+                "<h2>PartsFlow Google Drive</h2><p>ผู้เริ่มเชื่อมต่อไม่พร้อมใช้งาน กรุณาเริ่มใหม่จากหน้าเว็บ</p>",
+                status=400,
+                content_type="text/html; charset=utf-8",
+            )
+    else:
+        # Backward compatibility for the original same-session OAuth flow.
+        expected_state = request.session.pop(SESSION_STATE_KEY, "")
+        code_verifier = request.session.pop(SESSION_CODE_VERIFIER_KEY, "")
+        request.session.modified = True
+        actor, err = require_permission(request, "can_manage_roles")
+        if err:
+            return err
 
     if not expected_state or returned_state != expected_state:
         return HttpResponse(
