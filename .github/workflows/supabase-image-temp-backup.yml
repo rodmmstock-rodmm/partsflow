@@ -47,56 +47,64 @@ jobs:
           root.mkdir(parents=True, exist_ok=True)
           headers = {"apikey": key, "Authorization": f"Bearer {key}", "Content-Type": "application/json"}
           manifest = []
-          offset = 0
+          pending_prefixes = [""]
           page_size = 100
-          while True:
-              req = urllib.request.Request(
-                  f"{base}/storage/v1/object/list/{quote(bucket, safe='')}",
-                  data=json.dumps({"prefix": "", "limit": page_size, "offset": offset, "sortBy": {"column": "name", "order": "asc"}}).encode(),
-                  headers=headers, method="POST")
-              with urllib.request.urlopen(req, timeout=60) as resp:
-                  items = json.load(resp)
-              if not items:
-                  break
-              for item in items:
-                  name = item.get("name")
-                  if not name or item.get("id") is None and item.get("metadata") is None:
-                      # Folder placeholders are not downloadable objects.
-                      continue
-                  if item.get("metadata") is None:
-                      continue
-                  rel = pathlib.PurePosixPath(name)
-                  if rel.is_absolute() or ".." in rel.parts:
-                      raise RuntimeError(f"Unsafe object path: {name}")
-                  dest = root.joinpath(*rel.parts)
-                  dest.parent.mkdir(parents=True, exist_ok=True)
-                  encoded = quote(name, safe="/")
-                  url = f"{base}/storage/v1/object/{quote(bucket, safe='')}/{encoded}"
-                  req = urllib.request.Request(url, headers={"apikey": key, "Authorization": f"Bearer {key}"})
-                  for attempt in range(4):
-                      try:
-                          with urllib.request.urlopen(req, timeout=120) as resp, open(dest, "wb") as out:
-                              while True:
-                                  chunk = resp.read(1024 * 1024)
-                                  if not chunk: break
-                                  out.write(chunk)
-                          break
-                      except Exception:
-                          if attempt == 3: raise
-                          time.sleep(2 ** attempt)
-                  digest = hashlib.sha256()
-                  size = 0
-                  with open(dest, "rb") as f:
-                      for chunk in iter(lambda: f.read(1024 * 1024), b""):
-                          size += len(chunk); digest.update(chunk)
-                  expected = (item.get("metadata") or {}).get("size")
-                  if expected is not None and int(expected) != size:
-                      raise RuntimeError(f"Size mismatch for {name}: expected {expected}, downloaded {size}")
-                  manifest.append({"path": name, "size": size, "sha256": digest.hexdigest()})
-              offset += len(items)
-              print(f"Downloaded metadata page through offset {offset}; files verified: {len(manifest)}")
-              if len(items) < page_size:
-                  break
+          seen_prefixes = set()
+          while pending_prefixes:
+              prefix = pending_prefixes.pop()
+              if prefix in seen_prefixes:
+                  continue
+              seen_prefixes.add(prefix)
+              offset = 0
+              while True:
+                  req = urllib.request.Request(
+                      f"{base}/storage/v1/object/list/{quote(bucket, safe='')}",
+                      data=json.dumps({"prefix": prefix, "limit": page_size, "offset": offset, "sortBy": {"column": "name", "order": "asc"}}).encode(),
+                      headers=headers, method="POST")
+                  with urllib.request.urlopen(req, timeout=60) as resp:
+                      items = json.load(resp)
+                  if not items:
+                      break
+                  for item in items:
+                      name = item.get("name")
+                      if not name:
+                          continue
+                      full_name = prefix + name
+                      rel = pathlib.PurePosixPath(full_name)
+                      if rel.is_absolute() or ".." in rel.parts:
+                          raise RuntimeError(f"Unsafe object path: {full_name}")
+                      if item.get("metadata") is None:
+                          pending_prefixes.append(full_name.rstrip("/") + "/")
+                          continue
+                      dest = root.joinpath(*rel.parts)
+                      dest.parent.mkdir(parents=True, exist_ok=True)
+                      encoded = quote(full_name, safe="/")
+                      url = f"{base}/storage/v1/object/{quote(bucket, safe='')}/{encoded}"
+                      req = urllib.request.Request(url, headers={"apikey": key, "Authorization": f"Bearer {key}"})
+                      for attempt in range(4):
+                          try:
+                              with urllib.request.urlopen(req, timeout=120) as resp, open(dest, "wb") as out:
+                                  while True:
+                                      chunk = resp.read(1024 * 1024)
+                                      if not chunk: break
+                                      out.write(chunk)
+                              break
+                          except Exception:
+                              if attempt == 3: raise
+                              time.sleep(2 ** attempt)
+                      digest = hashlib.sha256()
+                      size = 0
+                      with open(dest, "rb") as f:
+                          for chunk in iter(lambda: f.read(1024 * 1024), b""):
+                              size += len(chunk); digest.update(chunk)
+                      expected = (item.get("metadata") or {}).get("size")
+                      if expected is not None and int(expected) != size:
+                          raise RuntimeError(f"Size mismatch for {full_name}: expected {expected}, downloaded {size}")
+                      manifest.append({"path": full_name, "size": size, "sha256": digest.hexdigest()})
+                  offset += len(items)
+                  print(f"Prefix {prefix or '/'}: offset {offset}; files verified: {len(manifest)}")
+                  if len(items) < page_size:
+                      break
           if not manifest:
               raise RuntimeError("No objects were downloaded; refusing to publish an empty backup.")
           pathlib.Path("storage-backup-manifest.json").write_text(json.dumps({
