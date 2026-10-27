@@ -4,9 +4,9 @@ on:
   workflow_dispatch:
     inputs:
       limit:
-        description: "Maximum images to inspect (20 is a safe sample; 0 scans all images and downloads them)"
+        description: "Maximum images to inspect (20 for a sample; 100 for a larger read-only sample; 0 scans all images)"
         required: true
-        default: "20"
+        default: "100"
         type: string
   push:
     branches:
@@ -46,8 +46,10 @@ jobs:
 
       - name: Run read-only dry-run
         working-directory: backend
+        env:
+          IMAGE_LIMIT: ${{ github.event_name == 'workflow_dispatch' && inputs.limit || '100' }}
         run: |
-          python manage.py optimize_supabase_images --limit "20" 2>&1 | tee image-optimization-dry-run.txt
+          python manage.py optimize_supabase_images --limit "$IMAGE_LIMIT" 2>&1 | tee image-optimization-dry-run.txt
 
       - name: Save report
         if: always()
