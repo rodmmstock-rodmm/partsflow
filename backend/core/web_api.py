@@ -23,6 +23,7 @@ from .drive_images import (
     resolve_drive_file,
 )
 from .drive_image_backup import backup_web_upload
+from .image_optimizer import optimize_part_image
 from .supabase_storage import (
     SupabaseStorageConfigError,
     SupabaseStorageRequestError,
@@ -697,7 +698,12 @@ def part_image(request, pk):
                 status=400,
             )
 
-        payload = upload.read()
+        original_payload = upload.read()
+        original_size = len(original_payload)
+        try:
+            payload, content_type = optimize_part_image(original_payload, content_type)
+        except ValueError as exc:
+            return Response({"detail": str(exc)}, status=400)
         digest = hashlib.sha256(payload).hexdigest()
 
         sku_folder = _safe_part_image_folder(part.sku)
@@ -763,7 +769,10 @@ def part_image(request, pk):
                 "image_upload": {
                     "filename": str(getattr(upload, "name", "") or ""),
                     "content_type": content_type,
-                    "size": size,
+                    "size": len(payload),
+                    "original_size": original_size,
+                    "optimized_size": len(payload),
+                    "saved_bytes": max(0, original_size - len(payload)),
                     "sha256": digest,
                     "storage_object": object_path,
                     "drive_backup": backup_result,
