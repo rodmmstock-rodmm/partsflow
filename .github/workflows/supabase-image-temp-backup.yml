@@ -1,6 +1,11 @@
 name: Temporary Supabase Storage backup
 
 on:
+  push:
+    branches:
+      - feat/supabase-image-temp-backup
+    paths:
+      - ".github/workflows/supabase-image-temp-backup.yml"
   workflow_dispatch:
     inputs:
       confirm_backup:
@@ -13,7 +18,7 @@ permissions:
 
 jobs:
   backup:
-    if: ${{ inputs.confirm_backup == 'BACKUP' }}
+    if: ${{ github.event_name == 'push' || inputs.confirm_backup == 'BACKUP' }}
     runs-on: ubuntu-latest
     timeout-minutes: 180
     env:
