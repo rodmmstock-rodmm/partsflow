@@ -8,6 +8,11 @@ on:
         required: true
         default: "20"
         type: string
+  push:
+    branches:
+      - feat/supabase-image-optimization
+    paths:
+      - ".github/workflows/supabase-image-optimization-dry-run.yml"
 
 permissions:
   contents: read
@@ -42,7 +47,7 @@ jobs:
 
       - name: Run read-only dry-run
         run: |
-          python manage.py optimize_supabase_images --limit "${{ inputs.limit }}" 2>&1 | tee image-optimization-dry-run.txt
+          python manage.py optimize_supabase_images --limit "20" 2>&1 | tee image-optimization-dry-run.txt
 
       - name: Save report
         if: always()
