@@ -7,6 +7,7 @@ unchanged; uploads overwrite only images that become smaller.
 from __future__ import annotations
 
 import mimetypes
+from pathlib import Path
 
 import requests
 from django.core.management.base import BaseCommand, CommandError
@@ -15,10 +16,7 @@ from core.image_optimizer import optimize_part_image
 from core.supabase_storage import (
     _admin_headers,
     _quoted_object_path,
-    admin_key,
-    bucket_name,
     require_admin_config,
-    supabase_url,
     upload_object,
 )
 
@@ -33,6 +31,10 @@ class Command(BaseCommand):
         )
         parser.add_argument("--limit", type=int, default=0, help="Optional maximum objects to inspect.")
         parser.add_argument("--timeout", type=int, default=60)
+        parser.add_argument(
+            "--backup-dir", default="",
+            help="Local directory for verified copies of originals; required with --apply.",
+        )
 
     def handle(self, *args, **options):
         try:
@@ -41,6 +43,12 @@ class Command(BaseCommand):
             raise CommandError(str(exc)) from exc
 
         apply_changes = options["apply"]
+        backup_dir = str(options.get("backup_dir") or "").strip()
+        if apply_changes and not backup_dir:
+            raise CommandError(
+                "--apply requires --backup-dir. Originals must be saved locally before any overwrite."
+            )
+        backup_root = Path(backup_dir).expanduser().resolve() if backup_dir else None
         limit = max(0, options["limit"])
         timeout = options["timeout"]
         headers = _admin_headers(key, "application/json")
@@ -114,6 +122,21 @@ class Command(BaseCommand):
                 f"{len(original)} -> {len(optimized)} bytes (saved {saved})"
             )
             if apply_changes:
+                # Preserve exact original bytes and verify the backup before overwrite.
+                backup_path = (backup_root / Path(*path.split("/"))).resolve()
+                if backup_root not in backup_path.parents:
+                    raise CommandError(f"Unsafe backup path for object: {path}")
+                backup_path.parent.mkdir(parents=True, exist_ok=True)
+                if backup_path.exists():
+                    if backup_path.read_bytes() != original:
+                        raise CommandError(
+                            f"Backup already exists but differs from current object: {backup_path}"
+                        )
+                else:
+                    with backup_path.open("xb") as backup_file:
+                        backup_file.write(original)
+                    if backup_path.read_bytes() != original:
+                        raise CommandError(f"Backup verification failed for object: {path}")
                 upload_object(path, optimized, content_type=output_type, upsert=True, timeout=timeout)
                 optimized_count += 1
                 saved_total += saved
@@ -126,5 +149,5 @@ class Command(BaseCommand):
         )
         if not apply_changes:
             self.stdout.write(self.style.WARNING(
-                "Dry-run only: no objects were changed. Review output and confirm backup before --apply."
+                "Dry-run only: no objects were changed. To apply, supply --backup-dir on a persistent local disk; each original is verified there before overwrite."
             ))
