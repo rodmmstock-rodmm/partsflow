@@ -19,7 +19,7 @@ from typing import Optional, Tuple
 
 from django.core.cache import cache
 
-DRIVE_SCOPE = "https://www.googleapis.com/auth/drive.readonly"
+DRIVE_SCOPE = "https://www.googleapis.com/auth/drive"
 DRIVE_FOLDER_MIME = "application/vnd.google-apps.folder"
 DEFAULT_ROOT_NAME = "DATA1_Images"
 
