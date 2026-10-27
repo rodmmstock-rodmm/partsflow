@@ -6,6 +6,7 @@ on:
       - ops/apply-supabase-image-compression
     paths:
       - ".github/workflows/apply-supabase-image-compression.yml"
+      - "backend/core/management/commands/optimize_supabase_images.py"
 
 permissions:
   contents: read
