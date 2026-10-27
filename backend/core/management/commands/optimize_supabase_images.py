@@ -7,6 +7,7 @@ unchanged; uploads overwrite only images that become smaller.
 from __future__ import annotations
 
 import mimetypes
+import time
 from pathlib import Path
 
 import requests
@@ -17,6 +18,7 @@ from core.supabase_storage import (
     _admin_headers,
     _quoted_object_path,
     require_admin_config,
+    SupabaseStorageRequestError,
     upload_object,
 )
 
@@ -137,7 +139,29 @@ class Command(BaseCommand):
                         backup_file.write(original)
                     if backup_path.read_bytes() != original:
                         raise CommandError(f"Backup verification failed for object: {path}")
-                upload_object(path, optimized, content_type=output_type, upsert=True, timeout=timeout)
+                # Supabase/Cloudflare can transiently return 520/502/503/504.
+                # Retry those failures with backoff; do not abort the entire bucket job
+                # because of one transient upload error.
+                for attempt in range(1, 6):
+                    try:
+                        upload_object(path, optimized, content_type=output_type, upsert=True, timeout=timeout)
+                        break
+                    except SupabaseStorageRequestError as exc:
+                        message = str(exc)
+                        transient = (
+                            any(code in message for code in (
+                                "HTTP 520", "HTTP 502", "HTTP 503", "HTTP 504"
+                            ))
+                            or "ไม่สำเร็จ:" in message
+                        )
+                        if not transient or attempt == 5:
+                            raise
+                        delay = min(5 * attempt, 25)
+                        self.stderr.write(
+                            f"Temporary upload failure for {path} "
+                            f"(attempt {attempt}/5): {message[:180]}. Retrying in {delay}s."
+                        )
+                        time.sleep(delay)
                 optimized_count += 1
                 saved_total += saved
 
