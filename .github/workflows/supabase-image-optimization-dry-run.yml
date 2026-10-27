@@ -21,9 +21,6 @@ jobs:
   dry-run:
     runs-on: ubuntu-latest
     timeout-minutes: 30
-    defaults:
-      run:
-        working-directory: backend
     env:
       # Project URL is public configuration, not a secret.
       SUPABASE_URL: https://cyacvmjkqgnbihivsrtf.supabase.co
@@ -44,9 +41,11 @@ jobs:
           cache-dependency-path: backend/requirements.render.txt
 
       - name: Install backend dependencies
+        working-directory: backend
         run: pip install -r requirements.render.txt
 
       - name: Run read-only dry-run
+        working-directory: backend
         run: |
           python manage.py optimize_supabase_images --limit "20" 2>&1 | tee image-optimization-dry-run.txt
 
