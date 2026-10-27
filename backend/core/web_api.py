@@ -655,11 +655,9 @@ def part_image(request, pk):
         return Response({"detail": "ไม่พบอะไหล่"}, status=404)
 
     # ------------------------------------------------------------------
-    # POST: upload a new image directly to Supabase Storage.
-    #
-    # We keep Part.image_path as a logical DATA1_Images/... source path,
-    # rather than storing a vendor-specific public URL in the database.
-    # This keeps the data model ready for a future automatic Drive backup.
+    # POST: upload to Supabase Storage for web delivery, then attempt a
+    # verified secondary copy in Google Drive. Part.image_path remains a
+    # logical DATA1_Images/... path rather than a vendor-specific public URL.
     # ------------------------------------------------------------------
     if request.method == "POST":
         if not storage_enabled():
