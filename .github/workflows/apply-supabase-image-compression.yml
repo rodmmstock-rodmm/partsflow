@@ -1,0 +1,54 @@
+name: Apply Supabase image compression
+
+on:
+  push:
+    branches:
+      - ops/apply-supabase-image-compression
+    paths:
+      - ".github/workflows/apply-supabase-image-compression.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  compress:
+    runs-on: ubuntu-latest
+    timeout-minutes: 180
+    env:
+      SUPABASE_URL: https://cyacvmjkqgnbihivsrtf.supabase.co
+      SUPABASE_SECRET_KEY: ${{ secrets.SUPABASE_SECRET_KEY }}
+    steps:
+      - name: Verify required secret
+        shell: bash
+        run: |
+          test -n "$SUPABASE_SECRET_KEY" || { echo "::error::Missing repository secret SUPABASE_SECRET_KEY"; exit 1; }
+
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+          cache-dependency-path: backend/requirements.render.txt
+
+      - name: Install backend dependencies
+        working-directory: backend
+        run: pip install -r requirements.render.txt
+
+      - name: Compress existing images and replace only smaller files
+        working-directory: backend
+        shell: bash
+        run: |
+          set -o pipefail
+          python manage.py optimize_supabase_images --apply --limit 0 --backup-dir storage-originals 2>&1 | tee image-optimization-apply.txt
+
+      - name: Upload verified originals and report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: supabase-image-compression-originals-and-report
+          path: |
+            backend/storage-originals/
+            backend/image-optimization-apply.txt
+          if-no-files-found: warn
+          retention-days: 30
