@@ -6,6 +6,7 @@ on:
     paths:
       - "backend/**"
       - "frontend/**"
+      - "scripts/test_tooling_ui.py"
       - ".github/workflows/partsflow-pr-validation.yml"
   workflow_dispatch:
 
@@ -66,5 +67,32 @@ jobs:
       - name: Install frontend dependencies
         run: npm ci
 
-      - name: Build frontend
-        run: npm run build
+      - name: Build frontend for isolated UI tests
+        run: VITE_API_BASE_URL=/api npm run build
+
+      - name: Set up Python for browser tests
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install Playwright
+        run: |
+          python -m pip install playwright
+          python -m playwright install --with-deps chromium
+
+      - name: Run desktop and mobile Tooling UI smoke tests
+        run: |
+          npm run preview -- --host 127.0.0.1 --port 4173 > /tmp/partsflow-preview.log 2>&1 &
+          PREVIEW_PID=$!
+          trap 'kill "$PREVIEW_PID" 2>/dev/null || true' EXIT
+          for attempt in $(seq 1 30); do
+            if curl --fail --silent http://127.0.0.1:4173/login >/dev/null; then
+              break
+            fi
+            sleep 1
+          done
+          curl --fail --silent http://127.0.0.1:4173/login >/dev/null || {
+            cat /tmp/partsflow-preview.log
+            exit 1
+          }
+          python ../scripts/test_tooling_ui.py
