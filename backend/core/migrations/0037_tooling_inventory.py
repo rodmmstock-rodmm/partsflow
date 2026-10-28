@@ -38,7 +38,7 @@ class Migration(migrations.Migration):
                 ("requester_name", models.CharField(max_length=200)),
                 ("reason", models.CharField(choices=[("LOST", "หาย"), ("DAMAGED", "ชำรุด")], max_length=12)),
                 ("remark", models.TextField(blank=True)),
-                ("created_by", models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.SET_NULL, to="auth.user")),
+                ("created_by", models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.SET_NULL, related_name="tooling_actions", to="core.employee")),
                 ("item", models.ForeignKey(on_delete=django.db.models.deletion.PROTECT, related_name="transactions", to="core.toolingitem")),
                 ("requester", models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.SET_NULL, related_name="tooling_withdrawals", to="core.employee")),
             ],
