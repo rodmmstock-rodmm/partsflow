@@ -1,5 +1,6 @@
 from django.db import transaction
 from django.db.models import F
+import re
 from django.views.decorators.csrf import csrf_exempt
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import AllowAny
@@ -8,6 +9,18 @@ from rest_framework.response import Response
 from .auth_api import require_permission
 from .audit_utils import audit
 from .models import Employee, ToolingItem, ToolingTransaction
+
+def parse_whole_number(value, *, allow_zero=True):
+    """Accept integer values only; never silently truncate decimals or booleans."""
+    if isinstance(value, bool):
+        raise ValueError()
+    text = str(value if value is not None else "").strip()
+    if not re.fullmatch(r"\d+", text):
+        raise ValueError()
+    number = int(text)
+    if number < 0 or (not allow_zero and number == 0):
+        raise ValueError()
+    return number
 
 
 def item_json(item):
@@ -43,10 +56,8 @@ def items(request):
     if not name:
         return Response({"detail": "กรุณาระบุชื่ออุปกรณ์"}, status=400)
     try:
-        quantity = int(request.data.get("quantity", 0))
-        minimum = int(request.data.get("min_quantity", 0))
-        if quantity < 0 or minimum < 0:
-            raise ValueError()
+        quantity = parse_whole_number(request.data.get("quantity", 0))
+        minimum = parse_whole_number(request.data.get("min_quantity", 0))
     except (TypeError, ValueError):
         return Response({"detail": "จำนวนต้องเป็นเลขศูนย์หรือจำนวนเต็มบวก"}, status=400)
     item = ToolingItem.objects.create(name=name, detail=str(request.data.get("detail") or "").strip(),
@@ -81,9 +92,7 @@ def item_detail(request, pk):
     for field in ("quantity", "min_quantity"):
         if field in request.data:
             try:
-                value = int(request.data[field])
-                if value < 0:
-                    raise ValueError()
+                value = parse_whole_number(request.data[field])
             except (TypeError, ValueError):
                 return Response({"detail": "จำนวนต้องเป็นเลขศูนย์หรือจำนวนเต็มบวก"}, status=400)
             setattr(item, field, value)
@@ -100,9 +109,7 @@ def withdraw(request, pk):
     if err:
         return err
     try:
-        qty = int(request.data.get("quantity", 0))
-        if qty <= 0:
-            raise ValueError()
+        qty = parse_whole_number(request.data.get("quantity", 0), allow_zero=False)
     except (TypeError, ValueError):
         return Response({"detail": "จำนวนที่เบิกต้องมากกว่า 0"}, status=400)
     reason = str(request.data.get("reason") or "").upper()
@@ -123,7 +130,7 @@ def withdraw(request, pk):
         item.refresh_from_db()
         tx = ToolingTransaction.objects.create(item=item, quantity=qty, requester=requester,
             requester_name=requester.name, reason=reason, remark=str(request.data.get("remark") or "").strip())
-    audit(actor, "WITHDRAW", "ToolingItem", item.id, {"transaction_id": str(tx.id), "quantity": qty, "reason": reason})
+        audit(actor, "WITHDRAW", "ToolingItem", item.id, {"transaction_id": str(tx.id), "quantity": qty, "reason": reason})
     return Response({"item": item_json(item), "transaction": tx_json(tx)}, status=201)
 
 
