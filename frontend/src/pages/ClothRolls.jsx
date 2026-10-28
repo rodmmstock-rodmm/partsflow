@@ -83,7 +83,7 @@ export default function ClothRolls() {
         transaction_type: type,
         quantity,
         borrower_employee_id: !isQr && type === "OUT" ? borrowerId : "",
-        machine_name: machineName.trim(),
+        machine_name: type === "OUT" ? machineName.trim() : "",
         source: isQr ? "QR" : "WEB",
         qr_token: isQr ? qrToken : "",
       });
@@ -363,7 +363,7 @@ export default function ClothRolls() {
             <label className="field" style={{ display: "block", marginBottom: 14 }}><span>{type === "ADJ" ? "ยอดคงเหลือใหม่ (ม้วน) *" : "จำนวน (ม้วน) *"}</span>
               <input required type="number" min={type === "ADJ" ? "0" : "1"} step="1" inputMode="numeric" pattern="[0-9]*" value={quantity} onChange={(e) => setQuantity(e.target.value)} />
             </label>
-            {!isQr && <label className="field" style={{ display: "block", marginBottom: 14 }}><span>Machine</span>
+            {!isQr && type === "OUT" && <label className="field" style={{ display: "block", marginBottom: 14 }}><span>Machine</span>
               <input maxLength="120" value={machineName} onChange={(e) => setMachineName(e.target.value)} placeholder="ระบุชื่อ Machine (ถ้ามี)" style={{ width: "100%" }} />
             </label>}
             {!isQr && type === "OUT" && <label className="field" style={{ display: "block", marginBottom: 14 }}><span>ชื่อผู้เบิก *</span>
