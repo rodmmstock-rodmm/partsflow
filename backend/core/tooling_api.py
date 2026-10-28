@@ -105,7 +105,7 @@ def item_detail(request, pk):
 @api_view(["POST"])
 @permission_classes([AllowAny])
 def withdraw(request, pk):
-    actor, err = require_permission(request, "can_view_tooling")
+    actor, err = require_permission(request, "can_edit_tooling")
     if err:
         return err
     try:
@@ -129,7 +129,7 @@ def withdraw(request, pk):
         item.save(update_fields=["quantity", "updated_at"])
         item.refresh_from_db()
         tx = ToolingTransaction.objects.create(item=item, quantity=qty, requester=requester,
-            requester_name=requester.name, reason=reason, remark=str(request.data.get("remark") or "").strip())
+            requester_name=requester.name, reason=reason, remark=str(request.data.get("remark") or "").strip(), created_by=actor)
         audit(actor, "WITHDRAW", "ToolingItem", item.id, {"transaction_id": str(tx.id), "quantity": qty, "reason": reason})
     return Response({"item": item_json(item), "transaction": tx_json(tx)}, status=201)
 
