@@ -42,6 +42,18 @@ def tx_json(tx):
     }
 
 
+@api_view(["GET"])
+@permission_classes([AllowAny])
+def safety_stock(request):
+    # Safety Stock users need the below-minimum view without receiving access to
+    # the full Tooling inventory or withdrawal endpoints.
+    actor, err = require_permission(request, "can_view_safety_stock")
+    if err:
+        return err
+    qs = ToolingItem.objects.filter(active=True, quantity__lt=F("min_quantity")).order_by("name")
+    return Response({"count": qs.count(), "results": [item_json(item) for item in qs]})
+
+
 @csrf_exempt
 @api_view(["GET", "POST"])
 @permission_classes([AllowAny])
