@@ -120,9 +120,11 @@ def public_url_for_object(object_path: str, *, with_version: bool = True) -> str
     )
 
     if with_version:
+        # Bump this marker when existing objects are rewritten in place so
+        # clients/CDNs do not keep serving the pre-optimization bytes.
         version = PurePosixPath(object_path).parts[-2] if "/" in object_path else ""
         if version:
-            url = f"{url}?v={quote(version, safe='-_.~')}"
+            url = f"{url}?v={quote('imgopt1-' + version, safe='-_.~')}"
     return url
 
 

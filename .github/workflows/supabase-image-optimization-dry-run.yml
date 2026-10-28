@@ -1,0 +1,61 @@
+name: Supabase image optimization dry-run
+
+on:
+  workflow_dispatch:
+    inputs:
+      limit:
+        description: "Maximum images to inspect (20 for a sample; 100 for a larger read-only sample; 0 scans all images)"
+        required: true
+        default: "100"
+        type: string
+  push:
+    branches:
+      - feat/supabase-image-optimization
+    paths:
+      - ".github/workflows/supabase-image-optimization-dry-run.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  dry-run:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      # Project URL is public configuration, not a secret.
+      SUPABASE_URL: https://cyacvmjkqgnbihivsrtf.supabase.co
+      # Keep the privileged Storage key in GitHub Actions Secrets.
+      SUPABASE_SECRET_KEY: ${{ secrets.SUPABASE_SECRET_KEY }}
+    steps:
+      - name: Check required secret
+        shell: bash
+        run: |
+          test -n "$SUPABASE_SECRET_KEY" || { echo "::error::Missing repository secret SUPABASE_SECRET_KEY"; exit 1; }
+
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+          cache-dependency-path: backend/requirements.render.txt
+
+      - name: Install backend dependencies
+        working-directory: backend
+        run: pip install -r requirements.render.txt
+
+      - name: Run read-only dry-run
+        working-directory: backend
+        env:
+          IMAGE_LIMIT: ${{ github.event_name == 'workflow_dispatch' && inputs.limit || '100' }}
+        run: |
+          python manage.py optimize_supabase_images --limit "$IMAGE_LIMIT" 2>&1 | tee image-optimization-dry-run.txt
+
+      - name: Save report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: supabase-image-optimization-dry-run
+          path: backend/image-optimization-dry-run.txt
+          if-no-files-found: ignore
+          retention-days: 7
