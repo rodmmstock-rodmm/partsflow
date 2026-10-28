@@ -136,3 +136,56 @@ class ToolingWithdrawalTests(TestCase):
         self.assertEqual(response.status_code, 400)
         self.item.refresh_from_db()
         self.assertEqual(self.item.quantity, 3)
+
+    def test_zero_withdrawal_is_rejected_by_api_without_changing_stock(self):
+        response = self.client.post(
+            self.url,
+            {
+                "quantity": 0,
+                "requester_id": str(self.requester.id),
+                "reason": ToolingTransaction.REASON_LOST,
+            },
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, 400)
+        self.item.refresh_from_db()
+        self.assertEqual(self.item.quantity, 3)
+        self.assertEqual(ToolingTransaction.objects.count(), 0)
+
+    def test_withdrawal_permission_is_required_even_with_tooling_view_permission(self):
+        self.role.can_withdraw_tooling = False
+        self.role.save(update_fields=["can_withdraw_tooling"])
+
+        response = self.client.post(
+            self.url,
+            {
+                "quantity": 1,
+                "requester_id": str(self.requester.id),
+                "reason": ToolingTransaction.REASON_LOST,
+            },
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, 403)
+        self.item.refresh_from_db()
+        self.assertEqual(self.item.quantity, 3)
+        self.assertEqual(ToolingTransaction.objects.count(), 0)
+
+    def test_unauthenticated_withdrawal_is_rejected(self):
+        self.client.session.flush()
+
+        response = self.client.post(
+            self.url,
+            {
+                "quantity": 1,
+                "requester_id": str(self.requester.id),
+                "reason": ToolingTransaction.REASON_LOST,
+            },
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, 401)
+        self.item.refresh_from_db()
+        self.assertEqual(self.item.quantity, 3)
+        self.assertEqual(ToolingTransaction.objects.count(), 0)
