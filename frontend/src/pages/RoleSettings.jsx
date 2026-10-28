@@ -58,6 +58,7 @@ export const PERMISSIONS = [
   ["can_delete_machine", "Delete Machine", "Machines"],
 
   ["can_view_tooling", "View Tooling", "Tooling"],
+  ["can_withdraw_tooling", "Withdraw Tooling", "Tooling"],
   ["can_add_tooling", "Add Tooling", "Tooling"],
   ["can_edit_tooling", "Edit Tooling", "Tooling"],
   ["can_delete_tooling", "Delete Tooling", "Tooling"],
