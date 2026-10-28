@@ -11,7 +11,7 @@ export default function MobileSafetyStock(){
 
   async function load(force=false){
     setLoading(true);setError("");setToolingError("");
-    const [partsResult,toolingResult]=await Promise.allSettled([apiGet("/safety-stock/",{forceRefresh:force}),apiGet("/tooling/items/",{forceRefresh:force})]);
+    const [partsResult,toolingResult]=await Promise.allSettled([apiGet("/safety-stock/",{forceRefresh:force}),apiGet("/tooling/safety-stock/",{forceRefresh:force})]);
     if(partsResult.status==="fulfilled"){setRows(partsResult.value.results||[]);setSelected(new Set())}else{setError(partsResult.reason?.message||"โหลด Safety Stock อะไหล่ไม่สำเร็จ")}
     if(toolingResult.status==="fulfilled"){setToolingRows((toolingResult.value.results||[]).filter(x=>Number(x.quantity)<Number(x.min_quantity)))}else{setToolingRows([]);setToolingError(toolingResult.reason?.message||"โหลดข้อมูล Tooling ไม่สำเร็จ")}
     setLoading(false);
