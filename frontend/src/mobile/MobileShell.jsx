@@ -17,6 +17,7 @@ import Tools from "../pages/Tools";
 import Tooling from "../pages/Tooling";
 import QrWithdraw from "../pages/QrWithdraw";
 import ClothRolls from "../pages/ClothRolls";
+import AppRefreshButton from "../components/AppRefreshButton";
 
 const NAV = [
   ["/overview", "Overview", "overview-chart", "can_view_dashboard"],
@@ -110,6 +111,7 @@ export default function MobileShell() {
           </div>
         </div>
         <div className="m-topbar-actions">
+          <AppRefreshButton />
           <button onClick={logout} aria-label="ออกจากระบบ">
             <svg className="nav-icon"><use href="#ic-power" /></svg>
           </button>
