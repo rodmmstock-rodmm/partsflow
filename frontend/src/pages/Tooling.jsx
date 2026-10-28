@@ -10,7 +10,8 @@ export default function Tooling() {
   const [employees, setEmployees] = useState([]);
   const [history, setHistory] = useState([]);
   const [tab, setTab] = useState("items");
-  const [filter, setFilter] = useState("");
+  const [itemQuery, setItemQuery] = useState("");
+  const [historyFilter, setHistoryFilter] = useState("");
   const [editing, setEditing] = useState(null);
   const [formOpen, setFormOpen] = useState(false);
   const [form, setForm] = useState(empty);
@@ -46,7 +47,7 @@ export default function Tooling() {
     if (!window.confirm(`ยืนยันปิดใช้งาน ${item.name}?`)) return;
     try { await apiDelete(`/tooling/items/${item.id}/`); await load(); } catch (e) { setError(e.message); }
   }
-  const shown = items.filter(x => !filter || `${x.name} ${x.detail} ${x.maker}`.toLowerCase().includes(filter.toLowerCase()));
+  const shown = items.filter(x => !itemQuery || `${x.name} ${x.detail} ${x.maker}`.toLowerCase().includes(itemQuery.toLowerCase()));
   const canManage = auth.can("can_add_tooling") || auth.can("can_edit_tooling");
   return <>
     <PageHeader title="Tooling" subtitle="รายการอุปกรณ์ที่มีสต็อกและสามารถเบิกตัดจำนวนได้" actions={auth.can("can_add_tooling") ? <button className="btn primary" onClick={() => {setEditing(null);setForm(empty);setFormOpen(true);setTab("items");}}>+ เพิ่มอุปกรณ์</button> : null} />
@@ -54,7 +55,7 @@ export default function Tooling() {
     <div className="toolbar" style={{marginBottom:16}}>
       <button className={tab==="items"?"btn primary":"btn ghost"} onClick={()=>setTab("items")}>รายการอุปกรณ์ ({items.length})</button>
       <button className={tab==="history"?"btn primary":"btn ghost"} onClick={()=>setTab("history")}>ประวัติการเบิก ({history.length})</button>
-      {tab==="items" && <input className="search-input" placeholder="ค้นหาอุปกรณ์..." value={filter} onChange={e=>setFilter(e.target.value)} />}
+      {tab==="items" && <input className="search-input" placeholder="ค้นหาอุปกรณ์..." value={itemQuery} onChange={e=>setItemQuery(e.target.value)} />}
     </div>
     {tab==="items" ? <>
       {(editing || formOpen) && <section className="panel"><h3>{editing?"แก้ไขอุปกรณ์":"เพิ่มอุปกรณ์"}</h3><form onSubmit={save} className="form-grid">
@@ -70,7 +71,7 @@ export default function Tooling() {
         {shown.map(x=><tr key={x.id}><td><b>{x.name}</b></td><td>{x.detail||"-"}</td><td>{x.maker||"-"}</td><td className={x.low_stock?"text-danger":""}><b>{x.quantity}</b></td><td>{x.min_quantity}</td><td>{x.unit||"-"}</td><td><div className="toolbar"><button className="btn primary" onClick={()=>{setWithdrawItem(x);setWithdraw({quantity:1,requester_id:auth.employee?.id||"",reason:"LOST",remark:""})}}>เบิก</button>{auth.can("can_edit_tooling")&&<button className="btn ghost" onClick={()=>{setEditing(x);setForm({...x});setFormOpen(true);}}>แก้ไข</button>}{auth.can("can_delete_tooling")&&<button className="btn ghost" onClick={()=>remove(x)}>ปิดใช้งาน</button>}</div></td></tr>)}
         {!shown.length&&<tr><td colSpan="7">ไม่พบรายการ Tooling</td></tr>}
       </tbody></table></div></section>
-    </> : <section className="panel"><div className="toolbar"><button className="btn ghost" onClick={()=>setFilter("")}>ทั้งหมด</button><button className="btn ghost" onClick={()=>setFilter("LOST")}>หาย</button><button className="btn ghost" onClick={()=>setFilter("DAMAGED")}>ชำรุด</button></div><div className="table-wrap"><table><thead><tr><th>วันที่</th><th>อุปกรณ์</th><th>จำนวน</th><th>ผู้เบิก</th><th>เหตุผล</th><th>หมายเหตุ</th></tr></thead><tbody>{history.filter(x=>!["LOST","DAMAGED"].includes(filter)||x.reason===filter).map(x=><tr key={x.id}><td>{new Date(x.created_at).toLocaleString("th-TH")}</td><td>{x.item_name}</td><td>{x.quantity}</td><td>{x.requester_name}</td><td>{x.reason_label}</td><td>{x.remark||"-"}</td></tr>)}{!history.length&&<tr><td colSpan="6">ยังไม่มีประวัติการเบิก</td></tr>}</tbody></table></div></section>}
+    </> : <section className="panel"><div className="toolbar"><button className="btn ghost" onClick={()=>setHistoryFilter("")}>ทั้งหมด</button><button className="btn ghost" onClick={()=>setHistoryFilter("LOST")}>หาย</button><button className="btn ghost" onClick={()=>setHistoryFilter("DAMAGED")}>ชำรุด</button></div><div className="table-wrap"><table><thead><tr><th>วันที่</th><th>อุปกรณ์</th><th>จำนวน</th><th>ผู้เบิก</th><th>เหตุผล</th><th>หมายเหตุ</th></tr></thead><tbody>{history.filter(x=>!["LOST","DAMAGED"].includes(historyFilter)||x.reason===historyFilter).map(x=><tr key={x.id}><td>{new Date(x.created_at).toLocaleString("th-TH")}</td><td>{x.item_name}</td><td>{x.quantity}</td><td>{x.requester_name}</td><td>{x.reason_label}</td><td>{x.remark||"-"}</td></tr>)}{!history.length&&<tr><td colSpan="6">ยังไม่มีประวัติการเบิก</td></tr>}</tbody></table></div></section>}
     {withdrawItem && <div className="modal-backdrop" role="presentation"><section className="modal" role="dialog" aria-modal="true"><h3>เบิก {withdrawItem.name}</h3><form onSubmit={submitWithdraw} className="form-grid">
       <label className="field"><span>จำนวนที่เบิก *</span><input type="number" min="1" max={withdrawItem.quantity} required value={withdraw.quantity} onChange={e=>setWithdraw({...withdraw,quantity:e.target.value})}/><small>คงเหลือ {withdrawItem.quantity} {withdrawItem.unit}</small></label>
       <label className="field"><span>ผู้เบิก *</span><select required value={withdraw.requester_id} onChange={e=>setWithdraw({...withdraw,requester_id:e.target.value})}><option value="">เลือกพนักงาน</option>{employees.map(e=><option key={e.id} value={e.id}>{e.employee_code} - {e.name}</option>)}</select></label>
