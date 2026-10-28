@@ -807,3 +807,11 @@ html body input[type="radio"]:focus-visible{outline:2px solid var(--brand, #3978
 .history-table .history-remark-cell{min-width:160px;max-width:240px;white-space:normal;overflow-wrap:anywhere;word-break:break-word;line-height:1.45;vertical-align:top}
 .history-table .history-action-cell{min-width:100px;white-space:nowrap;background:var(--panel)}
 .history-table tbody tr:hover .history-action-cell{background:#f8fafc}
+
+/* Tooling withdrawal dialog: the component uses .modal (not .modal-card). */
+.modal-backdrop>.modal{width:100%;max-width:560px;max-height:calc(100dvh - 32px);overflow-y:auto;background:#fff;color:var(--text);border:1px solid var(--border);border-radius:16px;padding:20px;box-shadow:0 24px 60px rgba(15,23,42,.22)}
+.modal-backdrop>.modal h3{margin:0 0 16px;font-size:16px;font-weight:600;color:var(--text)}
+.modal-backdrop>.modal .form-grid{gap:14px}
+.modal-backdrop>.modal .field{min-width:0}
+.modal-backdrop>.modal .field input,.modal-backdrop>.modal .field select,.modal-backdrop>.modal .field textarea{width:100%;min-width:0;background:#fff}
+@media(max-width:640px){.modal-backdrop>.modal{max-width:100%;max-height:calc(100dvh - 20px);padding:16px;border-radius:16px}.modal-backdrop>.modal .form-grid{grid-template-columns:minmax(0,1fr);gap:12px}.modal-backdrop>.modal .span2{grid-column:span 1}.modal-backdrop>.modal .field.span2{grid-column:span 1}}
