@@ -90,7 +90,7 @@ export default function Tooling() {
     try { await apiDelete(`/tooling/items/${item.id}/`); await load(); } catch (e) { setError(e.message); }
   }
   const shown = items.filter(x => !itemQuery || `${x.name} ${x.detail} ${x.maker}`.toLowerCase().includes(itemQuery.toLowerCase()));
-  return <>
+  return <div className="tooling-page">
     <PageHeader title="Tooling" subtitle="รายการอุปกรณ์ที่มีสต็อกและสามารถเบิกตัดจำนวนได้" actions={auth.can("can_add_tooling") ? <button className="btn primary" onClick={() => {setEditing(null);setForm(empty);setFormOpen(true);setTab("items");}}>+ เพิ่มอุปกรณ์</button> : null} />
     <Alert>{error}</Alert><Alert type="success">{success}</Alert>
     <div className="toolbar" style={{marginBottom:16}}>
@@ -121,5 +121,5 @@ export default function Tooling() {
       <label className="field span2"><span>Remark</span><textarea value={withdraw.remark} onChange={e=>setWithdraw({...withdraw,remark:e.target.value})}/></label>
       <div className="field span2"><button className="btn primary" disabled={busy}>ยืนยันเบิก</button> <button type="button" className="btn ghost" onClick={()=>setWithdrawItem(null)}>ยกเลิก</button></div>
     </form></section></div>}
-  </>;
+  </div>;
 }

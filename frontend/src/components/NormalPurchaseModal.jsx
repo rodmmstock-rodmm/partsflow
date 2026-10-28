@@ -15,7 +15,7 @@ function displayEditDataStatus(value) {
 
 function vendorLabel(item) {
   if (!item) return "";
-  return `${item.code ? `${item.code} · ` : ""}${item.name}`;
+  return item.name || "";
 }
 
 function formatAddedAt(value) {
@@ -122,7 +122,7 @@ export default function NormalPurchaseModal({ order, options, onClose, onChanged
 
   async function removeQuotationVendor(row) {
     const ok = await confirm(
-      `นำ ${row.vendor_code} · ${row.vendor_name} ออกจาก Order Quotation นี้?`,
+      `นำ ${row.vendor_name} ออกจาก Order Quotation นี้?`,
       { confirmLabel: "นำออก", danger: true }
     );
     if (!ok) return;
@@ -213,7 +213,7 @@ export default function NormalPurchaseModal({ order, options, onClose, onChanged
     if (!savedVendorId || busy) return;
     const label = savedVendor
       ? vendorLabel(savedVendor)
-      : [local.vendor_code, local.vendor_name].filter(Boolean).join(" · ") || "Vendor ที่เลือก";
+      : local.vendor_name || "Vendor ที่เลือก";
     const ok = await confirm(
       `ลบ ${label} ออกจาก VENDOR ORDER?\n\nVendor รายนี้จะยังอยู่ใน ORDER QUOTATION`,
       { confirmLabel: "นำออก", danger: true }
@@ -247,8 +247,8 @@ export default function NormalPurchaseModal({ order, options, onClose, onChanged
               options={availableQuotationVendors}
               onChange={setQuotationVendorId}
               getLabel={vendorLabel}
-              getSearchText={(item) => `${item.code || ""} ${item.name || ""} ${item.email || ""} ${item.contact_person || ""}`}
-              placeholder="พิมพ์ชื่อหรือรหัส Vendor"
+              getSearchText={(item) => `${item.name || ""} ${item.email || ""} ${item.contact_person || ""}`}
+              placeholder="พิมพ์ชื่อ Vendor"
             />
             <div className="quotation-rfq-list">
               {quotationLoading ? (
@@ -256,7 +256,7 @@ export default function NormalPurchaseModal({ order, options, onClose, onChanged
               ) : quotationVendors.length ? (
                 quotationVendors.map((row) => (
                   <div key={row.id}>
-                    <b>{row.vendor_code ? `${row.vendor_code} · ` : ""}{row.vendor_name}</b>
+                    <b>{row.vendor_name}</b>
                     <span>เพิ่มเมื่อ {formatAddedAt(row.added_at)}</span>
                     <span>เพิ่มโดย {row.added_by || "-"}</span>
                     <button
@@ -292,7 +292,7 @@ export default function NormalPurchaseModal({ order, options, onClose, onChanged
               options={vendorOrderOptions}
               onChange={(value) => set("vendor_id", value)}
               getLabel={vendorLabel}
-              getSearchText={(item) => `${item.code || ""} ${item.name || ""} ${item.email || ""} ${item.contact_person || ""}`}
+              getSearchText={(item) => `${item.name || ""} ${item.email || ""} ${item.contact_person || ""}`}
               placeholder={quotationVendors.length ? "เลือก Vendor จาก ORDER QUOTATION" : "เพิ่ม Vendor ใน ORDER QUOTATION ก่อน"}
               disabled={quotationLoading || !quotationVendors.length}
             />

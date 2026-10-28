@@ -17,6 +17,7 @@ export default function ClothRollIssueForm() {
   const [phase, setPhase] = useState("PHASE4");
   const [quantity, setQuantity] = useState("1");
   const [borrowerId, setBorrowerId] = useState("");
+  const [machineName, setMachineName] = useState("");
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
@@ -67,6 +68,7 @@ export default function ClothRollIssueForm() {
         transaction_type: "OUT",
         quantity: String(qty),
         borrower_employee_id: borrowerId,
+        machine_name: machineName.trim(),
         source: "WEB",
       });
       setData((current) => ({
@@ -76,6 +78,7 @@ export default function ClothRollIssueForm() {
         ),
       }));
       setQuantity("1");
+      setMachineName("");
       setSuccess(`บันทึกการเบิกสำเร็จ คงเหลือ ${Number(result.stock.quantity || 0).toLocaleString("th-TH")} ม้วน`);
       feedback.showToast("บันทึกการเบิกเศษผ้าสำเร็จ", "success");
     } catch (err) {
@@ -162,10 +165,15 @@ export default function ClothRollIssueForm() {
             </div>
 
             <div className="cloth-issue-field">
+              <label htmlFor="cloth-issue-machine">Machine</label>
+              <input id="cloth-issue-machine" type="text" maxLength="120" value={machineName} onChange={(event) => setMachineName(event.target.value)} disabled={loading || busy} placeholder="ระบุชื่อ Machine (ถ้ามี)" />
+            </div>
+
+            <div className="cloth-issue-field">
               <label htmlFor="cloth-issue-borrower">ชื่อผู้เบิก</label>
               <select id="cloth-issue-borrower" value={borrowerId} onChange={(event) => setBorrowerId(event.target.value)} disabled={loading || busy} required>
                 <option value="">เลือกชื่อผู้เบิก</option>
-                {data.employees.map((employee) => <option key={employee.id} value={employee.id}>{employee.name} · {employee.employee_code}</option>)}
+                {data.employees.map((employee) => <option key={employee.id} value={employee.id}>{employee.name}</option>)}
               </select>
             </div>
 

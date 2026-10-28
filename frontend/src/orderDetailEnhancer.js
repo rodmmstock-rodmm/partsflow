@@ -72,7 +72,7 @@ const PURCHASE_FIELDS = [
   {
     key: "vendor",
     label: "VENDOR ORDER",
-    value: (d) => joinCodeName(d.vendor_code, d.vendor_name),
+    value: (d) => cleanText(d.vendor_name),
   },
   {
     key: "lead_time_days",

@@ -313,14 +313,12 @@ export default function OrdersV2(){
         }
       }));
       const exportRows=selectedRows.map((o,index)=>{
-        const vendor=o.vendor_code&&o.vendor_name?`${o.vendor_code} · ${o.vendor_name}`:(o.vendor_name||o.vendor_code||"");
+        const vendor=String(o.vendor_name||"").trim();
         const quotationVendors = Array.isArray(details[index]?.results) ? details[index].results : [];
         const orderQuotation = quotationVendors.map((v) => {
           const name = String(v.vendor_name || "").trim();
-          const code = String(v.vendor_code || "").trim();
           const addedDate = v.added_at ? String(v.added_at).slice(0, 10) : "";
-          const vendorLabel = code && name ? code + " · " + name : (name || code);
-          return vendorLabel ? vendorLabel + (addedDate ? " (" + addedDate + ")" : "") : "";
+          return name ? name + (addedDate ? " (" + addedDate + ")" : "") : "";
         }).filter(Boolean).join("\n");
         return {
           "ORDER NUMBER":o.order_number||"",

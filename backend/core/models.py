@@ -1051,9 +1051,11 @@ class ClothRollTransaction(UUIDMixin):
     """Auditable IN/OUT movement for cloth-roll inventory; quantity is whole rolls."""
     TYPE_OUT = "OUT"
     TYPE_IN = "IN"
+    TYPE_ADJUST = "ADJ"
     TYPE_CHOICES = [
         (TYPE_OUT, "เบิก"),
         (TYPE_IN, "รับเข้า"),
+        (TYPE_ADJUST, "ปรับยอด"),
     ]
 
     phase = models.CharField(max_length=12, choices=ClothRollStock.PHASE_CHOICES)
@@ -1069,6 +1071,7 @@ class ClothRollTransaction(UUIDMixin):
         related_name="cloth_roll_records",
     )
     source = models.CharField(max_length=8, choices=[("WEB", "Web"), ("QR", "QR")], default="WEB")
+    machine_name = models.CharField(max_length=120, blank=True)
 
     class Meta:
         ordering = ["-created_at"]

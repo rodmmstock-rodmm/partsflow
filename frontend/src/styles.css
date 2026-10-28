@@ -815,3 +815,15 @@ html body input[type="radio"]:focus-visible{outline:2px solid var(--brand, #3978
 .modal-backdrop>.modal .field{min-width:0}
 .modal-backdrop>.modal .field input,.modal-backdrop>.modal .field select,.modal-backdrop>.modal .field textarea{width:100%;min-width:0;background:#fff}
 @media(max-width:640px){.modal-backdrop>.modal{max-width:100%;max-height:calc(100dvh - 20px);padding:16px;border-radius:16px}.modal-backdrop>.modal .form-grid{grid-template-columns:minmax(0,1fr);gap:12px}.modal-backdrop>.modal .span2{grid-column:span 1}.modal-backdrop>.modal .field.span2{grid-column:span 1}}
+
+/* Tooling: compact list density on mobile without hiding columns or actions. */
+@media (max-width: 767px) {
+  .tooling-page .table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  .tooling-page .table-wrap table { min-width: 650px; font-size: 11px; }
+  .tooling-page .table-wrap th,
+  .tooling-page .table-wrap td { padding: 7px 8px !important; line-height: 1.25; }
+  .tooling-page .table-wrap td b { font-size: 11px; }
+  .tooling-page .table-wrap .toolbar { gap: 4px; flex-wrap: nowrap; }
+  .tooling-page .table-wrap .btn { min-height: 28px; padding: 5px 7px; font-size: 10px; border-radius: 7px; }
+  .tooling-page .panel { padding: 10px; }
+}
