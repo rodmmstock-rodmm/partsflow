@@ -434,3 +434,14 @@ tbody tr:hover .sticky-action { background:#f7fbff; }
 .m-order-card-v9.order-row-wait-quotation,
 .m-order-card-v9.order-row-wait-issue-p-r,
 .m-order-card-v9.order-row-wait-part { background-color: #ffffff !important; }
+
+
+/* Role settings: keep employee actions visible and reachable on narrow screens. */
+.role-employees-head { display:flex; align-items:flex-start; justify-content:space-between; gap:12px; flex-wrap:wrap; }
+.role-employees-title { flex:1 1 220px; min-width:0; }
+.role-add-employee { flex:0 0 auto; white-space:nowrap; }
+@media (max-width: 767px) {
+  .m-main .role-employees-head { align-items:stretch; flex-direction:column; gap:10px; }
+  .m-main .role-employees-title { width:100%; }
+  .m-main .role-add-employee { display:flex; width:100%; max-width:none; justify-content:center; align-self:stretch; white-space:normal; }
+}
