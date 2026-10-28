@@ -31,7 +31,7 @@ const NAV = [
   ["/vendors", "Vendor", "vendor", "can_view_suppliers"],
   ["/machines", "Machine", "gear", "can_view_machines"],
   ["/tooling", "Tooling", "wrench", "can_view_tooling"],
-  ["/tools", "ยืม-คืนอุปกรณ์", "wrench", "can_view_tools"],
+  ["/tools", "ยืม-คืนอุปกรณ์วัด", "gauge", "can_view_tools"],
   ["/qr-withdraw", "เบิก Screw", "screw", "can_view_qr_withdraw"],
   ["/cloth-rolls", "เศษผ้า", "fabric", "can_view_cloth_rolls"],
   ["/settings/roles", "Roles", "shield", "can_manage_roles"],
@@ -52,6 +52,7 @@ const ICON_SPRITE = (
     <symbol id="ic-shield" viewBox="0 0 24 24"><path d="M12 2.5l7.5 3.4v5.3c0 5-3.2 8.6-7.5 10.3-4.3-1.7-7.5-5.3-7.5-10.3V5.9L12 2.5z"/><path d="M9 12l2 2 4-4.2"/></symbol>
     <symbol id="ic-zap" viewBox="0 0 24 24"><path d="M13 2L4 14h6l-1 8 9-12h-6l1-8z"/></symbol>
     <symbol id="ic-power" viewBox="0 0 24 24"><path d="M12 3v8"/><path d="M6.3 6.3a8 8 0 1011.4 0"/></symbol>
+    <symbol id="ic-gauge" viewBox="0 0 24 24"><path d="M4.2 18.2a9 9 0 1 1 15.6 0"/><path d="M12 13l4.2-4.2"/><circle cx="12" cy="13" r="1.5"/><path d="M3.5 18.5h17"/></symbol>
     <symbol id="ic-wrench" viewBox="0 0 24 24"><path d="M14.7 6.3a4 4 0 00-5.4 5.4L3 18l3 3 6.3-6.3a4 4 0 005.4-5.4l-2.6 2.6-2-2z"/></symbol>
     <symbol id="ic-qrcode" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><path d="M14 14h3v3h-3zM19 14h2v2h-2zM14 19h2v2h-2zM19 19h2v2h-2z"/></symbol>
     <symbol id="ic-screw" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5.1 2.8a3.2 3.2 0 014.5 0l1.6 1.6-4.5 4.5-1.6-1.6a3.2 3.2 0 010-4.5z"/><path d="M7.4 7.4l9.5 9.5"/><path d="M14.4 14.4l-2 2M16.4 16.4l-2 2M12.4 12.4l-2 2"/><path d="M16.9 16.9l4.3 4.3-3.2-.8-.8 3.2-4.3-4.3"/><path d="M5.7 4.1l2.2 2.2"/></g></symbol>
