@@ -1,3 +1,4 @@
+from django.core.exceptions import ValidationError
 from django.db import transaction
 from django.db.models import F
 import re
@@ -18,7 +19,9 @@ def parse_whole_number(value, *, allow_zero=True):
     if not re.fullmatch(r"\d+", text):
         raise ValueError()
     number = int(text)
-    if number < 0 or (not allow_zero and number == 0):
+    # Tooling quantities use PositiveIntegerField (32-bit); reject values that
+    # cannot be stored before they reach the database.
+    if number > 2147483647 or (not allow_zero and number == 0):
         raise ValueError()
     return number
 
@@ -128,7 +131,10 @@ def withdraw(request, pk):
     if reason not in {ToolingTransaction.REASON_LOST, ToolingTransaction.REASON_DAMAGED}:
         return Response({"detail": "กรุณาเลือกเหตุผล หาย หรือ ชำรุด"}, status=400)
     requester_id = request.data.get("requester_id")
-    requester = Employee.objects.filter(pk=requester_id, active=True).first() if requester_id else None
+    try:
+        requester = Employee.objects.filter(pk=requester_id, active=True).first() if requester_id else None
+    except (ValidationError, ValueError, TypeError):
+        requester = None
     if not requester:
         return Response({"detail": "กรุณาเลือกผู้เบิกจากรายชื่อพนักงาน"}, status=400)
     with transaction.atomic():
