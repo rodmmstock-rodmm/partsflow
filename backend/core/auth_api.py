@@ -51,6 +51,7 @@ PERMISSION_FIELDS = [
     "can_edit_employees",
     "can_delete_employees",
     "can_view_tooling",
+    "can_withdraw_tooling",
     "can_add_tooling",
     "can_edit_tooling",
     "can_delete_tooling",
