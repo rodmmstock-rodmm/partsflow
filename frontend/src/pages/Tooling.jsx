@@ -19,7 +19,7 @@ export default function Tooling() {
   const [withdrawItem, setWithdrawItem] = useState(null);
   const [qrItem, setQrItem] = useState(null);
   const [qrDataUrl, setQrDataUrl] = useState("");
-  const [withdraw, setWithdraw] = useState({ quantity: 1, requester_id: "", reason: "LOST", remark: "" });
+  const [withdraw, setWithdraw] = useState({ quantity: 1, requester_id: "", reason: "LOST", vehicle_number: "", remark: "" });
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const [busy, setBusy] = useState(false);
@@ -52,7 +52,7 @@ export default function Tooling() {
         return;
       }
       setWithdrawItem(target);
-      setWithdraw({ quantity: 1, requester_id: auth.employee?.id || "", reason: "LOST", remark: "" });
+      setWithdraw({ quantity: 1, requester_id: auth.employee?.id || "", reason: "LOST", vehicle_number: "", remark: "" });
     }
   }, [items, auth.employee?.id, withdrawItem]);
   async function showQr(item) {
@@ -82,7 +82,7 @@ export default function Tooling() {
     e.preventDefault(); setBusy(true); setError("");
     try {
       await apiPost(`/tooling/items/${withdrawItem.id}/withdraw/`, withdraw);
-      setWithdrawItem(null); setWithdraw({ quantity: 1, requester_id: "", reason: "LOST", remark: "" }); setSuccess("บันทึกการเบิกแล้ว"); await load();
+      setWithdrawItem(null); setWithdraw({ quantity: 1, requester_id: "", reason: "LOST", vehicle_number: "", remark: "" }); setSuccess("บันทึกการเบิกแล้ว"); await load();
     } catch (e) { setError(e.message); } finally { setBusy(false); }
   }
   async function remove(item) {
@@ -109,15 +109,16 @@ export default function Tooling() {
         <div className="field"><span>&nbsp;</span><div><button className="btn primary" disabled={busy}>{busy?"กำลังบันทึก...":"บันทึก"}</button> <button type="button" className="btn ghost" onClick={()=>{setEditing(null);setForm(empty);setFormOpen(false)}}>ยกเลิก</button></div></div>
       </form></section>}
       <section className="panel"><div className="table-wrap"><table><thead><tr><th>ชื่ออุปกรณ์</th><th>รายละเอียด</th><th>Maker</th><th>คงเหลือ</th><th>Min</th><th>หน่วย</th><th>QR / จัดการ</th></tr></thead><tbody>
-        {shown.map(x=><tr key={x.id}><td><b>{x.name}</b></td><td>{x.detail||"-"}</td><td>{x.maker||"-"}</td><td className={x.low_stock?"text-danger":""}><b>{x.quantity}</b></td><td>{x.min_quantity}</td><td>{x.unit||"-"}</td><td><div className="toolbar"><button className="btn ghost" onClick={()=>showQr(x)}>QR</button>{auth.can("can_withdraw_tooling")&&<button className="btn primary" onClick={()=>{setWithdrawItem(x);setWithdraw({quantity:1,requester_id:auth.employee?.id||"",reason:"LOST",remark:""})}}>เบิก</button>}{auth.can("can_edit_tooling")&&<button className="btn ghost" onClick={()=>{setEditing(x);setForm({...x});setFormOpen(true);}}>แก้ไข</button>}{auth.can("can_delete_tooling")&&<button className="btn ghost" onClick={()=>remove(x)}>ปิดใช้งาน</button>}</div></td></tr>)}
+        {shown.map(x=><tr key={x.id}><td><b>{x.name}</b></td><td>{x.detail||"-"}</td><td>{x.maker||"-"}</td><td className={x.low_stock?"text-danger":""}><b>{x.quantity}</b></td><td>{x.min_quantity}</td><td>{x.unit||"-"}</td><td><div className="toolbar"><button className="btn ghost" onClick={()=>showQr(x)}>QR</button>{auth.can("can_withdraw_tooling")&&<button className="btn primary" onClick={()=>{setWithdrawItem(x);setWithdraw({quantity:1,requester_id:auth.employee?.id||"",reason:"LOST",vehicle_number:"",remark:""})}}>เบิก</button>}{auth.can("can_edit_tooling")&&<button className="btn ghost" onClick={()=>{setEditing(x);setForm({...x});setFormOpen(true);}}>แก้ไข</button>}{auth.can("can_delete_tooling")&&<button className="btn ghost" onClick={()=>remove(x)}>ปิดใช้งาน</button>}</div></td></tr>)}
         {!shown.length&&<tr><td colSpan="7">ไม่พบรายการ Tooling</td></tr>}
       </tbody></table></div></section>
-    </> : <section className="panel"><div className="toolbar"><button className="btn ghost" onClick={()=>setHistoryFilter("")}>ทั้งหมด</button><button className="btn ghost" onClick={()=>setHistoryFilter("LOST")}>หาย</button><button className="btn ghost" onClick={()=>setHistoryFilter("DAMAGED")}>ชำรุด</button></div><div className="table-wrap"><table><thead><tr><th>วันที่</th><th>อุปกรณ์</th><th>จำนวน</th><th>ผู้เบิก</th><th>ผู้ทำรายการ</th><th>เหตุผล</th><th>หมายเหตุ</th></tr></thead><tbody>{history.filter(x=>!["LOST","DAMAGED"].includes(historyFilter)||x.reason===historyFilter).map(x=><tr key={x.id}><td>{new Date(x.created_at).toLocaleString("th-TH")}</td><td>{x.item_name}</td><td>{x.quantity}</td><td>{x.requester_name}</td><td>{x.created_by_name||"-"}</td><td>{x.reason_label}</td><td>{x.remark||"-"}</td></tr>)}{!history.length&&<tr><td colSpan="7">ยังไม่มีประวัติการเบิก</td></tr>}</tbody></table></div></section>}
+    </> : <section className="panel"><div className="toolbar"><button className="btn ghost" onClick={()=>setHistoryFilter("")}>ทั้งหมด</button><button className="btn ghost" onClick={()=>setHistoryFilter("LOST")}>หาย</button><button className="btn ghost" onClick={()=>setHistoryFilter("DAMAGED")}>ชำรุด</button></div><div className="table-wrap"><table><thead><tr><th>วันที่</th><th>อุปกรณ์</th><th>จำนวน</th><th>ผู้เบิก</th><th>ผู้ทำรายการ</th><th>เบอร์รถเครื่องมือ</th><th>เหตุผล</th><th>หมายเหตุ</th></tr></thead><tbody>{history.filter(x=>!["LOST","DAMAGED"].includes(historyFilter)||x.reason===historyFilter).map(x=><tr key={x.id}><td>{new Date(x.created_at).toLocaleString("th-TH")}</td><td>{x.item_name}</td><td>{x.quantity}</td><td>{x.requester_name}</td><td>{x.created_by_name||"-"}</td><td>{x.vehicle_number ?? "-"}</td><td>{x.reason_label}</td><td>{x.remark||"-"}</td></tr>)}{!history.length&&<tr><td colSpan="8">ยังไม่มีประวัติการเบิก</td></tr>}</tbody></table></div></section>}
     {qrItem && <div className="modal-backdrop" role="presentation"><section className="modal" role="dialog" aria-modal="true"><h3>QR เบิก {qrItem.name}</h3><p>สแกน QR เพื่อเปิดหน้า Tooling และเลือกอุปกรณ์นี้สำหรับเบิก (ต้องเข้าสู่ระบบก่อน)</p>{qrDataUrl && <img src={qrDataUrl} alt={"QR Code " + qrItem.name} style={{display:"block",width:240,maxWidth:"100%",height:"auto",margin:"16px auto"}}/>}<div className="toolbar"><button className="btn primary" onClick={downloadQr}>ดาวน์โหลด QR</button><button className="btn ghost" onClick={()=>{setQrItem(null);setQrDataUrl("");}}>ปิด</button></div></section></div>}
     {withdrawItem && <div className="modal-backdrop" role="presentation"><section className="modal" role="dialog" aria-modal="true"><h3>เบิก {withdrawItem.name}</h3><form onSubmit={submitWithdraw} className="form-grid">
       <label className="field"><span>จำนวนที่เบิก *</span><input type="number" min="1" max={withdrawItem.quantity} required value={withdraw.quantity} onChange={e=>setWithdraw({...withdraw,quantity:e.target.value})}/><small>คงเหลือ {withdrawItem.quantity} {withdrawItem.unit}</small></label>
       <label className="field"><span>ผู้เบิก *</span><select required value={withdraw.requester_id} onChange={e=>setWithdraw({...withdraw,requester_id:e.target.value})}><option value="">เลือกพนักงาน</option>{employees.map(e=><option key={e.id} value={e.id}>{e.name}</option>)}</select></label>
-      <label className="field"><span>เหตุผล *</span><select value={withdraw.reason} onChange={e=>setWithdraw({...withdraw,reason:e.target.value})}><option value="LOST">หาย</option><option value="DAMAGED">ชำรุด</option></select></label>
+      <label className="field"><span>เบอร์รถเครื่องมือ *</span><select required value={withdraw.vehicle_number} onChange={e=>setWithdraw({...withdraw,vehicle_number:e.target.value})}><option value="">เลือกเบอร์รถเครื่องมือ</option>{Array.from({length:13},(_,i)=>i+1).map(n=><option key={n} value={n}>{n}</option>)}</select></label>
+      <label className="field"><span>เหตุผล *</span><select required value={withdraw.reason} onChange={e=>setWithdraw({...withdraw,reason:e.target.value})}><option value="LOST">หาย</option><option value="DAMAGED">ชำรุด</option></select></label>
       <label className="field span2"><span>Remark</span><textarea value={withdraw.remark} onChange={e=>setWithdraw({...withdraw,remark:e.target.value})}/></label>
       <div className="field span2"><button className="btn primary" disabled={busy}>ยืนยันเบิก</button> <button type="button" className="btn ghost" onClick={()=>setWithdrawItem(null)}>ยกเลิก</button></div>
     </form></section></div>}

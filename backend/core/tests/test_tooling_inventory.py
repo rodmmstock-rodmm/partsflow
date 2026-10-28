@@ -92,7 +92,7 @@ class ToolingWithdrawalTests(TestCase):
             {
                 "quantity": 2,
                 "requester_id": str(self.requester.id),
-                "reason": ToolingTransaction.REASON_DAMAGED,
+                "reason": ToolingTransaction.REASON_DAMAGED, "vehicle_number": 1,
                 "remark": "Test",
             },
             format="json",
@@ -106,6 +106,7 @@ class ToolingWithdrawalTests(TestCase):
         self.assertEqual(tx.requester_id, self.requester.id)
         self.assertEqual(tx.created_by_id, self.actor.id)
         self.assertEqual(tx.reason, ToolingTransaction.REASON_DAMAGED)
+        self.assertEqual(tx.vehicle_number, 1)
 
     def test_withdrawal_cannot_make_stock_negative(self):
         response = self.client.post(
@@ -113,7 +114,7 @@ class ToolingWithdrawalTests(TestCase):
             {
                 "quantity": 4,
                 "requester_id": str(self.requester.id),
-                "reason": ToolingTransaction.REASON_LOST,
+                "reason": ToolingTransaction.REASON_LOST, "vehicle_number": 1,
             },
             format="json",
         )
@@ -128,7 +129,7 @@ class ToolingWithdrawalTests(TestCase):
             {
                 "quantity": 1,
                 "requester_id": "not-a-uuid",
-                "reason": ToolingTransaction.REASON_LOST,
+                "reason": ToolingTransaction.REASON_LOST, "vehicle_number": 1,
             },
             format="json",
         )
@@ -143,7 +144,7 @@ class ToolingWithdrawalTests(TestCase):
             {
                 "quantity": 0,
                 "requester_id": str(self.requester.id),
-                "reason": ToolingTransaction.REASON_LOST,
+                "reason": ToolingTransaction.REASON_LOST, "vehicle_number": 1,
             },
             format="json",
         )
@@ -162,7 +163,7 @@ class ToolingWithdrawalTests(TestCase):
             {
                 "quantity": 1,
                 "requester_id": str(self.requester.id),
-                "reason": ToolingTransaction.REASON_LOST,
+                "reason": ToolingTransaction.REASON_LOST, "vehicle_number": 1,
             },
             format="json",
         )
@@ -180,7 +181,7 @@ class ToolingWithdrawalTests(TestCase):
             {
                 "quantity": 1,
                 "requester_id": str(self.requester.id),
-                "reason": ToolingTransaction.REASON_LOST,
+                "reason": ToolingTransaction.REASON_LOST, "vehicle_number": 1,
             },
             format="json",
         )
@@ -196,7 +197,7 @@ class ToolingWithdrawalTests(TestCase):
             {
                 "quantity": 1,
                 "requester_id": str(self.requester.id),
-                "reason": "USED",
+                "reason": "USED", "vehicle_number": 1,
             },
             format="json",
         )
@@ -215,7 +216,7 @@ class ToolingWithdrawalTests(TestCase):
             {
                 "quantity": 1,
                 "requester_id": str(self.requester.id),
-                "reason": ToolingTransaction.REASON_LOST,
+                "reason": ToolingTransaction.REASON_LOST, "vehicle_number": 1,
             },
             format="json",
         )
@@ -234,12 +235,30 @@ class ToolingWithdrawalTests(TestCase):
             {
                 "quantity": 1,
                 "requester_id": str(self.requester.id),
-                "reason": ToolingTransaction.REASON_LOST,
+                "reason": ToolingTransaction.REASON_LOST, "vehicle_number": 1,
             },
             format="json",
         )
 
         self.assertEqual(response.status_code, 404)
+        self.item.refresh_from_db()
+        self.assertEqual(self.item.quantity, 3)
+        self.assertEqual(ToolingTransaction.objects.count(), 0)
+    
+    def test_vehicle_number_must_be_between_one_and_thirteen(self):
+        for invalid_number in (0, 14, "not-a-number"):
+            with self.subTest(vehicle_number=invalid_number):
+                response = self.client.post(
+                    self.url,
+                    {
+                        "quantity": 1,
+                        "requester_id": str(self.requester.id),
+                        "reason": ToolingTransaction.REASON_LOST,
+                        "vehicle_number": invalid_number,
+                    },
+                    format="json",
+                )
+                self.assertEqual(response.status_code, 400)
         self.item.refresh_from_db()
         self.assertEqual(self.item.quantity, 3)
         self.assertEqual(ToolingTransaction.objects.count(), 0)

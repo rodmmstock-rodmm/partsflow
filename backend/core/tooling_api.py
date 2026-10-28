@@ -40,7 +40,7 @@ def tx_json(tx):
         "id": str(tx.id), "item_id": str(tx.item_id), "item_name": tx.item.name,
         "quantity": tx.quantity, "requester_id": str(tx.requester_id) if tx.requester_id else "",
         "requester_name": tx.requester_name, "created_by_name": tx.created_by.name if tx.created_by else "", "reason": tx.reason,
-        "reason_label": tx.get_reason_display(), "remark": tx.remark,
+        "reason_label": tx.get_reason_display(), "vehicle_number": tx.vehicle_number, "remark": tx.remark,
         "created_at": tx.created_at.isoformat(),
     }
 
@@ -130,6 +130,12 @@ def withdraw(request, pk):
     reason = str(request.data.get("reason") or "").upper()
     if reason not in {ToolingTransaction.REASON_LOST, ToolingTransaction.REASON_DAMAGED}:
         return Response({"detail": "กรุณาเลือกเหตุผล หาย หรือ ชำรุด"}, status=400)
+    try:
+        vehicle_number = parse_whole_number(request.data.get("vehicle_number"), allow_zero=False)
+    except (TypeError, ValueError):
+        return Response({"detail": "กรุณาเลือกเบอร์รถเครื่องมือ 1-13"}, status=400)
+    if vehicle_number < 1 or vehicle_number > 13:
+        return Response({"detail": "เบอร์รถเครื่องมือต้องอยู่ระหว่าง 1-13"}, status=400)
     requester_id = request.data.get("requester_id")
     try:
         requester = Employee.objects.filter(pk=requester_id, active=True).first() if requester_id else None
@@ -147,8 +153,8 @@ def withdraw(request, pk):
         item.save(update_fields=["quantity", "updated_at"])
         item.refresh_from_db()
         tx = ToolingTransaction.objects.create(item=item, quantity=qty, requester=requester,
-            requester_name=requester.name, reason=reason, remark=str(request.data.get("remark") or "").strip(), created_by=actor)
-        audit(actor, "WITHDRAW", "ToolingItem", item.id, {"transaction_id": str(tx.id), "quantity": qty, "reason": reason})
+            requester_name=requester.name, reason=reason, vehicle_number=vehicle_number, remark=str(request.data.get("remark") or "").strip(), created_by=actor)
+        audit(actor, "WITHDRAW", "ToolingItem", item.id, {"transaction_id": str(tx.id), "quantity": qty, "reason": reason, "vehicle_number": vehicle_number})
     return Response({"item": item_json(item), "transaction": tx_json(tx)}, status=201)
 
 

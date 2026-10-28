@@ -960,6 +960,7 @@ class ToolingTransaction(UUIDMixin):
     requester = models.ForeignKey(Employee, null=True, blank=True, on_delete=models.SET_NULL, related_name="tooling_withdrawals")
     requester_name = models.CharField(max_length=200)
     reason = models.CharField(max_length=12, choices=REASONS)
+    vehicle_number = models.PositiveSmallIntegerField(null=True, blank=True)
     remark = models.TextField(blank=True)
     created_by = models.ForeignKey(Employee, null=True, blank=True, on_delete=models.SET_NULL, related_name="tooling_actions")
 
