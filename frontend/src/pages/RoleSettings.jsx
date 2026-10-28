@@ -101,8 +101,6 @@ export default function RoleSettings(){
   const [logs,setLogs]=useState([]);
   const [tab,setTab]=useState("roles");
   const [error,setError]=useState("");
-  const [driveConnecting,setDriveConnecting]=useState(false);
-  const [driveError,setDriveError]=useState("");
   const [empModal,setEmpModal]=useState(undefined);
   const [roleModal,setRoleModal]=useState(false);
   const [q,setQ]=useState("");
@@ -127,19 +125,6 @@ export default function RoleSettings(){
     }catch(err){setError(err.message)}
   }
   useEffect(()=>{load()},[]);
-
-  async function connectGoogleDrive(){
-    setDriveConnecting(true);
-    setDriveError("");
-    try{
-      const result=await apiPost("/drive/oauth/prepare/",{});
-      if(!result?.authorization_url) throw new Error("ไม่ได้รับลิงก์อนุญาตจาก Google");
-      window.location.assign(result.authorization_url);
-    }catch(err){
-      setDriveError(err.message || "เริ่มเชื่อม Google Drive ไม่สำเร็จ");
-      setDriveConnecting(false);
-    }
-  }
 
   function toggle(id,key,value){setRoles(xs=>xs.map(r=>r.id===id?{...r,permissions:{...r.permissions,[key]:value}}:r))}
   async function saveRole(r){
@@ -171,13 +156,6 @@ export default function RoleSettings(){
 
   return <>
     <PageHeader title="Role & Permissions" subtitle="จัดการสิทธิ์ Role, รายชื่อพนักงาน และ Audit Log"/>
-    {auth.can("can_manage_roles")&&<section className="panel" style={{marginBottom:16}}>
-      <div className="section-head" style={{alignItems:"center",gap:12,flexWrap:"wrap"}}>
-        <div><h2 style={{marginBottom:4}}>Google Drive Backup</h2><p style={{margin:0,color:"var(--muted,#64748b)"}}>เชื่อมบัญชี Google เพื่อสำรองรูปอะไหล่ที่อัปโหลดผ่านเว็บไซต์</p></div>
-        <button type="button" className="btn primary" disabled={driveConnecting} onClick={connectGoogleDrive}>{driveConnecting?"กำลังเชื่อมต่อ...":"เชื่อม Google Drive"}</button>
-      </div>
-      {driveError&&<Alert>{driveError}</Alert>}
-    </section>}
     <Alert>{error}</Alert>
     <div className="tab-row page-tabs">
       <button className={`tab ${tab==="roles"?"active":""}`} onClick={()=>setTab("roles")}>Roles & Permissions</button>
@@ -245,9 +223,9 @@ export default function RoleSettings(){
 
     {tab==="employees"&&
       <section className="panel">
-        <div className="section-head">
-          <div><h2>Employees</h2><p>Login ด้วย Employee Code · อีเมลใช้เป็นข้อมูลติดต่อและประวัติ RFQ</p></div>
-          {auth.can("can_add_employees")&&<button className="btn primary" onClick={()=>setEmpModal(null)}>+ เพิ่มพนักงาน</button>}
+        <div className="section-head role-employees-head">
+          <div className="role-employees-title"><h2>Employees</h2><p>Login ด้วย Employee Code · อีเมลใช้เป็นข้อมูลติดต่อและประวัติ RFQ</p></div>
+          {auth.can("can_add_employees")&&<button type="button" className="btn primary role-add-employee" onClick={()=>setEmpModal(null)}>+ เพิ่มพนักงาน</button>}
         </div>
         <div className="tab-row page-tabs">
           <button className={`tab ${empView==="active"?"active":""}`} onClick={()=>setEmpView("active")}>Active Employees</button>
