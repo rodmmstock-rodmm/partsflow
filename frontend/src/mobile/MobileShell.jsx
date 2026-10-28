@@ -14,6 +14,7 @@ import MobileMachines from "./MobileMachines";
 import MobileRoles from "./MobileRoles";
 import POBalance from "../pages/POBalance";
 import Tools from "../pages/Tools";
+import Tooling from "../pages/Tooling";
 import QrWithdraw from "../pages/QrWithdraw";
 import ClothRolls from "../pages/ClothRolls";
 
@@ -29,6 +30,7 @@ const NAV = [
   ["/fast-orders", "Fast", "zap", "can_view_orders"],
   ["/vendors", "Vendor", "vendor", "can_view_suppliers"],
   ["/machines", "Machine", "gear", "can_view_machines"],
+  ["/tooling", "Tooling", "wrench", "can_view_tooling"],
   ["/tools", "ยืม-คืนอุปกรณ์", "wrench", "can_view_tools"],
   ["/qr-withdraw", "เบิก Screw", "screw", "can_view_qr_withdraw"],
   ["/cloth-rolls", "เศษผ้า", "fabric", "can_view_cloth_rolls"],
@@ -64,6 +66,7 @@ const MOBILE_ACCESS_FALLBACKS = [
   ["/safety-stock", "can_view_safety_stock"],
   ["/cloth-rolls", "can_view_cloth_rolls"],
   ["/qr-withdraw", "can_view_qr_withdraw"],
+  ["/tooling", "can_view_tooling"],
   ["/tools", "can_view_tools"],
   ["/orders", "can_view_orders"],
   ["/order-steps", "can_view_order_step"],
@@ -127,6 +130,7 @@ export default function MobileShell() {
           <Route path="/fast-orders" element={<Protected permission="can_view_orders"><MobileFastOrders /></Protected>} />
           <Route path="/vendors" element={<Protected permission="can_view_suppliers"><MobileVendors /></Protected>} />
           <Route path="/machines" element={<Protected permission="can_view_machines"><MobileMachines /></Protected>} />
+          <Route path="/tooling" element={<Protected permission="can_view_tooling"><Tooling /></Protected>} />
           <Route path="/tools" element={<Protected permission="can_view_tools"><Tools /></Protected>} />
           <Route path="/qr-withdraw" element={<Protected permission="can_view_qr_withdraw"><QrWithdraw /></Protected>} />
           <Route path="/cloth-rolls/scan/:token" element={<Protected permission="can_view_qr_withdraw"><ClothRolls /></Protected>} />

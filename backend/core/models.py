@@ -338,6 +338,12 @@ class RoleAccess(UUIDMixin):
     can_edit_employees = models.BooleanField(default=False)
     can_delete_employees = models.BooleanField(default=False)
 
+    can_view_tooling = models.BooleanField(default=False)
+    can_withdraw_tooling = models.BooleanField(default=False)
+    can_add_tooling = models.BooleanField(default=False)
+    can_edit_tooling = models.BooleanField(default=False)
+    can_delete_tooling = models.BooleanField(default=False)
+
     can_view_tools = models.BooleanField(default=False)
     can_add_tool = models.BooleanField(default=False)
     can_edit_tool = models.BooleanField(default=False)
@@ -929,6 +935,36 @@ class IntegrationCredential(UUIDMixin):
         related_name="pending_integrations",
     )
     pending_at = models.DateTimeField(null=True, blank=True)
+
+
+class ToolingItem(UUIDMixin):
+    """Consumable tooling stock, kept separate from serialized loan/return equipment."""
+    name = models.CharField(max_length=250)
+    detail = models.TextField(blank=True)
+    maker = models.CharField(max_length=200, blank=True)
+    quantity = models.PositiveIntegerField(default=0)
+    min_quantity = models.PositiveIntegerField(default=0)
+    unit = models.CharField(max_length=60, blank=True)
+    active = models.BooleanField(default=True)
+
+    class Meta:
+        ordering = ["name"]
+
+
+class ToolingTransaction(UUIDMixin):
+    REASON_LOST = "LOST"
+    REASON_DAMAGED = "DAMAGED"
+    REASONS = [(REASON_LOST, "หาย"), (REASON_DAMAGED, "ชำรุด")]
+    item = models.ForeignKey(ToolingItem, on_delete=models.PROTECT, related_name="transactions")
+    quantity = models.PositiveIntegerField()
+    requester = models.ForeignKey(Employee, null=True, blank=True, on_delete=models.SET_NULL, related_name="tooling_withdrawals")
+    requester_name = models.CharField(max_length=200)
+    reason = models.CharField(max_length=12, choices=REASONS)
+    remark = models.TextField(blank=True)
+    created_by = models.ForeignKey(Employee, null=True, blank=True, on_delete=models.SET_NULL, related_name="tooling_actions")
+
+    class Meta:
+        ordering = ["-created_at"]
 
 
 class ToolEquipment(UUIDMixin):
