@@ -9,6 +9,7 @@ class Migration(migrations.Migration):
 
     operations = [
         migrations.AddField(model_name="roleaccess", name="can_view_tooling", field=models.BooleanField(default=False)),
+        migrations.AddField(model_name="roleaccess", name="can_withdraw_tooling", field=models.BooleanField(default=False)),
         migrations.AddField(model_name="roleaccess", name="can_add_tooling", field=models.BooleanField(default=False)),
         migrations.AddField(model_name="roleaccess", name="can_edit_tooling", field=models.BooleanField(default=False)),
         migrations.AddField(model_name="roleaccess", name="can_delete_tooling", field=models.BooleanField(default=False)),
