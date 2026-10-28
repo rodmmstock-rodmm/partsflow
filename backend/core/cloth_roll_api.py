@@ -100,11 +100,12 @@ def _transaction_json(row):
         "phase": row.phase,
         "phase_label": dict(ClothRollStock.PHASE_CHOICES).get(row.phase, row.phase),
         "transaction_type": row.transaction_type,
-        "type_label": "เบิก" if row.transaction_type == "OUT" else "รับเข้า",
+        "type_label": {"OUT": "เบิก", "IN": "รับเข้า", "ADJ": "ปรับยอด"}.get(row.transaction_type, row.transaction_type),
         "quantity": row.quantity,
         "balance_after": row.balance_after,
         "borrower_employee_id": str(row.borrower_employee_id) if row.borrower_employee_id else "",
         "borrower_name": row.borrower_employee.name if row.borrower_employee else "",
+        "machine_name": row.machine_name,
         "recorded_by_name": row.recorded_by_employee.name if row.recorded_by_employee else "",
         "source": row.source,
         "created_at": row.created_at.isoformat(),
@@ -187,7 +188,7 @@ def cloth_roll_transaction(request):
         # Any authenticated role may submit a cloth-roll withdrawal.
         # Receiving stock remains restricted to users with the existing permission.
         actor, err = require_permission(request)
-        if not err and tx_type == ClothRollTransaction.TYPE_IN and not permissions_for(actor).get("can_view_cloth_rolls"):
+        if not err and tx_type in {ClothRollTransaction.TYPE_IN, ClothRollTransaction.TYPE_ADJUST} and not permissions_for(actor).get("can_view_cloth_rolls"):
             return Response({"detail": "คุณไม่มีสิทธิ์ใช้งานส่วนนี้"}, status=403)
     else:
         return Response({"detail": "แหล่งบันทึกไม่ถูกต้อง"}, status=400)
@@ -206,8 +207,8 @@ def cloth_roll_transaction(request):
         return Response({"detail": "QR Code นี้ใช้สำหรับเบิกเศษผ้าเท่านั้น"}, status=400)
     if phase not in {ClothRollStock.PHASE_4, ClothRollStock.PHASE_11}:
         return Response({"detail": "Phase ไม่ถูกต้อง"}, status=400)
-    if tx_type not in {ClothRollTransaction.TYPE_IN, ClothRollTransaction.TYPE_OUT}:
-        return Response({"detail": "กรุณาเลือกเบิกหรือรับเข้า"}, status=400)
+    if tx_type not in {ClothRollTransaction.TYPE_IN, ClothRollTransaction.TYPE_OUT, ClothRollTransaction.TYPE_ADJUST}:
+        return Response({"detail": "กรุณาเลือกเบิก รับเข้า หรือปรับยอด"}, status=400)
     if source not in {"WEB", "QR"}:
         return Response({"detail": "แหล่งบันทึกไม่ถูกต้อง"}, status=400)
     try:
@@ -215,10 +216,11 @@ def cloth_roll_transaction(request):
         if isinstance(raw_qty, bool) or str(raw_qty).strip() == "":
             raise ValueError
         qty = int(str(raw_qty).strip())
-        if qty < 1:
+        if qty < (0 if tx_type == ClothRollTransaction.TYPE_ADJUST else 1):
             raise ValueError
     except (TypeError, ValueError):
-        return Response({"detail": "จำนวนต้องเป็นจำนวนเต็มอย่างน้อย 1 ม้วน"}, status=400)
+        minimum = "0" if tx_type == ClothRollTransaction.TYPE_ADJUST else "1"
+        return Response({"detail": f"จำนวนต้องเป็นจำนวนเต็มอย่างน้อย {minimum} ม้วน"}, status=400)
 
     borrower = None
     borrower_id = str(request.data.get("borrower_employee_id") or "").strip()
@@ -230,6 +232,9 @@ def cloth_roll_transaction(request):
             return Response({"detail": "ไม่พบชื่อผู้เบิกในระบบ"}, status=400)
     if source == "QR":
         borrower = None
+    machine_name = str(request.data.get("machine_name") or "").strip()
+    if len(machine_name) > 120:
+        return Response({"detail": "ชื่อ Machine ต้องไม่เกิน 120 ตัวอักษร"}, status=400)
 
     _stock_row(phase)
     with transaction.atomic():
@@ -238,7 +243,12 @@ def cloth_roll_transaction(request):
             return Response({
                 "detail": f"เศษผ้าไม่เพียงพอ คงเหลือ {stock.quantity} ม้วน"
             }, status=400)
-        stock.quantity = stock.quantity + qty if tx_type == ClothRollTransaction.TYPE_IN else stock.quantity - qty
+        if tx_type == ClothRollTransaction.TYPE_ADJUST:
+            stock.quantity = qty
+        elif tx_type == ClothRollTransaction.TYPE_IN:
+            stock.quantity += qty
+        else:
+            stock.quantity -= qty
         stock.save(update_fields=["quantity", "updated_at"])
         row = ClothRollTransaction.objects.create(
             phase=phase,
@@ -248,6 +258,7 @@ def cloth_roll_transaction(request):
             borrower_employee=borrower,
             recorded_by_employee=actor,
             source=source,
+            machine_name=machine_name,
         )
     _maybe_notify_low_stock(stock)
     row = ClothRollTransaction.objects.select_related("borrower_employee", "recorded_by_employee").get(pk=row.pk)
