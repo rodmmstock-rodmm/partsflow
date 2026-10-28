@@ -105,7 +105,7 @@ def item_detail(request, pk):
 @api_view(["POST"])
 @permission_classes([AllowAny])
 def withdraw(request, pk):
-    actor, err = require_permission(request, "can_edit_tooling")
+    actor, err = require_permission(request, "can_withdraw_tooling")
     if err:
         return err
     try:
