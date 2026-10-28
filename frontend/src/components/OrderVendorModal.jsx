@@ -72,7 +72,7 @@ export default function OrderVendorModal({ order, options, onClose, onChanged })
   }
 
   async function removeVendor(row) {
-    const ok = await confirm(`นำ ${row.vendor_code} · ${row.vendor_name} ออกจาก Order นี้?`, {
+    const ok = await confirm(`นำ ${row.vendor_name} ออกจาก Order นี้?`, {
       confirmLabel: "นำออก",
       danger: true,
     });
@@ -132,10 +132,7 @@ export default function OrderVendorModal({ order, options, onClose, onChanged })
           <tbody>
             {rows.map((row) => (
               <tr key={row.id}>
-                <td>
-                  <b>{row.vendor_code || "-"}</b>
-                  <div>{row.vendor_name || "-"}</div>
-                </td>
+                <td>{row.vendor_name || "-"}</td>
                 <td>{formatAddedAt(row.added_at)}</td>
                 <td>{row.added_by || "-"}</td>
                 <td>
