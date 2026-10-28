@@ -1,7 +1,26 @@
 # Tooling consumable inventory; intentionally separate from serialized ToolEquipment.
 import uuid
 from django.db import migrations, models
+from django.db.models import Q
 import django.db.models.deletion
+
+
+def enable_admin_tooling_permissions(apps, schema_editor):
+    RoleAccess = apps.get_model("core", "RoleAccess")
+    RoleAccess.objects.filter(
+        Q(role_name__iexact="ADMIN") | Q(role_name__iexact="ADMINISTRATOR")
+    ).update(
+        can_view_tooling=True,
+        can_withdraw_tooling=True,
+        can_add_tooling=True,
+        can_edit_tooling=True,
+        can_delete_tooling=True,
+    )
+
+
+def reverse_admin_tooling_permissions(apps, schema_editor):
+    # Permission grants are intentionally not revoked on rollback.
+    pass
 
 
 class Migration(migrations.Migration):
@@ -13,6 +32,7 @@ class Migration(migrations.Migration):
         migrations.AddField(model_name="roleaccess", name="can_add_tooling", field=models.BooleanField(default=False)),
         migrations.AddField(model_name="roleaccess", name="can_edit_tooling", field=models.BooleanField(default=False)),
         migrations.AddField(model_name="roleaccess", name="can_delete_tooling", field=models.BooleanField(default=False)),
+        migrations.RunPython(enable_admin_tooling_permissions, reverse_admin_tooling_permissions),
         migrations.CreateModel(
             name="ToolingItem",
             fields=[
