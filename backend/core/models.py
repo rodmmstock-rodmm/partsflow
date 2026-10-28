@@ -273,7 +273,7 @@ class StockTransaction(LegacyMixin):
     reference_id = models.CharField(max_length=100, blank=True)
     transaction_date = models.DateTimeField()
     remark = models.TextField(blank=True)
-    created_by = models.ForeignKey(User, null=True, blank=True, on_delete=models.SET_NULL)
+    created_by = models.ForeignKey(Employee, null=True, blank=True, on_delete=models.SET_NULL, related_name="tooling_actions")
     is_void = models.BooleanField(default=False)
     voided_at = models.DateTimeField(null=True, blank=True)
     voided_by_employee = models.ForeignKey(
