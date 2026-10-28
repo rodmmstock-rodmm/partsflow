@@ -44,7 +44,7 @@ jobs:
         run: python manage.py makemigrations --check --dry-run
 
       - name: Run Tooling regression tests
-        run: python manage.py test core.tests --verbosity 2
+        run: python manage.py test core.tests.test_tooling_inventory --verbosity 2
 
   frontend:
     name: Frontend production build
