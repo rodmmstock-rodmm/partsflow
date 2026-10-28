@@ -5,7 +5,7 @@ import django.db.models.deletion
 
 
 class Migration(migrations.Migration):
-    dependencies = [("core", "0036_cloth_roll_inventory")]
+    dependencies = [("core", "0037_roleaccess_can_view_cloth_rolls")]
 
     operations = [
         migrations.AddField(model_name="roleaccess", name="can_view_tooling", field=models.BooleanField(default=False)),
