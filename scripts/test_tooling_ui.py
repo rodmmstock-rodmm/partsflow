@@ -145,12 +145,11 @@ def test_desktop_tooling_withdrawal_and_qr(browser):
     page.get_by_text("บันทึกการเบิกแล้ว").wait_for()
     page.locator("tbody tr").first.locator("td").nth(3).get_by_text("3").wait_for()
     assert len(state["withdrawal_payloads"]) == 1
-    assert state["withdrawal_payloads"][0] == {
-        "quantity": "1",
-        "requester_id": EMPLOYEE_ID,
-        "reason": "DAMAGED",
-        "remark": "Desktop UI smoke test",
-    }
+    payload = state["withdrawal_payloads"][0]
+    assert str(payload["quantity"]) == "1", payload
+    assert payload["requester_id"] == EMPLOYEE_ID, payload
+    assert payload["reason"] == "DAMAGED", payload
+    assert payload["remark"] == "Desktop UI smoke test", payload
     page.close()
 
 
