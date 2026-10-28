@@ -25,10 +25,19 @@ export default function Tooling() {
   const [busy, setBusy] = useState(false);
   async function load() {
     setError("");
-    try {
-      const [i, h, o] = await Promise.all([apiGet("/tooling/items/", { forceRefresh: true }), apiGet("/tooling/history/", { forceRefresh: true }), apiGet("/options/")]);
-      setItems(i.results || []); setHistory(h.results || []); setEmployees(o.employees || []);
-    } catch (e) { setError(e.message); }
+    const [itemsResult, historyResult, optionsResult] = await Promise.allSettled([
+      apiGet("/tooling/items/", { forceRefresh: true }),
+      apiGet("/tooling/history/", { forceRefresh: true }),
+      apiGet("/options/")
+    ]);
+    const errors = [];
+    if (itemsResult.status === "fulfilled") setItems(itemsResult.value.results || []);
+    else { setItems([]); errors.push("โหลดรายการ Tooling ไม่สำเร็จ: " + (itemsResult.reason?.message || "เกิดข้อผิดพลาด")); }
+    if (historyResult.status === "fulfilled") setHistory(historyResult.value.results || []);
+    else { setHistory([]); errors.push("โหลดประวัติ Tooling ไม่สำเร็จ: " + (historyResult.reason?.message || "เกิดข้อผิดพลาด")); }
+    if (optionsResult.status === "fulfilled") setEmployees(optionsResult.value.employees || []);
+    else { setEmployees([]); errors.push("โหลดรายชื่อพนักงานไม่สำเร็จ: " + (optionsResult.reason?.message || "เกิดข้อผิดพลาด")); }
+    if (errors.length) setError(errors.join(" · "));
   }
   useEffect(() => { load(); }, []);
   useEffect(() => {
@@ -37,9 +46,13 @@ export default function Tooling() {
     const target = items.find(item => item.id === targetId);
     if (target) {
       setTab("items");
+      window.history.replaceState({}, "", window.location.pathname);
+      if (!auth.can("can_edit_tooling")) {
+        setError("คุณไม่มีสิทธิ์เบิก Tooling");
+        return;
+      }
       setWithdrawItem(target);
       setWithdraw({ quantity: 1, requester_id: auth.employee?.id || "", reason: "LOST", remark: "" });
-      window.history.replaceState({}, "", window.location.pathname);
     }
   }, [items, auth.employee?.id, withdrawItem]);
   async function showQr(item) {
@@ -99,7 +112,7 @@ export default function Tooling() {
         {shown.map(x=><tr key={x.id}><td><b>{x.name}</b></td><td>{x.detail||"-"}</td><td>{x.maker||"-"}</td><td className={x.low_stock?"text-danger":""}><b>{x.quantity}</b></td><td>{x.min_quantity}</td><td>{x.unit||"-"}</td><td><div className="toolbar"><button className="btn ghost" onClick={()=>showQr(x)}>QR</button>{auth.can("can_edit_tooling")&&<button className="btn primary" onClick={()=>{setWithdrawItem(x);setWithdraw({quantity:1,requester_id:auth.employee?.id||"",reason:"LOST",remark:""})}}>เบิก</button>}{auth.can("can_edit_tooling")&&<button className="btn ghost" onClick={()=>{setEditing(x);setForm({...x});setFormOpen(true);}}>แก้ไข</button>}{auth.can("can_delete_tooling")&&<button className="btn ghost" onClick={()=>remove(x)}>ปิดใช้งาน</button>}</div></td></tr>)}
         {!shown.length&&<tr><td colSpan="7">ไม่พบรายการ Tooling</td></tr>}
       </tbody></table></div></section>
-    </> : <section className="panel"><div className="toolbar"><button className="btn ghost" onClick={()=>setHistoryFilter("")}>ทั้งหมด</button><button className="btn ghost" onClick={()=>setHistoryFilter("LOST")}>หาย</button><button className="btn ghost" onClick={()=>setHistoryFilter("DAMAGED")}>ชำรุด</button></div><div className="table-wrap"><table><thead><tr><th>วันที่</th><th>อุปกรณ์</th><th>จำนวน</th><th>ผู้เบิก</th><th>เหตุผล</th><th>หมายเหตุ</th></tr></thead><tbody>{history.filter(x=>!["LOST","DAMAGED"].includes(historyFilter)||x.reason===historyFilter).map(x=><tr key={x.id}><td>{new Date(x.created_at).toLocaleString("th-TH")}</td><td>{x.item_name}</td><td>{x.quantity}</td><td>{x.requester_name}</td><td>{x.reason_label}</td><td>{x.remark||"-"}</td></tr>)}{!history.length&&<tr><td colSpan="6">ยังไม่มีประวัติการเบิก</td></tr>}</tbody></table></div></section>}
+    </> : <section className="panel"><div className="toolbar"><button className="btn ghost" onClick={()=>setHistoryFilter("")}>ทั้งหมด</button><button className="btn ghost" onClick={()=>setHistoryFilter("LOST")}>หาย</button><button className="btn ghost" onClick={()=>setHistoryFilter("DAMAGED")}>ชำรุด</button></div><div className="table-wrap"><table><thead><tr><th>วันที่</th><th>อุปกรณ์</th><th>จำนวน</th><th>ผู้เบิก</th><th>ผู้ทำรายการ</th><th>เหตุผล</th><th>หมายเหตุ</th></tr></thead><tbody>{history.filter(x=>!["LOST","DAMAGED"].includes(historyFilter)||x.reason===historyFilter).map(x=><tr key={x.id}><td>{new Date(x.created_at).toLocaleString("th-TH")}</td><td>{x.item_name}</td><td>{x.quantity}</td><td>{x.requester_name}</td><td>{x.created_by_name||"-"}</td><td>{x.reason_label}</td><td>{x.remark||"-"}</td></tr>)}{!history.length&&<tr><td colSpan="7">ยังไม่มีประวัติการเบิก</td></tr>}</tbody></table></div></section>}
     {qrItem && <div className="modal-backdrop" role="presentation"><section className="modal" role="dialog" aria-modal="true"><h3>QR เบิก {qrItem.name}</h3><p>สแกน QR เพื่อเปิดหน้า Tooling และเลือกอุปกรณ์นี้สำหรับเบิก (ต้องเข้าสู่ระบบก่อน)</p>{qrDataUrl && <img src={qrDataUrl} alt={"QR Code " + qrItem.name} style={{display:"block",width:240,maxWidth:"100%",height:"auto",margin:"16px auto"}}/>}<div className="toolbar"><button className="btn primary" onClick={downloadQr}>ดาวน์โหลด QR</button><button className="btn ghost" onClick={()=>{setQrItem(null);setQrDataUrl("");}}>ปิด</button></div></section></div>}
     {withdrawItem && <div className="modal-backdrop" role="presentation"><section className="modal" role="dialog" aria-modal="true"><h3>เบิก {withdrawItem.name}</h3><form onSubmit={submitWithdraw} className="form-grid">
       <label className="field"><span>จำนวนที่เบิก *</span><input type="number" min="1" max={withdrawItem.quantity} required value={withdraw.quantity} onChange={e=>setWithdraw({...withdraw,quantity:e.target.value})}/><small>คงเหลือ {withdrawItem.quantity} {withdrawItem.unit}</small></label>
