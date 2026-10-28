@@ -36,7 +36,7 @@ def tx_json(tx):
     return {
         "id": str(tx.id), "item_id": str(tx.item_id), "item_name": tx.item.name,
         "quantity": tx.quantity, "requester_id": str(tx.requester_id) if tx.requester_id else "",
-        "requester_name": tx.requester_name, "reason": tx.reason,
+        "requester_name": tx.requester_name, "created_by_name": (tx.created_by.get_full_name() or tx.created_by.get_username()) if tx.created_by else "", "reason": tx.reason,
         "reason_label": tx.get_reason_display(), "remark": tx.remark,
         "created_at": tx.created_at.isoformat(),
     }
@@ -140,7 +140,7 @@ def history(request):
     actor, err = require_permission(request, "can_view_tooling")
     if err:
         return err
-    qs = ToolingTransaction.objects.select_related("item", "requester").all()
+    qs = ToolingTransaction.objects.select_related("item", "requester", "created_by").all()
     reason = str(request.query_params.get("reason") or "").upper()
     if reason in {ToolingTransaction.REASON_LOST, ToolingTransaction.REASON_DAMAGED}:
         qs = qs.filter(reason=reason)
