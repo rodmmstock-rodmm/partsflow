@@ -339,6 +339,7 @@ class RoleAccess(UUIDMixin):
     can_delete_employees = models.BooleanField(default=False)
 
     can_view_tooling = models.BooleanField(default=False)
+    can_withdraw_tooling = models.BooleanField(default=False)
     can_add_tooling = models.BooleanField(default=False)
     can_edit_tooling = models.BooleanField(default=False)
     can_delete_tooling = models.BooleanField(default=False)
