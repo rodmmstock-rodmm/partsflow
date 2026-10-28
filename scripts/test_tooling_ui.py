@@ -55,7 +55,7 @@ def test_desktop_tooling_qr_withdrawal_and_history(browser):
 
     page.get_by_role("button", name="เบิก", exact=True).click()
     page.get_by_label("จำนวนที่เบิก *").fill("1")
-    page.get_by_label("ผู้เบิก *").select_option(label="UI-TEST-001 - Tooling UI Tester")
+    page.get_by_label("ผู้เบิก *").select_option(label="Tooling UI Tester")
     page.get_by_label("เหตุผล *").select_option("DAMAGED")
     page.get_by_label("Remark").fill("Desktop E2E smoke test")
     page.get_by_role("button", name="ยืนยันเบิก").click()
