@@ -7,16 +7,14 @@ import { MobileEmpty, MobileLoading, MobilePage, MobileSearch } from "./MobileCo
 
 export default function MobileSafetyStock(){
   const auth=useAuth();
-  const [rows,setRows]=useState([]),[toolingRows,setToolingRows]=useState([]),[selected,setSelected]=useState(new Set()),[q,setQ]=useState(""),[loading,setLoading]=useState(true),[error,setError]=useState(""),[success,setSuccess]=useState(""),[review,setReview]=useState(false);
+  const [rows,setRows]=useState([]),[toolingRows,setToolingRows]=useState([]),[selected,setSelected]=useState(new Set()),[q,setQ]=useState(""),[loading,setLoading]=useState(true),[error,setError]=useState(""),[toolingError,setToolingError]=useState(""),[success,setSuccess]=useState(""),[review,setReview]=useState(false);
 
   async function load(force=false){
-    setLoading(true);setError("");
-    try{
-      const [d,t]=await Promise.all([apiGet("/safety-stock/",{forceRefresh:force}),apiGet("/tooling/items/",{forceRefresh:force}).catch(()=>({results:[]}))]);
-      setRows(d.results||[]);
-      setToolingRows((t.results||[]).filter(x=>Number(x.quantity)<Number(x.min_quantity)));
-      setSelected(new Set());
-    }catch(e){setError(e.message)}finally{setLoading(false)}
+    setLoading(true);setError("");setToolingError("");
+    const [partsResult,toolingResult]=await Promise.allSettled([apiGet("/safety-stock/",{forceRefresh:force}),apiGet("/tooling/items/",{forceRefresh:force})]);
+    if(partsResult.status==="fulfilled"){setRows(partsResult.value.results||[]);setSelected(new Set())}else{setError(partsResult.reason?.message||"โหลด Safety Stock อะไหล่ไม่สำเร็จ")}
+    if(toolingResult.status==="fulfilled"){setToolingRows((toolingResult.value.results||[]).filter(x=>Number(x.quantity)<Number(x.min_quantity)))}else{setToolingRows([]);setToolingError(toolingResult.reason?.message||"โหลดข้อมูล Tooling ไม่สำเร็จ")}
+    setLoading(false);
   }
 
   useEffect(()=>{load()},[]);
@@ -30,7 +28,7 @@ export default function MobileSafetyStock(){
   function openReview(){setError("");setSuccess("");if(!selectedRows.length){setError("กรุณาเลือกรายการที่จะสร้าง Order อย่างน้อย 1 รายการ");return}setReview(true)}
 
   return <MobilePage title="Safety Stock" subtitle={`${rows.length} รายการที่ต้องสั่ง`} actions={<button className="m-icon-action" onClick={()=>load(true)}>↻</button>}>
-    <Alert>{error}</Alert><Alert type="success">{success}</Alert>
+    <Alert>{error}</Alert><Alert>{toolingError ? `โหลดข้อมูล Tooling ไม่สำเร็จ: ${toolingError}` : ""}</Alert><Alert type="success">{success}</Alert>
     <MobileSearch value={q} onChange={setQ} placeholder="ค้นหา Item / Part / Maker / Machine..."/>
 
     {!loading&&shown.length>0&&<div className="m-safety-toolbar">
