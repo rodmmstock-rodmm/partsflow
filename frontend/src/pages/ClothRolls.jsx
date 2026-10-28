@@ -27,6 +27,7 @@ export default function ClothRolls() {
   const [type, setType] = useState("OUT");
   const [quantity, setQuantity] = useState("1");
   const [borrowerId, setBorrowerId] = useState("");
+  const [machineName, setMachineName] = useState("");
   const [busy, setBusy] = useState(false);
   const [thresholds, setThresholds] = useState({ PHASE4: "0", PHASE11: "0" });
   const [savingThreshold, setSavingThreshold] = useState("");
@@ -82,11 +83,13 @@ export default function ClothRolls() {
         transaction_type: type,
         quantity,
         borrower_employee_id: !isQr && type === "OUT" ? borrowerId : "",
+        machine_name: machineName.trim(),
         source: isQr ? "QR" : "WEB",
         qr_token: isQr ? qrToken : "",
       });
       setQuantity("1");
       setBorrowerId("");
+      setMachineName("");
       await load();
       feedback.showToast("บันทึกรายการสำเร็จ", "success");
     } catch (err) {
@@ -355,20 +358,24 @@ export default function ClothRolls() {
             {!isQr && <div style={{ display: "flex", gap: 8, marginBottom: 16 }}>
               <button type="button" className={type === "OUT" ? "btn primary" : "btn secondary"} style={{ flex: 1 }} onClick={() => setType("OUT")}>เบิก</button>
               <button type="button" className={type === "IN" ? "btn primary" : "btn secondary"} style={{ flex: 1 }} onClick={() => { setType("IN"); setBorrowerId(""); }}>รับเข้า</button>
+              <button type="button" className={type === "ADJ" ? "btn primary" : "btn secondary"} style={{ flex: 1 }} onClick={() => { setType("ADJ"); setBorrowerId(""); }}>ปรับยอด</button>
             </div>}
-            <label className="field" style={{ display: "block", marginBottom: 14 }}><span>จำนวน (ม้วน) *</span>
-              <input required type="number" min="1" step="1" inputMode="numeric" pattern="[0-9]*" value={quantity} onChange={(e) => setQuantity(e.target.value)} />
+            <label className="field" style={{ display: "block", marginBottom: 14 }}><span>{type === "ADJ" ? "ยอดคงเหลือใหม่ (ม้วน) *" : "จำนวน (ม้วน) *"}</span>
+              <input required type="number" min={type === "ADJ" ? "0" : "1"} step="1" inputMode="numeric" pattern="[0-9]*" value={quantity} onChange={(e) => setQuantity(e.target.value)} />
             </label>
+            {!isQr && <label className="field" style={{ display: "block", marginBottom: 14 }}><span>Machine</span>
+              <input maxLength="120" value={machineName} onChange={(e) => setMachineName(e.target.value)} placeholder="ระบุชื่อ Machine (ถ้ามี)" style={{ width: "100%" }} />
+            </label>}
             {!isQr && type === "OUT" && <label className="field" style={{ display: "block", marginBottom: 14 }}><span>ชื่อผู้เบิก *</span>
               <select required value={borrowerId} onChange={(e) => setBorrowerId(e.target.value)} style={{ width: "100%" }}>
                 <option value="">เลือกชื่อผู้เบิก</option>
-                {data.employees.map((employee) => <option key={employee.id} value={employee.id}>{employee.employee_code} · {employee.name}{employee.department ? ` · ${employee.department}` : ""}</option>)}
+                {data.employees.map((employee) => <option key={employee.id} value={employee.id}>{employee.name}{employee.department ? ` · ${employee.department}` : ""}</option>)}
               </select>
             </label>}
             <div style={{ color: "var(--muted,#64748b)", fontSize: 13, marginBottom: 14 }}>
-              {type === "OUT" ? `คงเหลือปัจจุบัน ${currentStock?.quantity ?? 0} ม้วน` : `ยอดคงเหลือหลังรับเข้า ${(currentStock?.quantity ?? 0) + (Number(quantity) || 0)} ม้วน`}
+              {type === "OUT" ? `คงเหลือหลังเบิก ${(currentStock?.quantity ?? 0) - (Number(quantity) || 0)} ม้วน` : type === "IN" ? `ยอดคงเหลือหลังรับเข้า ${(currentStock?.quantity ?? 0) + (Number(quantity) || 0)} ม้วน` : `ยอดคงเหลือหลังปรับ ${Number(quantity) || 0} ม้วน`}
             </div>
-            <button className="btn primary full" disabled={busy || !quantity || !Number.isInteger(Number(quantity)) || Number(quantity) < 1 || (!isQr && type === "OUT" && !borrowerId)}>{busy ? "กำลังบันทึก..." : "บันทึกรายการ"}</button>
+            <button className="btn primary full" disabled={busy || quantity === "" || !Number.isInteger(Number(quantity)) || Number(quantity) < (type === "ADJ" ? 0 : 1) || (!isQr && type === "OUT" && !borrowerId) || (type === "OUT" && Number(quantity) > Number(currentStock?.quantity ?? 0))}>{busy ? "กำลังบันทึก..." : type === "ADJ" ? "บันทึกปรับยอด" : "บันทึกรายการ"}</button>
           </form>
           </div></section>
 
@@ -387,12 +394,13 @@ export default function ClothRolls() {
         {!isQr && <section className="card cloth-rolls-history-card" style={{ padding: 0, borderRadius: 16, overflow: "hidden" }}><div style={{ padding: "16px 20px", background: "#fafafa", borderBottom: "1px solid var(--border-soft)" }}><h2 style={{ margin: 0, fontSize: 18 }}>ประวัติการเบิกจ่าย</h2><p style={{ margin: "4px 0 0", fontSize: 14, color: "var(--muted,#64748b)" }}>รายการล่าสุดที่บันทึกผ่านหน้าเว็บหรือ QR Code</p></div><div style={{ padding: 14 }}>
           {transactions.length === 0 ? <div className="empty">ยังไม่มีประวัติการเบิกหรือรับเข้า</div> : <div style={{ overflowX: "auto" }}>
             <table className="data-table" style={{ width: "100%", minWidth: 760 }}>
-              <thead><tr><th>วันเวลา</th><th>Phase</th><th>รายการ</th><th>จำนวน</th><th>ผู้เบิก</th><th>ผู้บันทึก</th><th>ช่องทาง</th></tr></thead>
+              <thead><tr><th>วันเวลา</th><th>Phase</th><th>รายการ</th><th>จำนวน / ยอดปรับ</th><th>Machine</th><th>ผู้เบิก</th><th>ผู้บันทึก</th><th>ช่องทาง</th></tr></thead>
               <tbody>{transactions.map((row) => <tr key={row.id}>
                 <td>{row.created_at ? new Date(row.created_at).toLocaleString("th-TH") : "—"}</td>
                 <td>{row.phase_label || phaseName(row.phase)}</td>
                 <td>{row.type_label}</td>
                 <td style={{ fontVariantNumeric: "tabular-nums" }}>{row.quantity} ม้วน</td>
+                <td>{row.machine_name || "—"}</td>
                 <td>{row.borrower_name || "—"}</td>
                 <td>{row.recorded_by_name || "—"}</td>
                 <td>{row.source === "QR" ? "QR Code" : "หน้าเว็บ"}</td>
