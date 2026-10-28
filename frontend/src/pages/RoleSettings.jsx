@@ -57,6 +57,11 @@ export const PERMISSIONS = [
   ["can_edit_machine", "Edit Machine", "Machines"],
   ["can_delete_machine", "Delete Machine", "Machines"],
 
+  ["can_view_tooling", "View Tooling", "Tooling"],
+  ["can_add_tooling", "Add Tooling", "Tooling"],
+  ["can_edit_tooling", "Edit Tooling", "Tooling"],
+  ["can_delete_tooling", "Delete Tooling", "Tooling"],
+
   ["can_view_tools", "View ยืม-คืนอุปกรณ์", "ยืม-คืนอุปกรณ์"],
   ["can_add_tool", "Add อุปกรณ์", "ยืม-คืนอุปกรณ์"],
   ["can_edit_tool", "Edit อุปกรณ์", "ยืม-คืนอุปกรณ์"],
