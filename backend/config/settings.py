@@ -117,6 +117,8 @@ for origin in PRODUCTION_FRONTEND_ORIGINS:
 # reach the Render API without opening CORS to arbitrary *.vercel.app hosts.
 CORS_ALLOWED_ORIGIN_REGEXES = [
     r"^https://rodmmstock-rodmm-partsflo-git-[a-z0-9-]+-rodmmstock-rodmms-projects\.vercel\.app$",
+    # Allow only this app's Cloudflare Workers preview/production hostname family.
+    r"^https://(?:[a-z0-9-]+-)?partsflow\.rodmmstock\.workers\.dev$",
 ]
 
 CORS_ALLOW_ALL_ORIGINS = DEBUG and not CORS_ALLOWED_ORIGINS
