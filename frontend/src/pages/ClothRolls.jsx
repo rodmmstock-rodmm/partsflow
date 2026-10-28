@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { useParams } from "react-router-dom";
 import QRCode from "qrcode";
 import { apiGet, apiPatch, apiPost } from "../api";
-import { Alert, PageHeader } from "../components/Common";
+import { Alert, Modal } from "../components/Common";
 import { useFeedback } from "../feedback";
 
 const PHASES = [
@@ -31,6 +31,8 @@ export default function ClothRolls() {
   const [busy, setBusy] = useState(false);
   const [thresholds, setThresholds] = useState({ PHASE4: "0", PHASE11: "0" });
   const [savingThreshold, setSavingThreshold] = useState("");
+  const [thresholdModalPhase, setThresholdModalPhase] = useState("");
+  const [historyType, setHistoryType] = useState("ALL");
   const [qrImages, setQrImages] = useState({});
   const [showQr, setShowQr] = useState(false);
   const lockedPhase = data.qr_phase ? PHASES.find((p) => p.value === data.qr_phase) : null;
@@ -68,6 +70,13 @@ export default function ClothRolls() {
 
   const currentStock = data.stocks.find((s) => s.phase === phase);
   const transactions = useMemo(() => data.transactions || [], [data.transactions]);
+  const filteredTransactions = useMemo(() => {
+    if (historyType === "ALL") return transactions;
+    return transactions.filter((row) => {
+      const rowType = row.type || row.transaction_type;
+      return rowType === historyType;
+    });
+  }, [transactions, historyType]);
 
   async function saveTransaction(event) {
     event.preventDefault();
@@ -107,6 +116,7 @@ export default function ClothRolls() {
         low_stock_threshold: thresholds[p.value],
       });
       await load();
+      setThresholdModalPhase("");
       feedback.showToast(`บันทึกจุดแจ้งเตือน ${p.label} แล้ว`, "success");
     } catch (err) {
       setError(err.message || "บันทึกจุดแจ้งเตือนไม่สำเร็จ");
@@ -239,6 +249,10 @@ export default function ClothRolls() {
         }
 
         /* Desktop: align alert threshold input and save action on one baseline */
+        .cloth-rolls-page .cloth-rolls-min-button { padding:6px 10px!important; min-height:32px; border-radius:8px!important; font-size:12px!important; font-weight:700; white-space:nowrap; }
+        .cloth-rolls-page .cloth-rolls-history-tabs { display:flex; gap:6px; flex-wrap:wrap; }
+        .cloth-rolls-page .cloth-rolls-history-tabs .tab { padding:7px 12px; border-radius:8px; white-space:nowrap; }
+        @media(max-width:640px) { .cloth-rolls-page .cloth-rolls-history-tabs { width:100%; } .cloth-rolls-page .cloth-rolls-history-tabs .tab { flex:1; min-width:0; padding:8px 7px; font-size:12px; } }
         .cloth-rolls-page .cloth-rolls-threshold-row {
           display:grid!important;
           grid-template-columns:minmax(0,1fr) auto;
@@ -329,16 +343,13 @@ export default function ClothRolls() {
             return <section key={p.value} className={`card cloth-rolls-stock-card${phase === p.value ? " is-selected" : ""}`} style={{ padding: 0, border: phase === p.value && !isQr ? "2px solid #3978b8" : "1px solid var(--border,#e5e7eb)", borderRadius: 14, overflow: "hidden", boxShadow: phase === p.value && !isQr ? "0 8px 22px rgba(57,120,184,.10)" : "0 3px 12px rgba(15,23,42,.035)" }}><div style={{ height: 5, background: stock.is_low ? "linear-gradient(90deg,#e11d48,#fb7185)" : phase === p.value ? "linear-gradient(90deg,#3978b8,#78a9d8)" : "#e2e8f0" }} /><div style={{ padding: 15 }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10 }}>
                 <strong style={{ fontSize: 18 }}>{p.label}</strong>
-                {stock.is_low && <span className="badge danger">เหลือน้อย</span>}
+                <div style={{ display: "flex", alignItems: "center", gap: 7, flexWrap: "wrap", justifyContent: "flex-end" }}>
+                  {stock.is_low && <span className="badge danger">เหลือน้อย</span>}
+                  {!isQr && <button type="button" className="btn secondary cloth-rolls-min-button" onClick={() => setThresholdModalPhase(p.value)}>จำนวน MIN</button>}
+                </div>
               </div>
               <div style={{ margin: "10px 0 3px" }}><Qty value={stock.quantity} /></div>
               <div style={{ color: "var(--muted,#64748b)", fontSize: 14 }}>ม้วนคงเหลือ</div>
-              {!isQr && <div className="cloth-rolls-threshold-row">
-                <label className="cloth-rolls-threshold-label">แจ้งเตือนเมื่อเหลือไม่เกิน (ม้วน)
-                  <input className="cloth-rolls-threshold-input" type="number" min="0" step="1" value={thresholds[p.value]} onChange={(e) => setThresholds((old) => ({ ...old, [p.value]: e.target.value }))} />
-                </label>
-                <button className="btn secondary cloth-rolls-threshold-save" type="button" disabled={savingThreshold === p.value} onClick={() => saveThreshold(p)}>{savingThreshold === p.value ? "กำลังบันทึก…" : "บันทึกเกณฑ์"}</button>
-              </div>}
               {!isQr && <button className={phase === p.value ? "btn primary full" : "btn ghost full"} type="button" style={{ marginTop: 12 }} onClick={() => { setPhase(p.value); setType("OUT"); setBorrowerId(""); document.getElementById("cloth-roll-form")?.scrollIntoView({ behavior: "smooth", block: "start" }); }}>{phase === p.value ? "✓ เลือก Phase นี้แล้ว" : "เลือก " + p.label + " เพื่อทำรายการ"}</button>}
               </div></section>;
           })}
@@ -391,11 +402,11 @@ export default function ClothRolls() {
           </div>}
         </section>}
 
-        {!isQr && <section className="card cloth-rolls-history-card" style={{ padding: 0, borderRadius: 16, overflow: "hidden" }}><div style={{ padding: "16px 20px", background: "#fafafa", borderBottom: "1px solid var(--border-soft)" }}><h2 style={{ margin: 0, fontSize: 18 }}>ประวัติการเบิกจ่าย</h2><p style={{ margin: "4px 0 0", fontSize: 14, color: "var(--muted,#64748b)" }}>รายการล่าสุดที่บันทึกผ่านหน้าเว็บหรือ QR Code</p></div><div style={{ padding: 14 }}>
-          {transactions.length === 0 ? <div className="empty">ยังไม่มีประวัติการเบิกหรือรับเข้า</div> : <div style={{ overflowX: "auto" }}>
+        {!isQr && <section className="card cloth-rolls-history-card" style={{ padding: 0, borderRadius: 16, overflow: "hidden" }}><div style={{ padding: "16px 20px", background: "#fafafa", borderBottom: "1px solid var(--border-soft)" }}><div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}><div><h2 style={{ margin: 0, fontSize: 18 }}>ประวัติการเบิกจ่าย</h2><p style={{ margin: "4px 0 0", fontSize: 14, color: "var(--muted,#64748b)" }}>รายการล่าสุดที่บันทึกผ่านหน้าเว็บหรือ QR Code</p></div><div className="tab-row cloth-rolls-history-tabs" role="group" aria-label="กรองประเภทประวัติ">{[["ALL", "ทั้งหมด"], ["OUT", "เบิก"], ["IN", "รับเข้า"], ["ADJ", "ปรับยอด"]].map(([value, label]) => <button key={value} type="button" className={`tab ${historyType === value ? "active" : ""}`} aria-pressed={historyType === value} onClick={() => setHistoryType(value)}>{label}</button>)}</div></div></div><div style={{ padding: 14 }}>
+          {filteredTransactions.length === 0 ? <div className="empty">{transactions.length === 0 ? "ยังไม่มีประวัติการเบิกหรือรับเข้า" : "ไม่พบรายการในประเภทที่เลือก"}</div> : <div style={{ overflowX: "auto" }}>
             <table className="data-table" style={{ width: "100%", minWidth: 760 }}>
               <thead><tr><th>วันเวลา</th><th>Phase</th><th>รายการ</th><th>จำนวน / ยอดปรับ</th><th>Machine</th><th>ผู้เบิก</th><th>ผู้บันทึก</th><th>ช่องทาง</th></tr></thead>
-              <tbody>{transactions.map((row) => <tr key={row.id}>
+              <tbody>{filteredTransactions.map((row) => <tr key={row.id}>
                 <td>{row.created_at ? new Date(row.created_at).toLocaleString("th-TH") : "—"}</td>
                 <td>{row.phase_label || phaseName(row.phase)}</td>
                 <td>{row.type_label}</td>
@@ -409,6 +420,13 @@ export default function ClothRolls() {
           </div>}
           </div>
         </section>}
+        {!isQr && thresholdModalPhase && <Modal title={`จำนวน MIN · ${phaseName(thresholdModalPhase)}`} onClose={() => { if (!savingThreshold) setThresholdModalPhase(""); }}>
+          <form onSubmit={(event) => { event.preventDefault(); const value = thresholds[thresholdModalPhase]; if (value === "" || !Number.isInteger(Number(value)) || Number(value) < 0) { setError("จำนวน MIN ต้องเป็นจำนวนเต็มตั้งแต่ 0 ขึ้นไป"); return; } saveThreshold(PHASES.find((p) => p.value === thresholdModalPhase)); }}>
+            <p style={{ margin: "0 0 14px", color: "var(--muted,#64748b)", fontSize: 14 }}>แจ้งเตือนเมื่อจำนวนคงเหลือไม่เกินค่าที่กำหนด (ม้วน)</p>
+            <label className="field" style={{ display: "block" }}><span>จำนวนขั้นต่ำ (ม้วน)</span><input autoFocus type="number" min="0" step="1" inputMode="numeric" required value={thresholds[thresholdModalPhase]} onChange={(event) => setThresholds((old) => ({ ...old, [thresholdModalPhase]: event.target.value }))} /></label>
+            <div className="modal-actions"><button type="button" className="btn ghost" disabled={Boolean(savingThreshold)} onClick={() => setThresholdModalPhase("")}>ยกเลิก</button><button type="submit" className="btn primary" disabled={Boolean(savingThreshold)}>{savingThreshold ? "กำลังบันทึก…" : "บันทึก"}</button></div>
+          </form>
+        </Modal>}
         {!isQr && !data.line_configured && <p style={{ marginTop: 12, color: "var(--muted,#64748b)", fontSize: 12 }}>หมายเหตุ: ต้องตั้งค่า LINE_CHANNEL_ACCESS_TOKEN และ LINE_USER_ID ใน Environment ของ Backend ก่อน ระบบจึงจะส่งแจ้งเตือน LINE ได้</p>}
       </>}
     </div>
