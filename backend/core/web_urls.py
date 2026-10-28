@@ -1,6 +1,6 @@
 from django.urls import path
 
-from . import auth_api, cloth_roll_api, dashboard_api, drive_oauth, fast_order_api, order_api, order_audit_api, order_delete_api, order_step_api, order_vendor_api, qr_withdraw_api, rfq_api, rfq_step_guard, role_api, spare_set_api, stock_api, tool_api, web_api
+from . import tooling_api, auth_api, cloth_roll_api, dashboard_api, drive_oauth, fast_order_api, order_api, order_audit_api, order_delete_api, order_step_api, order_vendor_api, qr_withdraw_api, rfq_api, rfq_step_guard, role_api, spare_set_api, stock_api, tool_api, web_api
 
 urlpatterns = [
     path("auth/login/", auth_api.login_view),
@@ -64,6 +64,12 @@ urlpatterns = [
     path("orders/status-search/", order_api.order_status_search, name="web-order-status-search"),
     path("orders/status-dashboard/pending-items/", order_api.order_status_pending_items, name="web-order-status-pending-items"),
     path("orders/status-dashboard/export/", order_api.order_status_export_items, name="web-order-status-export-items"),
+
+    # Tooling consumable inventory, separate from serialized loan/return equipment
+    path("tooling/items/", tooling_api.items, name="web-tooling-items"),
+    path("tooling/items/<uuid:pk>/", tooling_api.item_detail, name="web-tooling-item-detail"),
+    path("tooling/items/<uuid:pk>/withdraw/", tooling_api.withdraw, name="web-tooling-withdraw"),
+    path("tooling/history/", tooling_api.history, name="web-tooling-history"),
 
     # Equipment Borrow-Return (admin side, authenticated)
     path("tools/", tool_api.tools_list, name="web-tools-list"),
