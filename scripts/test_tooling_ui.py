@@ -106,11 +106,11 @@ def install_mock_api(page, *, initial_quantity=4):
                 "department": "QA",
                 "role": "TOOLING_TESTER",
             }]})
-        elif path.endswith("/safety-stock/"):
-            route.fulfill(json={"count": 0, "results": []})
         elif path.endswith("/tooling/safety-stock/"):
             item = tooling_item(0)
             route.fulfill(json={"count": 1, "results": [item]})
+        elif path.endswith("/safety-stock/"):
+            route.fulfill(json={"count": 0, "results": []})
         else:
             route.fulfill(status=404, json={"detail": f"Unmocked API route: {path}"})
 
