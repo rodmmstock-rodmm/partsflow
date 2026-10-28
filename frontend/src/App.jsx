@@ -22,6 +22,7 @@ import ToolScan from "./pages/ToolScan";
 import POBalance from "./pages/POBalance";
 import Login from "./pages/Login";
 import MobileShell from "./mobile/MobileShell";
+import AppRefreshButton from "./components/AppRefreshButton";
 
 // Grouped for the desktop sidebar's category headers (Stock / Order /
 // Setting). Flattened below into NAV for anything that just needs the full
@@ -148,6 +149,7 @@ function DesktopShell() {
           <strong>{currentPageLabel}</strong>
         </div>
         <div className="modernize-profile">
+          <AppRefreshButton />
           <div className="modernize-profile-avatar" aria-hidden="true">{(auth.employee?.name || "PF").trim().slice(0, 1).toUpperCase()}</div>
           <div className="modernize-profile-copy">
             <strong>{auth.employee?.name || "ผู้ใช้งาน"}</strong>
