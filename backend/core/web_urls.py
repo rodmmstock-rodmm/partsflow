@@ -66,6 +66,7 @@ urlpatterns = [
     path("orders/status-dashboard/export/", order_api.order_status_export_items, name="web-order-status-export-items"),
 
     # Tooling consumable inventory, separate from serialized loan/return equipment
+    path("tooling/safety-stock/", tooling_api.safety_stock, name="web-tooling-safety-stock"),
     path("tooling/items/", tooling_api.items, name="web-tooling-items"),
     path("tooling/items/<uuid:pk>/", tooling_api.item_detail, name="web-tooling-item-detail"),
     path("tooling/items/<uuid:pk>/withdraw/", tooling_api.withdraw, name="web-tooling-withdraw"),
