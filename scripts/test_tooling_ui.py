@@ -47,7 +47,7 @@ def test_desktop_tooling_qr_withdrawal_and_history(browser):
 
     page.get_by_role("button", name=re.compile("ประวัติการเบิก")).click()
     history_row = page.locator("tbody tr").filter(has_text=ITEM_NAME)
-    history_row.get_by_text("Tooling UI Tester").wait_for()
+    history_row.get_by_text("Tooling UI Tester").first.wait_for()
     history_row.get_by_text("ชำรุด").wait_for()
     history_row.get_by_text("Desktop E2E smoke test").wait_for()
     page.close()
