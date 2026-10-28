@@ -7,13 +7,14 @@ import { MobileEmpty, MobileLoading, MobilePage, MobileSearch } from "./MobileCo
 
 export default function MobileSafetyStock(){
   const auth=useAuth();
-  const [rows,setRows]=useState([]),[selected,setSelected]=useState(new Set()),[q,setQ]=useState(""),[loading,setLoading]=useState(true),[error,setError]=useState(""),[success,setSuccess]=useState(""),[review,setReview]=useState(false);
+  const [rows,setRows]=useState([]),[toolingRows,setToolingRows]=useState([]),[selected,setSelected]=useState(new Set()),[q,setQ]=useState(""),[loading,setLoading]=useState(true),[error,setError]=useState(""),[success,setSuccess]=useState(""),[review,setReview]=useState(false);
 
   async function load(force=false){
     setLoading(true);setError("");
     try{
-      const d=await apiGet("/safety-stock/",{forceRefresh:force});
+      const [d,t]=await Promise.all([apiGet("/safety-stock/",{forceRefresh:force}),apiGet("/tooling/items/",{forceRefresh:force}).catch(()=>({results:[]}))]);
       setRows(d.results||[]);
+      setToolingRows((t.results||[]).filter(x=>Number(x.quantity)<Number(x.min_quantity)));
       setSelected(new Set());
     }catch(e){setError(e.message)}finally{setLoading(false)}
   }
@@ -45,6 +46,6 @@ export default function MobileSafetyStock(){
       <div className="m-part-meta"><span>{x.maker_name||"-"}</span><span>ล่าสุด: {x.last_machine||"-"}</span><span>{x.unit_code}</span></div>
     </article>)}</div>}
 
-    {review&&<SafetyOrderModal rows={selectedRows} employee={auth.employee} onClose={()=>setReview(false)} onSaved={async result=>{setReview(false);setSuccess(`สร้าง Order สำเร็จ ${result.created_count||selectedRows.length} รายการ`);await load(true)}}/>}
+    {toolingRows.filter(x=>!q||`${x.name} ${x.detail} ${x.maker}`.toLowerCase().includes(q.toLowerCase())).length>0&&<section className="panel"><h3>Tooling ต่ำกว่า Min</h3><p className="muted">แสดงแยกจากอะไหล่ และไม่สามารถนำไปสร้าง Order อะไหล่ได้</p><div className="m-card-list">{toolingRows.filter(x=>!q||`${x.name} ${x.detail} ${x.maker}`.toLowerCase().includes(q.toLowerCase())).map(x=><article className="m-safety-card" key={x.id}><div className="m-row-between"><div><span className="badge">Tooling</span><h3>{x.name}</h3></div><span className="m-danger-pill">ต่ำกว่า Min</span></div><p>{x.detail||"-"}</p><div className="m-stock-triplet"><div><span>คงเหลือ</span><b className="text-danger">{fmt(x.quantity)}</b></div><div><span>Min</span><b>{fmt(x.min_quantity)}</b></div><div><span>หน่วย</span><b>{x.unit||"-"}</b></div></div><div className="m-part-meta"><span>{x.maker||"-"}</span></div></article>)}</div></section>}{review&&<SafetyOrderModal rows={selectedRows} employee={auth.employee} onClose={()=>setReview(false)} onSaved={async result=>{setReview(false);setSuccess(`สร้าง Order สำเร็จ ${result.created_count||selectedRows.length} รายการ`);await load(true)}}/>}
   </MobilePage>;
 }
