@@ -36,8 +36,8 @@ const NAV_GROUPS = [
     ["/safety-stock", "Safety Stock", "alert", "can_view_safety_stock"],
     ["/qr-withdraw", "เบิก Screw", "screw", "can_view_qr_withdraw"],
     ["/cloth-rolls", "เบิกจ่ายเศษผ้า", "fabric", "can_view_cloth_rolls"],
-    ["/tooling", "Tooling", "wrench", "can_view_tooling"],
-    ["/tools", "ยืม-คืนอุปกรณ์วัด", "gauge", "can_view_tools"],
+    ["/tooling", "Tooling รถเครื่องมือ", "wrench", "can_view_tooling"],
+    ["/tools", "ยืม-คืน Gauge Control", "gauge", "can_view_tools"],
   ]],
   ["Order", [
     ["/orders", "Order", "cart", "can_view_orders"],
