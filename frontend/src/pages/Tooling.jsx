@@ -18,6 +18,7 @@ export default function Tooling() {
   const [form, setForm] = useState(empty);
   const [withdrawItem, setWithdrawItem] = useState(null);
   const [qrItem, setQrItem] = useState(null);
+  const [removeTarget, setRemoveTarget] = useState(null);
   const [qrDataUrl, setQrDataUrl] = useState("");
   const [withdraw, setWithdraw] = useState({ quantity: 1, requester_id: "", reason: "LOST", vehicle_number: "", remark: "" });
   const [error, setError] = useState("");
@@ -85,9 +86,17 @@ export default function Tooling() {
       setWithdrawItem(null); setWithdraw({ quantity: 1, requester_id: "", reason: "LOST", vehicle_number: "", remark: "" }); setSuccess("บันทึกการเบิกแล้ว"); await load();
     } catch (e) { setError(e.message); } finally { setBusy(false); }
   }
-  async function remove(item) {
-    if (!window.confirm(`ยืนยันปิดใช้งาน ${item.name}?`)) return;
-    try { await apiDelete(`/tooling/items/${item.id}/`); await load(); } catch (e) { setError(e.message); }
+  function remove(item) {
+    setRemoveTarget(item);
+  }
+  async function confirmRemove() {
+    if (!removeTarget) return;
+    try {
+      await apiDelete(`/tooling/items/${removeTarget.id}/`);
+      setRemoveTarget(null);
+      setSuccess(`ปิดใช้งาน ${removeTarget.name} แล้ว`);
+      await load();
+    } catch (e) { setError(e.message); }
   }
   const shown = items.filter(x => !itemQuery || `${x.name} ${x.detail} ${x.maker}`.toLowerCase().includes(itemQuery.toLowerCase()));
   return <div className="tooling-page">
@@ -113,6 +122,12 @@ export default function Tooling() {
         {!shown.length&&<tr><td colSpan="7">ไม่พบรายการ Tooling</td></tr>}
       </tbody></table></div></section>
     </> : <section className="panel"><div className="toolbar"><button className="btn ghost" onClick={()=>setHistoryFilter("")}>ทั้งหมด</button><button className="btn ghost" onClick={()=>setHistoryFilter("LOST")}>หาย</button><button className="btn ghost" onClick={()=>setHistoryFilter("DAMAGED")}>ชำรุด</button></div><div className="table-wrap"><table><thead><tr><th>วันที่</th><th>อุปกรณ์</th><th>จำนวน</th><th>ผู้เบิก</th><th>ผู้ทำรายการ</th><th>เบอร์รถเครื่องมือ</th><th>เหตุผล</th><th>หมายเหตุ</th></tr></thead><tbody>{history.filter(x=>!["LOST","DAMAGED"].includes(historyFilter)||x.reason===historyFilter).map(x=><tr key={x.id}><td>{new Date(x.created_at).toLocaleString("th-TH")}</td><td>{x.item_name}</td><td>{x.quantity}</td><td>{x.requester_name}</td><td>{x.created_by_name||"-"}</td><td>{x.vehicle_number ?? "-"}</td><td>{x.reason_label}</td><td>{x.remark||"-"}</td></tr>)}{!history.length&&<tr><td colSpan="8">ยังไม่มีประวัติการเบิก</td></tr>}</tbody></table></div></section>}
+    {removeTarget && <div className="modal-backdrop" role="presentation" onMouseDown={e => { if (e.target === e.currentTarget) setRemoveTarget(null); }}><section className="modal" role="dialog" aria-modal="true" aria-labelledby="tooling-remove-title">
+      <div style={{width:46,height:46,borderRadius:14,display:"grid",placeItems:"center",background:"#fff1f2",color:"#be123c",fontSize:22,marginBottom:14}} aria-hidden="true">!</div>
+      <h3 id="tooling-remove-title">ยืนยันปิดใช้งานอุปกรณ์</h3>
+      <p style={{color:"var(--muted,#64748b)",lineHeight:1.7}}>ต้องการปิดใช้งาน <strong>{removeTarget.name}</strong> ใช่หรือไม่? รายการจะไม่สามารถใช้งานต่อได้ แต่ประวัติเดิมจะยังคงอยู่</p>
+      <div className="toolbar" style={{justifyContent:"flex-end",marginTop:20}}><button type="button" className="btn ghost" onClick={()=>setRemoveTarget(null)}>ยกเลิก</button><button type="button" className="btn danger" onClick={confirmRemove}>ยืนยันปิดใช้งาน</button></div>
+    </section></div>}
     {qrItem && <div className="modal-backdrop" role="presentation"><section className="modal" role="dialog" aria-modal="true"><h3>QR เบิก {qrItem.name}</h3><p>สแกน QR เพื่อเปิดหน้า Tooling และเลือกอุปกรณ์นี้สำหรับเบิก (ต้องเข้าสู่ระบบก่อน)</p>{qrDataUrl && <img src={qrDataUrl} alt={"QR Code " + qrItem.name} style={{display:"block",width:240,maxWidth:"100%",height:"auto",margin:"16px auto"}}/>}<div className="toolbar"><button className="btn primary" onClick={downloadQr}>ดาวน์โหลด QR</button><button className="btn ghost" onClick={()=>{setQrItem(null);setQrDataUrl("");}}>ปิด</button></div></section></div>}
     {withdrawItem && <div className="modal-backdrop" role="presentation"><section className="modal" role="dialog" aria-modal="true"><h3>เบิก {withdrawItem.name}</h3><form onSubmit={submitWithdraw} className="form-grid">
       <label className="field"><span>จำนวนที่เบิก *</span><input type="number" min="1" max={withdrawItem.quantity} required value={withdraw.quantity} onChange={e=>setWithdraw({...withdraw,quantity:e.target.value})}/><small>คงเหลือ {withdrawItem.quantity} {withdrawItem.unit}</small></label>
