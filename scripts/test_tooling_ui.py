@@ -12,13 +12,31 @@ ITEM_NAME = "E2E Test Sealant"
 
 
 def login(page):
+    def log_login_response(response):
+        if "/auth/login/" in response.url:
+            print(f"Login API status: {response.status}")
+            if response.status >= 400:
+                print("Login API error body:", response.text())
+
+    page.on("response", log_login_response)
+    page.on("requestfailed", lambda request: print(
+        f"Browser request failed: {request.url} :: {request.failure}"
+    ) if "/api/" in request.url else None)
     page.goto(f"{BASE_URL}/login", wait_until="networkidle")
     page.get_by_label("Employee Code").fill(EMPLOYEE_CODE)
     page.get_by_role("button", name="Login").click()
-    page.wait_for_function(
-        "() => !!sessionStorage.getItem('partsflow_auth_token') || "
-        "!!localStorage.getItem('partsflow_auth_token')"
-    )
+    try:
+        page.wait_for_function(
+            "() => !!sessionStorage.getItem('partsflow_auth_token') || "
+            "!!localStorage.getItem('partsflow_auth_token')",
+            timeout=10000,
+        )
+    except Exception as exc:
+        message = ""
+        error = page.locator(".alert.error")
+        if error.count():
+            message = error.first.inner_text()
+        raise AssertionError(f"Login failed; visible error={message!r}") from exc
 
 
 def test_desktop_tooling_qr_withdrawal_and_history(browser):
