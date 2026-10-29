@@ -260,7 +260,6 @@ function MonthlyStatusSection({ onView, activeOrderId }) {
 
   const yearTotal = data ? data.months.reduce((sum, m) => sum + m.total, 0) : 0;
   const yearCompleted = data ? data.months.reduce((sum, m) => sum + m.completed, 0) : 0;
-  const yearCancelled = data ? data.months.reduce((sum, m) => sum + m.cancelled, 0) : 0;
   const yearWaitItem = data ? data.months.reduce((sum, m) => sum + m.wait_item, 0) : 0;
   const yearPendingAction = data ? data.months.reduce((sum, m) => sum + m.pending_action, 0) : 0;
   const selectedMonth = data ? data.months[monthIdx] : null;
@@ -333,7 +332,7 @@ function MonthlyStatusSection({ onView, activeOrderId }) {
               >
                 {data.months.map((m, i) => (
                   <option key={m.month} value={i}>
-                    {m.month_label} · {m.total} Order
+                    {m.month_label} · {Math.max(0, (m.total || 0) - (m.cancelled || 0))} Order
                   </option>
                 ))}
               </select>
@@ -409,9 +408,6 @@ function MonthlyStatusSection({ onView, activeOrderId }) {
               </div>
             )}
 
-            {yearCancelled > 0 && (
-              <p className="order-status-note">ยกเลิกทั้งปี {yearCancelled} Order</p>
-            )}
           </div>
         </>
       ) : null}
