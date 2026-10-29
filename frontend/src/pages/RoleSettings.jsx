@@ -62,6 +62,7 @@ export const PERMISSIONS = [
   ["can_add_tooling", "Add Tooling", "Tooling"],
   ["can_edit_tooling", "Edit Tooling", "Tooling"],
   ["can_delete_tooling", "Delete Tooling", "Tooling"],
+  ["can_delete_tooling_history", "Delete Tooling History", "Tooling"],
 
   ["can_view_tools", "View ยืม-คืนอุปกรณ์", "ยืม-คืนอุปกรณ์"],
   ["can_add_tool", "Add อุปกรณ์", "ยืม-คืนอุปกรณ์"],
@@ -70,6 +71,7 @@ export const PERMISSIONS = [
 
   ["can_view_qr_withdraw", "View เบิก Screw", "เบิก Screw"],
   ["can_view_cloth_rolls", "View เบิกจ่ายเศษผ้า", "เบิกจ่ายเศษผ้า"],
+  ["can_delete_cloth_roll_history", "Delete เบิกจ่ายเศษผ้า History", "เบิกจ่ายเศษผ้า"],
   ["can_add_qr_withdraw_item", "Add อุปกรณ์", "เบิก Screw"],
   ["can_edit_qr_withdraw_item", "Edit อุปกรณ์", "เบิก Screw"],
   ["can_delete_qr_withdraw_item", "Delete อุปกรณ์", "เบิก Screw"],
