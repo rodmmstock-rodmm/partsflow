@@ -139,8 +139,12 @@ def cloth_roll_issue_form(request):
 @permission_classes([AllowAny])
 def cloth_rolls(request):
     qr_token = str(request.GET.get("qr_token") or "").strip()
-    # Cloth-roll QR links use the same access permission as the cloth-roll page.
-    actor, err = require_permission(request, "can_view_cloth_rolls")
+    # A signed QR link grants access to the withdrawal-only flow for any
+    # authenticated employee. The regular cloth-roll menu remains role-gated.
+    if qr_token:
+        actor, err = require_permission(request)
+    else:
+        actor, err = require_permission(request, "can_view_cloth_rolls")
     if err:
         return err
     stocks = [_stock_row(phase) for phase in (ClothRollStock.PHASE_4, ClothRollStock.PHASE_11)]
@@ -183,7 +187,9 @@ def cloth_roll_transaction(request):
     source = str(request.data.get("source") or "WEB").strip().upper()
     tx_type = str(request.data.get("transaction_type") or "").strip().upper()
     if source == "QR":
-        actor, err = require_permission(request, "can_view_qr_withdraw")
+        # Signed QR token is the authorization for cloth-roll QR withdrawals;
+        # do not require a menu permission for this dedicated flow.
+        actor, err = require_permission(request)
     elif source == "WEB":
         # Any authenticated role may submit a cloth-roll withdrawal.
         # Receiving stock remains restricted to users with the existing permission.
