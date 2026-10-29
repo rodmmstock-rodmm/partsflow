@@ -302,15 +302,17 @@ def cloth_roll_transaction_detail(request, pk):
         later = ClothRollTransaction.objects.filter(phase=row.phase, created_at__gt=row.created_at)
         if next_adjustment:
             later = later.filter(created_at__lt=next_adjustment.created_at)
-        for later_row in later:
-            later_row.balance_after -= delta
-            if later_row.balance_after < 0:
-                return Response({"detail": "ไม่สามารถลบรายการนี้ได้ เพราะจะทำให้ยอดย้อนหลังติดลบ"}, status=400)
+        later_rows = list(later.order_by("created_at"))
+        adjusted_balances = [(later_row, later_row.balance_after - delta) for later_row in later_rows]
+        if any(balance < 0 for _, balance in adjusted_balances):
+            return Response({"detail": "ไม่สามารถลบรายการนี้ได้ เพราะจะทำให้ยอดย้อนหลังติดลบ"}, status=400)
+        new_balance = stock.quantity - delta if not next_adjustment else stock.quantity
+        if new_balance < 0:
+            return Response({"detail": "ไม่สามารถลบรายการนี้ได้ เพราะจะทำให้ยอดคงเหลือติดลบ"}, status=400)
+        for later_row, balance in adjusted_balances:
+            later_row.balance_after = balance
             later_row.save(update_fields=["balance_after", "updated_at"])
         if not next_adjustment:
-            new_balance = stock.quantity - delta
-            if new_balance < 0:
-                return Response({"detail": "ไม่สามารถลบรายการนี้ได้ เพราะจะทำให้ยอดคงเหลือติดลบ"}, status=400)
             stock.quantity = new_balance
             stock.save(update_fields=["quantity", "updated_at"])
         row.delete()
