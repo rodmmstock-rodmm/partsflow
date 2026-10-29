@@ -295,9 +295,8 @@ def cloth_roll_transaction_detail(request, pk):
         elif row.transaction_type == ClothRollTransaction.TYPE_IN:
             delta = row.quantity
         else:
-            if not previous:
-                return Response({"detail": "ไม่สามารถลบรายการปรับยอดแรกของ Phase ได้ เนื่องจากไม่มีข้อมูลยอดก่อนปรับ"}, status=400)
-            delta = row.quantity - previous.balance_after
+            previous_balance = previous.balance_after if previous else 0
+            delta = row.quantity - previous_balance
         next_adjustment = ClothRollTransaction.objects.filter(phase=row.phase, created_at__gt=row.created_at, transaction_type=ClothRollTransaction.TYPE_ADJUST).order_by("created_at").first()
         later = ClothRollTransaction.objects.filter(phase=row.phase, created_at__gt=row.created_at)
         if next_adjustment:
