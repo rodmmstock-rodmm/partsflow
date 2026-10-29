@@ -1,5 +1,13 @@
 import { useEffect, useRef, useState } from "react";
 
+function RefreshIcon({ size = 21 }) {
+  return (
+    <svg viewBox="0 0 24 24" width={size} height={size} fill="currentColor" aria-hidden="true">
+      <path d="M21.5 11.2a9.5 9.5 0 0 0-16.2-6.7L3.5 6.3V2.8a.9.9 0 0 0-1.8 0v5.7c0 .5.4.9.9.9h5.7a.9.9 0 0 0 0-1.8H5.1l1.5-1.8a7.7 7.7 0 1 1-1.7 8.1.9.9 0 0 0-1.7.6 9.5 9.5 0 0 0 18.3-3.3Z" />
+    </svg>
+  );
+}
+
 export default function AppRefreshButton() {
   const [confirmOpen, setConfirmOpen] = useState(false);
   const cancelRef = useRef(null);
@@ -34,13 +42,7 @@ export default function AppRefreshButton() {
           transition: "transform .18s ease, box-shadow .18s ease, border-color .18s ease"
         }}
       >
-        <svg viewBox="0 0 24 24" width="21" height="21" fill="none" stroke="currentColor"
-          strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-          <path d="M20 7v5h-5" />
-          <path d="M4.6 11a7.5 7.5 0 0 1 13-5L20 8" />
-          <path d="M4 17v-5h5" />
-          <path d="M19.4 13a7.5 7.5 0 0 1-13 5L4 16" />
-        </svg>
+        <RefreshIcon />
       </button>
 
       {confirmOpen && (
@@ -62,10 +64,7 @@ export default function AppRefreshButton() {
               width: 48, height: 48, borderRadius: 15, display: "grid", placeItems: "center",
               background: "#edf6ff", color: "#3475ad", marginBottom: 16
             }}>
-              <svg viewBox="0 0 24 24" width="25" height="25" fill="none" stroke="currentColor"
-                strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                <path d="M20 7v5h-5M4.6 11a7.5 7.5 0 0 1 13-5L20 8M4 17v-5h5M19.4 13a7.5 7.5 0 0 1-13 5L4 16" />
-              </svg>
+              <RefreshIcon size={25} />
             </div>
             <h2 id="refresh-dialog-title" style={{ margin: "0 0 9px", fontSize: 20, fontWeight: 750 }}>
               โหลด PartsFlow ใหม่?
