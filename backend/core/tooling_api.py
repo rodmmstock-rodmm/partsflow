@@ -158,6 +158,26 @@ def withdraw(request, pk):
     return Response({"item": item_json(item), "transaction": tx_json(tx)}, status=201)
 
 
+@api_view(["DELETE"])
+@permission_classes([AllowAny])
+def delete_history(request, pk):
+    actor, err = require_permission(request, "can_delete_tooling_history")
+    if err:
+        return err
+    with transaction.atomic():
+        tx = ToolingTransaction.objects.select_for_update().select_related("item").filter(pk=pk).first()
+        if not tx:
+            return Response({"detail": "ไม่พบประวัติ Tooling รายการนี้"}, status=404)
+        item = ToolingItem.objects.select_for_update().filter(pk=tx.item_id).first()
+        if item:
+            item.quantity = F("quantity") + tx.quantity
+            item.save(update_fields=["quantity", "updated_at"])
+            item.refresh_from_db()
+        audit(actor, "DELETE_WITHDRAWAL", "ToolingItem", tx.item_id, {"transaction_id": str(tx.id), "quantity_restored": tx.quantity, "reason": tx.reason})
+        tx.delete()
+    return Response({"deleted": True, "item": item_json(item) if item else None})
+
+
 @api_view(["GET"])
 @permission_classes([AllowAny])
 def history(request):

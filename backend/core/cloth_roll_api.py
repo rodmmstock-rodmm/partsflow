@@ -148,9 +148,17 @@ def cloth_rolls(request):
     if err:
         return err
     stocks = [_stock_row(phase) for phase in (ClothRollStock.PHASE_4, ClothRollStock.PHASE_11)]
-    transactions = ClothRollTransaction.objects.select_related(
+    transaction_qs = ClothRollTransaction.objects.select_related(
         "borrower_employee", "recorded_by_employee"
-    ).all()[:200]
+    ).all()
+    try:
+        year = int(request.GET.get("year", ""))
+        month = int(request.GET.get("month", ""))
+        if 1 <= month <= 12 and 2000 <= year <= 2200:
+            transaction_qs = transaction_qs.filter(created_at__year=year, created_at__month=month)
+    except (TypeError, ValueError):
+        pass
+    transactions = transaction_qs.order_by("-created_at")[:1000]
     employees = Employee.objects.filter(active=True).order_by("employee_code").values(
         "id", "employee_code", "name", "department"
     )[:1000]
@@ -273,6 +281,47 @@ def cloth_roll_transaction(request):
         "stock": _stock_json(stock),
         "line_configured": _line_configured(),
     }, status=201)
+
+
+@csrf_exempt
+@api_view(["DELETE"])
+@permission_classes([AllowAny])
+def cloth_roll_transaction_detail(request, pk):
+    actor, err = require_permission(request, "can_delete_cloth_roll_history")
+    if err:
+        return err
+    with transaction.atomic():
+        row = ClothRollTransaction.objects.select_for_update().filter(pk=pk).first()
+        if not row:
+            return Response({"detail": "ไม่พบประวัติรายการนี้"}, status=404)
+        stock = ClothRollStock.objects.select_for_update().get(phase=row.phase)
+        previous = ClothRollTransaction.objects.filter(phase=row.phase, created_at__lt=row.created_at).order_by("-created_at").first()
+        if row.transaction_type == ClothRollTransaction.TYPE_OUT:
+            delta = -row.quantity
+        elif row.transaction_type == ClothRollTransaction.TYPE_IN:
+            delta = row.quantity
+        else:
+            previous_balance = previous.balance_after if previous else 0
+            delta = row.quantity - previous_balance
+        next_adjustment = ClothRollTransaction.objects.filter(phase=row.phase, created_at__gt=row.created_at, transaction_type=ClothRollTransaction.TYPE_ADJUST).order_by("created_at").first()
+        later = ClothRollTransaction.objects.filter(phase=row.phase, created_at__gt=row.created_at)
+        if next_adjustment:
+            later = later.filter(created_at__lt=next_adjustment.created_at)
+        later_rows = list(later.order_by("created_at"))
+        adjusted_balances = [(later_row, later_row.balance_after - delta) for later_row in later_rows]
+        if any(balance < 0 for _, balance in adjusted_balances):
+            return Response({"detail": "ไม่สามารถลบรายการนี้ได้ เพราะจะทำให้ยอดย้อนหลังติดลบ"}, status=400)
+        new_balance = stock.quantity - delta if not next_adjustment else stock.quantity
+        if new_balance < 0:
+            return Response({"detail": "ไม่สามารถลบรายการนี้ได้ เพราะจะทำให้ยอดคงเหลือติดลบ"}, status=400)
+        for later_row, balance in adjusted_balances:
+            later_row.balance_after = balance
+            later_row.save(update_fields=["balance_after", "updated_at"])
+        if not next_adjustment:
+            stock.quantity = new_balance
+            stock.save(update_fields=["quantity", "updated_at"])
+        row.delete()
+    return Response({"deleted": True, "stock": _stock_json(stock)})
 
 
 @csrf_exempt

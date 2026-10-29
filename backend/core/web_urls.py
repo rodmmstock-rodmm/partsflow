@@ -71,6 +71,7 @@ urlpatterns = [
     path("tooling/items/<uuid:pk>/", tooling_api.item_detail, name="web-tooling-item-detail"),
     path("tooling/items/<uuid:pk>/withdraw/", tooling_api.withdraw, name="web-tooling-withdraw"),
     path("tooling/history/", tooling_api.history, name="web-tooling-history"),
+    path("tooling/history/<uuid:pk>/", tooling_api.delete_history, name="web-tooling-history-delete"),
 
     # Equipment Borrow-Return (admin side, authenticated)
     path("tools/", tool_api.tools_list, name="web-tools-list"),
@@ -85,6 +86,7 @@ urlpatterns = [
     path("cloth-rolls/issue-form/", cloth_roll_api.cloth_roll_issue_form, name="web-cloth-roll-issue-form"),
     path("cloth-rolls/", cloth_roll_api.cloth_rolls, name="web-cloth-rolls"),
     path("cloth-rolls/transactions/", cloth_roll_api.cloth_roll_transaction, name="web-cloth-roll-transaction"),
+    path("cloth-rolls/transactions/<uuid:pk>/", cloth_roll_api.cloth_roll_transaction_detail, name="web-cloth-roll-transaction-detail"),
     path("cloth-rolls/settings/<str:phase>/", cloth_roll_api.cloth_roll_settings, name="web-cloth-roll-settings"),
 
     # QR Withdraw (admin view onto the separate qr-withdraw Supabase project;

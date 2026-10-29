@@ -1,9 +1,12 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useParams } from "react-router-dom";
 import QRCode from "qrcode";
-import { apiGet, apiPatch, apiPost } from "../api";
+import { apiDelete, apiGet, apiPatch, apiPost } from "../api";
 import { Alert, Modal } from "../components/Common";
 import { useFeedback } from "../feedback";
+import { useAuth } from "../auth";
+
+const MONTHS_TH = ["ม.ค.", "ก.พ.", "มี.ค.", "เม.ย.", "พ.ค.", "มิ.ย.", "ก.ค.", "ส.ค.", "ก.ย.", "ต.ค.", "พ.ย.", "ธ.ค."];
 
 const PHASES = [
   { value: "PHASE4", slug: "phase-4", label: "Phase 4" },
@@ -20,6 +23,12 @@ export default function ClothRolls() {
   const { token: qrToken } = useParams();
   const isQr = Boolean(qrToken);
   const feedback = useFeedback();
+  const auth = useAuth();
+  const now = new Date();
+  const [historyYear, setHistoryYear] = useState(now.getFullYear());
+  const [historyMonth, setHistoryMonth] = useState(now.getMonth());
+  const [deleteTarget, setDeleteTarget] = useState(null);
+  const [deletingHistory, setDeletingHistory] = useState(false);
   const [data, setData] = useState({ stocks: [], transactions: [], employees: [], line_configured: false });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -40,7 +49,9 @@ export default function ClothRolls() {
   const load = useCallback(async () => {
     setError("");
     try {
-      const result = await apiGet(`/cloth-rolls/${qrToken ? `?qr_token=${encodeURIComponent(qrToken)}` : ""}`, { cache: false, forceRefresh: true });
+      const historyParams = new URLSearchParams({ year: String(historyYear), month: String(historyMonth + 1) });
+      const endpoint = qrToken ? `/cloth-rolls/?qr_token=${encodeURIComponent(qrToken)}` : `/cloth-rolls/?${historyParams.toString()}`;
+      const result = await apiGet(endpoint, { cache: false, forceRefresh: true });
       setData(result);
       setThresholds({
         PHASE4: String(result.stocks.find((s) => s.phase === "PHASE4")?.low_stock_threshold ?? 0),
@@ -51,7 +62,7 @@ export default function ClothRolls() {
     } finally {
       setLoading(false);
     }
-  }, [qrToken]);
+  }, [qrToken, historyYear, historyMonth]);
 
   useEffect(() => { load(); }, [load]);
 
@@ -106,6 +117,14 @@ export default function ClothRolls() {
     } finally {
       setBusy(false);
     }
+  }
+
+  async function deleteHistory(row) {
+    if (!row?.id || !auth.can("can_delete_cloth_roll_history")) return;
+    setDeletingHistory(true); setError("");
+    try { await apiDelete(`/cloth-rolls/transactions/${row.id}/`); setDeleteTarget(null); await load(); feedback.showToast("ลบประวัติสำเร็จ", "success"); }
+    catch (err) { setError(err.message || "ลบประวัติไม่สำเร็จ"); }
+    finally { setDeletingHistory(false); }
   }
 
   async function saveThreshold(p) {
@@ -412,10 +431,10 @@ export default function ClothRolls() {
           </div>}
         </section>}
 
-        {!isQr && <section className="card cloth-rolls-history-card" style={{ padding: 0, borderRadius: 16, overflow: "hidden" }}><div style={{ padding: "16px 20px", background: "#fafafa", borderBottom: "1px solid var(--border-soft)" }}><div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}><div><h2 style={{ margin: 0, fontSize: 18 }}>ประวัติการเบิกจ่าย</h2><p style={{ margin: "4px 0 0", fontSize: 14, color: "var(--muted,#64748b)" }}>รายการล่าสุดที่บันทึกผ่านหน้าเว็บหรือ QR Code</p></div><div className="tab-row cloth-rolls-history-tabs" role="group" aria-label="กรองประเภทประวัติ">{[["ALL", "ทั้งหมด"], ["OUT", "เบิก"], ["IN", "รับเข้า"], ["ADJ", "ปรับยอด"]].map(([value, label]) => <button key={value} type="button" className={`tab ${historyType === value ? "active" : ""}`} aria-pressed={historyType === value} onClick={() => setHistoryType(value)}>{label}</button>)}</div></div></div><div style={{ padding: 14 }}>
-          {filteredTransactions.length === 0 ? <div className="empty">{transactions.length === 0 ? "ยังไม่มีประวัติการเบิกหรือรับเข้า" : "ไม่พบรายการในประเภทที่เลือก"}</div> : <div style={{ overflowX: "auto" }}>
+        {!isQr && <section className="card cloth-rolls-history-card" style={{ padding: 0, borderRadius: 16, overflow: "hidden" }}><div style={{ padding: "16px 20px", background: "#fafafa", borderBottom: "1px solid var(--border-soft)" }}><div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}><div><h2 style={{ margin: 0, fontSize: 18 }}>ประวัติการเบิกจ่าย</h2><p style={{ margin: "4px 0 0", fontSize: 14, color: "var(--muted,#64748b)" }}>แสดงรายการเฉพาะเดือนและปีที่เลือก</p></div><div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}><div className="toolbar" style={{ gap: 4 }}><button type="button" className="btn ghost" aria-label="ปีก่อนหน้า" onClick={() => setHistoryYear(y => y - 1)}>‹</button><strong style={{ minWidth: 48, textAlign: "center" }}>{historyYear}</strong><button type="button" className="btn ghost" aria-label="ปีถัดไป" onClick={() => setHistoryYear(y => y + 1)}>›</button></div><select aria-label="เลือกเดือนของประวัติ" value={historyMonth} onChange={e => setHistoryMonth(Number(e.target.value))} style={{ minWidth: 100 }}><option value={0}>มกราคม</option><option value={1}>กุมภาพันธ์</option><option value={2}>มีนาคม</option><option value={3}>เมษายน</option><option value={4}>พฤษภาคม</option><option value={5}>มิถุนายน</option><option value={6}>กรกฎาคม</option><option value={7}>สิงหาคม</option><option value={8}>กันยายน</option><option value={9}>ตุลาคม</option><option value={10}>พฤศจิกายน</option><option value={11}>ธันวาคม</option></select></div><div className="tab-row cloth-rolls-history-tabs" role="group" aria-label="กรองประเภทประวัติ">{[["ALL", "ทั้งหมด"], ["OUT", "เบิก"], ["IN", "รับเข้า"], ["ADJ", "ปรับยอด"]].map(([value, label]) => <button key={value} type="button" className={`tab ${historyType === value ? "active" : ""}`} aria-pressed={historyType === value} onClick={() => setHistoryType(value)}>{label}</button>)}</div></div></div><div style={{ padding: 14 }}>
+          {filteredTransactions.length === 0 ? <div className="empty">ไม่พบประวัติใน {MONTHS_TH[historyMonth]} {historyYear}</div> : <div style={{ overflowX: "auto" }}>
             <table className="data-table" style={{ width: "100%", minWidth: 760 }}>
-              <thead><tr><th>วันเวลา</th><th>Phase</th><th>รายการ</th><th>จำนวน / ยอดปรับ</th><th>Machine</th><th>ผู้เบิก</th><th>ผู้บันทึก</th><th>ช่องทาง</th></tr></thead>
+              <thead><tr><th>วันเวลา</th><th>Phase</th><th>รายการ</th><th>จำนวน / ยอดปรับ</th><th>Machine</th><th>ผู้เบิก</th><th>ผู้บันทึก</th><th>ช่องทาง</th>{auth.can("can_delete_cloth_roll_history") && <th>จัดการ</th>}</tr></thead>
               <tbody>{filteredTransactions.map((row) => <tr key={row.id}>
                 <td>{row.created_at ? new Date(row.created_at).toLocaleString("th-TH") : "—"}</td>
                 <td>{row.phase_label || phaseName(row.phase)}</td>
@@ -425,6 +444,7 @@ export default function ClothRolls() {
                 <td>{row.borrower_name || "—"}</td>
                 <td>{row.recorded_by_name || "—"}</td>
                 <td>{row.source === "QR" ? "QR Code" : "หน้าเว็บ"}</td>
+                {auth.can("can_delete_cloth_roll_history") && <td><button type="button" className="btn ghost" style={{ color: "#be344b", padding: "5px 8px" }} onClick={() => setDeleteTarget(row)}>ลบ</button></td>}
               </tr>)}</tbody>
             </table>
           </div>}
@@ -439,6 +459,7 @@ export default function ClothRolls() {
         </Modal>}
         {!isQr && !data.line_configured && <p style={{ marginTop: 12, color: "var(--muted,#64748b)", fontSize: 12 }}>หมายเหตุ: ต้องตั้งค่า LINE_CHANNEL_ACCESS_TOKEN และ LINE_USER_ID ใน Environment ของ Backend ก่อน ระบบจึงจะส่งแจ้งเตือน LINE ได้</p>}
       </>}
+      {deleteTarget && <div className="modal-backdrop" role="presentation"><section className="modal" role="dialog" aria-modal="true" aria-labelledby="cloth-history-delete-title"><h3 id="cloth-history-delete-title">ยืนยันลบประวัติ</h3><p>ต้องการลบรายการ {deleteTarget.type_label || deleteTarget.transaction_type} · {phaseName(deleteTarget.phase)} · {deleteTarget.quantity} ม้วน วันที่ {deleteTarget.created_at ? new Date(deleteTarget.created_at).toLocaleString("th-TH") : "—"} ใช่หรือไม่?</p><p style={{ color: "var(--muted,#64748b)" }}>การลบอาจมีผลต่อยอดคงเหลือ และไม่สามารถยกเลิกได้</p><div className="toolbar" style={{ justifyContent: "flex-end", marginTop: 18 }}><button type="button" className="btn ghost" disabled={deletingHistory} onClick={() => setDeleteTarget(null)}>ยกเลิก</button><button type="button" className="btn danger" disabled={deletingHistory} onClick={() => deleteHistory(deleteTarget)}>{deletingHistory ? "กำลังลบ..." : "ยืนยันลบ"}</button></div></section></div>}
     </div>
   );
 }
