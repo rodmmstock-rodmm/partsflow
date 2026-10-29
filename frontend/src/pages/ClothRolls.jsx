@@ -132,8 +132,21 @@ export default function ClothRolls() {
     win.document.close();
   }
 
+  // Wait for the QR token lookup to finish before deciding whether the link is invalid.
+  // Otherwise a valid QR can briefly render the invalid state before its API response arrives.
+  if (loading) {
+    return <div className="page cloth-rolls-page" style={{ maxWidth: 640, margin: "0 auto", padding: 20 }}>
+      <div className="card" role="status" style={{ padding: 24, textAlign: "center" }}>กำลังตรวจสอบ QR Code และโหลดข้อมูล...</div>
+    </div>;
+  }
+
   if (isQr && !lockedPhase) {
-    return <div className="page"><Alert>QR Code ไม่ถูกต้อง กรุณาใช้ QR Code ของ Phase 4 หรือ Phase 11</Alert></div>;
+    return <div className="page cloth-rolls-page" style={{ maxWidth: 640, margin: "0 auto", padding: 20 }}>
+      <Alert>{error || "QR Code ไม่ถูกต้อง กรุณาใช้ QR Code ของ Phase 4 หรือ Phase 11"}</Alert>
+      <p style={{ color: "var(--muted,#64748b)", fontSize: 14, marginTop: 12 }}>
+        หากลิงก์นี้เคยใช้งานได้ ให้กลับไปที่เมนูเบิกจ่ายเศษผ้าและสร้าง QR Code ใหม่ หรือตรวจสอบการเชื่อมต่อและเข้าสู่ระบบอีกครั้ง
+      </p>
+    </div>;
   }
 
   return (
