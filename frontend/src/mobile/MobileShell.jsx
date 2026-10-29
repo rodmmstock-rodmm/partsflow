@@ -136,7 +136,7 @@ export default function MobileShell() {
           <Route path="/tooling" element={<Protected permission="can_view_tooling"><Tooling /></Protected>} />
           <Route path="/tools" element={<Protected permission="can_view_tools"><Tools /></Protected>} />
           <Route path="/qr-withdraw" element={<Protected permission="can_view_qr_withdraw"><QrWithdraw /></Protected>} />
-          <Route path="/cloth-rolls/scan/:token" element={<Protected permission="can_view_qr_withdraw"><ClothRolls /></Protected>} />
+          <Route path="/cloth-rolls/scan/:token" element={<ClothRolls />} />
           <Route path="/cloth-rolls/:phase?" element={<Protected permission="can_view_cloth_rolls"><ClothRolls /></Protected>} />
           <Route path="/settings/roles" element={<Protected permission="can_manage_roles"><MobileRoles /></Protected>} />
         </Routes>
