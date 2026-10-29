@@ -197,9 +197,7 @@ export default function ClothRolls() {
         .cloth-rolls-page > .cloth-rolls-hero > div > div:last-child { background:#fff!important; border:1px solid #dce8f2!important; border-radius:999px!important; color:#42617e!important; }
         .cloth-rolls-page > .cloth-rolls-stock-grid { grid-template-columns:repeat(2,minmax(0,1fr))!important; gap:16px!important; margin:0!important; }
         .cloth-rolls-page .cloth-rolls-stock-card { border:1px solid #dce5ee!important; border-radius:14px!important; box-shadow:0 3px 12px rgba(36,68,98,.035)!important; transition:border-color .15s,box-shadow .15s; }
-        .cloth-rolls-page .cloth-rolls-stock-card.is-selected { border:1.5px solid #76a9d5!important; box-shadow:0 0 0 3px rgba(88,147,198,.10)!important; }
         .cloth-rolls-page .cloth-rolls-stock-card > div:first-child { height:4px!important; background:#dce8f2!important; }
-        .cloth-rolls-page .cloth-rolls-stock-card.is-selected > div:first-child { background:linear-gradient(90deg,#4d8fc5,#a9cce9)!important; }
         .cloth-rolls-page .cloth-rolls-stock-card strong { color:#254968; }
         .cloth-rolls-page .cloth-rolls-stock-card button.btn.full { width:100%; min-height:42px; }
         .cloth-rolls-page #cloth-roll-form { margin:0!important; border:1px solid #dce5ee!important; border-radius:14px!important; box-shadow:0 3px 12px rgba(36,68,98,.035)!important; scroll-margin-top:18px; }
@@ -340,7 +338,7 @@ export default function ClothRolls() {
         {!isQr && <div className="cloth-rolls-stock-grid" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(240px,1fr))", gap: 12, marginBottom: 16 }}>
           {PHASES.filter((p) => !isQr || p.value === lockedPhase?.value).map((p) => {
             const stock = data.stocks.find((s) => s.phase === p.value) || { quantity: 0, low_stock_threshold: 0, is_low: false };
-            return <section key={p.value} className={`card cloth-rolls-stock-card${phase === p.value ? " is-selected" : ""}`} style={{ padding: 0, border: phase === p.value && !isQr ? "2px solid #3978b8" : "1px solid var(--border,#e5e7eb)", borderRadius: 14, overflow: "hidden", boxShadow: phase === p.value && !isQr ? "0 8px 22px rgba(57,120,184,.10)" : "0 3px 12px rgba(15,23,42,.035)" }}><div style={{ height: 5, background: stock.is_low ? "linear-gradient(90deg,#e11d48,#fb7185)" : phase === p.value ? "linear-gradient(90deg,#3978b8,#78a9d8)" : "#e2e8f0" }} /><div style={{ padding: 15 }}>
+            return <section key={p.value} className="card cloth-rolls-stock-card" style={{ padding: 0, border: "1px solid var(--border,#e5e7eb)", borderRadius: 14, overflow: "hidden", boxShadow: "0 3px 12px rgba(15,23,42,.035)" }}><div style={{ height: 5, background: stock.is_low ? "linear-gradient(90deg,#e11d48,#fb7185)" : "#e2e8f0" }} /><div style={{ padding: 15 }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10 }}>
                 <strong style={{ fontSize: 18 }}>{p.label}</strong>
                 <div style={{ display: "flex", alignItems: "center", gap: 7, flexWrap: "wrap", justifyContent: "flex-end" }}>
@@ -350,7 +348,6 @@ export default function ClothRolls() {
               </div>
               <div style={{ margin: "10px 0 3px" }}><Qty value={stock.quantity} /></div>
               <div style={{ color: "var(--muted,#64748b)", fontSize: 14 }}>ม้วนคงเหลือ</div>
-              {!isQr && <button className={phase === p.value ? "btn primary full" : "btn ghost full"} type="button" style={{ marginTop: 12 }} onClick={() => { setPhase(p.value); setType("OUT"); setBorrowerId(""); document.getElementById("cloth-roll-form")?.scrollIntoView({ behavior: "smooth", block: "start" }); }}>{phase === p.value ? "✓ เลือก Phase นี้แล้ว" : "เลือก " + p.label + " เพื่อทำรายการ"}</button>}
               </div></section>;
           })}
         </div>}
