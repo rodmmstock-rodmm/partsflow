@@ -388,15 +388,15 @@ tbody tr:hover { background: #f5faff; }
 }
 .order-status-panel .order-status-half-num.pending,
 .order-status-panel .order-status-half-legend-item:has(.order-status-radial-dot.pending) {
-  color: #eef6fd !important;
+  color: #a6b4fd !important;
 }
 .order-status-panel .order-status-radial-dot.completed {
   background: #3a639b !important;
   border-color: #3a639b !important;
 }
 .order-status-panel .order-status-radial-dot.pending {
-  background: #eef6fd !important;
-  border-color: #eef6fd !important;
+  background: #a6b4fd !important;
+  border-color: #a6b4fd !important;
 }
 
 
