@@ -139,8 +139,8 @@ def cloth_roll_issue_form(request):
 @permission_classes([AllowAny])
 def cloth_rolls(request):
     qr_token = str(request.GET.get("qr_token") or "").strip()
-    permission = "can_view_qr_withdraw" if qr_token else "can_view_cloth_rolls"
-    actor, err = require_permission(request, permission)
+    # Cloth-roll QR links use the same access permission as the cloth-roll page.
+    actor, err = require_permission(request, "can_view_cloth_rolls")
     if err:
         return err
     stocks = [_stock_row(phase) for phase in (ClothRollStock.PHASE_4, ClothRollStock.PHASE_11)]
