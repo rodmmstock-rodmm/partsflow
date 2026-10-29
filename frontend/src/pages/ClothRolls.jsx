@@ -249,6 +249,35 @@ export default function ClothRolls() {
         .cloth-rolls-page .cloth-rolls-qr-card > div:last-child,.cloth-rolls-page .cloth-rolls-history-card > div:last-child { padding:18px!important; }
         .cloth-rolls-page .cloth-rolls-history-card { min-width:0; }
         .cloth-rolls-page .cloth-rolls-history-card .data-table { min-width:650px!important; }
+        /* Portrait mobile: fit every history column inside the viewport without horizontal scrolling. */
+        @media (max-width: 640px) {
+          .cloth-rolls-page .cloth-rolls-history-card > div:last-child { min-width:0!important; overflow-x:hidden!important; }
+          .cloth-rolls-page .cloth-rolls-history-card .data-table {
+            width:100%!important;
+            min-width:0!important;
+            max-width:100%!important;
+            table-layout:fixed!important;
+            font-size:8px!important;
+          }
+          .cloth-rolls-page .cloth-rolls-history-card .data-table th,
+          .cloth-rolls-page .cloth-rolls-history-card .data-table td {
+            box-sizing:border-box;
+            min-width:0!important;
+            padding:5px 2px!important;
+            font-size:8px!important;
+            line-height:1.25!important;
+            white-space:normal!important;
+            overflow-wrap:anywhere!important;
+            word-break:break-word!important;
+            vertical-align:top;
+          }
+          .cloth-rolls-page .cloth-rolls-history-card .data-table th { letter-spacing:0!important; }
+          .cloth-rolls-page .cloth-rolls-history-card .data-table td button {
+            min-height:28px!important;
+            padding:3px!important;
+            font-size:8px!important;
+          }
+        }
         .cloth-rolls-page .cloth-rolls-history-card .data-table th { background:#f7fafc!important; color:#627d97!important; }
         .cloth-rolls-page .cloth-rolls-history-card .data-table td { color:#334e68; }
         .cloth-rolls-page .cloth-rolls-history-card .data-table tbody tr:hover { background:#f4f8fc; }
@@ -433,7 +462,7 @@ export default function ClothRolls() {
 
         {!isQr && <section className="card cloth-rolls-history-card" style={{ padding: 0, borderRadius: 16, overflow: "hidden" }}><div style={{ padding: "16px 20px", background: "#fafafa", borderBottom: "1px solid var(--border-soft)" }}><div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}><div><h2 style={{ margin: 0, fontSize: 18 }}>ประวัติการเบิกจ่าย</h2><p style={{ margin: "4px 0 0", fontSize: 14, color: "var(--muted,#64748b)" }}>แสดงรายการเฉพาะเดือนและปีที่เลือก</p></div><div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}><div className="toolbar" style={{ gap: 4 }}><button type="button" className="btn ghost" aria-label="ปีก่อนหน้า" onClick={() => setHistoryYear(y => y - 1)}>‹</button><strong style={{ minWidth: 48, textAlign: "center" }}>{historyYear}</strong><button type="button" className="btn ghost" aria-label="ปีถัดไป" onClick={() => setHistoryYear(y => y + 1)}>›</button></div><select aria-label="เลือกเดือนของประวัติ" value={historyMonth} onChange={e => setHistoryMonth(Number(e.target.value))} style={{ minWidth: 100 }}><option value={0}>มกราคม</option><option value={1}>กุมภาพันธ์</option><option value={2}>มีนาคม</option><option value={3}>เมษายน</option><option value={4}>พฤษภาคม</option><option value={5}>มิถุนายน</option><option value={6}>กรกฎาคม</option><option value={7}>สิงหาคม</option><option value={8}>กันยายน</option><option value={9}>ตุลาคม</option><option value={10}>พฤศจิกายน</option><option value={11}>ธันวาคม</option></select></div><div className="tab-row cloth-rolls-history-tabs" role="group" aria-label="กรองประเภทประวัติ">{[["ALL", "ทั้งหมด"], ["OUT", "เบิก"], ["IN", "รับเข้า"], ["ADJ", "ปรับยอด"]].map(([value, label]) => <button key={value} type="button" className={`tab ${historyType === value ? "active" : ""}`} aria-pressed={historyType === value} onClick={() => setHistoryType(value)}>{label}</button>)}</div></div></div><div style={{ padding: 14 }}>
           {filteredTransactions.length === 0 ? <div className="empty">ไม่พบประวัติใน {MONTHS_TH[historyMonth]} {historyYear}</div> : <div style={{ overflowX: "auto" }}>
-            <table className="data-table" style={{ width: "100%", minWidth: 760 }}>
+            <table className="data-table" style={{ width: "100%", minWidth: 0 }}>
               <thead><tr><th>วันเวลา</th><th>Phase</th><th>รายการ</th><th>จำนวน / ยอดปรับ</th><th>Machine</th><th>ผู้เบิก</th><th>ผู้บันทึก</th><th>ช่องทาง</th>{auth.can("can_delete_cloth_roll_history") && <th>จัดการ</th>}</tr></thead>
               <tbody>{filteredTransactions.map((row) => <tr key={row.id}>
                 <td>{row.created_at ? new Date(row.created_at).toLocaleString("th-TH") : "—"}</td>
