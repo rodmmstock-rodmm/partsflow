@@ -15,7 +15,7 @@ permissions:
 
 jobs:
   backend:
-    name: Django checks and Tooling regression tests
+    name: Django checks and history regression tests
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -44,8 +44,10 @@ jobs:
       - name: Check migration state
         run: python manage.py makemigrations --check --dry-run
 
-      - name: Run Tooling regression tests
-        run: python manage.py test core.tests.test_tooling_inventory --verbosity 2
+      - name: Run Tooling and cloth-roll history regression tests
+        run: |
+          python manage.py test core.tests.test_tooling_inventory --verbosity 2
+          python manage.py test core.tests.test_cloth_roll_history --verbosity 2
 
   frontend:
     name: Frontend production build
