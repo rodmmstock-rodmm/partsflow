@@ -394,7 +394,7 @@ tbody tr:hover .sticky-action { background:#f7fbff; }
   .m-brand .brand-logo { width:38px; height:38px; border-radius:12px; background:linear-gradient(145deg,#4b91e2,#76b6f5); }
   .m-brand strong { font-family:var(--font-sans); color:#304a64; font-size:14px; font-weight:750; letter-spacing:-.035em; }
   .m-brand span { color:#8798aa; font-size:10px; }
-  .m-main { padding-top:18px; background:#f5f8fc; }
+  .m-main { padding-top:calc(78px + env(safe-area-inset-top)); background:#f5f8fc; }
   .m-bottom-nav {
     background:rgba(255,255,255,.97);
     border-top:1px solid #e7edf5;
