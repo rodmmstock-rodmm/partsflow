@@ -24,7 +24,7 @@ function scanUrl(code) {
 
 export function ToolModal({ row, onClose, onSaved }) {
   const [form, setForm] = useState(
-    row || { code: "", name: "", category: "", maker: "", serial_number: "", location: "", remark: "", active: true }
+    row || { code: "", name: "", category: "", maker: "", warehouse: "", location: "", remark: "", active: true }
   );
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
@@ -73,8 +73,12 @@ export function ToolModal({ row, onClose, onSaved }) {
             <input value={form.maker || ""} onChange={(e) => set("maker", e.target.value)} />
           </label>
           <label className="field">
-            <span>Serial Number</span>
-            <input value={form.serial_number || ""} onChange={(e) => set("serial_number", e.target.value)} />
+            <span>Warehouse *</span>
+            <select required value={form.warehouse || ""} onChange={(e) => set("warehouse", e.target.value)}>
+              <option value="">เลือก Warehouse</option>
+              <option value="Phase4">Phase4</option>
+              <option value="Phase11">Phase11</option>
+            </select>
           </label>
           <label className="field">
             <span>เก็บไว้ที่</span>
@@ -191,7 +195,7 @@ function EquipmentTab() {
   const shown = useMemo(
     () =>
       rows.filter(
-        (x) => !q || `${x.code} ${x.name} ${x.category} ${x.maker} ${x.serial_number} ${x.location}`.toLowerCase().includes(q.toLowerCase())
+        (x) => !q || `${x.code} ${x.name} ${x.category} ${x.maker} ${x.warehouse} ${x.location}`.toLowerCase().includes(q.toLowerCase())
       ),
     [rows, q]
   );
@@ -228,7 +232,7 @@ function EquipmentTab() {
           className="search-input"
           value={q}
           onChange={(e) => setQ(e.target.value)}
-          placeholder="ค้นหา Code / ชื่อ / Model / Maker / Serial / ที่เก็บ..."
+          placeholder="ค้นหา Code / ชื่อ / Model / Maker / Warehouse / ที่เก็บ..."
         />
       </div>
       <div className="table-wrap">
@@ -240,6 +244,7 @@ function EquipmentTab() {
               <th>ชื่ออุปกรณ์</th>
               <th>Model</th>
               <th>Maker</th>
+              <th>Warehouse</th>
               <th>ที่เก็บ</th>
               <th>สถานะ</th>
               <th>QR</th>
@@ -256,6 +261,7 @@ function EquipmentTab() {
                 <td>{x.name}</td>
                 <td>{x.category || "-"}</td>
                 <td>{x.maker || "-"}</td>
+                <td>{x.warehouse || "-"}</td>
                 <td>{x.location || "-"}</td>
                 <td>
                   <span className={`status ${x.status === "BORROWED" ? "warning" : "success"}`}>
