@@ -1,3 +1,5 @@
+from uuid import UUID
+
 from django.core.exceptions import ValidationError
 from django.db import transaction
 from django.db.models import F
@@ -62,9 +64,15 @@ def safety_stock(request):
             OrderRecord.LIFECYCLE_WAIT_CONFIRM,
         ],
     ).values_list("legacy_id", flat=True)
+    active_tooling_ids = []
+    for value in active_tooling_order_ids:
+        try:
+            active_tooling_ids.append(UUID(str(value)))
+        except (TypeError, ValueError, AttributeError):
+            continue
     qs = (
         ToolingItem.objects.filter(active=True, quantity__lt=F("min_quantity"))
-        .exclude(id__in=active_tooling_order_ids)
+        .exclude(id__in=active_tooling_ids)
         .order_by("name")
     )
     return Response({"count": qs.count(), "results": [item_json(item) for item in qs]})
