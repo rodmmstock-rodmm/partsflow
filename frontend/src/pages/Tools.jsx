@@ -24,7 +24,7 @@ function scanUrl(code) {
 
 export function ToolModal({ row, onClose, onSaved }) {
   const [form, setForm] = useState(
-    row || { code: "", name: "", category: "", maker: "", warehouse: "", location: "", remark: "", active: true }
+    row || { code: "", name: "", category: "", maker: "", serial_number: "", warehouse: "", location: "", remark: "", active: true }
   );
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
@@ -71,6 +71,10 @@ export function ToolModal({ row, onClose, onSaved }) {
           <label className="field">
             <span>Maker</span>
             <input value={form.maker || ""} onChange={(e) => set("maker", e.target.value)} />
+          </label>
+          <label className="field">
+            <span>Serial Number</span>
+            <input value={form.serial_number || ""} onChange={(e) => set("serial_number", e.target.value)} />
           </label>
           <label className="field">
             <span>Warehouse *</span>
