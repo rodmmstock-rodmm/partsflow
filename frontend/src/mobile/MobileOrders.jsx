@@ -403,7 +403,8 @@ export default function MobileOrders() {
                 <span>MACHINE<b>{order.machine_codes || order.machine_code || "-"}</b></span>
               </div>
               <div className="m-order-item">
-                <b>{order.item_id || "-"}</b>
+                {order.item_type==="TOOLING"&&<span className="badge">Tooling</span>}
+                <b>{order.item_id || (order.item_type==="TOOLING"?"TOOLING":"-")}</b>
                 <h3>{order.part_name || "-"}</h3>
               </div>
               <div className="m-order-main-v9">
