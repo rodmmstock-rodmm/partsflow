@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { apiGet, apiPost } from "../api";
+import { SearchableSelect } from "../components/Common";
 import { useAuth } from "../auth";
 import { useFeedback } from "../feedback";
 
@@ -13,11 +14,11 @@ export default function ClothRollIssueForm() {
   const auth = useAuth();
   const navigate = useNavigate();
   const feedback = useFeedback();
-  const [data, setData] = useState({ stocks: [], employees: [], current_employee_id: "" });
+  const [data, setData] = useState({ stocks: [], employees: [], machines: [], current_employee_id: "" });
   const [phase, setPhase] = useState("PHASE4");
   const [quantity, setQuantity] = useState("1");
   const [borrowerId, setBorrowerId] = useState("");
-  const [machineName, setMachineName] = useState("");
+  const [machineId, setMachineId] = useState("");
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
@@ -68,7 +69,7 @@ export default function ClothRollIssueForm() {
         transaction_type: "OUT",
         quantity: String(qty),
         borrower_employee_id: borrowerId,
-        machine_name: machineName.trim(),
+        machine_name: (() => { const machine = data.machines.find((item) => String(item.id) === String(machineId)); return machine ? `${machine.code} · ${machine.name}` : ""; })(),
         source: "WEB",
       });
       setData((current) => ({
@@ -78,7 +79,7 @@ export default function ClothRollIssueForm() {
         ),
       }));
       setQuantity("1");
-      setMachineName("");
+      setMachineId("");
       setSuccess(`บันทึกการเบิกสำเร็จ คงเหลือ ${Number(result.stock.quantity || 0).toLocaleString("th-TH")} ม้วน`);
       feedback.showToast("บันทึกการเบิกเศษผ้าสำเร็จ", "success");
     } catch (err) {
@@ -166,15 +167,29 @@ export default function ClothRollIssueForm() {
 
             <div className="cloth-issue-field">
               <label htmlFor="cloth-issue-machine">Machine</label>
-              <input id="cloth-issue-machine" type="text" maxLength="120" value={machineName} onChange={(event) => setMachineName(event.target.value)} disabled={loading || busy} placeholder="ระบุชื่อ Machine (ถ้ามี)" />
+              <SearchableSelect
+                value={machineId}
+                options={data.machines || []}
+                onChange={setMachineId}
+                getLabel={(item) => `${item.code} · ${item.name}`}
+                getSearchText={(item) => `${item.code || ""} ${item.name || ""}`}
+                placeholder="พิมพ์รหัสหรือชื่อ Machine เพื่อค้นหา..."
+                disabled={loading || busy}
+              />
             </div>
 
             <div className="cloth-issue-field">
               <label htmlFor="cloth-issue-borrower">ชื่อผู้เบิก</label>
-              <select id="cloth-issue-borrower" value={borrowerId} onChange={(event) => setBorrowerId(event.target.value)} disabled={loading || busy} required>
-                <option value="">เลือกชื่อผู้เบิก</option>
-                {data.employees.map((employee) => <option key={employee.id} value={employee.id}>{employee.name}</option>)}
-              </select>
+              <SearchableSelect
+                value={borrowerId}
+                options={data.employees || []}
+                onChange={setBorrowerId}
+                getLabel={(employee) => employee.name}
+                getSearchText={(employee) => `${employee.name || ""} ${employee.employee_code || ""} ${employee.department || ""}`}
+                placeholder="พิมพ์ชื่อผู้เบิกเพื่อค้นหา..."
+                disabled={loading || busy}
+                required
+              />
             </div>
 
             <button className="cloth-issue-submit" type="submit" disabled={loading || busy || !data.stocks.length}>
