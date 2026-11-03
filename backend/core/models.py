@@ -985,6 +985,8 @@ class ToolEquipment(UUIDMixin):
     code = models.CharField(max_length=50, unique=True)
     name = models.CharField(max_length=250)
     category = models.CharField(max_length=120, blank=True)
+    maker = models.CharField(max_length=200, blank=True)
+    image_path = models.TextField(blank=True)
     serial_number = models.CharField(max_length=120, blank=True)
     location = models.CharField(max_length=200, blank=True)
     remark = models.TextField(blank=True)

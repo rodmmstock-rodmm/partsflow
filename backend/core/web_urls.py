@@ -77,6 +77,7 @@ urlpatterns = [
     path("tools/", tool_api.tools_list, name="web-tools-list"),
     path("tools/history/", tool_api.tool_loan_history, name="web-tools-history"),
     path("tools/<uuid:pk>/", tool_api.tool_detail, name="web-tool-detail"),
+    path("tools/<uuid:pk>/image/", tool_api.tool_image, name="web-tool-image"),
     # Equipment Borrow-Return (public QR scan page, no login)
     path("tools/public/<str:code>/", tool_api.tool_public_detail, name="web-tool-public-detail"),
     path("tools/public/<str:code>/borrow/", tool_api.tool_public_borrow, name="web-tool-public-borrow"),

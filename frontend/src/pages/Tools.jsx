@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import QRCode from "qrcode";
-import { apiDelete, apiGet, apiPatch, apiPost } from "../api";
+import { apiDelete, apiGet, apiPatch, apiPost, apiUpload } from "../api";
 import { useAuth } from "../auth";
 import { Alert, Modal, PageHeader, formatDMY } from "../components/Common";
 import { useFeedback } from "../feedback";
@@ -13,10 +13,11 @@ function scanUrl(code) {
 
 export function ToolModal({ row, onClose, onSaved }) {
   const [form, setForm] = useState(
-    row || { code: "", name: "", category: "", serial_number: "", location: "", remark: "", active: true }
+    row || { code: "", name: "", category: "", maker: "", serial_number: "", location: "", remark: "", active: true }
   );
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
+  const [imageFile, setImageFile] = useState(null);
   const set = (k, v) => setForm((x) => ({ ...x, [k]: v }));
 
   async function save(e) {
@@ -24,10 +25,13 @@ export function ToolModal({ row, onClose, onSaved }) {
     setBusy(true);
     setError("");
     try {
-      if (row) {
-        await apiPatch(`/tools/${row.id}/`, form);
-      } else {
-        await apiPost("/tools/", form);
+      const saved = row
+        ? await apiPatch(`/tools/${row.id}/`, form)
+        : await apiPost("/tools/", form);
+      if (imageFile && saved?.id) {
+        const data = new FormData();
+        data.append("image", imageFile);
+        await apiUpload(`/tools/${saved.id}/image/`, data);
       }
       onSaved();
     } catch (err) {
@@ -50,8 +54,12 @@ export function ToolModal({ row, onClose, onSaved }) {
             <input required value={form.name} onChange={(e) => set("name", e.target.value)} />
           </label>
           <label className="field">
-            <span>ประเภท</span>
+            <span>Model</span>
             <input value={form.category || ""} onChange={(e) => set("category", e.target.value)} />
+          </label>
+          <label className="field">
+            <span>Maker</span>
+            <input value={form.maker || ""} onChange={(e) => set("maker", e.target.value)} />
           </label>
           <label className="field">
             <span>Serial Number</span>
@@ -60,6 +68,12 @@ export function ToolModal({ row, onClose, onSaved }) {
           <label className="field">
             <span>เก็บไว้ที่</span>
             <input value={form.location || ""} onChange={(e) => set("location", e.target.value)} />
+          </label>
+          <label className="field span2">
+            <span>รูปภาพอุปกรณ์</span>
+            {form.image_url && !imageFile && <img src={form.image_url} alt="รูปอุปกรณ์ปัจจุบัน" style={{ width: 120, height: 90, objectFit: "contain", borderRadius: 8, background: "#f3f6fa" }} />}
+            <input type="file" accept="image/jpeg,image/png,image/webp,image/gif" onChange={(e) => setImageFile(e.target.files?.[0] || null)} />
+            <small>รองรับ JPG, PNG, WEBP, GIF ขนาดไม่เกิน 10 MB</small>
           </label>
           <label className="field span2">
             <span>Remark</span>
@@ -155,12 +169,18 @@ function EquipmentTab() {
 
   useEffect(() => {
     load();
+    const timer = setInterval(() => {
+      apiGet("/tools/", { forceRefresh: true, cache: false })
+        .then((d) => setRows(d.results || []))
+        .catch(() => {});
+    }, 10000);
+    return () => clearInterval(timer);
   }, []);
 
   const shown = useMemo(
     () =>
       rows.filter(
-        (x) => !q || `${x.code} ${x.name} ${x.category} ${x.serial_number} ${x.location}`.toLowerCase().includes(q.toLowerCase())
+        (x) => !q || `${x.code} ${x.name} ${x.category} ${x.maker} ${x.serial_number} ${x.location}`.toLowerCase().includes(q.toLowerCase())
       ),
     [rows, q]
   );
@@ -197,16 +217,18 @@ function EquipmentTab() {
           className="search-input"
           value={q}
           onChange={(e) => setQ(e.target.value)}
-          placeholder="ค้นหา Code / ชื่อ / ประเภท / Serial / ที่เก็บ..."
+          placeholder="ค้นหา Code / ชื่อ / Model / Maker / Serial / ที่เก็บ..."
         />
       </div>
       <div className="table-wrap">
         <table>
           <thead>
             <tr>
+              <th>รูป</th>
               <th>Code</th>
               <th>ชื่ออุปกรณ์</th>
-              <th>ประเภท</th>
+              <th>Model</th>
+              <th>Maker</th>
               <th>ที่เก็บ</th>
               <th>สถานะ</th>
               <th>QR</th>
@@ -216,11 +238,13 @@ function EquipmentTab() {
           <tbody>
             {shown.map((x) => (
               <tr key={x.id}>
+                <td>{x.image_url ? <img src={x.image_url} alt={x.name} loading="lazy" style={{ width: 56, height: 48, objectFit: "contain", borderRadius: 6, background: "#f3f6fa" }} /> : <span className="empty">-</span>}</td>
                 <td className="mono-cell">
                   <b>{x.code}</b>
                 </td>
                 <td>{x.name}</td>
                 <td>{x.category || "-"}</td>
+                <td>{x.maker || "-"}</td>
                 <td>{x.location || "-"}</td>
                 <td>
                   <span className={`status ${x.status === "BORROWED" ? "warning" : "success"}`}>
@@ -328,7 +352,7 @@ function HistoryTab() {
           <tbody>
             {loading ? (
               <tr>
-                <td colSpan={7} className="empty">
+                <td colSpan={9} className="empty">
                   กำลังโหลด...
                 </td>
               </tr>
@@ -342,7 +366,7 @@ function HistoryTab() {
               rows.map((l) => (
                 <tr key={l.id}>
                   <td className="mono-cell">{l.tool_code}</td>
-                  <td>{l.tool_name}</td>
+                  <td>{l.image_url ? <img src={l.image_url} alt={l.tool_name} loading="lazy" style={{ width: 48, height: 42, objectFit: "contain", verticalAlign: "middle", marginRight: 8 }} /> : null}{l.tool_name}<small style={{ display: "block" }}>{l.maker || "-"}</small></td>
                   <td>{l.borrower_name}</td>
                   <td>{l.purpose || "-"}</td>
                   <td>{formatDMY(l.borrowed_at, true)}</td>

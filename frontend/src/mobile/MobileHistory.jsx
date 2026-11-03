@@ -120,7 +120,7 @@ export default function MobileHistory() {
       <div className="m-row-between"><div><b>{row.item_id}</b><small style={{ display: "block" }}>{row.date}</small><small style={{ display: "block" }}>{row.time}</small></div><span className={`m-tx ${row.type === "IN" ? "receive" : row.type === "OUT" ? "issue" : "adjust"}`}>{row.type === "IN" ? "รับเข้า" : row.type === "OUT" ? "เบิกออก" : "ปรับยอด"}</span></div>
       <h3>{row.part_name}</h3><p>{row.part_detail || "-"}</p>
       <div className="m-history-qty"><span>จำนวน</span><strong>{fmt(row.quantity)} {row.unit}</strong></div>
-      <div className="m-info-grid"><span>Machine<b>{row.machine || "-"}</b></span><span>ผู้เบิก<b>{row.requester || "-"}</b></span><span>ผู้บันทึก<b>{row.recorder || "-"}</b></span><span>Location<b>{row.location || "-"}</b></span></div>
+      <div className="m-info-grid"><span>Maker<b>{row.maker || "-"}</b></span><span>Machine<b>{row.machine || "-"}</b></span><span>ผู้เบิก<b>{row.requester || "-"}</b></span><span>ผู้บันทึก<b>{row.recorder || "-"}</b></span><span>Location<b>{row.location || "-"}</b></span></div>
       {row.remark && <div className="m-note">{row.remark}</div>}
       {(auth.can("can_edit_history") || auth.can("can_delete_history")) && <div className="m-card-actions">{auth.can("can_edit_history") && <button onClick={() => setEdit(row)}>แก้ไข</button>}{auth.can("can_delete_history") && <button className="danger" onClick={() => remove(row)}>ลบ</button>}</div>}
     </article>)}</div>}
