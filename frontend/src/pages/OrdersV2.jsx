@@ -140,7 +140,7 @@ function CompactOrderTable({
       <td><input type="checkbox" checked={selected.has(o.id)} onChange={e=>onToggle(o.id,e.target.checked)} /></td>
       <td><b className="mono-cell">{o.order_number}</b></td>
       <td className="mono-cell">{o.date ? formatDMY(o.date) : "-"}</td>
-      <td className="part-main-v9"><b>{o.item_id || "-"}</b><strong>{o.part_name || "-"}</strong></td>
+      <td className="part-main-v9">{o.item_type==="TOOLING"&&<span className="badge">Tooling</span>}<b>{o.item_id || (o.item_type==="TOOLING"?"TOOLING":"-")}</b><strong>{o.part_name || "-"}</strong></td>
       <td><b>{fmt(o.amount)} {o.unit || ""}</b></td>
       <td className="urgent-cell-v9">{o.urgent_status ? <span className="urgent-badge-v9">{o.urgent_status}</span> : <span className="muted-text-v9">-</span>}</td>
       <td className="pending-date-v9">{o.pending_data_date ? formatDMY(o.pending_data_date) : "-"}</td>
