@@ -987,7 +987,8 @@ class ToolEquipment(UUIDMixin):
     category = models.CharField(max_length=120, blank=True)
     maker = models.CharField(max_length=200, blank=True)
     image_path = models.TextField(blank=True)
-    serial_number = models.CharField(max_length=120, blank=True)  # retained for legacy data; hidden from the UI
+    serial_number = models.CharField(max_length=120, blank=True)
+    # Retained for database migration compatibility; hidden from Gauge Control UI/API.
     warehouse = models.CharField(max_length=30, blank=True, choices=[("Phase4", "Phase4"), ("Phase11", "Phase11")])
     location = models.CharField(max_length=200, blank=True)
     remark = models.TextField(blank=True)
