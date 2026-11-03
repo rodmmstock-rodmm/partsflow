@@ -78,6 +78,7 @@ def tools_list(request):
                 Q(code__icontains=q)
                 | Q(name__icontains=q)
                 | Q(category__icontains=q)
+                | Q(maker__icontains=q)
                 | Q(serial_number__icontains=q)
                 | Q(location__icontains=q)
             )
