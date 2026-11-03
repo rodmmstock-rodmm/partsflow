@@ -988,6 +988,8 @@ class ToolEquipment(UUIDMixin):
     maker = models.CharField(max_length=200, blank=True)
     image_path = models.TextField(blank=True)
     serial_number = models.CharField(max_length=120, blank=True)
+    # Retained for database migration compatibility; hidden from Gauge Control UI/API.
+    warehouse = models.CharField(max_length=30, blank=True, choices=[("Phase4", "Phase4"), ("Phase11", "Phase11")])
     location = models.CharField(max_length=200, blank=True)
     remark = models.TextField(blank=True)
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default=STATUS_AVAILABLE)
