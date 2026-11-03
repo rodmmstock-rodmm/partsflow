@@ -827,29 +827,3 @@ html body input[type="radio"]:focus-visible{outline:2px solid var(--brand, #3978
   .tooling-page .table-wrap .btn { min-height: 28px; padding: 5px 7px; font-size: 10px; border-radius: 7px; }
   .tooling-page .panel { padding: 10px; }
 }
-
-
-/* Gauge Control: neutral package placeholder for equipment without a photo. */
-.tool-empty-image {
-  width: 56px;
-  height: 48px;
-  display: inline-grid;
-  place-items: center;
-  border-radius: 6px;
-  color: #9aa9b9;
-  background: #f3f6fa;
-  vertical-align: middle;
-}
-.tool-empty-image svg { width: 30px; height: 30px; }
-.tool-scan-image-empty {
-  display: grid;
-  width: 100%;
-  min-height: 150px;
-  max-height: 240px;
-  margin-bottom: 14px;
-  border-radius: 12px;
-  color: #9aa9b9;
-  background: #f5f7fa;
-  place-items: center;
-}
-.tool-scan-image-empty svg { width: 64px; height: 64px; }

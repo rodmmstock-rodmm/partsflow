@@ -3,18 +3,6 @@ import { useParams } from "react-router-dom";
 import { apiGet, apiPost } from "../api";
 import { Alert } from "../components/Common";
 
-function EmptyToolImage({ className = "" }) {
-  return (
-    <span className={`tool-empty-image ${className}`} aria-label="ยังไม่มีรูปภาพ" role="img">
-      <svg viewBox="0 0 48 48" aria-hidden="true" focusable="false">
-        <path d="m24 5 17 9.5v19L24 43 7 33.5v-19L24 5Z" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinejoin="round"/>
-        <path d="m7.5 14.8 16.5 9.4 16.5-9.4M24 24.2V42M15.5 10l17 9.5" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinejoin="round"/>
-      </svg>
-    </span>
-  );
-}
-
-
 function formatDateTime(iso) {
   if (!iso) return "-";
   return iso.slice(0, 16).replace("T", " ");
@@ -141,12 +129,11 @@ export default function ToolScan() {
         ) : (
           <>
             <div className="tool-scan-info">
-              {tool.image_url ? <img src={tool.image_url} alt={tool.name} className="tool-scan-image" style={{ width: "100%", maxHeight: 240, objectFit: "contain", borderRadius: 12, background: "#f5f7fa", marginBottom: 14 }} /> : <EmptyToolImage className="tool-scan-image-empty" />}
+              {tool.image_url && <img src={tool.image_url} alt={tool.name} className="tool-scan-image" style={{ width: "100%", maxHeight: 240, objectFit: "contain", borderRadius: 12, background: "#f5f7fa", marginBottom: 14 }} />}
               <h2>{tool.name}</h2>
               <div className="tool-scan-code">{tool.code}</div>
               {tool.category && <div className="tool-scan-meta">Model: {tool.category}</div>}
               {tool.maker && <div className="tool-scan-meta">Maker: {tool.maker}</div>}
-              {tool.warehouse && <div className="tool-scan-meta">Warehouse: {tool.warehouse}</div>}
               {tool.location && <div className="tool-scan-meta">เก็บที่: {tool.location}</div>}
               <span className={`status ${tool.status === "BORROWED" ? "warning" : "success"}`}>
                 {tool.status_label}
