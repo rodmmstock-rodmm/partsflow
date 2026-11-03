@@ -132,7 +132,8 @@ export default function ToolScan() {
               {tool.image_url && <img src={tool.image_url} alt={tool.name} className="tool-scan-image" style={{ width: "100%", maxHeight: 240, objectFit: "contain", borderRadius: 12, background: "#f5f7fa", marginBottom: 14 }} />}
               <h2>{tool.name}</h2>
               <div className="tool-scan-code">{tool.code}</div>
-              {tool.category && <div className="tool-scan-meta">ประเภท: {tool.category}</div>}
+              {tool.category && <div className="tool-scan-meta">Model: {tool.category}</div>}
+              {tool.maker && <div className="tool-scan-meta">Maker: {tool.maker}</div>}
               {tool.location && <div className="tool-scan-meta">เก็บที่: {tool.location}</div>}
               <span className={`status ${tool.status === "BORROWED" ? "warning" : "success"}`}>
                 {tool.status_label}
