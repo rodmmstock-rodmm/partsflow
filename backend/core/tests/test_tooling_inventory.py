@@ -59,6 +59,24 @@ class ToolingSafetyStockPermissionTests(TestCase):
         response = self.client.get(reverse("web-tooling-items"))
         self.assertEqual(response.status_code, 403)
 
+    def test_safety_stock_hides_tooling_with_an_active_order(self):
+        item = ToolingItem.objects.create(name="Already Ordered", quantity=0, min_quantity=2)
+        OrderRecord.objects.create(
+            order_number="TEST-TOOLING-SAFETY-ACTIVE",
+            order_date=timezone.localdate(),
+            job="SPARE",
+            part_name=item.name,
+            unit_text=item.unit or "-",
+            amount=1,
+            legacy_source="TOOLING_SAFETY_STOCK",
+            legacy_id=str(item.id),
+        )
+
+        response = self.client.get(reverse("web-tooling-safety-stock"))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data["count"], 0)
+
 
 class ToolingWithdrawalTests(TestCase):
     def setUp(self):
