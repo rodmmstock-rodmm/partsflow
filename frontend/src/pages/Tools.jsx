@@ -5,6 +5,17 @@ import { useAuth } from "../auth";
 import { Alert, Modal, PageHeader, formatDMY } from "../components/Common";
 import { useFeedback } from "../feedback";
 
+function EmptyToolImage({ className = "" }) {
+  return (
+    <span className={`tool-empty-image ${className}`} aria-label="ยังไม่มีรูปภาพ" role="img">
+      <svg viewBox="0 0 48 48" aria-hidden="true" focusable="false">
+        <path d="m24 5 17 9.5v19L24 43 7 33.5v-19L24 5Z" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinejoin="round"/>
+        <path d="m7.5 14.8 16.5 9.4 16.5-9.4M24 24.2V42M15.5 10l17 9.5" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinejoin="round"/>
+      </svg>
+    </span>
+  );
+}
+
 // The URL encoded in every QR code. Scanning it opens the public,
 // no-login borrow/return form at /tool-scan/<code>.
 function scanUrl(code) {
@@ -238,7 +249,7 @@ function EquipmentTab() {
           <tbody>
             {shown.map((x) => (
               <tr key={x.id}>
-                <td>{x.image_url ? <img src={x.image_url} alt={x.name} loading="lazy" style={{ width: 56, height: 48, objectFit: "contain", borderRadius: 6, background: "#f3f6fa" }} /> : <span className="empty">-</span>}</td>
+                <td>{x.image_url ? <img src={x.image_url} alt={x.name} loading="lazy" style={{ width: 56, height: 48, objectFit: "contain", borderRadius: 6, background: "#f3f6fa" }} /> : <EmptyToolImage />}</td>
                 <td className="mono-cell">
                   <b>{x.code}</b>
                 </td>
