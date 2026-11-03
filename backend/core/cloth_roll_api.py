@@ -124,7 +124,7 @@ def cloth_roll_issue_form(request):
     employees = Employee.objects.filter(active=True).order_by("employee_code").values(
         "id", "employee_code", "name", "department"
     )[:1000]
-    machines = Machine.objects.filter(active=True).order_by("code").values("id", "code", "name")[:1000]
+    machines = Machine.objects.filter(active=True).order_by("code").values("id", "code")[:1000]
     return Response({
         "stocks": [_stock_json(row) for row in stocks],
         "employees": [
@@ -132,7 +132,7 @@ def cloth_roll_issue_form(request):
             for e in employees
         ],
         "machines": [
-            {"id": str(machine["id"]), "code": machine["code"], "name": machine["name"]}
+            {"id": str(machine["id"]), "code": machine["code"]}
             for machine in machines
         ],
         "current_employee_id": str(actor.id),
