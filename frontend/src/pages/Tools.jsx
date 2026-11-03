@@ -5,6 +5,18 @@ import { useAuth } from "../auth";
 import { Alert, Modal, PageHeader, formatDMY } from "../components/Common";
 import { useFeedback } from "../feedback";
 
+function EmptyToolImage({ className = "" }) {
+  return (
+    <span className={`tool-empty-image ${className}`} aria-label="ยังไม่มีรูปภาพ" role="img">
+      <svg viewBox="0 0 48 48" aria-hidden="true" focusable="false">
+        <path d="m24 5 17 9.5v19L24 43 7 33.5v-19L24 5Z" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinejoin="round"/>
+        <path d="m7.5 14.8 16.5 9.4 16.5-9.4M24 24.2V42M15.5 10l17 9.5" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinejoin="round"/>
+      </svg>
+    </span>
+  );
+}
+
+
 // The URL encoded in every QR code. Scanning it opens the public,
 // no-login borrow/return form at /tool-scan/<code>.
 function scanUrl(code) {
@@ -13,7 +25,7 @@ function scanUrl(code) {
 
 export function ToolModal({ row, onClose, onSaved }) {
   const [form, setForm] = useState(
-    row || { code: "", name: "", category: "", maker: "", serial_number: "", location: "", remark: "", active: true }
+    row || { code: "", name: "", category: "", maker: "", warehouse: "", location: "", remark: "", active: true }
   );
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
@@ -62,8 +74,12 @@ export function ToolModal({ row, onClose, onSaved }) {
             <input value={form.maker || ""} onChange={(e) => set("maker", e.target.value)} />
           </label>
           <label className="field">
-            <span>Serial Number</span>
-            <input value={form.serial_number || ""} onChange={(e) => set("serial_number", e.target.value)} />
+            <span>Warehouse *</span>
+            <select required value={form.warehouse || ""} onChange={(e) => set("warehouse", e.target.value)}>
+              <option value="">เลือก Warehouse</option>
+              <option value="Phase4">Phase4</option>
+              <option value="Phase11">Phase11</option>
+            </select>
           </label>
           <label className="field">
             <span>เก็บไว้ที่</span>
@@ -180,7 +196,7 @@ function EquipmentTab() {
   const shown = useMemo(
     () =>
       rows.filter(
-        (x) => !q || `${x.code} ${x.name} ${x.category} ${x.maker} ${x.serial_number} ${x.location}`.toLowerCase().includes(q.toLowerCase())
+        (x) => !q || `${x.code} ${x.name} ${x.category} ${x.maker} ${x.warehouse} ${x.location}`.toLowerCase().includes(q.toLowerCase())
       ),
     [rows, q]
   );
@@ -217,7 +233,7 @@ function EquipmentTab() {
           className="search-input"
           value={q}
           onChange={(e) => setQ(e.target.value)}
-          placeholder="ค้นหา Code / ชื่อ / Model / Maker / Serial / ที่เก็บ..."
+          placeholder="ค้นหา Code / ชื่อ / Model / Maker / Warehouse / ที่เก็บ..."
         />
       </div>
       <div className="table-wrap">
@@ -229,6 +245,7 @@ function EquipmentTab() {
               <th>ชื่ออุปกรณ์</th>
               <th>Model</th>
               <th>Maker</th>
+              <th>Warehouse</th>
               <th>ที่เก็บ</th>
               <th>สถานะ</th>
               <th>QR</th>
@@ -238,13 +255,14 @@ function EquipmentTab() {
           <tbody>
             {shown.map((x) => (
               <tr key={x.id}>
-                <td>{x.image_url ? <img src={x.image_url} alt={x.name} loading="lazy" style={{ width: 56, height: 48, objectFit: "contain", borderRadius: 6, background: "#f3f6fa" }} /> : <span className="empty">-</span>}</td>
+                <td>{x.image_url ? <img src={x.image_url} alt={x.name} loading="lazy" style={{ width: 56, height: 48, objectFit: "contain", borderRadius: 6, background: "#f3f6fa" }} /> : <EmptyToolImage />}</td>
                 <td className="mono-cell">
                   <b>{x.code}</b>
                 </td>
                 <td>{x.name}</td>
                 <td>{x.category || "-"}</td>
                 <td>{x.maker || "-"}</td>
+                <td>{x.warehouse || "-"}</td>
                 <td>{x.location || "-"}</td>
                 <td>
                   <span className={`status ${x.status === "BORROWED" ? "warning" : "success"}`}>
