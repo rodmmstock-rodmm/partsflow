@@ -27,6 +27,7 @@ def tool_json(tool):
         "category": tool.category,
         "maker": tool.maker,
         "image_url": public_image_url(tool.image_path) if tool.image_path else "",
+        "warehouse": tool.warehouse,
         "serial_number": tool.serial_number,
         "location": tool.location,
         "remark": tool.remark,
@@ -79,6 +80,7 @@ def tools_list(request):
                 | Q(name__icontains=q)
                 | Q(category__icontains=q)
                 | Q(maker__icontains=q)
+                | Q(warehouse__icontains=q)
                 | Q(serial_number__icontains=q)
                 | Q(location__icontains=q)
             )
@@ -89,11 +91,16 @@ def tools_list(request):
     if not code or not name:
         return Response({"detail": "Code และ Name จำเป็นต้องใส่"}, status=400)
 
+    warehouse = str(request.data.get("warehouse", "")).strip()
+    if warehouse not in ("Phase4", "Phase11"):
+        return Response({"detail": "กรุณาเลือก Warehouse เป็น Phase4 หรือ Phase11"}, status=400)
+
     tool = ToolEquipment(
         code=code,
         name=name,
         category=str(request.data.get("category", "")).strip(),
         maker=str(request.data.get("maker", "")).strip(),
+        warehouse=warehouse,
         serial_number=str(request.data.get("serial_number", "")).strip(),
         location=str(request.data.get("location", "")).strip(),
         remark=str(request.data.get("remark", "")).strip(),
@@ -136,6 +143,11 @@ def tool_detail(request, pk):
     for field in ["code", "name", "category", "maker", "serial_number", "location", "remark"]:
         if field in request.data:
             setattr(tool, field, str(request.data.get(field, "") or "").strip())
+    if "warehouse" in request.data:
+        warehouse = str(request.data.get("warehouse", "") or "").strip()
+        if warehouse not in ("Phase4", "Phase11"):
+            return Response({"detail": "กรุณาเลือก Warehouse เป็น Phase4 หรือ Phase11"}, status=400)
+        tool.warehouse = warehouse
     if "active" in request.data:
         tool.active = bool(request.data.get("active"))
     try:
