@@ -31,7 +31,7 @@ def tool_json(tool):
         "location": tool.location,
         "remark": tool.remark,
         "status": tool.status,
-        "status_label": "ถูกยืม" if tool.status == ToolEquipment.STATUS_BORROWED else "ว่าง",
+        "status_label": "ถูกยืม" if tool.status == ToolEquipment.STATUS_BORROWED else "อยู่ในสต๊อก",
         "active": tool.active,
     }
 
