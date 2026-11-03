@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { apiGet, apiPost } from "../api";
 import { useAuth } from "../auth";
 import { useFeedback } from "../feedback";
+import { SearchableSelect } from "../components/Common";
 
 const PHASES = [
   { value: "PHASE4", label: "Phase 4" },
@@ -13,11 +14,11 @@ export default function ClothRollIssueForm() {
   const auth = useAuth();
   const navigate = useNavigate();
   const feedback = useFeedback();
-  const [data, setData] = useState({ stocks: [], employees: [], current_employee_id: "" });
+  const [data, setData] = useState({ stocks: [], employees: [], machines: [], current_employee_id: "" });
   const [phase, setPhase] = useState("PHASE4");
   const [quantity, setQuantity] = useState("1");
   const [borrowerId, setBorrowerId] = useState("");
-  const [machineName, setMachineName] = useState("");
+  const [machineId, setMachineId] = useState("");
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
@@ -41,6 +42,10 @@ export default function ClothRollIssueForm() {
   const selectedStock = useMemo(
     () => data.stocks.find((stock) => stock.phase === phase),
     [data.stocks, phase]
+  );
+  const selectedMachine = useMemo(
+    () => data.machines.find((machine) => String(machine.id) === String(machineId)),
+    [data.machines, machineId]
   );
 
   async function submit(event) {
@@ -68,7 +73,7 @@ export default function ClothRollIssueForm() {
         transaction_type: "OUT",
         quantity: String(qty),
         borrower_employee_id: borrowerId,
-        machine_name: machineName.trim(),
+        machine_name: selectedMachine?.code || "",
         source: "WEB",
       });
       setData((current) => ({
@@ -78,7 +83,7 @@ export default function ClothRollIssueForm() {
         ),
       }));
       setQuantity("1");
-      setMachineName("");
+      setMachineId("");
       setSuccess(`บันทึกการเบิกสำเร็จ คงเหลือ ${Number(result.stock.quantity || 0).toLocaleString("th-TH")} ม้วน`);
       feedback.showToast("บันทึกการเบิกเศษผ้าสำเร็จ", "success");
     } catch (err) {
@@ -165,8 +170,17 @@ export default function ClothRollIssueForm() {
             </div>
 
             <div className="cloth-issue-field">
-              <label htmlFor="cloth-issue-machine">Machine</label>
-              <input id="cloth-issue-machine" type="text" maxLength="120" value={machineName} onChange={(event) => setMachineName(event.target.value)} disabled={loading || busy} placeholder="ระบุชื่อ Machine (ถ้ามี)" />
+              <label>Machine Code</label>
+              <SearchableSelect
+                options={data.machines}
+                value={machineId}
+                onChange={setMachineId}
+                getLabel={(machine) => machine.code || ""}
+                getSearchText={(machine) => machine.code || ""}
+                placeholder="ค้นหาและเลือก Machine Code (ถ้ามี)"
+                disabled={loading || busy}
+                emptyText="ไม่พบ Machine Code"
+              />
             </div>
 
             <div className="cloth-issue-field">
