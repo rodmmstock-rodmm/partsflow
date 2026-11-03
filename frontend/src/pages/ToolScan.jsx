@@ -145,6 +145,7 @@ export default function ToolScan() {
               <div className="tool-scan-code">{tool.code}</div>
               {tool.category && <div className="tool-scan-meta">Model: {tool.category}</div>}
               {tool.maker && <div className="tool-scan-meta">Maker: {tool.maker}</div>}
+              {tool.warehouse && <div className="tool-scan-meta">Warehouse: {tool.warehouse}</div>}
               {tool.location && <div className="tool-scan-meta">เก็บที่: {tool.location}</div>}
               <span className={`status ${tool.status === "BORROWED" ? "warning" : "success"}`}>
                 {tool.status_label}
