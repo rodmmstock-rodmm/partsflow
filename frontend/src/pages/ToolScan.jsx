@@ -129,6 +129,7 @@ export default function ToolScan() {
         ) : (
           <>
             <div className="tool-scan-info">
+              {tool.image_url && <img src={tool.image_url} alt={tool.name} className="tool-scan-image" style={{ width: "100%", maxHeight: 240, objectFit: "contain", borderRadius: 12, background: "#f5f7fa", marginBottom: 14 }} />}
               <h2>{tool.name}</h2>
               <div className="tool-scan-code">{tool.code}</div>
               {tool.category && <div className="tool-scan-meta">ประเภท: {tool.category}</div>}
@@ -143,33 +144,26 @@ export default function ToolScan() {
             {tool.status === "AVAILABLE" ? (
               <form onSubmit={submitBorrow} className="tool-scan-form">
                 <div className="section-label">แบบฟอร์มเบิกอุปกรณ์</div>
-                {employees.length > 0 && (
-                  <label className="field">
-                    <span>เลือกชื่อจากรายชื่อพนักงาน (ถ้ามี)</span>
-                    <select
-                      value={borrowerEmployeeId}
-                      onChange={(e) => pickEmployee(e.target.value)}
-                    >
-                      <option value="">-- ไม่เลือก / พิมพ์ชื่อเอง --</option>
-                      {employees.map((e) => (
-                        <option key={e.id} value={e.id}>
-                          {e.employee_code} · {e.name}
-                        </option>
-                      ))}
-                    </select>
-                  </label>
-                )}
                 <label className="field">
                   <span>ชื่อผู้เบิก *</span>
                   <input
                     required
+                    list="tool-employee-options"
                     value={borrowerName}
-                    onChange={(e) => setBorrowerName(e.target.value)}
-                    placeholder="พิมพ์ชื่อผู้เบิก"
+                    onChange={(e) => {
+                      const value = e.target.value;
+                      setBorrowerName(value);
+                      const match = employees.find((employee) => employee.name === value);
+                      setBorrowerEmployeeId(match?.id || "");
+                    }}
+                    placeholder="พิมพ์ค้นหาและเลือกชื่อพนักงาน"
                   />
+                  <datalist id="tool-employee-options">
+                    {employees.map((employee) => <option key={employee.id} value={employee.name} />)}
+                  </datalist>
                 </label>
                 <label className="field">
-                  <span>วัตถุประสงค์ / งานที่ใช้</span>
+                  <span>เครื่องจักร/ งานที่ใช้</span>
                   <input value={purpose} onChange={(e) => setPurpose(e.target.value)} />
                 </label>
                 <button className="btn primary full tool-scan-submit" disabled={busy}>
