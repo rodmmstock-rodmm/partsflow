@@ -69,7 +69,7 @@ export default function ClothRollIssueForm() {
         transaction_type: "OUT",
         quantity: String(qty),
         borrower_employee_id: borrowerId,
-        machine_name: (() => { const machine = data.machines.find((item) => String(item.id) === String(machineId)); return machine ? `${machine.code} · ${machine.name}` : ""; })(),
+        machine_name: (() => { const machine = data.machines.find((item) => String(item.id) === String(machineId)); return machine ? machine.code : ""; })(),
         source: "WEB",
       });
       setData((current) => ({
@@ -171,9 +171,9 @@ export default function ClothRollIssueForm() {
                 value={machineId}
                 options={data.machines || []}
                 onChange={setMachineId}
-                getLabel={(item) => `${item.code} · ${item.name}`}
-                getSearchText={(item) => `${item.code || ""} ${item.name || ""}`}
-                placeholder="พิมพ์รหัสหรือชื่อ Machine เพื่อค้นหา..."
+                getLabel={(item) => item.code}
+                getSearchText={(item) => item.code || ""}
+                placeholder="พิมพ์ Machine Code เพื่อค้นหา..."
                 disabled={loading || busy}
               />
             </div>
