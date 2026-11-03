@@ -1,3 +1,6 @@
+import hashlib
+import re
+
 from django.db import transaction
 from django.db.models import Q
 from django.utils import timezone
@@ -9,6 +12,11 @@ from rest_framework.response import Response
 from .audit_utils import audit
 from .auth_api import require_permission
 from .models import Employee, ToolEquipment, ToolLoanRecord
+from .image_optimizer import optimize_part_image
+from .supabase_storage import (
+    SupabaseStorageConfigError, SupabaseStorageRequestError,
+    public_image_url, storage_enabled, storage_object_path, upload_object,
+)
 
 
 def tool_json(tool):
@@ -17,6 +25,8 @@ def tool_json(tool):
         "code": tool.code,
         "name": tool.name,
         "category": tool.category,
+        "maker": tool.maker,
+        "image_url": public_image_url(tool.image_path) if tool.image_path else "",
         "serial_number": tool.serial_number,
         "location": tool.location,
         "remark": tool.remark,
@@ -82,6 +92,7 @@ def tools_list(request):
         code=code,
         name=name,
         category=str(request.data.get("category", "")).strip(),
+        maker=str(request.data.get("maker", "")).strip(),
         serial_number=str(request.data.get("serial_number", "")).strip(),
         location=str(request.data.get("location", "")).strip(),
         remark=str(request.data.get("remark", "")).strip(),
@@ -121,7 +132,7 @@ def tool_detail(request, pk):
         audit(actor, "DELETE", "ToolEquipment", tool.id, before)
         return Response({"success": True})
 
-    for field in ["code", "name", "category", "serial_number", "location", "remark"]:
+    for field in ["code", "name", "category", "maker", "serial_number", "location", "remark"]:
         if field in request.data:
             setattr(tool, field, str(request.data.get(field, "") or "").strip())
     if "active" in request.data:
@@ -150,10 +161,50 @@ def tool_loan_history(request):
         qs = qs.filter(
             Q(tool__code__icontains=q)
             | Q(tool__name__icontains=q)
+            | Q(tool__maker__icontains=q)
             | Q(borrower_name__icontains=q)
             | Q(purpose__icontains=q)
         )
-    return Response({"results": [loan_json(l) for l in qs[:500]]})
+    return Response({"results": [dict(loan_json(l), maker=l.tool.maker, image_url=public_image_url(l.tool.image_path) if l.tool.image_path else "") for l in qs[:500]]})
+
+
+@csrf_exempt
+@api_view(["POST"])
+@permission_classes([AllowAny])
+def tool_image(request, pk):
+    actor, err = require_permission(request, "can_edit_tool")
+    if err:
+        return err
+    tool = ToolEquipment.objects.filter(pk=pk).first()
+    if not tool:
+        return Response({"detail": "ไม่พบอุปกรณ์"}, status=404)
+    if not storage_enabled():
+        return Response({"detail": "Supabase image storage ยังไม่ได้เปิดใช้งาน"}, status=503)
+    upload = request.FILES.get("image")
+    if not upload:
+        return Response({"detail": "กรุณาเลือกไฟล์รูปภาพ"}, status=400)
+    content_type = str(getattr(upload, "content_type", "") or "").lower().split(";", 1)[0].strip()
+    extensions = {"image/jpeg": ".jpg", "image/jpg": ".jpg", "image/png": ".png", "image/webp": ".webp", "image/gif": ".gif"}
+    extension = extensions.get(content_type)
+    if not extension:
+        return Response({"detail": "รองรับเฉพาะ JPG, PNG, WEBP และ GIF"}, status=400)
+    original = upload.read()
+    if not original or len(original) > 10 * 1024 * 1024:
+        return Response({"detail": "รูปภาพต้องมีขนาดมากกว่า 0 และไม่เกิน 10 MB"}, status=400)
+    try:
+        payload, content_type = optimize_part_image(original, content_type)
+        digest = hashlib.sha256(payload).hexdigest()
+        safe_code = re.sub(r"[^A-Za-z0-9._-]+", "_", tool.code)[:80] or "tool"
+        logical_path = f"DATA1_Images/Tools/{safe_code}/{digest[:24]}{extension}"
+        upload_object(storage_object_path(logical_path), payload, content_type=content_type, upsert=False)
+    except (ValueError, SupabaseStorageConfigError) as exc:
+        return Response({"detail": str(exc)}, status=400)
+    except SupabaseStorageRequestError as exc:
+        return Response({"detail": str(exc)}, status=502)
+    tool.image_path = logical_path
+    tool.save(update_fields=["image_path", "updated_at"])
+    audit(actor, "UPDATE", "ToolEquipment", tool.id, {"image_upload": {"size": len(payload), "sha256": digest}})
+    return Response(tool_json(tool))
 
 
 # ---------------------------------------------------------------------------
@@ -175,7 +226,7 @@ def tool_public_detail(request, code):
             current_loan = loan_json(loan)
 
     employees = [
-        {"id": str(e.id), "employee_code": e.employee_code, "name": e.name}
+        {"id": str(e.id), "name": e.name}
         for e in Employee.objects.filter(active=True).order_by("name")[:1000]
     ]
     return Response({"tool": tool_json(tool), "current_loan": current_loan, "employees": employees})
