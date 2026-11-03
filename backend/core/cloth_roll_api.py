@@ -11,7 +11,7 @@ from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 
 from .auth_api import permissions_for, require_permission
-from .models import ClothRollStock, ClothRollTransaction, Employee
+from .models import ClothRollStock, ClothRollTransaction, Employee, Machine
 
 
 QR_SIGNING_SALT = "partsflow.cloth-roll.qr"
@@ -124,11 +124,16 @@ def cloth_roll_issue_form(request):
     employees = Employee.objects.filter(active=True).order_by("employee_code").values(
         "id", "employee_code", "name", "department"
     )[:1000]
+    machines = Machine.objects.filter(active=True).order_by("code").values("id", "code")[:1000]
     return Response({
         "stocks": [_stock_json(row) for row in stocks],
         "employees": [
             {"id": str(e["id"]), "employee_code": e["employee_code"], "name": e["name"], "department": e["department"]}
             for e in employees
+        ],
+        "machines": [
+            {"id": str(machine["id"]), "code": machine["code"]}
+            for machine in machines
         ],
         "current_employee_id": str(actor.id),
     })
