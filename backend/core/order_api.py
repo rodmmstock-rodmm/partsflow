@@ -618,8 +618,8 @@ def create_orders_batch(request):
                     recorded_by=actor,
                     source_type="NORMAL",
                     edit_workflow_enabled=True,
-                    legacy_source="TOOLING_SAFETY_STOCK" if is_tooling else "SAFETY_STOCK",
-                    legacy_id=tooling_id if is_tooling else part_id,
+                    legacy_source="TOOLING_SAFETY_STOCK" if is_tooling else "",
+                    legacy_id=tooling_id if is_tooling else "",
                 )
                 try:
                     apply_order_info(order, payload, creating=True)
