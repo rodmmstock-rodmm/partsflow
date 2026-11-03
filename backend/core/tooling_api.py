@@ -1,3 +1,5 @@
+from uuid import UUID
+
 from django.core.exceptions import ValidationError
 from django.db import transaction
 from django.db.models import F
@@ -9,7 +11,7 @@ from rest_framework.response import Response
 
 from .auth_api import require_permission
 from .audit_utils import audit
-from .models import Employee, ToolingItem, ToolingTransaction
+from .models import Employee, OrderRecord, ToolingItem, ToolingTransaction
 
 def parse_whole_number(value, *, allow_zero=True):
     """Accept integer values only; never silently truncate decimals or booleans."""
@@ -53,7 +55,26 @@ def safety_stock(request):
     actor, err = require_permission(request, "can_view_safety_stock")
     if err:
         return err
-    qs = ToolingItem.objects.filter(active=True, quantity__lt=F("min_quantity")).order_by("name")
+    active_tooling_order_ids = OrderRecord.objects.filter(
+        legacy_source="TOOLING_SAFETY_STOCK",
+        is_deleted=False,
+        procurement_phase=OrderRecord.PROCUREMENT_PURCHASE,
+        lifecycle_status__in=[
+            OrderRecord.LIFECYCLE_ACTIVE,
+            OrderRecord.LIFECYCLE_WAIT_CONFIRM,
+        ],
+    ).values_list("legacy_id", flat=True)
+    active_tooling_ids = []
+    for value in active_tooling_order_ids:
+        try:
+            active_tooling_ids.append(UUID(str(value)))
+        except (TypeError, ValueError, AttributeError):
+            continue
+    qs = (
+        ToolingItem.objects.filter(active=True, quantity__lt=F("min_quantity"))
+        .exclude(id__in=active_tooling_ids)
+        .order_by("name")
+    )
     return Response({"count": qs.count(), "results": [item_json(item) for item in qs]})
 
 

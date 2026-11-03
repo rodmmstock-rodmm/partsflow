@@ -1,8 +1,9 @@
 from django.test import TestCase
+from django.utils import timezone
 from django.urls import reverse
 from rest_framework.test import APIClient
 
-from core.models import Employee, RoleAccess, ToolingItem, ToolingTransaction
+from core.models import Employee, Machine, OrderRecord, RoleAccess, ToolingItem, ToolingTransaction
 from core.tooling_api import parse_whole_number
 
 
@@ -57,6 +58,24 @@ class ToolingSafetyStockPermissionTests(TestCase):
     def test_safety_stock_permission_does_not_grant_full_tooling_inventory(self):
         response = self.client.get(reverse("web-tooling-items"))
         self.assertEqual(response.status_code, 403)
+
+    def test_safety_stock_hides_tooling_with_an_active_order(self):
+        item = ToolingItem.objects.create(name="Already Ordered", quantity=0, min_quantity=2)
+        OrderRecord.objects.create(
+            order_number="TEST-TOOLING-SAFETY-ACTIVE",
+            order_date=timezone.localdate(),
+            job="SPARE",
+            part_name=item.name,
+            unit_text=item.unit or "-",
+            amount=1,
+            legacy_source="TOOLING_SAFETY_STOCK",
+            legacy_id=str(item.id),
+        )
+
+        response = self.client.get(reverse("web-tooling-safety-stock"))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data["count"], 0)
 
 
 class ToolingWithdrawalTests(TestCase):
@@ -262,3 +281,85 @@ class ToolingWithdrawalTests(TestCase):
         self.item.refresh_from_db()
         self.assertEqual(self.item.quantity, 3)
         self.assertEqual(ToolingTransaction.objects.count(), 0)
+
+
+class ToolingSafetyStockOrderTests(TestCase):
+    def setUp(self):
+        self.client = APIClient()
+        self.role = RoleAccess.objects.create(
+            role_name="TOOLING_ORDER_CREATOR",
+            can_add_order=True,
+        )
+        self.actor = Employee.objects.create(
+            employee_code="TEST-TOOLING-ORDER-ACTOR",
+            name="Tooling Order Actor",
+            role=self.role.role_name,
+        )
+        self.requester = Employee.objects.create(
+            employee_code="TEST-TOOLING-ORDER-REQUESTER",
+            name="Tooling Order Requester",
+        )
+        self.machine = Machine.objects.create(code="TEST-TOOLING-COMMON", name="Common")
+        self.item = ToolingItem.objects.create(
+            name="Torque Wrench",
+            detail="1/2 inch",
+            maker="Test Maker",
+            quantity=1,
+            min_quantity=3,
+            unit="EA",
+        )
+        session = self.client.session
+        session["partsflow_employee_id"] = str(self.actor.id)
+        session.save()
+        self.url = reverse("web-orders-batch")
+
+    def payload(self):
+        return {
+            "job": "SPARE",
+            "ordered_by_id": str(self.requester.id),
+            "remark": "Safety Stock",
+            "items": [{
+                "item_type": "TOOLING",
+                "tooling_item_id": str(self.item.id),
+                "amount": 2,
+                "machine_id": str(self.machine.id),
+                "factory": "MM-4",
+            }],
+        }
+
+    def test_tooling_is_created_in_shared_order_system_with_distinct_type(self):
+        response = self.client.post(self.url, self.payload(), format="json")
+
+        self.assertEqual(response.status_code, 201, response.data)
+        self.assertEqual(response.data["created_count"], 1)
+        row = response.data["results"][0]
+        order = OrderRecord.objects.get(order_number=row["order_number"])
+        self.assertIsNone(order.part_id)
+        self.assertEqual(order.part_name, self.item.name)
+        self.assertEqual(order.part_detail, self.item.detail)
+        self.assertEqual(order.maker_text, self.item.maker)
+        self.assertEqual(order.unit_text, self.item.unit)
+        self.assertEqual(order.legacy_source, "TOOLING_SAFETY_STOCK")
+        self.assertEqual(order.legacy_id, str(self.item.id))
+        self.assertEqual(row["item_type"], "TOOLING")
+
+    def test_tooling_with_existing_active_order_is_rejected(self):
+        OrderRecord.objects.create(
+            order_number="TEST-TOOLING-ORDER-EXISTING",
+            order_date=timezone.localdate(),
+            job="SPARE",
+            part_name=self.item.name,
+            part_detail=self.item.detail,
+            maker_text=self.item.maker,
+            unit_text=self.item.unit,
+            amount=1,
+            machine=self.machine,
+            ordered_by=self.requester,
+            legacy_source="TOOLING_SAFETY_STOCK",
+            legacy_id=str(self.item.id),
+        )
+
+        response = self.client.post(self.url, self.payload(), format="json")
+
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(OrderRecord.objects.filter(legacy_source="TOOLING_SAFETY_STOCK").count(), 1)

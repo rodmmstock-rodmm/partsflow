@@ -27,6 +27,7 @@ from .models import (
     POBalance,
     StockTransaction,
     Supplier,
+    ToolingItem,
 )
 
 URGENT_OPTIONS = [
@@ -221,6 +222,7 @@ def order_json(order):
         "rfq_count": int(getattr(order, "rfq_count", 0) or 0),
         "part_id": str(order.part_id) if order.part_id else "",
         "item_id": order.part.sku if order.part else "",
+        "item_type": "TOOLING" if order.legacy_source == "TOOLING_SAFETY_STOCK" else ("SPARE" if order.part_id else "CUSTOM"),
         "part_name": order.part_name,
         "part_detail": order.part_detail,
         "maker": order.maker_text,
@@ -384,7 +386,7 @@ def apply_order_info(order, data, *, creating=False, allow_order_date=False):
     # inline PATCH that only touches (say) machine_id or amount must not
     # get blocked by part_detail/maker/unit still being empty - those are
     # edited in separate requests, not this one.
-    if creating:
+    if creating and str(data.get("item_type") or "").upper() != "TOOLING":
         if not order.part_name:
             raise ValueError("Part Name จำเป็นต้องใส่")
         if not order.part_detail:
@@ -559,25 +561,39 @@ def create_orders_batch(request):
         with transaction.atomic():
             for index, item in enumerate(items, start=1):
                 raw = item or {}
-                part_id = str(raw.get("part_id") or "").strip()
-                if not part_id:
-                    raise ValueError(f"รายการที่ {index}: ไม่พบ Part ID")
-                if part_id in seen_part_ids:
-                    raise ValueError(f"รายการที่ {index}: มี Part ID ซ้ำในรายการที่เลือก")
-                seen_part_ids.add(part_id)
-
-                if OrderRecord.objects.filter(
-                    part_id=part_id,
-                    is_deleted=False,
-                    procurement_phase=OrderRecord.PROCUREMENT_PURCHASE,
-                    lifecycle_status__in=[
-                        OrderRecord.LIFECYCLE_ACTIVE,
-                        OrderRecord.LIFECYCLE_WAIT_CONFIRM,
-                    ],
-                ).exists():
-                    raise ValueError(
-                        f"รายการที่ {index}: Part นี้มี Active / Wait Confirm Order อยู่แล้ว กรุณารีเฟรช Safety Stock"
-                    )
+                item_type = str(raw.get("item_type") or "PART").strip().upper()
+                is_tooling = item_type == "TOOLING"
+                tooling_id = ""
+                tooling = None
+                if is_tooling:
+                    tooling_id = str(raw.get("tooling_item_id") or "").strip()
+                    if not tooling_id:
+                        raise ValueError(f"รายการที่ {index}: ไม่พบ Tooling ID")
+                    duplicate_key = f"TOOLING:{tooling_id}"
+                    tooling = ToolingItem.objects.filter(pk=tooling_id, active=True).first()
+                    if not tooling:
+                        raise ValueError(f"รายการที่ {index}: ไม่พบรายการ Tooling หรือถูกปิดใช้งานแล้ว")
+                    if OrderRecord.objects.filter(
+                        legacy_source="TOOLING_SAFETY_STOCK", legacy_id=tooling_id,
+                        is_deleted=False, procurement_phase=OrderRecord.PROCUREMENT_PURCHASE,
+                        lifecycle_status__in=[OrderRecord.LIFECYCLE_ACTIVE, OrderRecord.LIFECYCLE_WAIT_CONFIRM],
+                    ).exists():
+                        raise ValueError(f"รายการที่ {index}: Tooling นี้มี Active / Wait Confirm Order อยู่แล้ว กรุณารีเฟรช Safety Stock")
+                    part_id = ""
+                else:
+                    part_id = str(raw.get("part_id") or "").strip()
+                    if not part_id:
+                        raise ValueError(f"รายการที่ {index}: ไม่พบ Part ID")
+                    duplicate_key = f"PART:{part_id}"
+                    if OrderRecord.objects.filter(
+                        part_id=part_id, is_deleted=False,
+                        procurement_phase=OrderRecord.PROCUREMENT_PURCHASE,
+                        lifecycle_status__in=[OrderRecord.LIFECYCLE_ACTIVE, OrderRecord.LIFECYCLE_WAIT_CONFIRM],
+                    ).exists():
+                        raise ValueError(f"รายการที่ {index}: Part นี้มี Active / Wait Confirm Order อยู่แล้ว กรุณารีเฟรช Safety Stock")
+                if duplicate_key in seen_part_ids:
+                    raise ValueError(f"รายการที่ {index}: มีรายการซ้ำในชุดที่เลือก")
+                seen_part_ids.add(duplicate_key)
 
                 payload = {
                     "factory": raw.get("factory") or request.data.get("factory") or "MM-4",
@@ -586,6 +602,11 @@ def create_orders_batch(request):
                     "urgent_status": raw.get("urgent_status") or "",
                     "pending_data_date": raw.get("pending_data_date") or "",
                     "part_id": part_id,
+                    "part_name": tooling.name if is_tooling else raw.get("part_name", ""),
+                    "part_detail": tooling.detail if is_tooling else raw.get("part_detail", ""),
+                    "maker": tooling.maker if is_tooling else raw.get("maker", ""),
+                    "unit": tooling.unit if is_tooling else raw.get("unit", ""),
+                    "item_type": "TOOLING" if is_tooling else "PART",
                     "amount": raw.get("amount"),
                     "remark": raw.get("remark") or shared_remark or "Safety Stock",
                     "ordered_by_id": raw.get("ordered_by_id") or shared_ordered_by_id,
@@ -597,6 +618,8 @@ def create_orders_batch(request):
                     recorded_by=actor,
                     source_type="NORMAL",
                     edit_workflow_enabled=True,
+                    legacy_source="TOOLING_SAFETY_STOCK" if is_tooling else "",
+                    legacy_id=tooling_id if is_tooling else "",
                 )
                 try:
                     apply_order_info(order, payload, creating=True)
