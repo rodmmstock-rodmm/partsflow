@@ -199,7 +199,7 @@ function EquipmentTab() {
   const shown = useMemo(
     () =>
       rows.filter(
-        (x) => !q || `${x.code} ${x.name} ${x.category} ${x.maker} ${x.warehouse} ${x.location}`.toLowerCase().includes(q.toLowerCase())
+        (x) => !q || `${x.code} ${x.name} ${x.category} ${x.maker} ${x.serial_number} ${x.warehouse} ${x.location}`.toLowerCase().includes(q.toLowerCase())
       ),
     [rows, q]
   );
