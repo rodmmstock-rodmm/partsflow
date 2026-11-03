@@ -432,8 +432,8 @@ export default function ClothRolls() {
             <label className="field" style={{ display: "block", marginBottom: 14 }}><span>{type === "ADJ" ? "ยอดคงเหลือใหม่ (ม้วน) *" : "จำนวน (ม้วน) *"}</span>
               <input required type="number" min={type === "ADJ" ? "0" : "1"} step="1" inputMode="numeric" pattern="[0-9]*" value={quantity} onChange={(e) => setQuantity(e.target.value)} />
             </label>
-            {!isQr && type === "OUT" && <label className="field" style={{ display: "block", marginBottom: 14 }}><span>Machine</span>
-              <SearchableSelect value={machineId} options={data.machines || []} onChange={setMachineId} getLabel={(machine) => machine.code} getSearchText={(machine) => machine.code || ""} placeholder="พิมพ์ Machine Code เพื่อค้นหา..." disabled={busy} />
+            {type === "OUT" && <label className="field" style={{ display: "block", marginBottom: 14 }}><span>Machine Code</span>
+              <SearchableSelect value={machineId} options={data.machines || []} onChange={setMachineId} getLabel={(machine) => machine.code} getSearchText={(machine) => machine.code || ""} placeholder="ค้นหาและเลือก Machine Code (ถ้ามี)" disabled={busy} emptyText="ไม่พบ Machine Code" />
             </label>}
             {!isQr && type === "OUT" && <label className="field" style={{ display: "block", marginBottom: 14 }}><span>ชื่อผู้เบิก *</span>
               <SearchableSelect value={borrowerId} options={data.employees || []} onChange={setBorrowerId} getLabel={(employee) => employee.name} getSearchText={(employee) => `${employee.name || ""} ${employee.employee_code || ""} ${employee.department || ""}`} placeholder="พิมพ์ชื่อผู้เบิกเพื่อค้นหา..." disabled={busy} required />
