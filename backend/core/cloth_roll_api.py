@@ -167,6 +167,7 @@ def cloth_rolls(request):
     employees = Employee.objects.filter(active=True).order_by("employee_code").values(
         "id", "employee_code", "name", "department"
     )[:1000]
+    machines = Machine.objects.filter(active=True).order_by("code").values("id", "code")[:1000]
     qr_phase = None
     if qr_token:
         try:
@@ -187,6 +188,10 @@ def cloth_rolls(request):
         "employees": [
             {"id": str(e["id"]), "employee_code": e["employee_code"], "name": e["name"], "department": e["department"]}
             for e in employees
+        ],
+        "machines": [
+            {"id": str(machine["id"]), "code": machine["code"]}
+            for machine in machines
         ],
         "line_configured": _line_configured(),
         "current_employee_id": str(actor.id),
