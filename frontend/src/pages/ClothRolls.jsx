@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { useParams } from "react-router-dom";
 import QRCode from "qrcode";
 import { apiDelete, apiGet, apiPatch, apiPost } from "../api";
-import { Alert, Modal } from "../components/Common";
+import { Alert, Modal, SearchableSelect } from "../components/Common";
 import { useFeedback } from "../feedback";
 import { useAuth } from "../auth";
 
@@ -29,14 +29,14 @@ export default function ClothRolls() {
   const [historyMonth, setHistoryMonth] = useState(now.getMonth());
   const [deleteTarget, setDeleteTarget] = useState(null);
   const [deletingHistory, setDeletingHistory] = useState(false);
-  const [data, setData] = useState({ stocks: [], transactions: [], employees: [], line_configured: false });
+  const [data, setData] = useState({ stocks: [], transactions: [], employees: [], machines: [], line_configured: false });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [phase, setPhase] = useState("PHASE4");
   const [type, setType] = useState("OUT");
   const [quantity, setQuantity] = useState("1");
   const [borrowerId, setBorrowerId] = useState("");
-  const [machineName, setMachineName] = useState("");
+  const [machineId, setMachineId] = useState("");
   const [busy, setBusy] = useState(false);
   const [thresholds, setThresholds] = useState({ PHASE4: "0", PHASE11: "0" });
   const [savingThreshold, setSavingThreshold] = useState("");
@@ -103,13 +103,13 @@ export default function ClothRolls() {
         transaction_type: type,
         quantity,
         borrower_employee_id: !isQr && type === "OUT" ? borrowerId : "",
-        machine_name: type === "OUT" ? machineName.trim() : "",
+        machine_name: type === "OUT" ? (data.machines.find((machine) => String(machine.id) === String(machineId))?.code || "") : "",
         source: isQr ? "QR" : "WEB",
         qr_token: isQr ? qrToken : "",
       });
       setQuantity("1");
       setBorrowerId("");
-      setMachineName("");
+      setMachineId("");
       await load();
       feedback.showToast("บันทึกรายการสำเร็จ", "success");
     } catch (err) {
@@ -433,13 +433,10 @@ export default function ClothRolls() {
               <input required type="number" min={type === "ADJ" ? "0" : "1"} step="1" inputMode="numeric" pattern="[0-9]*" value={quantity} onChange={(e) => setQuantity(e.target.value)} />
             </label>
             {!isQr && type === "OUT" && <label className="field" style={{ display: "block", marginBottom: 14 }}><span>Machine</span>
-              <input maxLength="120" value={machineName} onChange={(e) => setMachineName(e.target.value)} placeholder="ระบุชื่อ Machine (ถ้ามี)" style={{ width: "100%" }} />
+              <SearchableSelect value={machineId} options={data.machines || []} onChange={setMachineId} getLabel={(machine) => machine.code} getSearchText={(machine) => machine.code || ""} placeholder="พิมพ์ Machine Code เพื่อค้นหา..." disabled={busy} />
             </label>}
             {!isQr && type === "OUT" && <label className="field" style={{ display: "block", marginBottom: 14 }}><span>ชื่อผู้เบิก *</span>
-              <select required value={borrowerId} onChange={(e) => setBorrowerId(e.target.value)} style={{ width: "100%" }}>
-                <option value="">เลือกชื่อผู้เบิก</option>
-                {data.employees.map((employee) => <option key={employee.id} value={employee.id}>{employee.name}{employee.department ? ` · ${employee.department}` : ""}</option>)}
-              </select>
+              <SearchableSelect value={borrowerId} options={data.employees || []} onChange={setBorrowerId} getLabel={(employee) => employee.name} getSearchText={(employee) => `${employee.name || ""} ${employee.employee_code || ""} ${employee.department || ""}`} placeholder="พิมพ์ชื่อผู้เบิกเพื่อค้นหา..." disabled={busy} required />
             </label>}
             <div style={{ color: "var(--muted,#64748b)", fontSize: 13, marginBottom: 14 }}>
               {type === "OUT" ? `คงเหลือหลังเบิก ${(currentStock?.quantity ?? 0) - (Number(quantity) || 0)} ม้วน` : type === "IN" ? `ยอดคงเหลือหลังรับเข้า ${(currentStock?.quantity ?? 0) + (Number(quantity) || 0)} ม้วน` : `ยอดคงเหลือหลังปรับ ${Number(quantity) || 0} ม้วน`}
