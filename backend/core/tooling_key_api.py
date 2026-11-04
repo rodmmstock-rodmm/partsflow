@@ -75,7 +75,7 @@ def keys_list(request):
                 search |= Q(vehicle_number=int(q))
             qs = qs.filter(search)
         employees = [
-            {"id": str(e.id), "name": e.name, "employee_code": e.employee_code}
+            {"id": str(e.id), "name": e.name}
             for e in Employee.objects.filter(active=True).order_by("name")[:1000]
         ]
         return Response({"results": [key_json(k) for k in qs[:1000]], "employees": employees})
@@ -288,7 +288,10 @@ def key_history_detail(request, pk):
     if loan.returned_at and loan.borrowed_at and loan.returned_at < loan.borrowed_at:
         return Response({"detail": "วันเวลาคืนต้องไม่อยู่ก่อนวันเวลาที่ยืม"}, status=400)
     if "returned_by_name" in data:
-        loan.returned_by_name = str(data.get("returned_by_name") or "").strip()
+        supplied_returner = str(data.get("returned_by_name") or "").strip()
+        loan.returned_by_name = supplied_returner or (actor.name if loan.returned_at else "")
+        if loan.returned_at and not supplied_returner:
+            loan.returned_by_employee = actor
     if "borrow_remark" in data:
         loan.borrow_remark = str(data.get("borrow_remark") or "").strip()
     if "return_remark" in data:
