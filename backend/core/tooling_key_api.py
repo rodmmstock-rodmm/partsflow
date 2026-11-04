@@ -70,7 +70,9 @@ def keys_list(request):
         if not include_inactive:
             qs = qs.filter(active=True)
         if q:
-            qs = qs.filter(Q(label__icontains=q) | Q(remark__icontains=q) | Q(vehicle_number__icontains=q))
+            qs = qs.filter(Q(label__icontains=q) | Q(remark__icontains=q))
+            if q.isdigit():
+                qs = qs.filter(vehicle_number=int(q))
         employees = [
             {"id": str(e.id), "name": e.name, "employee_code": e.employee_code}
             for e in Employee.objects.filter(active=True).order_by("name")[:1000]
@@ -121,6 +123,8 @@ def key_detail(request, pk):
         return Response({"success": True})
 
     before = key_json(key)
+    if request.data.get("active") is False and key.loans.filter(returned_at__isnull=True, is_deleted=False).exists():
+        return Response({"detail": "ไม่สามารถปิดใช้งานกุญแจที่ยังถูกยืมอยู่ได้"}, status=409)
     if "vehicle_number" in request.data:
         try:
             number = int(request.data.get("vehicle_number"))
