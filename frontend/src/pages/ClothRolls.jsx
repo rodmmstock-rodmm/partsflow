@@ -208,6 +208,18 @@ export default function ClothRolls() {
           z-index: 130;
           max-height: min(260px, 40vh);
         }
+        .cloth-rolls-page #cloth-roll-form .cloth-machine-field {
+          position: relative;
+          z-index: 30;
+        }
+        .cloth-rolls-page #cloth-roll-form .cloth-machine-field .searchable-select {
+          position: relative;
+          z-index: 31;
+        }
+        .cloth-rolls-page #cloth-roll-form .cloth-borrower-field {
+          position: relative;
+          z-index: 1;
+        }
         .cloth-rolls-page #cloth-roll-form > div:first-child { background: #f8fafc !important; border-bottom-color: var(--border, #e2e8f0) !important; }
         .cloth-rolls-page #cloth-roll-form > div:first-child h2 { color: #172033 !important; }
         .cloth-rolls-page #cloth-roll-form > div:first-child span { background: #eff6ff !important; color: #1d4ed8 !important; }
@@ -442,10 +454,10 @@ export default function ClothRolls() {
             <label className="field" style={{ display: "block", marginBottom: 14 }}><span>{type === "ADJ" ? "ยอดคงเหลือใหม่ (ม้วน) *" : "จำนวน (ม้วน) *"}</span>
               <input required type="number" min={type === "ADJ" ? "0" : "1"} step="1" inputMode="numeric" pattern="[0-9]*" value={quantity} onChange={(e) => setQuantity(e.target.value)} />
             </label>
-            {type === "OUT" && <label className="field" style={{ display: "block", marginBottom: 14 }}><span>Machine Code</span>
+            {type === "OUT" && <label className="field cloth-machine-field" style={{ display: "block", marginBottom: 14 }}><span>Machine Code</span>
               <SearchableSelect value={machineId} options={data.machines || []} onChange={setMachineId} getLabel={(machine) => machine.code} getSearchText={(machine) => machine.code || ""} placeholder="ค้นหาและเลือก Machine Code (ถ้ามี)" disabled={busy} emptyText="ไม่พบ Machine Code" />
             </label>}
-            {!isQr && type === "OUT" && <label className="field" style={{ display: "block", marginBottom: 14 }}><span>ชื่อผู้เบิก *</span>
+            {!isQr && type === "OUT" && <label className="field cloth-borrower-field" style={{ display: "block", marginBottom: 14 }}><span>ชื่อผู้เบิก *</span>
               <SearchableSelect value={borrowerId} options={data.employees || []} onChange={setBorrowerId} getLabel={(employee) => employee.name} getSearchText={(employee) => `${employee.name || ""} ${employee.employee_code || ""} ${employee.department || ""}`} placeholder="พิมพ์ชื่อผู้เบิกเพื่อค้นหา..." disabled={busy} required />
             </label>}
             <div style={{ color: "var(--muted,#64748b)", fontSize: 13, marginBottom: 14 }}>
