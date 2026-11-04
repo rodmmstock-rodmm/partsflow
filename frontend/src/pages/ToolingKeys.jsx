@@ -174,25 +174,25 @@ export default function ToolingKeys() {
           {!keys.length && <div className="panel empty">ยังไม่มีรายการกุญแจ กรุณาเพิ่มรายการกุญแจรถเครื่องมือ</div>}
         </div>
       ) : (
-        <div className="panel">
-          <div className="table-wrap">
-            <table>
-              <thead><tr><th>รถเครื่องมือ</th><th>ผู้ยืม</th><th>วันเวลาที่ยืม</th><th>ผู้คืน</th><th>วันเวลาที่คืน</th><th>สถานะ</th><th>หมายเหตุ</th><th>จัดการ</th></tr></thead>
-              <tbody>
-                {history.map((loan) => <tr key={loan.id}>
-                  <td>หมายเลข {loan.vehicle_number}</td><td>{loan.borrower_name}</td><td>{formatDMY(loan.borrowed_at, true)}</td>
-                  <td>{loan.returned_by_name || "-"}</td><td>{loan.returned_at ? formatDMY(loan.returned_at, true) : "-"}</td>
-                  <td><span className={`status ${loan.is_outstanding ? "warning" : "success"}`}>{loan.is_outstanding ? "ยังไม่คืน" : "คืนแล้ว"}</span></td>
-                  <td>{[loan.borrow_remark, loan.return_remark].filter(Boolean).join(" / ") || "-"}</td>
-                  <td><div style={{ display: "flex", gap: 6 }}>
-                    {canEdit && <button className="btn ghost" onClick={() => setEditLoan({ ...loan, borrowed_at: dateTimeLocal(loan.borrowed_at), returned_at: dateTimeLocal(loan.returned_at) })}>แก้ไข</button>}
-                    {canDelete && !loan.is_outstanding && <button className="btn danger" onClick={() => setConfirmTarget({ type: "history", row: loan })}>ลบ</button>}
-                  </div></td>
-                </tr>)}
-                {!history.length && <tr><td colSpan={8} className="empty">ไม่พบประวัติการยืม-คืน</td></tr>}
-              </tbody>
-            </table>
-          </div>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(min(100%,320px),1fr))", gap: 12 }}>
+          {history.map((loan) => <article className="panel" key={loan.id} style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8 }}>
+              <strong>รถเครื่องมือหมายเลข {loan.vehicle_number}</strong>
+              <span className={`status ${loan.is_outstanding ? "warning" : "success"}`}>{loan.is_outstanding ? "ยังไม่คืน" : "คืนแล้ว"}</span>
+            </div>
+            <div><small>ผู้ยืม</small><strong style={{ display: "block" }}>{loan.borrower_name}</strong></div>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+              <div><small>วันเวลาที่ยืม</small><div>{formatDMY(loan.borrowed_at, true)}</div></div>
+              <div><small>วันเวลาที่คืน</small><div>{loan.returned_at ? formatDMY(loan.returned_at, true) : "-"}</div></div>
+            </div>
+            <div><small>ผู้คืน</small><div>{loan.returned_by_name || "-"}</div></div>
+            {(loan.borrow_remark || loan.return_remark) && <div style={{ color: "var(--muted,#64748b)", fontSize: 13 }}>{[loan.borrow_remark, loan.return_remark].filter(Boolean).join(" / ")}</div>}
+            <div style={{ display: "flex", gap: 8, marginTop: "auto" }}>
+              {canEdit && <button className="btn ghost" onClick={() => setEditLoan({ ...loan, borrowed_at: dateTimeLocal(loan.borrowed_at), returned_at: dateTimeLocal(loan.returned_at) })}>แก้ไขประวัติ</button>}
+              {canDelete && !loan.is_outstanding && <button className="btn danger" onClick={() => setConfirmTarget({ type: "history", row: loan })}>ลบประวัติ</button>}
+            </div>
+          </article>)}
+          {!history.length && <div className="panel empty">ไม่พบประวัติการยืม-คืน</div>}
         </div>
       )}
 
