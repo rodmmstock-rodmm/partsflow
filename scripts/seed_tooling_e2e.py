@@ -12,7 +12,7 @@ import django  # noqa: E402
 
 django.setup()
 
-from core.models import Employee, RoleAccess, ToolingItem  # noqa: E402
+from core.models import Employee, RoleAccess, ToolingItem, ToolingVehicleKey  # noqa: E402
 
 
 role, _ = RoleAccess.objects.update_or_create(
@@ -28,6 +28,9 @@ role, _ = RoleAccess.objects.update_or_create(
         "can_add_tooling": True,
         "can_edit_tooling": True,
         "can_delete_tooling": True,
+        "can_view_tooling_keys": True,
+        "can_edit_tooling_keys": True,
+        "can_delete_tooling_keys": True,
     },
 )
 Employee.objects.update_or_create(
@@ -38,6 +41,19 @@ Employee.objects.update_or_create(
         "department": "QA",
         "active": True,
     },
+)
+Employee.objects.update_or_create(
+    employee_code="UI-TEST-002",
+    defaults={
+        "name": "Tooling UI Returner",
+        "role": role.role_name,
+        "department": "QA",
+        "active": True,
+    },
+)
+ToolingVehicleKey.objects.update_or_create(
+    vehicle_number=7,
+    defaults={"label": "E2E Test Vehicle Key", "remark": "Disposable browser-test key", "active": True},
 )
 ToolingItem.objects.update_or_create(
     name="E2E Test Sealant",
@@ -50,4 +66,4 @@ ToolingItem.objects.update_or_create(
         "active": True,
     },
 )
-print("Seeded isolated SQLite database with one test employee and one Tooling item.")
+print("Seeded isolated SQLite database with test employees, Tooling item, and tooling vehicle key.")
