@@ -35,8 +35,7 @@ def test_desktop_key_borrow_return_and_edit_history(browser):
 
     page.get_by_role("button", name="ประวัติการยืม-คืน").click()
     row = page.locator("article.panel").filter(has_text="รถเครื่องมือหมายเลข 7")
-    row.get_by_text("Tooling UI Tester").wait_for()
-    row.get_by_text("Tooling UI Tester").wait_for()
+    row.get_by_text("Tooling UI Tester").first.wait_for()
     row.get_by_role("button", name="แก้ไขประวัติ").click()
 
     returner = page.locator("select").last
