@@ -121,3 +121,81 @@ class ToolingVehicleKeyPermissionsTests(TestCase):
         self.assertEqual(delete_key.status_code, 200)
         self.key.refresh_from_db()
         self.assertFalse(self.key.active)
+
+
+class ToolingVehicleKeyHistoryIntegrityTests(ToolingVehicleKeyPermissionsTests):
+    def enable_edit(self):
+        self.role.can_edit_tooling_keys = True
+        self.role.save(update_fields=["can_edit_tooling_keys"])
+
+    def test_vehicle_number_cannot_change_after_any_loan_history_exists(self):
+        self.enable_edit()
+        ToolingVehicleKeyLoan.objects.create(
+            key=self.key,
+            borrower_employee=self.actor,
+            borrower_name=self.actor.name,
+            returned_at=timezone.now(),
+        )
+
+        response = self.client.patch(
+            reverse("web-tooling-key-detail", kwargs={"pk": self.key.id}),
+            {"vehicle_number": 2},
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, 409, response.data)
+        self.key.refresh_from_db()
+        self.assertEqual(self.key.vehicle_number, 1)
+
+    def test_vehicle_number_can_be_changed_before_first_loan(self):
+        self.enable_edit()
+        response = self.client.patch(
+            reverse("web-tooling-key-detail", kwargs={"pk": self.key.id}),
+            {"vehicle_number": 2},
+            format="json",
+        )
+        self.assertEqual(response.status_code, 200, response.data)
+        self.key.refresh_from_db()
+        self.assertEqual(self.key.vehicle_number, 2)
+
+    def test_editing_returner_updates_employee_relation_and_display_name_together(self):
+        self.enable_edit()
+        loan = ToolingVehicleKeyLoan.objects.create(
+            key=self.key,
+            borrower_employee=self.actor,
+            borrower_name=self.actor.name,
+            returned_by_employee=self.other,
+            returned_by_name=self.other.name,
+            returned_at=timezone.now(),
+        )
+
+        response = self.client.patch(
+            reverse("web-tooling-key-history-detail", kwargs={"pk": loan.id}),
+            {"returned_by_employee_id": str(self.actor.id)},
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, 200, response.data)
+        loan.refresh_from_db()
+        self.assertEqual(loan.returned_by_employee_id, self.actor.id)
+        self.assertEqual(loan.returned_by_name, self.actor.name)
+        self.assertEqual(response.data["returned_by_employee_id"], str(self.actor.id))
+
+    def test_history_rejects_free_text_returner_that_does_not_match_employee(self):
+        self.enable_edit()
+        loan = ToolingVehicleKeyLoan.objects.create(
+            key=self.key,
+            borrower_employee=self.actor,
+            borrower_name=self.actor.name,
+            returned_at=timezone.now(),
+        )
+
+        response = self.client.patch(
+            reverse("web-tooling-key-history-detail", kwargs={"pk": loan.id}),
+            {"returned_by_name": "Someone not in employee records"},
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, 400, response.data)
+        loan.refresh_from_db()
+        self.assertNotEqual(loan.returned_by_name, "Someone not in employee records")
