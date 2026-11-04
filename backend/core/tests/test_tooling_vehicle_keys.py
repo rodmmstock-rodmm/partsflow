@@ -1,3 +1,5 @@
+from datetime import timedelta
+
 from django.test import TestCase
 from django.urls import reverse
 from django.utils import timezone
@@ -166,7 +168,7 @@ class ToolingVehicleKeyHistoryIntegrityTests(ToolingVehicleKeyPermissionsTests):
             borrower_name=self.actor.name,
             returned_by_employee=self.other,
             returned_by_name=self.other.name,
-            returned_at=timezone.now(),
+            returned_at=timezone.now() + timedelta(minutes=1),
         )
 
         response = self.client.patch(
