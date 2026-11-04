@@ -1,5 +1,6 @@
 from django.test import TestCase
 from django.urls import reverse
+from django.utils import timezone
 from rest_framework.test import APIClient
 
 from core.models import Employee, RoleAccess, ToolingVehicleKey, ToolingVehicleKeyLoan
@@ -106,7 +107,7 @@ class ToolingVehicleKeyPermissionsTests(TestCase):
             borrower_name=self.actor.name,
             returned_by_employee=self.other,
             returned_by_name=self.other.name,
-            returned_at=__import__("django.utils.timezone", fromlist=["now"]).now(),
+            returned_at=timezone.now(),
         )
         delete_history = self.client.delete(
             reverse("web-tooling-key-history-detail", kwargs={"pk": loan.id})
