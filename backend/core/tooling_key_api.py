@@ -285,6 +285,8 @@ def key_history_detail(request, pk):
         elif not loan.returned_by_name:
             loan.returned_by_employee = actor
             loan.returned_by_name = actor.name
+    if loan.returned_at and loan.borrowed_at and loan.returned_at < loan.borrowed_at:
+        return Response({"detail": "วันเวลาคืนต้องไม่อยู่ก่อนวันเวลาที่ยืม"}, status=400)
     if "returned_by_name" in data:
         loan.returned_by_name = str(data.get("returned_by_name") or "").strip()
     if "borrow_remark" in data:
