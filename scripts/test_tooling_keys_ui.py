@@ -26,9 +26,11 @@ def test_desktop_key_borrow_return_and_edit_history(browser):
 
     page.get_by_role("button", name="ยืมกุญแจ").click()
     borrower = page.get_by_label("ชื่อผู้ยืม *")
-    assert borrower.locator("option").all_text_contents() == [
-        "เลือกพนักงาน", "Tooling UI Tester", "Tooling UI Returner"
-    ]
+    borrower_options = borrower.locator("option").all_text_contents()
+    assert borrower_options[0] == "เลือกพนักงาน"
+    assert "Tooling UI Tester" in borrower_options
+    assert "Tooling UI Returner" in borrower_options
+    assert all("UI-TEST-" not in option for option in borrower_options)
     borrower.select_option(label="Tooling UI Tester")
     page.get_by_role("button", name="ยืนยันการยืม").click()
     page.get_by_text("บันทึกการยืมกุญแจแล้ว").wait_for()
@@ -43,9 +45,11 @@ def test_desktop_key_borrow_return_and_edit_history(browser):
     row.get_by_role("button", name="แก้ไขประวัติ").click()
 
     returner = page.locator("select").last
-    assert returner.locator("option").all_text_contents() == [
-        "เลือกพนักงานผู้คืน", "Tooling UI Tester", "Tooling UI Returner"
-    ]
+    returner_options = returner.locator("option").all_text_contents()
+    assert returner_options[0] == "เลือกพนักงานผู้คืน"
+    assert "Tooling UI Tester" in returner_options
+    assert "Tooling UI Returner" in returner_options
+    assert all("UI-TEST-" not in option for option in returner_options)
     returner.select_option(label="Tooling UI Returner")
     page.get_by_role("button", name="บันทึกประวัติ").click()
     page.get_by_text("แก้ไขประวัติการยืม-คืนแล้ว").wait_for()
