@@ -294,20 +294,18 @@ def key_history_detail(request, pk):
         return Response({"detail": "วันเวลาคืนต้องไม่อยู่ก่อนวันเวลาที่ยืม"}, status=400)
     if "returned_by_employee_id" in data:
         supplied_id = str(data.get("returned_by_employee_id") or "").strip()
-        if supplied_id:
+        if not loan.returned_at:
+            loan.returned_by_employee = None
+            loan.returned_by_name = ""
+        elif supplied_id:
             returner = _employee(supplied_id)
             if not returner:
                 return Response({"detail": "ไม่พบพนักงานผู้คืนที่ยังปฏิบัติงานอยู่"}, status=400)
-            if not loan.returned_at:
-                return Response({"detail": "ต้องระบุวันเวลาที่คืนก่อนเลือกผู้คืน"}, status=400)
             loan.returned_by_employee = returner
             loan.returned_by_name = returner.name
-        elif loan.returned_at:
+        else:
             loan.returned_by_employee = actor
             loan.returned_by_name = actor.name
-        else:
-            loan.returned_by_employee = None
-            loan.returned_by_name = ""
     elif "returned_by_name" in data:
         # Backward compatibility for clients still sending a display name: only
         # accept an unambiguous active employee match, never a free-text mismatch.
