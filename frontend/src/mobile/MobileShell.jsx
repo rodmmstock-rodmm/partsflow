@@ -55,6 +55,7 @@ const ICON_SPRITE = (
     <symbol id="ic-shield" viewBox="0 0 24 24"><path d="M12 2.5l7.5 3.4v5.3c0 5-3.2 8.6-7.5 10.3-4.3-1.7-7.5-5.3-7.5-10.3V5.9L12 2.5z"/><path d="M9 12l2 2 4-4.2"/></symbol>
     <symbol id="ic-zap" viewBox="0 0 24 24"><path d="M13 2L4 14h6l-1 8 9-12h-6l1-8z"/></symbol>
     <symbol id="ic-power" viewBox="0 0 24 24"><path d="M12 3v8"/><path d="M6.3 6.3a8 8 0 1011.4 0"/></symbol>
+    <symbol id="ic-key" viewBox="0 0 24 24"><circle cx="8" cy="15" r="4"/><path d="M11 12l8-8 2 2-2 2 2 2-2 2-2-2-3 3"/></symbol>
     <symbol id="ic-gauge" viewBox="0 0 24 24"><path d="M4.2 18.2a9 9 0 1 1 15.6 0"/><path d="M12 13l4.2-4.2"/><circle cx="12" cy="13" r="1.5"/><path d="M3.5 18.5h17"/></symbol>
     <symbol id="ic-wrench" viewBox="0 0 24 24"><path d="M14.7 6.3a4 4 0 00-5.4 5.4L3 18l3 3 6.3-6.3a4 4 0 005.4-5.4l-2.6 2.6-2-2z"/></symbol>
     <symbol id="ic-qrcode" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><path d="M14 14h3v3h-3zM19 14h2v2h-2zM14 19h2v2h-2zM19 19h2v2h-2z"/></symbol>
