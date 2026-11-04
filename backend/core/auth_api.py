@@ -60,6 +60,9 @@ PERMISSION_FIELDS = [
     "can_add_tool",
     "can_edit_tool",
     "can_delete_tool",
+    "can_view_tooling_keys",
+    "can_edit_tooling_keys",
+    "can_delete_tooling_keys",
     "can_view_qr_withdraw",
     "can_view_cloth_rolls",
     "can_delete_cloth_roll_history",
@@ -83,7 +86,13 @@ def permissions_for(employee):
         role_name__iexact=role_name, active=True
     ).first()
     if role:
-        return {field: bool(getattr(role, field)) for field in PERMISSION_FIELDS}
+        permissions = {field: bool(getattr(role, field)) for field in PERMISSION_FIELDS}
+        if permissions.get("can_delete_tooling_keys"):
+            permissions["can_edit_tooling_keys"] = True
+            permissions["can_view_tooling_keys"] = True
+        elif permissions.get("can_edit_tooling_keys"):
+            permissions["can_view_tooling_keys"] = True
+        return permissions
 
     # A role that exists but has been disabled must not silently inherit the
     # legacy default permissions (or the ADMIN fallback). Fail closed instead.

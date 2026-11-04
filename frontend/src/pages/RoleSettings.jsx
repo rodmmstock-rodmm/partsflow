@@ -69,6 +69,10 @@ export const PERMISSIONS = [
   ["can_edit_tool", "Edit อุปกรณ์", "ยืม-คืนอุปกรณ์"],
   ["can_delete_tool", "Delete อุปกรณ์", "ยืม-คืนอุปกรณ์"],
 
+  ["can_view_tooling_keys", "View / บันทึกยืม-คืนกุญแจ", "ยืม-คืนกุญแจไขรถเครื่องมือ"],
+  ["can_edit_tooling_keys", "Edit รายการกุญแจ / ประวัติยืม-คืน", "ยืม-คืนกุญแจไขรถเครื่องมือ"],
+  ["can_delete_tooling_keys", "Delete รายการกุญแจ / ประวัติ", "ยืม-คืนกุญแจไขรถเครื่องมือ"],
+
   ["can_view_qr_withdraw", "View เบิก Screw", "เบิก Screw"],
   ["can_view_cloth_rolls", "View เบิกจ่ายเศษผ้า", "เบิกจ่ายเศษผ้า"],
   ["can_delete_cloth_roll_history", "Delete เบิกจ่ายเศษผ้า History", "เบิกจ่ายเศษผ้า"],
