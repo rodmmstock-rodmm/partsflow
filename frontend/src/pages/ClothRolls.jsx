@@ -197,7 +197,17 @@ export default function ClothRolls() {
         .cloth-rolls-page section.card h2 { color: var(--text, #172033) !important; font-size: 17px !important; }
         .cloth-rolls-page section.card button.btn.primary { background: var(--primary, #2563eb); }
         .cloth-rolls-page section.card button.btn.ghost { border-color: #dbeafe; color: #1d4ed8; }
-        .cloth-rolls-page #cloth-roll-form { border-color: var(--border, #e2e8f0) !important; }
+        .cloth-rolls-page #cloth-roll-form {
+          border-color: var(--border, #e2e8f0) !important;
+          position: relative;
+          overflow: visible !important;
+          z-index: 5;
+        }
+        .cloth-rolls-page #cloth-roll-form .searchable-select { position: relative; z-index: 6; }
+        .cloth-rolls-page #cloth-roll-form .searchable-menu {
+          z-index: 130;
+          max-height: min(260px, 40vh);
+        }
         .cloth-rolls-page #cloth-roll-form > div:first-child { background: #f8fafc !important; border-bottom-color: var(--border, #e2e8f0) !important; }
         .cloth-rolls-page #cloth-roll-form > div:first-child h2 { color: #172033 !important; }
         .cloth-rolls-page #cloth-roll-form > div:first-child span { background: #eff6ff !important; color: #1d4ed8 !important; }
@@ -417,7 +427,7 @@ export default function ClothRolls() {
           <span aria-hidden="true">🔒</span><div><strong>Phase จาก QR Code: {lockedPhase.label}</strong><div style={{ color: "var(--muted,#64748b)", fontSize: 13 }}>Phase นี้ถูกล็อก ไม่สามารถเปลี่ยนจากแบบฟอร์มได้</div></div>
         </div>}
 
-        <section id="cloth-roll-form" className="card cloth-rolls-form-card" style={{ padding: 0, borderRadius: 16, marginBottom: 22, overflow: "hidden", border: "1px solid #d4e1ed", boxShadow: "0 5px 18px rgba(57,120,184,.05)" }}><div style={{ padding: "14px 18px", background: "linear-gradient(90deg,#f3f8fd,#fff)", borderBottom: "1px solid #e2e8f0", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}><div><h2 style={{ margin: 0, fontSize: 18, color: "#285783" }}>{isQr ? "ฟอร์มเบิกเศษผ้า" : "บันทึกรายการเบิก / รับเข้า"}</h2><div style={{ marginTop: 3, color: "var(--muted,#64748b)", fontSize: 13 }}>{isQr ? "รายการสำหรับ " + (lockedPhase?.label || "Phase ที่ระบุใน QR") : "กำลังทำรายการสำหรับ " + phaseName(phase)}</div></div><span style={{ background: "#e1effb", color: "#3978b8", borderRadius: 999, padding: "5px 10px", fontSize: 12, fontWeight: 700 }}>หน่วย: ม้วน</span></div><div style={{ padding: 16 }}>
+        <section id="cloth-roll-form" className="card cloth-rolls-form-card" style={{ padding: 0, borderRadius: 16, marginBottom: 22, overflow: "visible", border: "1px solid #d4e1ed", boxShadow: "0 5px 18px rgba(57,120,184,.05)" }}><div style={{ padding: "14px 18px", background: "linear-gradient(90deg,#f3f8fd,#fff)", borderBottom: "1px solid #e2e8f0", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}><div><h2 style={{ margin: 0, fontSize: 18, color: "#285783" }}>{isQr ? "ฟอร์มเบิกเศษผ้า" : "บันทึกรายการเบิก / รับเข้า"}</h2><div style={{ marginTop: 3, color: "var(--muted,#64748b)", fontSize: 13 }}>{isQr ? "รายการสำหรับ " + (lockedPhase?.label || "Phase ที่ระบุใน QR") : "กำลังทำรายการสำหรับ " + phaseName(phase)}</div></div><span style={{ background: "#e1effb", color: "#3978b8", borderRadius: 999, padding: "5px 10px", fontSize: 12, fontWeight: 700 }}>หน่วย: ม้วน</span></div><div style={{ padding: 16 }}>
           <form onSubmit={saveTransaction}>
             {!isQr && <label className="field" style={{ display: "block", marginBottom: 14 }}><span>Phase</span>
               <select value={phase} onChange={(e) => { setPhase(e.target.value); setBorrowerId(""); }} style={{ width: "100%" }}>
