@@ -25,7 +25,11 @@ def test_desktop_key_borrow_return_and_edit_history(browser):
     page.get_by_text(KEY_LABEL).wait_for()
 
     page.get_by_role("button", name="ยืมกุญแจ").click()
-    page.get_by_label("ชื่อผู้ยืม *").select_option(label="Tooling UI Tester")
+    borrower = page.get_by_label("ชื่อผู้ยืม *")
+    assert borrower.locator("option").all_text_contents() == [
+        "เลือกพนักงาน", "Tooling UI Tester", "Tooling UI Returner"
+    ]
+    borrower.select_option(label="Tooling UI Tester")
     page.get_by_role("button", name="ยืนยันการยืม").click()
     page.get_by_text("บันทึกการยืมกุญแจแล้ว").wait_for()
 
@@ -39,6 +43,9 @@ def test_desktop_key_borrow_return_and_edit_history(browser):
     row.get_by_role("button", name="แก้ไขประวัติ").click()
 
     returner = page.locator("select").last
+    assert returner.locator("option").all_text_contents() == [
+        "เลือกพนักงานผู้คืน", "Tooling UI Tester", "Tooling UI Returner"
+    ]
     returner.select_option(label="Tooling UI Returner")
     page.get_by_role("button", name="บันทึกประวัติ").click()
     page.get_by_text("แก้ไขประวัติการยืม-คืนแล้ว").wait_for()
