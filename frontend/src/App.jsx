@@ -15,6 +15,7 @@ import Machines from "./pages/Machines";
 import RoleSettings from "./pages/RoleSettings";
 import Tools from "./pages/Tools";
 import Tooling from "./pages/Tooling";
+import ToolingKeys from "./pages/ToolingKeys";
 import QrWithdraw from "./pages/QrWithdraw";
 import ClothRolls from "./pages/ClothRolls";
 import ClothRollIssueForm from "./pages/ClothRollIssueForm";
@@ -38,6 +39,7 @@ const NAV_GROUPS = [
     ["/cloth-rolls", "เบิกจ่ายเศษผ้า", "fabric", "can_view_cloth_rolls"],
     ["/tooling", "Tooling รถเครื่องมือ", "wrench", "can_view_tooling"],
     ["/tools", "ยืม-คืน Gauge Control", "gauge", "can_view_tools"],
+    ["/tooling-keys", "ยืม-คืนกุญแจไขรถเครื่องมือ", "key", "can_view_tooling_keys"],
   ]],
   ["Order", [
     ["/orders", "Order", "cart", "can_view_orders"],
@@ -90,6 +92,7 @@ const ACCESS_FALLBACKS = [
   ["/cloth-rolls", "can_view_cloth_rolls"],
   ["/qr-withdraw", "can_view_qr_withdraw"],
   ["/tools", "can_view_tools"],
+  ["/tooling-keys", "can_view_tooling_keys"],
   ["/orders", "can_view_orders"],
   ["/order-steps", "can_view_order_step"],
   ["/order-status", "can_view_order_status"],
@@ -160,7 +163,7 @@ function DesktopShell() {
           </button>
         </div>
       </header>
-      <div className="modernize-page-content"><Routes><Route path="/" element={<Navigate to="/stock" replace />}/><Route path="/stock" element={<Protected permission="can_view_parts"><Dashboard/></Protected>}/><Route path="/overview" element={<Protected permission="can_view_dashboard"><DashboardOverview/></Protected>}/><Route path="/spare-sets" element={<Protected permission="can_view_dashboard"><SpareSets/></Protected>}/><Route path="/history" element={<Protected permission="can_view_history"><History/></Protected>}/><Route path="/safety-stock" element={<Protected permission="can_view_safety_stock"><SafetyStock/></Protected>}/><Route path="/orders" element={<Protected permission="can_view_orders"><div className="orders-workspace"><OrdersV2/></div></Protected>}/><Route path="/po-balance" element={<Protected permission="can_view_po_balance"><POBalance/></Protected>}/><Route path="/order-steps" element={<Protected permission="can_view_order_step"><div className="order-step-workspace"><Orders mode="steps"/></div></Protected>}/><Route path="/order-status" element={<Protected permission="can_view_order_status"><OrderStatusDashboard/></Protected>}/><Route path="/fast-orders" element={<Protected permission="can_view_orders"><FastOrders/></Protected>}/><Route path="/vendors" element={<Protected permission="can_view_suppliers"><Vendors/></Protected>}/><Route path="/machines" element={<Protected permission="can_view_machines"><Machines/></Protected>}/><Route path="/tooling" element={<Protected permission="can_view_tooling"><Tooling/></Protected>}/><Route path="/tools" element={<Protected permission="can_view_tools"><Tools/></Protected>}/><Route path="/qr-withdraw" element={<Protected permission="can_view_qr_withdraw"><QrWithdraw/></Protected>}/><Route path="/cloth-rolls/scan/:token" element={<AuthenticatedOnly><ClothRolls/></AuthenticatedOnly>}/><Route path="/cloth-rolls/:phase?" element={<Protected permission="can_view_cloth_rolls"><ClothRolls/></Protected>}/><Route path="/settings/roles" element={<Protected permission="can_manage_roles"><RoleSettings/></Protected>}/></Routes></div>
+      <div className="modernize-page-content"><Routes><Route path="/" element={<Navigate to="/stock" replace />}/><Route path="/stock" element={<Protected permission="can_view_parts"><Dashboard/></Protected>}/><Route path="/overview" element={<Protected permission="can_view_dashboard"><DashboardOverview/></Protected>}/><Route path="/spare-sets" element={<Protected permission="can_view_dashboard"><SpareSets/></Protected>}/><Route path="/history" element={<Protected permission="can_view_history"><History/></Protected>}/><Route path="/safety-stock" element={<Protected permission="can_view_safety_stock"><SafetyStock/></Protected>}/><Route path="/orders" element={<Protected permission="can_view_orders"><div className="orders-workspace"><OrdersV2/></div></Protected>}/><Route path="/po-balance" element={<Protected permission="can_view_po_balance"><POBalance/></Protected>}/><Route path="/order-steps" element={<Protected permission="can_view_order_step"><div className="order-step-workspace"><Orders mode="steps"/></div></Protected>}/><Route path="/order-status" element={<Protected permission="can_view_order_status"><OrderStatusDashboard/></Protected>}/><Route path="/fast-orders" element={<Protected permission="can_view_orders"><FastOrders/></Protected>}/><Route path="/vendors" element={<Protected permission="can_view_suppliers"><Vendors/></Protected>}/><Route path="/machines" element={<Protected permission="can_view_machines"><Machines/></Protected>}/><Route path="/tooling" element={<Protected permission="can_view_tooling"><Tooling/></Protected>}/><Route path="/tools" element={<Protected permission="can_view_tools"><Tools/></Protected>}/><Route path="/tooling-keys" element={<Protected permission="can_view_tooling_keys"><ToolingKeys/></Protected>}/><Route path="/qr-withdraw" element={<Protected permission="can_view_qr_withdraw"><QrWithdraw/></Protected>}/><Route path="/cloth-rolls/scan/:token" element={<AuthenticatedOnly><ClothRolls/></AuthenticatedOnly>}/><Route path="/cloth-rolls/:phase?" element={<Protected permission="can_view_cloth_rolls"><ClothRolls/></Protected>}/><Route path="/settings/roles" element={<Protected permission="can_manage_roles"><RoleSettings/></Protected>}/></Routes></div>
     </main>
   </div>;
 }
