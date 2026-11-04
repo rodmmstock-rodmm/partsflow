@@ -350,6 +350,10 @@ class RoleAccess(UUIDMixin):
     can_edit_tool = models.BooleanField(default=False)
     can_delete_tool = models.BooleanField(default=False)
 
+    can_view_tooling_keys = models.BooleanField(default=False)
+    can_edit_tooling_keys = models.BooleanField(default=False)
+    can_delete_tooling_keys = models.BooleanField(default=False)
+
     can_view_qr_withdraw = models.BooleanField(default=False)
     can_view_cloth_rolls = models.BooleanField(default=False)
     can_delete_cloth_roll_history = models.BooleanField(default=False)
@@ -1017,6 +1021,60 @@ class ToolLoanRecord(UUIDMixin):
 
     class Meta:
         ordering = ["-borrowed_at"]
+
+
+class ToolingVehicleKey(UUIDMixin):
+    """One managed key assigned to one tooling vehicle."""
+    vehicle_number = models.PositiveSmallIntegerField(unique=True)
+    label = models.CharField(max_length=160, blank=True)
+    remark = models.TextField(blank=True)
+    active = models.BooleanField(default=True)
+
+    class Meta:
+        ordering = ["vehicle_number"]
+
+    def __str__(self):
+        return f"รถเครื่องมือ {self.vehicle_number}"
+
+
+class ToolingVehicleKeyLoan(UUIDMixin):
+    """Auditable borrow/return cycle for a tooling vehicle key."""
+    key = models.ForeignKey(
+        ToolingVehicleKey, on_delete=models.PROTECT, related_name="loans"
+    )
+    borrower_employee = models.ForeignKey(
+        Employee, null=True, blank=True, on_delete=models.SET_NULL,
+        related_name="tooling_vehicle_key_borrows",
+    )
+    borrower_name = models.CharField(max_length=150)
+    borrowed_at = models.DateTimeField(auto_now_add=True)
+    returned_by_employee = models.ForeignKey(
+        Employee, null=True, blank=True, on_delete=models.SET_NULL,
+        related_name="tooling_vehicle_key_returns",
+    )
+    returned_by_name = models.CharField(max_length=150, blank=True)
+    returned_at = models.DateTimeField(null=True, blank=True)
+    borrow_remark = models.TextField(blank=True)
+    return_remark = models.TextField(blank=True)
+    created_by_employee = models.ForeignKey(
+        Employee, null=True, blank=True, on_delete=models.SET_NULL,
+        related_name="created_tooling_vehicle_key_loans",
+    )
+    updated_by_employee = models.ForeignKey(
+        Employee, null=True, blank=True, on_delete=models.SET_NULL,
+        related_name="updated_tooling_vehicle_key_loans",
+    )
+    is_deleted = models.BooleanField(default=False)
+
+    class Meta:
+        ordering = ["-borrowed_at", "-created_at"]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["key"],
+                condition=models.Q(returned_at__isnull=True, is_deleted=False),
+                name="uniq_open_tooling_vehicle_key_loan",
+            )
+        ]
 
 
 class AuditLog(models.Model):
