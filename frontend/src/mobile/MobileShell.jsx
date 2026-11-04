@@ -15,6 +15,7 @@ import MobileRoles from "./MobileRoles";
 import POBalance from "../pages/POBalance";
 import Tools from "../pages/Tools";
 import Tooling from "../pages/Tooling";
+import ToolingKeys from "../pages/ToolingKeys";
 import QrWithdraw from "../pages/QrWithdraw";
 import ClothRolls from "../pages/ClothRolls";
 import AppRefreshButton from "../components/AppRefreshButton";
@@ -33,6 +34,7 @@ const NAV = [
   ["/machines", "Machine", "gear", "can_view_machines"],
   ["/tooling", "Tooling รถเครื่องมือ", "wrench", "can_view_tooling"],
   ["/tools", "ยืม-คืน Gauge Control", "gauge", "can_view_tools"],
+  ["/tooling-keys", "ยืม-คืนกุญแจรถ", "key", "can_view_tooling_keys"],
   ["/qr-withdraw", "เบิก Screw", "screw", "can_view_qr_withdraw"],
   ["/cloth-rolls", "เศษผ้า", "fabric", "can_view_cloth_rolls"],
   ["/settings/roles", "Roles", "shield", "can_manage_roles"],
@@ -70,6 +72,7 @@ const MOBILE_ACCESS_FALLBACKS = [
   ["/qr-withdraw", "can_view_qr_withdraw"],
   ["/tooling", "can_view_tooling"],
   ["/tools", "can_view_tools"],
+  ["/tooling-keys", "can_view_tooling_keys"],
   ["/orders", "can_view_orders"],
   ["/order-steps", "can_view_order_step"],
   ["/order-status", "can_view_order_status"],
@@ -135,6 +138,7 @@ export default function MobileShell() {
           <Route path="/machines" element={<Protected permission="can_view_machines"><MobileMachines /></Protected>} />
           <Route path="/tooling" element={<Protected permission="can_view_tooling"><Tooling /></Protected>} />
           <Route path="/tools" element={<Protected permission="can_view_tools"><Tools /></Protected>} />
+          <Route path="/tooling-keys" element={<Protected permission="can_view_tooling_keys"><ToolingKeys /></Protected>} />
           <Route path="/qr-withdraw" element={<Protected permission="can_view_qr_withdraw"><QrWithdraw /></Protected>} />
           <Route path="/cloth-rolls/scan/:token" element={<ClothRolls />} />
           <Route path="/cloth-rolls/:phase?" element={<Protected permission="can_view_cloth_rolls"><ClothRolls /></Protected>} />
