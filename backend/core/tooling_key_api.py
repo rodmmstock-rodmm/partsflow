@@ -70,9 +70,10 @@ def keys_list(request):
         if not include_inactive:
             qs = qs.filter(active=True)
         if q:
-            qs = qs.filter(Q(label__icontains=q) | Q(remark__icontains=q))
+            search = Q(label__icontains=q) | Q(remark__icontains=q)
             if q.isdigit():
-                qs = qs.filter(vehicle_number=int(q))
+                search |= Q(vehicle_number=int(q))
+            qs = qs.filter(search)
         employees = [
             {"id": str(e.id), "name": e.name, "employee_code": e.employee_code}
             for e in Employee.objects.filter(active=True).order_by("name")[:1000]
@@ -226,12 +227,14 @@ def key_history(request):
     if outstanding:
         qs = qs.filter(returned_at__isnull=True)
     if q:
-        qs = qs.filter(
-            Q(key__vehicle_number__icontains=q)
-            | Q(key__label__icontains=q)
+        search = (
+            Q(key__label__icontains=q)
             | Q(borrower_name__icontains=q)
             | Q(returned_by_name__icontains=q)
         )
+        if q.isdigit():
+            search |= Q(key__vehicle_number=int(q))
+        qs = qs.filter(search)
     return Response({"results": [loan_json(loan) for loan in qs[:1000]]})
 
 
