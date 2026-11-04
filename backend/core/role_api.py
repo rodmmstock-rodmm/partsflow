@@ -93,6 +93,11 @@ def update_role(request, pk):
         role.display_name = str(request.data.get("display_name") or "").strip()
     if "active" in request.data:
         role.active = bool(request.data.get("active"))
+    if role.can_delete_tooling_keys:
+        role.can_edit_tooling_keys = True
+        role.can_view_tooling_keys = True
+    elif role.can_edit_tooling_keys:
+        role.can_view_tooling_keys = True
     role.save()
     audit(actor, "UPDATE", "RoleAccess", role.id, {"before": before, "after": role_json(role)})
     return Response(role_json(role))
