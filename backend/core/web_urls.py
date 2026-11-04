@@ -1,6 +1,6 @@
 from django.urls import path
 
-from . import tooling_api, auth_api, cloth_roll_api, dashboard_api, drive_oauth, fast_order_api, order_api, order_audit_api, order_delete_api, order_step_api, order_vendor_api, qr_withdraw_api, rfq_api, rfq_step_guard, role_api, spare_set_api, stock_api, tool_api, web_api
+from . import tooling_api, auth_api, cloth_roll_api, dashboard_api, drive_oauth, fast_order_api, order_api, order_audit_api, order_delete_api, order_step_api, order_vendor_api, qr_withdraw_api, rfq_api, rfq_step_guard, role_api, spare_set_api, stock_api, tool_api, tooling_key_api, web_api
 
 urlpatterns = [
     path("auth/login/", auth_api.login_view),
@@ -74,6 +74,12 @@ urlpatterns = [
     path("tooling/history/<uuid:pk>/", tooling_api.delete_history, name="web-tooling-history-delete"),
 
     # Equipment Borrow-Return (admin side, authenticated)
+    path("tooling-keys/", tooling_key_api.keys_list, name="web-tooling-keys"),
+    path("tooling-keys/<uuid:pk>/", tooling_key_api.key_detail, name="web-tooling-key-detail"),
+    path("tooling-keys/<uuid:pk>/borrow/", tooling_key_api.borrow_key, name="web-tooling-key-borrow"),
+    path("tooling-keys/<uuid:pk>/return/", tooling_key_api.return_key, name="web-tooling-key-return"),
+    path("tooling-keys/history/", tooling_key_api.key_history, name="web-tooling-key-history"),
+    path("tooling-keys/history/<uuid:pk>/", tooling_key_api.key_history_detail, name="web-tooling-key-history-detail"),
     path("tools/", tool_api.tools_list, name="web-tools-list"),
     path("tools/history/", tool_api.tool_loan_history, name="web-tools-history"),
     path("tools/<uuid:pk>/", tool_api.tool_detail, name="web-tool-detail"),
