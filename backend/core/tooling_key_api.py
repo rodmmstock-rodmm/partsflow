@@ -131,9 +131,14 @@ def key_detail(request, pk):
             number = int(request.data.get("vehicle_number"))
             if number < 1 or number > 999:
                 raise ValueError()
-            key.vehicle_number = number
         except (TypeError, ValueError):
             return Response({"detail": "หมายเลขรถต้องเป็นตัวเลขตั้งแต่ 1 ถึง 999"}, status=400)
+        if number != key.vehicle_number and key.loans.exists():
+            return Response(
+                {"detail": "ไม่สามารถเปลี่ยนหมายเลขรถได้ เนื่องจากมีประวัติการยืม-คืนแล้ว เพื่อรักษาความถูกต้องของประวัติ"},
+                status=409,
+            )
+        key.vehicle_number = number
     if "label" in request.data:
         key.label = str(request.data.get("label") or "").strip()
     if "remark" in request.data:
@@ -282,16 +287,46 @@ def key_history_detail(request, pk):
         if value is None:
             loan.returned_by_employee = None
             loan.returned_by_name = ""
-        elif not loan.returned_by_name:
+        elif not loan.returned_by_employee_id:
             loan.returned_by_employee = actor
             loan.returned_by_name = actor.name
     if loan.returned_at and loan.borrowed_at and loan.returned_at < loan.borrowed_at:
         return Response({"detail": "วันเวลาคืนต้องไม่อยู่ก่อนวันเวลาที่ยืม"}, status=400)
-    if "returned_by_name" in data:
-        supplied_returner = str(data.get("returned_by_name") or "").strip()
-        loan.returned_by_name = supplied_returner or (actor.name if loan.returned_at else "")
-        if loan.returned_at and not supplied_returner:
+    if "returned_by_employee_id" in data:
+        supplied_id = str(data.get("returned_by_employee_id") or "").strip()
+        if supplied_id:
+            returner = _employee(supplied_id)
+            if not returner:
+                return Response({"detail": "ไม่พบพนักงานผู้คืนที่ยังปฏิบัติงานอยู่"}, status=400)
+            if not loan.returned_at:
+                return Response({"detail": "ต้องระบุวันเวลาที่คืนก่อนเลือกผู้คืน"}, status=400)
+            loan.returned_by_employee = returner
+            loan.returned_by_name = returner.name
+        elif loan.returned_at:
             loan.returned_by_employee = actor
+            loan.returned_by_name = actor.name
+        else:
+            loan.returned_by_employee = None
+            loan.returned_by_name = ""
+    elif "returned_by_name" in data:
+        # Backward compatibility for clients still sending a display name: only
+        # accept an unambiguous active employee match, never a free-text mismatch.
+        supplied_name = str(data.get("returned_by_name") or "").strip()
+        if not supplied_name and not loan.returned_at:
+            loan.returned_by_employee = None
+            loan.returned_by_name = ""
+        elif supplied_name:
+            matches = Employee.objects.filter(active=True, name__iexact=supplied_name)
+            if matches.count() != 1:
+                return Response({"detail": "กรุณาเลือกผู้คืนจากรายชื่อพนักงาน"}, status=400)
+            returner = matches.first()
+            if not loan.returned_at:
+                return Response({"detail": "ต้องระบุวันเวลาที่คืนก่อนเลือกผู้คืน"}, status=400)
+            loan.returned_by_employee = returner
+            loan.returned_by_name = returner.name
+        else:
+            loan.returned_by_employee = actor
+            loan.returned_by_name = actor.name
     if "borrow_remark" in data:
         loan.borrow_remark = str(data.get("borrow_remark") or "").strip()
     if "return_remark" in data:
