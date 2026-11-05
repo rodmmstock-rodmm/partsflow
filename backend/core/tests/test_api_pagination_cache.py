@@ -23,7 +23,7 @@ from core.models import (
     Unit,
 )
 from core.stock_api import history_list
-from core.web_api import options, parts_list
+from core.web_api import options, parts_list, safety_stock
 
 
 class ApiPaginationAndCacheTests(TestCase):
@@ -227,3 +227,90 @@ class ApiPaginationAndCacheTests(TestCase):
             {"parts": 3, "safety_stock": 1, "safety_stock_ordered": 1},
         )
         self.assertLessEqual(len(queries), 3)
+
+    def test_safety_stock_filters_in_database_and_uses_latest_non_void_issue(self):
+        latest_machine = Machine.objects.create(
+            code="MC-02", name="Machine 2", active=True
+        )
+        # The existing fixture part is below Min Stock and has no open order.
+        now = timezone.now()
+        StockTransaction.objects.create(
+            transaction_no="TX-LATEST-VALID",
+            part=self.part,
+            location=self.location,
+            transaction_type="TRANSFER_OUT",
+            quantity=Decimal("1"),
+            machine=latest_machine,
+            transaction_date=now + timedelta(minutes=2),
+            legacy_source="WEB",
+        )
+        StockTransaction.objects.create(
+            transaction_no="TX-LATEST-VOID",
+            part=self.part,
+            location=self.location,
+            transaction_type="ISSUE",
+            quantity=Decimal("1"),
+            machine=self.machine,
+            transaction_date=now + timedelta(minutes=3),
+            is_void=True,
+            legacy_source="WEB",
+        )
+
+        ordered = Part.objects.create(
+            sku="P-ORDERED-SAFETY",
+            name="Ordered Safety Part",
+            location=self.location,
+            min_stock=Decimal("10"),
+            active=True,
+        )
+        Inventory.objects.create(
+            part=ordered, location=self.location, quantity=Decimal("1")
+        )
+        OrderRecord.objects.create(
+            order_number="ORD-SAFETY-ACTIVE",
+            order_date=date.today(),
+            part=ordered,
+            part_name=ordered.name,
+            unit_text="PCS",
+            procurement_phase=OrderRecord.PROCUREMENT_PURCHASE,
+            lifecycle_status=OrderRecord.LIFECYCLE_ACTIVE,
+            is_deleted=False,
+        )
+
+        at_minimum = Part.objects.create(
+            sku="P-AT-MIN",
+            name="At Minimum",
+            location=self.location,
+            min_stock=Decimal("5"),
+            active=True,
+        )
+        Inventory.objects.create(
+            part=at_minimum, location=self.location, quantity=Decimal("5")
+        )
+        n_part = Part.objects.create(
+            sku="N-SAFETY-001",
+            name="N Prefix Part",
+            location=self.location,
+            min_stock=Decimal("10"),
+            active=True,
+        )
+        Inventory.objects.create(
+            part=n_part, location=self.location, quantity=Decimal("0")
+        )
+
+        request = self.factory.get("/api/safety-stock/")
+        with patch("core.web_api.require_permission", return_value=(self.employee, None)):
+            with CaptureQueriesContext(connection) as queries:
+                response = safety_stock(request)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data["count"], 1)
+        result = response.data["results"][0]
+        self.assertEqual(result["id"], str(self.part.id))
+        self.assertEqual(result["last_machine"], latest_machine.code)
+        self.assertEqual(result["last_machine_id"], str(latest_machine.id))
+        self.assertEqual(result["last_machine_name"], latest_machine.name)
+        self.assertEqual(result["order_qty"], float(self.part.reorder_qty or 0))
+        # Permission is mocked, so the optimized endpoint should need one SQL
+        # query regardless of the number of parts and matching transactions.
+        self.assertEqual(len(queries), 1)
