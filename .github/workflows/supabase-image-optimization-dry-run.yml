@@ -4,9 +4,9 @@ on:
   workflow_dispatch:
     inputs:
       limit:
-        description: "Maximum images to inspect (20 for a sample; 100 for a larger read-only sample; 0 scans all images)"
+        description: "Maximum images to inspect (metadata only; no image files are downloaded)"
         required: true
-        default: "100"
+        default: "20"
         type: string
   push:
     branches:
@@ -22,9 +22,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 30
     env:
-      # Project URL is public configuration, not a secret.
       SUPABASE_URL: https://cyacvmjkqgnbihivsrtf.supabase.co
-      # Keep the privileged Storage key in GitHub Actions Secrets.
       SUPABASE_SECRET_KEY: ${{ secrets.SUPABASE_SECRET_KEY }}
     steps:
       - name: Check required secret
@@ -44,10 +42,10 @@ jobs:
         working-directory: backend
         run: pip install -r requirements.render.txt
 
-      - name: Run read-only dry-run
+      - name: Run metadata-only dry-run (never downloads image bodies)
         working-directory: backend
         env:
-          IMAGE_LIMIT: ${{ github.event_name == 'workflow_dispatch' && inputs.limit || '100' }}
+          IMAGE_LIMIT: ${{ github.event_name == 'workflow_dispatch' && inputs.limit || '20' }}
         run: |
           python manage.py optimize_supabase_images --limit "$IMAGE_LIMIT" 2>&1 | tee image-optimization-dry-run.txt
 
