@@ -114,7 +114,7 @@ def test_desktop_gauge_control_equipment_cards(browser):
     login(page)
     page.goto(f"{BASE_URL}/tools", wait_until="networkidle")
 
-    page.get_by_role("heading", name="ยืม-คืน Gauge Control").wait_for()
+    page.get_by_role("heading", name="ยืม-คืนอุปกรณ์เครื่องมือ").wait_for()
     card = page.locator(".gauge-equipment-card").filter(has_text="E2E-GAUGE-001")
     card.get_by_text("E2E Gauge Caliper").wait_for()
     card.get_by_text("Digital Caliper").wait_for()
