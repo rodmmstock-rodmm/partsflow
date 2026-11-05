@@ -44,6 +44,9 @@ jobs:
       - name: Check migration state
         run: python manage.py makemigrations --check --dry-run
 
+      - name: Test Supabase image optimization egress safeguards
+        run: python manage.py test core.tests.test_optimize_supabase_images_command --verbosity 2
+
       - name: Run Tooling and cloth-roll history regression tests
         run: |
           python manage.py test core.tests.test_tooling_inventory --verbosity 2
