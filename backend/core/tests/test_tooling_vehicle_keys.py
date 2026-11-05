@@ -153,7 +153,7 @@ class ToolingVehicleKeyHistoryIntegrityTests(ToolingVehicleKeyPermissionsTests):
         self.enable_edit()
         response = self.client.patch(
             reverse("web-tooling-key-detail", kwargs={"pk": self.key.id}),
-            {"vehicle_number": 2},
+            {"vehicle_number": 15},
             format="json",
         )
         self.assertEqual(response.status_code, 200, response.data)
