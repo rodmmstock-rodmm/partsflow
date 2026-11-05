@@ -1,0 +1,21 @@
+.gauge-equipment-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,270px),1fr));gap:12px;align-items:stretch}
+.gauge-equipment-card{min-width:0;display:flex;flex-direction:column;padding:13px;border:1px solid var(--border);border-radius:12px;background:#fff;transition:border-color .15s ease,box-shadow .15s ease}
+.gauge-equipment-card:hover{border-color:#b8d1e9;box-shadow:0 3px 12px rgba(35,76,115,.06)}
+.gauge-equipment-card-top{display:flex;align-items:center;gap:11px;min-width:0;padding-bottom:10px;border-bottom:1px solid var(--border-soft)}
+.gauge-equipment-photo{flex:0 0 68px;width:68px;height:64px;display:grid;place-items:center;overflow:hidden;border-radius:8px;background:#f5f7fa}
+.gauge-equipment-photo img{width:100%;height:100%;object-fit:contain}
+.gauge-equipment-photo .gauge-equipment-placeholder{width:56px;height:52px}
+.gauge-equipment-photo .gauge-equipment-placeholder svg{width:30px;height:30px}
+.gauge-equipment-identity{min-width:0;display:flex;flex-direction:column;align-items:flex-start;gap:7px}
+.gauge-equipment-code{color:var(--brand);font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12px;font-weight:700;overflow-wrap:anywhere}
+.gauge-equipment-card-body{flex:1;min-width:0;padding:10px 0 12px}
+.gauge-equipment-card-body h3{margin:0 0 10px;color:var(--text);font-size:14px;font-weight:650;line-height:1.4;overflow-wrap:anywhere}
+.gauge-equipment-meta{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px 12px}
+.gauge-equipment-meta>div{min-width:0;display:flex;flex-direction:column;gap:2px}
+.gauge-equipment-meta>div>span{color:var(--muted);font-size:10px;line-height:1.3}
+.gauge-equipment-meta>div>strong{color:var(--text);font-size:11px;font-weight:550;line-height:1.4;overflow-wrap:anywhere}
+.gauge-equipment-meta .gauge-equipment-location{grid-column:1/-1}
+.gauge-equipment-card-actions{display:flex;align-items:center;justify-content:space-between;gap:8px;padding-top:9px;border-top:1px solid var(--border-soft)}
+.gauge-equipment-card-actions .row-actions{display:flex;align-items:center;gap:5px}
+.gauge-equipment-empty{padding:28px 12px;border:1px dashed var(--border);border-radius:10px;background:#fafbfd;text-align:center}
+@media(max-width:767px){.gauge-equipment-grid{grid-template-columns:minmax(0,1fr);gap:9px}.gauge-equipment-card{padding:11px;border-radius:10px}.gauge-equipment-card-body{padding:9px 0 10px}.gauge-equipment-card-actions button{min-height:32px;padding:6px 10px}}
