@@ -108,16 +108,57 @@ def test_mobile_tooling_withdrawal_vehicle_number_dropdown(browser):
     assert page.get_by_label("เหตุผล *").is_visible()
     page.close()
 
+
+def test_desktop_gauge_control_equipment_cards(browser):
+    page = browser.new_page(viewport={"width": 1440, "height": 1000})
+    login(page)
+    page.goto(f"{BASE_URL}/tools", wait_until="networkidle")
+
+    page.get_by_role("heading", name="ยืม-คืน Gauge Control").wait_for()
+    card = page.locator(".gauge-equipment-card").filter(has_text="E2E-GAUGE-001")
+    card.get_by_text("E2E Gauge Caliper").wait_for()
+    card.get_by_text("Digital Caliper").wait_for()
+    card.get_by_text("Gauge Test Maker").wait_for()
+    card.get_by_text("GAUGE-SN-001").wait_for()
+    card.get_by_text("Phase4").wait_for()
+    card.get_by_text("QA Shelf A1").wait_for()
+    assert page.locator(".gauge-equipment-grid .gauge-equipment-card").count() == 1
+    assert page.locator(".gauge-equipment-grid table").count() == 0
+
+    card.get_by_role("button", name="QR", exact=True).click()
+    page.get_by_role("heading", name="QR Code - E2E-GAUGE-001").wait_for()
+    page.get_by_role("button", name="ปิด").click()
+    page.close()
+
+
+def test_mobile_gauge_control_equipment_cards(browser):
+    page = browser.new_page(
+        viewport={"width": 390, "height": 844},
+        is_mobile=True,
+        has_touch=True,
+    )
+    login(page)
+    page.goto(f"{BASE_URL}/tools", wait_until="networkidle")
+
+    card = page.locator(".gauge-equipment-card").filter(has_text="E2E-GAUGE-001")
+    card.get_by_text("E2E Gauge Caliper").wait_for()
+    assert card.is_visible()
+    assert page.locator(".gauge-equipment-grid table").count() == 0
+    assert page.evaluate("document.documentElement.scrollWidth <= window.innerWidth")
+    page.close()
+
 def main():
     with sync_playwright() as playwright:
         browser = playwright.chromium.launch()
         try:
             test_desktop_tooling_qr_withdrawal_and_history(browser)
+            test_desktop_gauge_control_equipment_cards(browser)
+            test_mobile_gauge_control_equipment_cards(browser)
             test_mobile_safety_stock_shows_tooling_when_parts_are_empty(browser)
             test_mobile_tooling_withdrawal_vehicle_number_dropdown(browser)
         finally:
             browser.close()
-    print("PASS: isolated desktop Tooling QR/withdrawal/history, mobile Tooling withdrawal, and mobile Safety Stock E2E tests")
+    print("PASS: isolated desktop Tooling and Gauge Control, mobile Tooling/Gauge Control, and mobile Safety Stock E2E tests")
 
 
 if __name__ == "__main__":
