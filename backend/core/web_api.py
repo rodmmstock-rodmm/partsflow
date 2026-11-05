@@ -1,4 +1,5 @@
 from decimal import Decimal, InvalidOperation
+from uuid import UUID
 import hashlib
 import re
 
@@ -1161,15 +1162,6 @@ def safety_stock(request):
     # Keep the existing eligibility rules, but let PostgreSQL filter parts
     # before they cross the database connection and resolve related data in
     # one query instead of issuing one transaction query per result row.
-    active_purchase_order = OrderRecord.objects.filter(
-        part_id=OuterRef("pk"),
-        is_deleted=False,
-        procurement_phase=OrderRecord.PROCUREMENT_PURCHASE,
-        lifecycle_status__in=[
-            OrderRecord.LIFECYCLE_ACTIVE,
-            OrderRecord.LIFECYCLE_WAIT_CONFIRM,
-        ],
-    )
     latest_issue = StockTransaction.objects.filter(
         part_id=OuterRef("pk"),
         is_void=False,
@@ -1185,12 +1177,11 @@ def safety_stock(request):
         )
         .exclude(sku__istartswith="N")
         .annotate(
-            has_active_purchase_order=Exists(active_purchase_order),
             last_machine_code=Subquery(latest_issue.values("machine__code")[:1]),
             last_machine_id=Subquery(latest_issue.values("machine_id")[:1]),
             last_machine_name=Subquery(latest_issue.values("machine__name")[:1]),
         )
-        .filter(has_active_purchase_order=False)
+        .filter(active_ordering=False)
         .order_by("sku")
     )
 
@@ -1198,7 +1189,7 @@ def safety_stock(request):
         {
             **part_json(part),
             "last_machine": part.last_machine_code or "",
-            "last_machine_id": str(part.last_machine_id) if part.last_machine_id else "",
+            "last_machine_id": str(UUID(str(part.last_machine_id))) if part.last_machine_id else "",
             "last_machine_name": part.last_machine_name or "",
             "order_qty": float(part.reorder_qty or 0),
         }
