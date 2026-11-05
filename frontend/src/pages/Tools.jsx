@@ -188,11 +188,25 @@ function EquipmentTab() {
   }
 
   useEffect(() => {
-    // Load once when this page opens. The shared API client caches GET
-    // responses, and writes on this page explicitly reload the list.
-    // Avoid polling every 10 seconds: it repeatedly transfers the full
-    // equipment payload even when nobody is using or changing the page.
-    load();
+    let alive = true;
+    // Keep automatic cross-user status refresh, but let the shared GET cache
+    // coalesce the 10-second checks into at most one network fetch per cache
+    // TTL (60 seconds). This avoids repeatedly transferring the full list
+    // while preserving automatic updates without requiring a manual refresh.
+    const refresh = async () => {
+      try {
+        const d = await apiGet("/tools/");
+        if (alive) setRows(d.results || []);
+      } catch (err) {
+        if (alive) setError(err.message);
+      }
+    };
+    refresh();
+    const timer = setInterval(refresh, 10000);
+    return () => {
+      alive = false;
+      clearInterval(timer);
+    };
   }, []);
 
   const shown = useMemo(
