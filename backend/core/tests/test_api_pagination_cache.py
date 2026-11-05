@@ -277,6 +277,52 @@ class ApiPaginationAndCacheTests(TestCase):
             is_deleted=False,
         )
 
+        cancelled_order_part = Part.objects.create(
+            sku="P-CANCELLED-ORDER",
+            name="Cancelled Order Part",
+            location=self.location,
+            min_stock=Decimal("10"),
+            active=True,
+        )
+        Inventory.objects.create(
+            part=cancelled_order_part,
+            location=self.location,
+            quantity=Decimal("0"),
+        )
+        OrderRecord.objects.create(
+            order_number="ORD-SAFETY-CANCELLED",
+            order_date=date.today(),
+            part=cancelled_order_part,
+            part_name=cancelled_order_part.name,
+            unit_text="PCS",
+            procurement_phase=OrderRecord.PROCUREMENT_PURCHASE,
+            lifecycle_status=OrderRecord.LIFECYCLE_CANCELLED,
+            is_deleted=False,
+        )
+
+        wait_confirm_part = Part.objects.create(
+            sku="P-WAIT-CONFIRM",
+            name="Wait Confirm Part",
+            location=self.location,
+            min_stock=Decimal("10"),
+            active=True,
+        )
+        Inventory.objects.create(
+            part=wait_confirm_part,
+            location=self.location,
+            quantity=Decimal("0"),
+        )
+        OrderRecord.objects.create(
+            order_number="ORD-SAFETY-WAIT-CONFIRM",
+            order_date=date.today(),
+            part=wait_confirm_part,
+            part_name=wait_confirm_part.name,
+            unit_text="PCS",
+            procurement_phase=OrderRecord.PROCUREMENT_PURCHASE,
+            lifecycle_status=OrderRecord.LIFECYCLE_WAIT_CONFIRM,
+            is_deleted=False,
+        )
+
         at_minimum = Part.objects.create(
             sku="P-AT-MIN",
             name="At Minimum",
@@ -304,13 +350,18 @@ class ApiPaginationAndCacheTests(TestCase):
                 response = safety_stock(request)
 
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.data["count"], 1)
-        result = response.data["results"][0]
-        self.assertEqual(result["id"], str(self.part.id))
+        self.assertEqual(response.data["count"], 2)
+        results_by_id = {row["id"]: row for row in response.data["results"]}
+        result = results_by_id[str(self.part.id)]
+        cancelled_result = results_by_id[str(cancelled_order_part.id)]
         self.assertEqual(result["last_machine"], latest_machine.code)
         self.assertEqual(result["last_machine_id"], str(latest_machine.id))
         self.assertEqual(result["last_machine_name"], latest_machine.name)
         self.assertEqual(result["order_qty"], float(self.part.reorder_qty or 0))
+        # A cancelled purchase order must not suppress a Safety Stock row.
+        self.assertEqual(cancelled_result["last_machine"], "")
+        self.assertEqual(cancelled_result["last_machine_id"], "")
+        self.assertEqual(cancelled_result["last_machine_name"], "")
         # Permission is mocked, so the optimized endpoint should need one SQL
         # query regardless of the number of parts and matching transactions.
         self.assertEqual(len(queries), 1)
