@@ -180,19 +180,19 @@ export default function ToolingKeys() {
           {!keys.length && <div className="panel empty">ยังไม่มีรายการกุญแจ กรุณาเพิ่มรายการกุญแจรถเครื่องมือ</div>}
         </div>
       ) : (
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(min(100%,320px),1fr))", gap: 12 }}>
-          {history.map((loan) => <article className="panel" key={loan.id} style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(min(100%,280px),1fr))", gap: 8 }}>
+          {history.map((loan) => <article className="panel" key={loan.id} style={{ display: "flex", flexDirection: "column", gap: 7, padding: 12 }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8 }}>
-              <strong>รถเครื่องมือหมายเลข {loan.vehicle_number}</strong>
+              <strong style={{ fontSize: 14 }}>รถเครื่องมือหมายเลข {loan.vehicle_number}</strong>
               <span className={`status ${loan.is_outstanding ? "warning" : "success"}`}>{loan.is_outstanding ? "ยังไม่คืน" : "คืนแล้ว"}</span>
             </div>
-            <div><small>ผู้ยืม</small><strong style={{ display: "block" }}>{loan.borrower_name}</strong></div>
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
-              <div><small>วันเวลาที่ยืม</small><div>{formatDMY(loan.borrowed_at, true)}</div></div>
-              <div><small>วันเวลาที่คืน</small><div>{loan.returned_at ? formatDMY(loan.returned_at, true) : "-"}</div></div>
+            <div><small style={{ fontSize: 11 }}>ผู้ยืม</small><strong style={{ display: "block", fontSize: 13, marginTop: 2 }}>{loan.borrower_name}</strong></div>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 6 }}>
+              <div><small style={{ fontSize: 11 }}>วันเวลาที่ยืม</small><div style={{ fontSize: 12, marginTop: 2 }}>{formatDMY(loan.borrowed_at, true)}</div></div>
+              <div><small style={{ fontSize: 11 }}>วันเวลาที่คืน</small><div style={{ fontSize: 12, marginTop: 2 }}>{loan.returned_at ? formatDMY(loan.returned_at, true) : "-"}</div></div>
             </div>
-            <div><small>ผู้คืน</small><div>{loan.returned_by_name || "-"}</div></div>
-            {(loan.borrow_remark || loan.return_remark) && <div style={{ color: "var(--muted,#64748b)", fontSize: 13 }}>{[loan.borrow_remark, loan.return_remark].filter(Boolean).join(" / ")}</div>}
+            <div><small style={{ fontSize: 11 }}>ผู้คืน</small><div style={{ fontSize: 12, marginTop: 2 }}>{loan.returned_by_name || "-"}</div></div>
+            {(loan.borrow_remark || loan.return_remark) && <div style={{ color: "var(--muted,#64748b)", fontSize: 12, lineHeight: 1.4 }}>{[loan.borrow_remark, loan.return_remark].filter(Boolean).join(" / ")}</div>}
             <div style={{ display: "flex", gap: 8, marginTop: "auto" }}>
               {canEdit && <button className="btn ghost" onClick={() => setEditLoan({ ...loan, borrowed_at: dateTimeLocal(loan.borrowed_at), returned_at: dateTimeLocal(loan.returned_at) })}>แก้ไขประวัติ</button>}
               {canDelete && !loan.is_outstanding && <button className="btn danger" onClick={() => setConfirmTarget({ type: "history", row: loan })}>ลบประวัติ</button>}
