@@ -24,7 +24,8 @@ def test_desktop_key_borrow_return_and_edit_history(browser):
     page.get_by_role("heading", name="ยืม-คืนกุญแจไขรถเครื่องมือ").wait_for()
     page.get_by_text(KEY_LABEL).wait_for()
 
-    page.get_by_role("button", name="ยืมกุญแจ").click()
+    key_card = page.locator("article.panel").filter(has_text=KEY_LABEL)
+    key_card.get_by_role("button", name="ยืมกุญแจ").click()
     borrower = page.get_by_label("ชื่อผู้ยืม *")
     borrower_options = borrower.locator("option").all_text_contents()
     assert borrower_options[0] == "เลือกพนักงาน"

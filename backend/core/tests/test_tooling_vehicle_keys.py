@@ -27,7 +27,7 @@ class ToolingVehicleKeyPermissionsTests(TestCase):
         session = self.client.session
         session["partsflow_employee_id"] = str(self.actor.id)
         session.save()
-        self.key = ToolingVehicleKey.objects.create(vehicle_number=1)
+        self.key = ToolingVehicleKey.objects.create(vehicle_number=14)
         self.url = reverse("web-tooling-keys")
 
     def test_view_permission_can_borrow_and_return_key(self):
@@ -50,7 +50,7 @@ class ToolingVehicleKeyPermissionsTests(TestCase):
         self.assertIsNotNone(ToolingVehicleKeyLoan.objects.get().returned_at)
 
     def test_view_permission_cannot_create_or_edit_key_master(self):
-        create = self.client.post(self.url, {"vehicle_number": 2}, format="json")
+        create = self.client.post(self.url, {"vehicle_number": 15}, format="json")
         self.assertEqual(create.status_code, 403)
         edit = self.client.patch(
             reverse("web-tooling-key-detail", kwargs={"pk": self.key.id}),
@@ -141,24 +141,24 @@ class ToolingVehicleKeyHistoryIntegrityTests(ToolingVehicleKeyPermissionsTests):
 
         response = self.client.patch(
             reverse("web-tooling-key-detail", kwargs={"pk": self.key.id}),
-            {"vehicle_number": 2},
+            {"vehicle_number": 15},
             format="json",
         )
 
         self.assertEqual(response.status_code, 409, response.data)
         self.key.refresh_from_db()
-        self.assertEqual(self.key.vehicle_number, 1)
+        self.assertEqual(self.key.vehicle_number, 14)
 
     def test_vehicle_number_can_be_changed_before_first_loan(self):
         self.enable_edit()
         response = self.client.patch(
             reverse("web-tooling-key-detail", kwargs={"pk": self.key.id}),
-            {"vehicle_number": 2},
+            {"vehicle_number": 15},
             format="json",
         )
         self.assertEqual(response.status_code, 200, response.data)
         self.key.refresh_from_db()
-        self.assertEqual(self.key.vehicle_number, 2)
+        self.assertEqual(self.key.vehicle_number, 15)
 
     def test_editing_returner_updates_employee_relation_and_display_name_together(self):
         self.enable_edit()
