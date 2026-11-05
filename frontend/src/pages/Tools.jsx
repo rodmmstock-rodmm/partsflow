@@ -4,6 +4,7 @@ import { apiDelete, apiGet, apiPatch, apiPost, apiUpload } from "../api";
 import { useAuth } from "../auth";
 import { Alert, Modal, PageHeader, formatDMY } from "../components/Common";
 import { useFeedback } from "../feedback";
+import "./ToolsCards.css";
 
 function EmptyToolImage({ className = "" }) {
   return (
