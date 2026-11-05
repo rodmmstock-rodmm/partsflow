@@ -127,7 +127,7 @@ def test_desktop_gauge_control_equipment_cards(browser):
 
     card.get_by_role("button", name="QR", exact=True).click()
     page.get_by_role("heading", name="QR Code - E2E-GAUGE-001").wait_for()
-    page.get_by_role("button", name="ปิด").click()
+    page.locator(".modal-head button").click()
     page.close()
 
 
