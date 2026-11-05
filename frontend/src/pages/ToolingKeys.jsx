@@ -58,6 +58,12 @@ export default function ToolingKeys() {
 
   useEffect(() => { load(); }, [query, outstandingOnly]);
 
+  useEffect(() => {
+    if (!success) return undefined;
+    const timeoutId = window.setTimeout(() => setSuccess(""), 3000);
+    return () => window.clearTimeout(timeoutId);
+  }, [success]);
+
   const counts = useMemo(() => ({
     total: keys.length,
     available: keys.filter((key) => key.status === "AVAILABLE").length,
@@ -127,7 +133,7 @@ export default function ToolingKeys() {
     <>
       <PageHeader title="ยืม-คืนกุญแจไขรถเครื่องมือ" subtitle="จัดการกุญแจประจำรถ บันทึกการยืม-คืน และตรวจสอบประวัติย้อนหลัง" />
       <Alert>{error}</Alert>
-      {success && <div className="alert success" role="status">{success}<button type="button" onClick={() => setSuccess("")} aria-label="ปิด">×</button></div>}
+      {success && <div className="alert success" role="status">{success}</div>}
       <div className="grid" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(145px,1fr))", gap: 12, marginBottom: 18 }}>
         <div className="panel"><small>กุญแจทั้งหมด</small><h2>{counts.total}</h2></div>
         <div className="panel"><small>กุญแจว่าง</small><h2 style={{ color: "#16834a" }}>{counts.available}</h2></div>
