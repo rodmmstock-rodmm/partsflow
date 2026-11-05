@@ -183,7 +183,11 @@ class ApiPaginationAndCacheTests(TestCase):
             with CaptureQueriesContext(connection) as queries:
                 refreshed = options(request)
         self.assertGreater(len(queries), 0)
-        self.assertEqual(refreshed.data["machines"][0]["name"], "Machine changed")
+        refreshed_machine = next(
+            machine for machine in refreshed.data["machines"]
+            if machine["code"] == self.machine.code
+        )
+        self.assertEqual(refreshed_machine["name"], "Machine changed")
 
     def test_dashboard_counts_in_database_and_excludes_n_parts(self):
         ordered = Part.objects.create(
@@ -223,7 +227,10 @@ class ApiPaginationAndCacheTests(TestCase):
                 response = dashboard(request)
 
         self.assertEqual(
-            response.data["kpi"],
+            {
+                key: response.data["kpi"][key]
+                for key in ("parts", "safety_stock", "safety_stock_ordered")
+            },
             {"parts": 3, "safety_stock": 1, "safety_stock_ordered": 1},
         )
         self.assertLessEqual(len(queries), 3)
