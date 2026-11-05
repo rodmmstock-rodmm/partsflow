@@ -12,7 +12,7 @@ import django  # noqa: E402
 
 django.setup()
 
-from core.models import Employee, RoleAccess, ToolingItem, ToolingVehicleKey  # noqa: E402
+from core.models import Employee, RoleAccess, ToolEquipment, ToolingItem, ToolingVehicleKey  # noqa: E402
 
 
 role, _ = RoleAccess.objects.update_or_create(
@@ -28,6 +28,10 @@ role, _ = RoleAccess.objects.update_or_create(
         "can_add_tooling": True,
         "can_edit_tooling": True,
         "can_delete_tooling": True,
+        "can_view_tools": True,
+        "can_add_tool": True,
+        "can_edit_tool": True,
+        "can_delete_tool": True,
         "can_view_tooling_keys": True,
         "can_edit_tooling_keys": True,
         "can_delete_tooling_keys": True,
@@ -66,4 +70,17 @@ ToolingItem.objects.update_or_create(
         "active": True,
     },
 )
-print("Seeded isolated SQLite database with test employees, Tooling item, and tooling vehicle key.")
+ToolEquipment.objects.update_or_create(
+    code="E2E-GAUGE-001",
+    defaults={
+        "name": "E2E Gauge Caliper",
+        "category": "Digital Caliper",
+        "maker": "Gauge Test Maker",
+        "serial_number": "GAUGE-SN-001",
+        "warehouse": "Phase4",
+        "location": "QA Shelf A1",
+        "remark": "Disposable Gauge Control browser-test equipment",
+        "active": True,
+    },
+)
+print("Seeded isolated SQLite database with test employees, Tooling item, Gauge Control equipment, and tooling vehicle key.")

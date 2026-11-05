@@ -4,6 +4,7 @@ import { apiDelete, apiGet, apiPatch, apiPost, apiUpload } from "../api";
 import { useAuth } from "../auth";
 import { Alert, Modal, PageHeader, formatDMY } from "../components/Common";
 import { useFeedback } from "../feedback";
+import "./ToolsCards.css";
 
 function EmptyToolImage({ className = "" }) {
   return (
@@ -239,65 +240,56 @@ function EquipmentTab() {
           placeholder="ค้นหา Code / ชื่อ / Model / Maker / Warehouse / ที่เก็บ..."
         />
       </div>
-      <div className="table-wrap">
-        <table>
-          <thead>
-            <tr>
-              <th>รูป</th>
-              <th>Code</th>
-              <th>ชื่ออุปกรณ์</th>
-              <th>Model</th>
-              <th>Maker</th>
-              <th>Warehouse</th>
-              <th>ที่เก็บ</th>
-              <th>สถานะ</th>
-              <th>QR</th>
-              <th>Action</th>
-            </tr>
-          </thead>
-          <tbody>
-            {shown.map((x) => (
-              <tr key={x.id}>
-                <td>{x.image_url ? <img src={x.image_url} alt={x.name} loading="lazy" style={{ width: 56, height: 48, objectFit: "contain", borderRadius: 6, background: "#f3f6fa" }} /> : <EmptyToolImage />}</td>
-                <td className="mono-cell">
-                  <b>{x.code}</b>
-                </td>
-                <td>{x.name}</td>
-                <td>{x.category || "-"}</td>
-                <td>{x.maker || "-"}</td>
-                <td>{x.warehouse || "-"}</td>
-                <td>{x.location || "-"}</td>
-                <td>
+      {shown.length === 0 ? (
+        <div className="gauge-equipment-empty empty">
+          {rows.length === 0 ? "ยังไม่มีรายการอุปกรณ์" : "ไม่พบอุปกรณ์ที่ค้นหา"}
+        </div>
+      ) : (
+        <div className="gauge-equipment-grid">
+          {shown.map((x) => (
+            <article className="gauge-equipment-card" key={x.id}>
+              <div className="gauge-equipment-card-top">
+                <div className="gauge-equipment-photo">
+                  {x.image_url ? (
+                    <img src={x.image_url} alt={x.name} loading="lazy" />
+                  ) : (
+                    <EmptyToolImage className="gauge-equipment-placeholder" />
+                  )}
+                </div>
+                <div className="gauge-equipment-identity">
+                  <span className="gauge-equipment-code">{x.code}</span>
                   <span className={`status ${x.status === "BORROWED" ? "warning" : "success"}`}>
                     {x.status_label}
                   </span>
-                </td>
-                <td>
-                  <button type="button" className="mini" onClick={() => setQrTool(x)}>
-                    QR
-                  </button>
-                </td>
-                <td>
-                  {(auth.can("can_edit_tool") || auth.can("can_delete_tool")) && (
-                    <div className="row-actions">
-                      {auth.can("can_edit_tool") && (
-                        <button className="mini" onClick={() => setModal(x)}>
-                          แก้ไข
-                        </button>
-                      )}
-                      {auth.can("can_delete_tool") && (
-                        <button className="mini danger" onClick={() => remove(x)}>
-                          ลบ
-                        </button>
-                      )}
-                    </div>
-                  )}
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+                </div>
+              </div>
+              <div className="gauge-equipment-card-body">
+                <h3>{x.name}</h3>
+                <div className="gauge-equipment-meta">
+                  <div><span>Model</span><strong>{x.category || "-"}</strong></div>
+                  <div><span>Maker</span><strong>{x.maker || "-"}</strong></div>
+                  <div><span>Serial Number</span><strong>{x.serial_number || "-"}</strong></div>
+                  <div><span>Warehouse</span><strong>{x.warehouse || "-"}</strong></div>
+                  <div className="gauge-equipment-location"><span>เก็บไว้ที่</span><strong>{x.location || "-"}</strong></div>
+                </div>
+              </div>
+              <div className="gauge-equipment-card-actions">
+                <button type="button" className="mini" onClick={() => setQrTool(x)}>QR</button>
+                {(auth.can("can_edit_tool") || auth.can("can_delete_tool")) && (
+                  <div className="row-actions">
+                    {auth.can("can_edit_tool") && (
+                      <button className="mini" onClick={() => setModal(x)}>แก้ไข</button>
+                    )}
+                    {auth.can("can_delete_tool") && (
+                      <button className="mini danger" onClick={() => remove(x)}>ลบ</button>
+                    )}
+                  </div>
+                )}
+              </div>
+            </article>
+          ))}
+        </div>
+      )}
       {modal !== undefined && (
         <ToolModal
           row={modal}
