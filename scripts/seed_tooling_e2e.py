@@ -62,12 +62,28 @@ ToolingVehicleKey.objects.update_or_create(
 ToolingItem.objects.update_or_create(
     name="E2E Test Sealant",
     defaults={
+        "equipment_number": "GTOOL00001",
         "detail": "Model-E2E-01",
         "location": "MM-4-46-1",
         "maker": "Test Maker",
         "quantity": 4,
         "min_quantity": 5,
         "order_quantity": 4,
+        "unit": "pcs",
+        "active": True,
+    },
+)
+
+ToolingItem.objects.update_or_create(
+    name="E2E Tooling Sort Check",
+    defaults={
+        "equipment_number": "GTOOL00002",
+        "detail": "Model-Sort-E2E",
+        "location": "MM-4-46-2",
+        "maker": "Test Maker",
+        "quantity": 1,
+        "min_quantity": 0,
+        "order_quantity": 0,
         "unit": "pcs",
         "active": True,
     },
