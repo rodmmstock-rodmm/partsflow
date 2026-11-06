@@ -99,24 +99,28 @@ def stock_backup(request):
         workbook,
         "รายการอะไหล่",
         [
-            "SKU", "ชื่ออะไหล่", "รายละเอียด", "Maker", "หน่วย", "Supplier",
-            "ตำแหน่งหลัก", "ยอดคงเหลือรวม", "Min Stock", "Max Stock",
+            "SKU", "Part ID", "Legacy Source", "Legacy ID", "ชื่ออะไหล่", "รายละเอียด",
+            "Maker", "Maker ID", "หน่วย", "Unit ID", "Supplier", "Supplier ID",
+            "ตำแหน่งหลัก", "Location ID", "ยอดคงเหลือรวม", "Min Stock", "Max Stock",
             "Reorder Qty", "Vendor Lead Time (วัน)", "Purchasing Lead Time (วัน)",
             "Total Lead Time (วัน)", "ราคาซื้อล่าสุด", "Critical", "สถานะ",
-            "Image Path / URL", "หมายเหตุ",
+            "Image Path / URL", "หมายเหตุ", "Created At", "Updated At",
         ],
         [
             [
-                part.sku, part.name, part.description, part.maker.name if part.maker else "",
-                part.unit.code if part.unit else "",
+                part.sku, str(part.id), part.legacy_source, part.legacy_id,
+                part.name, part.description, part.maker.name if part.maker else "",
+                str(part.maker_id or ""), part.unit.code if part.unit else "",
+                str(part.unit_id or ""),
                 part.default_supplier.name if part.default_supplier else "",
-                part.location.code if part.location else "", totals.get(part.id, 0),
-                part.min_stock, part.max_stock, part.reorder_qty,
+                str(part.default_supplier_id or ""),
+                part.location.code if part.location else "", str(part.location_id or ""),
+                totals.get(part.id, 0), part.min_stock, part.max_stock, part.reorder_qty,
                 part.vendor_lead_time_days, part.purchasing_lead_time_days,
                 part.total_lead_time_days, part.last_purchase_price,
                 "Yes" if part.critical else "No",
                 "Active" if part.active else "Inactive",
-                part.image_path, part.remark,
+                part.image_path, part.remark, part.created_at, part.updated_at,
             ]
             for part in parts
         ],
@@ -124,13 +128,15 @@ def stock_backup(request):
     _write_sheet(
         workbook,
         "ยอดตามตำแหน่ง",
-        ["SKU", "ชื่ออะไหล่", "ตำแหน่งจัดเก็บ", "คลัง", "จำนวนคงเหลือ", "หน่วย"],
+        ["Inventory ID", "Legacy Source", "Legacy ID", "Part ID", "SKU", "ชื่ออะไหล่", "Location ID", "ตำแหน่งจัดเก็บ", "คลัง", "จำนวนคงเหลือ", "หน่วย", "Created At", "Updated At"],
         [
             [
-                row.part.sku, row.part.name,
+                str(row.id), row.legacy_source, row.legacy_id, str(row.part_id),
+                row.part.sku, row.part.name, str(row.location_id or ""),
                 row.location.code if row.location else "",
                 row.location.warehouse if row.location else "",
                 row.quantity, row.part.unit.code if row.part.unit else "",
+                row.created_at, row.updated_at,
             ]
             for row in inventory_rows
         ],
@@ -157,10 +163,11 @@ def tooling_backup(request):
     _write_sheet(
         workbook,
         "รายการ Tooling",
-        ["ชื่ออุปกรณ์", "รายละเอียด", "Maker", "จำนวนคงเหลือ", "จำนวนขั้นต่ำ", "หน่วย", "สถานะ"],
+        ["ชื่ออุปกรณ์", "Tooling ID", "Legacy Source", "Legacy ID", "รายละเอียด", "Maker", "จำนวนคงเหลือ", "จำนวนขั้นต่ำ", "หน่วย", "สถานะ", "Created At", "Updated At"],
         [
-            [item.name, item.detail, item.maker, item.quantity, item.min_quantity, item.unit,
-             "Active" if item.active else "Inactive"]
+            [item.name, str(item.id), item.legacy_source, item.legacy_id, item.detail,
+             item.maker, item.quantity, item.min_quantity, item.unit,
+             "Active" if item.active else "Inactive", item.created_at, item.updated_at]
             for item in items
         ],
     )
@@ -186,14 +193,16 @@ def gauge_control_backup(request):
     _write_sheet(
         workbook,
         "รายการ Gauge Control",
-        ["Code", "ชื่ออุปกรณ์", "Model", "Maker", "Serial Number", "ตำแหน่งจัดเก็บ",
-         "สถานะการยืม-คืน", "สถานะรายการ", "Image Path / URL", "หมายเหตุ"],
+        ["Code", "Equipment ID", "ชื่ออุปกรณ์", "Model", "Maker", "Serial Number",
+         "ตำแหน่งจัดเก็บ", "Warehouse (legacy)", "สถานะการยืม-คืน", "สถานะรายการ",
+         "Image Path / URL", "หมายเหตุ", "Created At", "Updated At"],
         [
             [
-                item.code, item.name, item.category, item.maker, item.serial_number,
-                item.location,
+                item.code, str(item.id), item.name, item.category, item.maker,
+                item.serial_number, item.location, item.warehouse,
                 "ถูกยืม" if item.status == ToolEquipment.STATUS_BORROWED else "อยู่ในสต๊อก",
                 "Active" if item.active else "Inactive", item.image_path, item.remark,
+                item.created_at, item.updated_at,
             ]
             for item in equipment
         ],
