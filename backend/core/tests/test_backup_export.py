@@ -40,8 +40,8 @@ class BackupExportTests(TestCase):
 
     @patch("core.backup_api.require_permission", return_value=(object(), None))
     def test_tooling_backup_includes_inactive_records(self, _permission):
-        ToolingItem.objects.create(name="Backup active", active=True)
-        ToolingItem.objects.create(name="Backup inactive", active=False)
+        ToolingItem.objects.create(name="Backup active", equipment_number="GTOOL00031", active=True)
+        ToolingItem.objects.create(name="Backup inactive", equipment_number="GTOOL00032", active=False)
 
         response = tooling_backup(self.factory.get("/api/backup/tooling.xlsx/"))
         workbook = self.workbook_from(response)
@@ -49,6 +49,8 @@ class BackupExportTests(TestCase):
         self.assertEqual(workbook.sheetnames, ["ข้อมูลการสำรอง", "รายการ Tooling"])
         rows = list(workbook["รายการ Tooling"].values)
         self.assertEqual({row[0] for row in rows[1:]}, {"Backup active", "Backup inactive"})
+        self.assertEqual(rows[0][1], "หมายเลขอุปกรณ์")
+        self.assertEqual({row[1] for row in rows[1:]}, {"GTOOL00031", "GTOOL00032"})
 
     @patch("core.backup_api.require_permission", return_value=(object(), None))
     def test_gauge_backup_exports_equipment_only(self, _permission):
