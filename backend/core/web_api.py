@@ -1,9 +1,10 @@
 from decimal import Decimal, InvalidOperation
+from uuid import UUID
 import hashlib
 import re
 
 from django.db import IntegrityError
-from django.db.models import Count, DecimalField, Exists, F, Max, OuterRef, Prefetch, Q, Sum, Value, ProtectedError
+from django.db.models import Count, DecimalField, Exists, F, Max, OuterRef, Prefetch, Q, Subquery, Sum, Value, ProtectedError
 from django.db.models.functions import Coalesce
 from django.http import HttpResponse
 from django.utils import timezone
@@ -1157,43 +1158,41 @@ def safety_stock(request):
     _, err = require_permission(request, "can_view_safety_stock")
     if err:
         return err
-    open_part_ids = set(
-        OrderRecord.objects.filter(
-            is_deleted=False,
-            procurement_phase=OrderRecord.PROCUREMENT_PURCHASE,
-            lifecycle_status__in=[
-                OrderRecord.LIFECYCLE_ACTIVE,
-                OrderRecord.LIFECYCLE_WAIT_CONFIRM,
-            ],
-        )
-        .exclude(part_id=None)
-        .values_list("part_id", flat=True)
-    )
-    rows = []
-    for part in (
+
+    # Keep the existing eligibility rules, but let PostgreSQL filter parts
+    # before they cross the database connection and resolve related data in
+    # one query instead of issuing one transaction query per result row.
+    latest_issue = StockTransaction.objects.filter(
+        part_id=OuterRef("pk"),
+        is_void=False,
+        transaction_type__in=["OUT", "ISSUE", "TRANSFER_OUT"],
+    ).order_by("-transaction_date")
+
+    parts = (
         base_parts()
-        .filter(active=True, min_stock__gt=0)
+        .filter(
+            active=True,
+            min_stock__gt=0,
+            stock_qty__lt=F("min_stock"),
+        )
         .exclude(sku__istartswith="N")
+        .annotate(
+            last_machine_code=Subquery(latest_issue.values("machine__code")[:1]),
+            last_machine_id=Subquery(latest_issue.values("machine_id")[:1]),
+            last_machine_name=Subquery(latest_issue.values("machine__name")[:1]),
+        )
+        .filter(active_ordering=False)
         .order_by("sku")
-    ):
-        stock = Decimal(str(getattr(part, "stock_qty", 0) or 0))
-        if stock >= Decimal(str(part.min_stock or 0)):
-            continue
-        if part.id in open_part_ids:
-            continue
-        last_tx = (
-            part.transactions.filter(is_void=False, transaction_type__in=["OUT", "ISSUE", "TRANSFER_OUT"])
-            .select_related("machine")
-            .order_by("-transaction_date")
-            .first()
-        )
-        rows.append(
-            {
-                **part_json(part),
-                "last_machine": last_tx.machine.code if last_tx and last_tx.machine else "",
-                "last_machine_id": str(last_tx.machine_id) if last_tx and last_tx.machine_id else "",
-                "last_machine_name": last_tx.machine.name if last_tx and last_tx.machine else "",
-                "order_qty": float(part.reorder_qty or 0),
-            }
-        )
+    )
+
+    rows = [
+        {
+            **part_json(part),
+            "last_machine": part.last_machine_code or "",
+            "last_machine_id": str(UUID(str(part.last_machine_id))) if part.last_machine_id else "",
+            "last_machine_name": part.last_machine_name or "",
+            "order_qty": float(part.reorder_qty or 0),
+        }
+        for part in parts
+    ]
     return Response({"count": len(rows), "results": rows})

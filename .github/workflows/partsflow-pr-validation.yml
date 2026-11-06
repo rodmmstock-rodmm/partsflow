@@ -44,8 +44,9 @@ jobs:
       - name: Check migration state
         run: python manage.py makemigrations --check --dry-run
 
-      - name: Run Tooling and cloth-roll history regression tests
+      - name: Run API, Tooling, and cloth-roll regression tests
         run: |
+          python manage.py test core.tests.test_api_pagination_cache --verbosity 2
           python manage.py test core.tests.test_tooling_inventory --verbosity 2
           python manage.py test core.tests.test_cloth_roll_history --verbosity 2
           python manage.py test core.tests.test_tooling_vehicle_keys --verbosity 2
