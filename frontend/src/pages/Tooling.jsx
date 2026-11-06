@@ -112,7 +112,7 @@ export default function Tooling() {
       await load();
     } catch (e) { setError(e.message); }
   }
-  const shown = items.filter(x => !itemQuery || `${x.name} ${x.detail} ${x.maker}`.toLowerCase().includes(itemQuery.toLowerCase()));
+  const shown = items.filter(x => !itemQuery || `${x.name} ${x.equipment_number || ""} ${x.detail} ${x.maker}`.toLowerCase().includes(itemQuery.toLowerCase()));
   return <div className="tooling-page">
     <PageHeader title="Tooling" subtitle="รายการอุปกรณ์ที่มีสต็อกและสามารถเบิกตัดจำนวนได้" actions={<><BackupDownloadButton type="tooling" />{auth.can("can_add_tooling") && <button className="btn primary" onClick={() => {setEditing(null);setForm(empty);setFormOpen(true);setTab("items");}}>+ เพิ่มอุปกรณ์</button>}</>} />
     <Alert>{error}</Alert><Alert type="success">{success}</Alert>
