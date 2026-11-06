@@ -363,3 +363,90 @@ class ToolingSafetyStockOrderTests(TestCase):
 
         self.assertEqual(response.status_code, 400)
         self.assertEqual(OrderRecord.objects.filter(legacy_source="TOOLING_SAFETY_STOCK").count(), 1)
+
+
+
+class ToolingEquipmentNumberTests(TestCase):
+    def setUp(self):
+        self.client = APIClient()
+        self.role = RoleAccess.objects.create(
+            role_name="TOOLING_NUMBER_ADMIN",
+            can_view_tooling=True,
+            can_add_tooling=True,
+        )
+        self.employee = Employee.objects.create(
+            employee_code="TEST-TOOLING-NUMBER",
+            name="Tooling Number Admin",
+            role=self.role.role_name,
+        )
+        session = self.client.session
+        session["partsflow_employee_id"] = str(self.employee.id)
+        session.save()
+        self.url = reverse("web-tooling-items")
+
+    def test_create_uses_next_suggested_number_when_field_is_blank(self):
+        ToolingItem.objects.create(name="Existing", equipment_number="GTOOL00007")
+        response = self.client.post(
+            self.url,
+            {"name": "New equipment", "quantity": 0, "min_quantity": 0},
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, 201, response.data)
+        self.assertEqual(response.data["equipment_number"], "GTOOL00008")
+
+    def test_create_uses_user_entered_number_instead_of_suggestion(self):
+        response = self.client.post(
+            self.url,
+            {
+                "name": "Manual equipment",
+                "equipment_number": "gtool00042",
+                "quantity": 0,
+                "min_quantity": 0,
+            },
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, 201, response.data)
+        self.assertEqual(response.data["equipment_number"], "GTOOL00042")
+
+    def test_suggestion_uses_highest_number_including_inactive_items(self):
+        ToolingItem.objects.create(
+            name="Inactive equipment",
+            equipment_number="GTOOL00019",
+            active=False,
+        )
+
+        response = self.client.get(self.url)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data["suggested_equipment_number"], "GTOOL00020")
+
+    def test_duplicate_equipment_number_is_rejected(self):
+        ToolingItem.objects.create(name="Existing", equipment_number="GTOOL00003")
+        response = self.client.post(
+            self.url,
+            {
+                "name": "Duplicate",
+                "equipment_number": "GTOOL00003",
+                "quantity": 0,
+                "min_quantity": 0,
+            },
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, 409)
+
+    def test_invalid_equipment_number_format_is_rejected(self):
+        response = self.client.post(
+            self.url,
+            {
+                "name": "Invalid number",
+                "equipment_number": "GTOOL123",
+                "quantity": 0,
+                "min_quantity": 0,
+            },
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, 400)
