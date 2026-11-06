@@ -1,7 +1,7 @@
 from uuid import UUID
 
 from django.core.exceptions import ValidationError
-from django.db import transaction
+from django.db import IntegrityError, transaction
 from django.db.models import F
 import re
 from django.views.decorators.csrf import csrf_exempt
@@ -28,9 +28,22 @@ def parse_whole_number(value, *, allow_zero=True):
     return number
 
 
+def next_equipment_number():
+    """Suggest the next GTOOL number without changing any existing records."""
+    latest = (
+        ToolingItem.objects.filter(equipment_number__regex=r"^GTOOL[0-9]{5}$")
+        .order_by("-equipment_number")
+        .values_list("equipment_number", flat=True)
+        .first()
+    )
+    next_value = int(latest[5:]) + 1 if latest else 1
+    return f"GTOOL{next_value:05d}" if next_value <= 99999 else ""
+
+
 def item_json(item):
     return {
-        "id": str(item.id), "name": item.name, "detail": item.detail,
+        "id": str(item.id), "name": item.name,
+        "equipment_number": item.equipment_number, "detail": item.detail,
         "maker": item.maker, "quantity": item.quantity,
         "min_quantity": item.min_quantity, "unit": item.unit,
         "active": item.active, "low_stock": item.quantity < item.min_quantity,
@@ -87,7 +100,11 @@ def items(request):
         return err
     if request.method == "GET":
         qs = ToolingItem.objects.filter(active=True).order_by("name")
-        return Response({"count": qs.count(), "results": [item_json(x) for x in qs]})
+        return Response({
+            "count": qs.count(),
+            "results": [item_json(x) for x in qs],
+            "suggested_equipment_number": next_equipment_number(),
+        })
     name = str(request.data.get("name") or "").strip()
     if not name:
         return Response({"detail": "กรุณาระบุชื่ออุปกรณ์"}, status=400)
@@ -96,9 +113,21 @@ def items(request):
         minimum = parse_whole_number(request.data.get("min_quantity", 0))
     except (TypeError, ValueError):
         return Response({"detail": "จำนวนต้องเป็นเลขศูนย์หรือจำนวนเต็มบวก"}, status=400)
-    item = ToolingItem.objects.create(name=name, detail=str(request.data.get("detail") or "").strip(),
-        maker=str(request.data.get("maker") or "").strip(), quantity=quantity,
-        min_quantity=minimum, unit=str(request.data.get("unit") or "").strip())
+    equipment_number = str(request.data.get("equipment_number") or "").strip().upper()
+    if not equipment_number:
+        equipment_number = next_equipment_number()
+    if not re.fullmatch(r"GTOOL[0-9]{5}", equipment_number):
+        return Response({"detail": "หมายเลขอุปกรณ์ต้องอยู่ในรูปแบบ GTOOL ตามด้วยตัวเลข 5 หลัก"}, status=400)
+    try:
+        with transaction.atomic():
+            item = ToolingItem.objects.create(
+                name=name, equipment_number=equipment_number,
+                detail=str(request.data.get("detail") or "").strip(),
+                maker=str(request.data.get("maker") or "").strip(), quantity=quantity,
+                min_quantity=minimum, unit=str(request.data.get("unit") or "").strip(),
+            )
+    except IntegrityError:
+        return Response({"detail": "หมายเลขอุปกรณ์นี้มีอยู่แล้ว กรุณาใช้หมายเลขอื่น"}, status=409)
     audit(actor, "CREATE", "ToolingItem", item.id, item_json(item))
     return Response(item_json(item), status=201)
 
@@ -119,6 +148,11 @@ def item_detail(request, pk):
         item.save(update_fields=["active", "updated_at"])
         audit(actor, "DEACTIVATE", "ToolingItem", item.id, {"name": item.name})
         return Response({"deleted": True})
+    if "equipment_number" in request.data:
+        equipment_number = str(request.data.get("equipment_number") or "").strip().upper()
+        if equipment_number and not re.fullmatch(r"GTOOL[0-9]{5}", equipment_number):
+            return Response({"detail": "หมายเลขอุปกรณ์ต้องอยู่ในรูปแบบ GTOOL ตามด้วยตัวเลข 5 หลัก"}, status=400)
+        item.equipment_number = equipment_number
     for field in ("name", "detail", "maker", "unit"):
         if field in request.data:
             value = str(request.data.get(field) or "").strip()
@@ -132,7 +166,10 @@ def item_detail(request, pk):
             except (TypeError, ValueError):
                 return Response({"detail": "จำนวนต้องเป็นเลขศูนย์หรือจำนวนเต็มบวก"}, status=400)
             setattr(item, field, value)
-    item.save()
+    try:
+        item.save()
+    except IntegrityError:
+        return Response({"detail": "หมายเลขอุปกรณ์นี้มีอยู่แล้ว กรุณาใช้หมายเลขอื่น"}, status=409)
     audit(actor, "UPDATE", "ToolingItem", item.id, item_json(item))
     return Response(item_json(item))
 

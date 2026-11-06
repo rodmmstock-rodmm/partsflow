@@ -51,6 +51,7 @@ jobs:
           python manage.py test core.tests.test_tooling_inventory --verbosity 2
           python manage.py test core.tests.test_cloth_roll_history --verbosity 2
           python manage.py test core.tests.test_tooling_vehicle_keys --verbosity 2
+          python manage.py test core.tests.test_seed_tooling_vehicle_keys_command --verbosity 2
 
   frontend:
     name: Frontend production build
