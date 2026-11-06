@@ -118,7 +118,7 @@ export default function MobileOrders() {
 
   const shown = useMemo(
     () => rows.filter((order) =>
-      !q || `${order.order_number} ${order.item_id} ${order.part_name} ${order.machine_codes || order.machine_code || ""}`
+      !q || `${order.order_number} ${order.po_number || ""} ${order.item_id} ${order.part_name} ${order.machine_codes || order.machine_code || ""}`
         .toLowerCase()
         .includes(q.toLowerCase())
     ),
@@ -311,7 +311,7 @@ export default function MobileOrders() {
         </div>
       </div>
 
-      <MobileSearch value={q} onChange={setQ} placeholder="Order / Part ID / Part / Machine..." />
+      <MobileSearch value={q} onChange={setQ} placeholder="Order / PO / Part ID / Part / Machine..." />
 
       {tab === "normal" && (
         <div className="m-filter-row m-filter-row-wide">
@@ -401,6 +401,7 @@ export default function MobileOrders() {
               <div className="m-info-grid order-v10-mobile-meta">
                 <span>DATE<b>{order.date ? formatDMY(order.date) : "-"}</b></span>
                 <span>MACHINE<b>{order.machine_codes || order.machine_code || "-"}</b></span>
+                <span>PO NUMBER<b>{order.po_number || "-"}</b></span>
               </div>
               <div className="m-order-item">
                 {order.item_type==="TOOLING"&&<span className="badge">Tooling</span>}
