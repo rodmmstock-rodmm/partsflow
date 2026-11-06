@@ -731,6 +731,7 @@ def orders(request):
             | Q(machine__code__icontains=q)
             | Q(machine__name__icontains=q)
             | Q(ordered_by__name__icontains=q)
+            | Q(po_number__icontains=q)
         )
     if job:
         qs = qs.filter(job=job)

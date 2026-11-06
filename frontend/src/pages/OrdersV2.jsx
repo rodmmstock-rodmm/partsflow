@@ -133,6 +133,7 @@ function CompactOrderTable({
       <th>สถานะงานด่วน</th>
       <th>วันที่ค้าง DATA</th>
       <th>สถานะการสั่ง</th>
+      <th>หมายเลข PO</th>
       <th>REMARK</th>
       <th></th>
     </tr></thead>
@@ -147,6 +148,7 @@ function CompactOrderTable({
       <td className="order-status-v11">
         <span className={`status ${statusClass(s)}`}>{s}</span>
       </td>
+      <td className="mono-cell">{o.po_number || "-"}</td>
       <td className="stack-sub">
         {o.lifecycle_status==="WAIT_CONFIRM"?(o.wait_confirm_remark||"-")
           :o.lifecycle_status==="CANCELLED"?(o.cancel_reason||"-")
@@ -428,7 +430,7 @@ export default function OrdersV2(){
 
     <section className="panel order-panel-v9">
       <div className="order-filter-v9">
-        <input className="search-input" value={qInput} onChange={e=>setQInput(e.target.value)} placeholder="ค้นหา Order / Part ID / Part / Machine / ผู้สั่ง..." />
+        <input className="search-input" value={qInput} onChange={e=>setQInput(e.target.value)} placeholder="ค้นหา Order / PO / Part ID / Part / Machine / ผู้สั่ง..." />
         {tab==="normal"&&<>
           <select value={urgency} onChange={e=>setUrgency(e.target.value)}>{URGENCY.map(([v,l])=><option key={v} value={v}>{l}</option>)}</select>
           <select value={job} onChange={e=>setJob(e.target.value)}><option value="">JOB: ทั้งหมด</option><option>REPAIR</option><option>MODIFY</option><option>AUTOMATION</option><option>PM</option></select>
