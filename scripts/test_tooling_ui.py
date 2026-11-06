@@ -115,6 +115,7 @@ def test_desktop_gauge_control_equipment_cards(browser):
     page.goto(f"{BASE_URL}/tools", wait_until="networkidle")
 
     page.get_by_role("heading", name="ยืม-คืนอุปกรณ์เครื่องมือ").wait_for()
+    page.get_by_role("button", name="⬇ Backup Excel").wait_for()
     card = page.locator(".gauge-equipment-card").filter(has_text="E2E-GAUGE-001")
     card.get_by_text("E2E Gauge Caliper").wait_for()
     card.get_by_text("Digital Caliper").wait_for()
@@ -139,6 +140,11 @@ def test_mobile_gauge_control_equipment_cards(browser):
     )
     login(page)
     page.goto(f"{BASE_URL}/tools", wait_until="networkidle")
+    page.get_by_role("button", name="⬇ Backup Excel").wait_for()
+    nav_metrics = page.locator(".m-bottom-nav a").first.evaluate(
+        "(el) => ({ minHeight: getComputedStyle(el).minHeight, bottom: getComputedStyle(el.parentElement).bottom })"
+    )
+    assert nav_metrics == {"minHeight": "52px", "bottom": "12px"}
 
     card = page.locator(".gauge-equipment-card").filter(has_text="E2E-GAUGE-001")
     card.get_by_text("E2E Gauge Caliper").wait_for()
@@ -147,11 +153,36 @@ def test_mobile_gauge_control_equipment_cards(browser):
     assert page.evaluate("document.documentElement.scrollWidth <= window.innerWidth")
     page.close()
 
+
+def test_desktop_stock_backup_button(browser):
+    page = browser.new_page(viewport={"width": 1440, "height": 1000})
+    login(page)
+    page.goto(f"{BASE_URL}/stock", wait_until="networkidle")
+    page.get_by_role("heading", name="Stock").wait_for()
+    page.get_by_role("button", name="⬇ Backup Excel").wait_for()
+    page.close()
+
+
+def test_mobile_stock_backup_button(browser):
+    page = browser.new_page(
+        viewport={"width": 390, "height": 844},
+        is_mobile=True,
+        has_touch=True,
+    )
+    login(page)
+    page.goto(f"{BASE_URL}/stock", wait_until="networkidle")
+    page.get_by_role("heading", name="Stock").wait_for()
+    page.get_by_role("button", name="⬇ Backup Excel").wait_for()
+    page.close()
+
+
 def main():
     with sync_playwright() as playwright:
         browser = playwright.chromium.launch()
         try:
             test_desktop_tooling_qr_withdrawal_and_history(browser)
+            test_desktop_stock_backup_button(browser)
+            test_mobile_stock_backup_button(browser)
             test_desktop_gauge_control_equipment_cards(browser)
             test_mobile_gauge_control_equipment_cards(browser)
             test_mobile_safety_stock_shows_tooling_when_parts_are_empty(browser)
