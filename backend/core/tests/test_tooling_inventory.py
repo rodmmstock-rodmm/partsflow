@@ -45,7 +45,7 @@ class ToolingSafetyStockPermissionTests(TestCase):
         session.save()
 
     def test_safety_stock_endpoint_returns_only_active_items_below_minimum(self):
-        low = ToolingItem.objects.create(name="Below Min", quantity=1, min_quantity=2)
+        low = ToolingItem.objects.create(name="Below Min", detail="Model-X", location="MM-4-46-1", quantity=1, min_quantity=2, order_quantity=3)
         ToolingItem.objects.create(name="At Min", quantity=2, min_quantity=2)
         ToolingItem.objects.create(name="Inactive Low", quantity=0, min_quantity=1, active=False)
 
@@ -54,6 +54,9 @@ class ToolingSafetyStockPermissionTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data["count"], 1)
         self.assertEqual([row["id"] for row in response.data["results"]], [str(low.id)])
+        self.assertEqual(response.data["results"][0]["detail"], "Model-X")
+        self.assertEqual(response.data["results"][0]["location"], "MM-4-46-1")
+        self.assertEqual(response.data["results"][0]["order_quantity"], 3)
 
     def test_safety_stock_permission_does_not_grant_full_tooling_inventory(self):
         response = self.client.get(reverse("web-tooling-items"))
