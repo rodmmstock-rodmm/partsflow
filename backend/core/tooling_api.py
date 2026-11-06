@@ -166,7 +166,10 @@ def item_detail(request, pk):
             except (TypeError, ValueError):
                 return Response({"detail": "จำนวนต้องเป็นเลขศูนย์หรือจำนวนเต็มบวก"}, status=400)
             setattr(item, field, value)
-    item.save()
+    try:
+        item.save()
+    except IntegrityError:
+        return Response({"detail": "หมายเลขอุปกรณ์นี้มีอยู่แล้ว กรุณาใช้หมายเลขอื่น"}, status=409)
     audit(actor, "UPDATE", "ToolingItem", item.id, item_json(item))
     return Response(item_json(item))
 
