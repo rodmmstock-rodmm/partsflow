@@ -95,9 +95,22 @@ def test_mobile_safety_stock_shows_tooling_when_parts_are_empty(browser):
     page.get_by_text("Tooling ต่ำกว่า Min").wait_for()
     page.get_by_text(ITEM_NAME).wait_for()
     page.get_by_text("Location: MM-4-46-1").wait_for()
-    order_input = page.get_by_label(f"จำนวนที่ต้อง Order {ITEM_NAME}")
-    assert order_input.input_value() == "4"
+    order_value = page.locator(".m-tooling-stock-quad").get_by_text("4", exact=True)
+    assert order_value.is_visible()
+    assert page.get_by_label(f"จำนวนที่ต้อง Order {ITEM_NAME}").count() == 0
     assert page.get_by_text("Tooling ต่ำกว่า Min").is_visible()
+    page.close()
+
+
+def test_desktop_safety_stock_uses_saved_tooling_order_quantity(browser):
+    page = browser.new_page(viewport={"width": 1440, "height": 1000})
+    login(page)
+    page.goto(f"{BASE_URL}/safety-stock", wait_until="networkidle")
+
+    page.get_by_role("heading", name="Tooling ต่ำกว่า Min").wait_for()
+    tooling_row = page.locator("tbody tr").filter(has_text=ITEM_NAME)
+    assert tooling_row.locator("td").nth(8).inner_text() == "4"
+    assert tooling_row.get_by_role("spinbutton").count() == 0
     page.close()
 
 
