@@ -33,8 +33,8 @@ def _write_sheet(workbook, title, headers, rows):
 def _cell_value(value):
     if value is None:
         return ""
-    if hasattr(value, "isoformat"):
-        return value
+    if getattr(value, "tzinfo", None) is not None:
+        return timezone.localtime(value).replace(tzinfo=None)
     return value
 
 
