@@ -81,7 +81,7 @@ def stock_backup(request):
         .order_by("sku")
     )
     inventory_rows = list(
-        Inventory.objects.select_related("part", "location")
+        Inventory.objects.select_related("part", "part__unit", "location")
         .order_by("part__sku", "location__code")
     )
     totals = {}
