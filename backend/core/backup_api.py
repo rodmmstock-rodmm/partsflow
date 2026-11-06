@@ -1,4 +1,5 @@
 from io import BytesIO
+from itertools import islice
 
 from django.http import HttpResponse
 from django.utils import timezone
@@ -24,7 +25,7 @@ def _write_sheet(workbook, title, headers, rows):
         cell.font = Font(bold=True, color="FFFFFF")
         cell.fill = PatternFill("solid", fgColor="3978B8")
     for column in sheet.columns:
-        values = [len(str(cell.value or "")) for cell in list(column)[:200]]
+        values = [len(str(cell.value or "")) for cell in islice(column, 200)]
         width = min(max(max(values, default=10) + 2, 12), 42)
         sheet.column_dimensions[get_column_letter(column[0].column)].width = width
     return sheet
