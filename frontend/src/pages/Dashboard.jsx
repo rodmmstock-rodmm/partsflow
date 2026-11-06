@@ -8,6 +8,7 @@ import { useOptions } from "../optionsContext";
 import BarcodeScannerModal from "../components/BarcodeScannerModal";
 import QrCode01Icon from "../components/QrCode01Icon";
 import PartDetailModal from "../components/PartDetailModal";
+import BackupDownloadButton from "../components/BackupDownloadButton";
 
 const blankPart = {
   sku: "",
@@ -593,6 +594,7 @@ export default function Dashboard() {
         title="Stock"
         actions={
           <>
+            <BackupDownloadButton type="stock" />
             <button className="btn ghost" onClick={() => navigate("/spare-sets")}>⚙ ชุดอะไหล่เครื่องจักร</button>
             {auth.can("can_edit_parts") && (
               <button className="btn primary" onClick={openAddPart} disabled={optionsLoading}>

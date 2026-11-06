@@ -4,6 +4,7 @@ import { apiDelete, apiGet, apiPatch, apiPost, apiUpload } from "../api";
 import { useAuth } from "../auth";
 import { Alert, Modal, PageHeader, formatDMY } from "../components/Common";
 import { useFeedback } from "../feedback";
+import BackupDownloadButton from "../components/BackupDownloadButton";
 import "./ToolsCards.css";
 
 function EmptyToolImage({ className = "" }) {
@@ -407,6 +408,7 @@ export default function Tools() {
       <PageHeader
         title="ยืม-คืนอุปกรณ์เครื่องมือ"
         subtitle="จัดการอุปกรณ์ สร้าง QR Code สำหรับสแกนเบิก/คืน และดูประวัติการเบิก-คืน"
+        actions={<BackupDownloadButton type="gauge" />}
       />
       <div className="tab-row page-tabs">
         <button className={`tab ${tab === "equipment" ? "active" : ""}`} onClick={() => setTab("equipment")}>

@@ -12,6 +12,7 @@ import {
 } from "../components/Common";
 import { useFeedback } from "../feedback";
 import PartDetailModal from "../components/PartDetailModal";
+import BackupDownloadButton from "../components/BackupDownloadButton";
 import BarcodeScannerModal from "../components/BarcodeScannerModal";
 import QrCode01Icon from "../components/QrCode01Icon";
 import { useOptions } from "../optionsContext";
@@ -119,6 +120,7 @@ export default function MobileDashboard() {
       subtitle="ค้นหา · เบิก · รับเข้า · ปรับยอด แบบมือถือ"
       actions={
         <>
+          <BackupDownloadButton type="stock" mobile />
           {auth.can("can_edit_parts") && (
             <button
               type="button"

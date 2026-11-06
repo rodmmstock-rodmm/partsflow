@@ -109,7 +109,7 @@ export default function Tooling() {
   }
   const shown = items.filter(x => !itemQuery || `${x.name} ${x.detail} ${x.maker}`.toLowerCase().includes(itemQuery.toLowerCase()));
   return <div className="tooling-page">
-    <PageHeader title="Tooling" subtitle="รายการอุปกรณ์ที่มีสต็อกและสามารถเบิกตัดจำนวนได้" actions={auth.can("can_add_tooling") ? <button className="btn primary" onClick={() => {setEditing(null);setForm(empty);setFormOpen(true);setTab("items");}}>+ เพิ่มอุปกรณ์</button> : null} />
+    <PageHeader title="Tooling" subtitle="รายการอุปกรณ์ที่มีสต็อกและสามารถเบิกตัดจำนวนได้" actions={<><BackupDownloadButton type="tooling" />{auth.can("can_add_tooling") && <button className="btn primary" onClick={() => {setEditing(null);setForm(empty);setFormOpen(true);setTab("items");}}>+ เพิ่มอุปกรณ์</button>}</>} />
     <Alert>{error}</Alert><Alert type="success">{success}</Alert>
     <div className="toolbar" style={{marginBottom:16}}>
       <button className={tab==="items"?"btn primary":"btn ghost"} onClick={()=>setTab("items")}>รายการอุปกรณ์ ({items.length})</button>

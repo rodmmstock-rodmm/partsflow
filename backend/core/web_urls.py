@@ -1,6 +1,6 @@
 from django.urls import path
 
-from . import tooling_api, auth_api, cloth_roll_api, dashboard_api, drive_oauth, fast_order_api, order_api, order_audit_api, order_delete_api, order_step_api, order_vendor_api, qr_withdraw_api, rfq_api, rfq_step_guard, role_api, spare_set_api, stock_api, tool_api, tooling_key_api, web_api
+from . import backup_api, tooling_api, auth_api, cloth_roll_api, dashboard_api, drive_oauth, fast_order_api, order_api, order_audit_api, order_delete_api, order_step_api, order_vendor_api, qr_withdraw_api, rfq_api, rfq_step_guard, role_api, spare_set_api, stock_api, tool_api, tooling_key_api, web_api
 
 urlpatterns = [
     path("auth/login/", auth_api.login_view),
@@ -15,6 +15,9 @@ urlpatterns = [
     path("drive/oauth/callback/", drive_oauth.oauth_callback, name="drive-oauth-callback"),
 
     path("dashboard/", dashboard_api.dashboard, name="web-dashboard"),
+    path("backup/stock.xlsx/", backup_api.stock_backup, name="web-backup-stock"),
+    path("backup/tooling.xlsx/", backup_api.tooling_backup, name="web-backup-tooling"),
+    path("backup/gauge-control.xlsx/", backup_api.gauge_control_backup, name="web-backup-gauge-control"),
     path("notifications/summary/", dashboard_api.notification_summary, name="web-notification-summary"),
 
     path("parts/", web_api.parts_list, name="web-parts-list"),
