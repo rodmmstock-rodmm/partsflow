@@ -106,7 +106,7 @@ def test_mobile_tooling_withdrawal_vehicle_number_dropdown(browser):
     )
     login(page)
     page.goto(f"{BASE_URL}/tooling", wait_until="networkidle")
-    target_card = page.locator(".m-card-list article").filter(has_text="E2E Test Sealant")
+    target_card = page.locator("tbody tr").filter(has_text="E2E Test Sealant")
     target_card.get_by_role("button", name="เบิก", exact=True).click()
     vehicle_select = page.get_by_label("เบอร์รถเครื่องมือ *")
     assert vehicle_select.locator("option").count() == 14
