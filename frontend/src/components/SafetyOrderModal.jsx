@@ -3,7 +3,7 @@ import { apiPost } from "../api";
 import { Alert, Modal, SearchableSelect, fmt } from "./Common";
 import { useOptions } from "../optionsContext";
 
-function suggestedQty(row) { if(row.item_type==="TOOLING") return row.order_qty==null||row.order_qty===""?"":Math.max(1,Math.ceil(Number(row.order_qty))); const preset=Number(row.order_qty||0); if(preset>0)return Math.max(1,Math.ceil(preset)); const gap=Number(row.min_stock||0)-Number(row.stock_qty||0); return Math.max(1,Math.ceil(gap>0?gap:1)); }
+function suggestedQty(row) { if(row.item_type==="TOOLING") return row.order_qty==null||row.order_qty===""?"":Number(row.order_qty); const preset=Number(row.order_qty||0); if(preset>0)return Math.max(1,Math.ceil(preset)); const gap=Number(row.min_stock||0)-Number(row.stock_qty||0); return Math.max(1,Math.ceil(gap>0?gap:1)); }
 
 export default function SafetyOrderModal({rows,employee,onClose,onSaved}){
  const{options,loading}=useOptions(); const[job,setJob]=useState("SPARE"); const[orderedById,setOrderedById]=useState(employee?.id||""); const[remark,setRemark]=useState("Safety Stock");
