@@ -49,7 +49,7 @@ def test_desktop_tooling_qr_withdrawal_and_history(browser):
     tooling_row = page.locator("tbody tr").filter(has_text=ITEM_NAME)
     tooling_row.get_by_text("Model-E2E-01").wait_for()
     tooling_row.get_by_text("MM-4-46-1").wait_for()
-    tooling_row.get_by_text("4", exact=True).wait_for()
+    tooling_row.locator("td").nth(7).get_by_text("4", exact=True).wait_for()
 
     page.get_by_role("button", name="QR", exact=True).click()
     dialog = page.get_by_role("dialog")
