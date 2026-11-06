@@ -44,8 +44,8 @@ def item_json(item):
     return {
         "id": str(item.id), "name": item.name,
         "equipment_number": item.equipment_number, "detail": item.detail,
-        "maker": item.maker, "quantity": item.quantity,
-        "min_quantity": item.min_quantity, "unit": item.unit,
+        "location": item.location, "maker": item.maker, "quantity": item.quantity,
+        "min_quantity": item.min_quantity, "order_quantity": item.order_quantity, "unit": item.unit,
         "active": item.active, "low_stock": item.quantity < item.min_quantity,
     }
 
@@ -111,6 +111,7 @@ def items(request):
     try:
         quantity = parse_whole_number(request.data.get("quantity", 0))
         minimum = parse_whole_number(request.data.get("min_quantity", 0))
+        order_quantity = parse_whole_number(request.data.get("order_quantity", 0))
     except (TypeError, ValueError):
         return Response({"detail": "จำนวนต้องเป็นเลขศูนย์หรือจำนวนเต็มบวก"}, status=400)
     equipment_number = str(request.data.get("equipment_number") or "").strip().upper()
@@ -123,8 +124,10 @@ def items(request):
             item = ToolingItem.objects.create(
                 name=name, equipment_number=equipment_number,
                 detail=str(request.data.get("detail") or "").strip(),
+                location=str(request.data.get("location") or "").strip(),
                 maker=str(request.data.get("maker") or "").strip(), quantity=quantity,
-                min_quantity=minimum, unit=str(request.data.get("unit") or "").strip(),
+                min_quantity=minimum, order_quantity=order_quantity,
+                unit=str(request.data.get("unit") or "").strip(),
             )
     except IntegrityError:
         return Response({"detail": "หมายเลขอุปกรณ์นี้มีอยู่แล้ว กรุณาใช้หมายเลขอื่น"}, status=409)
@@ -153,13 +156,13 @@ def item_detail(request, pk):
         if equipment_number and not re.fullmatch(r"GTOOL[0-9]{5}", equipment_number):
             return Response({"detail": "หมายเลขอุปกรณ์ต้องอยู่ในรูปแบบ GTOOL ตามด้วยตัวเลข 5 หลัก"}, status=400)
         item.equipment_number = equipment_number
-    for field in ("name", "detail", "maker", "unit"):
+    for field in ("name", "detail", "location", "maker", "unit"):
         if field in request.data:
             value = str(request.data.get(field) or "").strip()
             if field == "name" and not value:
                 return Response({"detail": "ชื่ออุปกรณ์ห้ามว่าง"}, status=400)
             setattr(item, field, value)
-    for field in ("quantity", "min_quantity"):
+    for field in ("quantity", "min_quantity", "order_quantity"):
         if field in request.data:
             try:
                 value = parse_whole_number(request.data[field])
