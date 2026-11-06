@@ -55,13 +55,13 @@ def test_desktop_tooling_qr_withdrawal_and_history(browser):
     tooling_row.get_by_text("MM-4-46-1").wait_for()
     tooling_row.locator("td").nth(7).get_by_text("4", exact=True).wait_for()
 
-    page.get_by_role("button", name="QR", exact=True).click()
+    tooling_row.get_by_role("button", name="QR", exact=True).click()
     dialog = page.get_by_role("dialog")
     dialog.get_by_role("heading", name=f"QR เบิก {ITEM_NAME}").wait_for()
     dialog.locator(f'img[alt="QR Code {ITEM_NAME}"]').wait_for()
     dialog.get_by_role("button", name="ปิด").click()
 
-    page.get_by_role("button", name="เบิก", exact=True).click()
+    tooling_row.get_by_role("button", name="เบิก", exact=True).click()
     page.get_by_label("จำนวนที่เบิก *").fill("1")
     page.get_by_label("ผู้เบิก *").select_option(label="Tooling UI Tester")
     vehicle_select = page.get_by_label("เบอร์รถเครื่องมือ *")
