@@ -47,6 +47,8 @@ def test_desktop_tooling_qr_withdrawal_and_history(browser):
     page.get_by_role("heading", name="Tooling").wait_for()
     page.get_by_text(ITEM_NAME).wait_for()
     tooling_row = page.locator("tbody tr").filter(has_text=ITEM_NAME)
+    assert page.locator("thead th").first.inner_text() == "หมายเลขอุปกรณ์"
+    assert tooling_row.locator("td").first.inner_text() == "GTOOL00001"
     tooling_row.get_by_text("Model-E2E-01").wait_for()
     tooling_row.get_by_text("MM-4-46-1").wait_for()
     tooling_row.locator("td").nth(7).get_by_text("4", exact=True).wait_for()
@@ -134,7 +136,7 @@ def test_desktop_tooling_add_uses_gray_suggested_equipment_number(browser):
     page.get_by_label("ชื่ออุปกรณ์ *").fill("E2E Suggested Number Item")
     page.get_by_role("button", name="บันทึก", exact=True).click()
     row = page.locator("tbody tr").filter(has_text="E2E Suggested Number Item")
-    row.locator("td").nth(1).get_by_text(suggested, exact=True).wait_for()
+    row.locator("td").first.get_by_text(suggested, exact=True).wait_for()
     page.close()
 
 
