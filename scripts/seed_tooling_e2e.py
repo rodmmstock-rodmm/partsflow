@@ -73,6 +73,21 @@ ToolingItem.objects.update_or_create(
         "active": True,
     },
 )
+
+ToolingItem.objects.update_or_create(
+    name="E2E Tooling Sort Check",
+    defaults={
+        "equipment_number": "GTOOL00002",
+        "detail": "Model-Sort-E2E",
+        "location": "MM-4-46-2",
+        "maker": "Test Maker",
+        "quantity": 1,
+        "min_quantity": 0,
+        "order_quantity": 0,
+        "unit": "pcs",
+        "active": True,
+    },
+)
 ToolEquipment.objects.update_or_create(
     code="E2E-GAUGE-001",
     defaults={
