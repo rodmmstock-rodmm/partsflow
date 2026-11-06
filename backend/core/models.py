@@ -946,6 +946,7 @@ class IntegrationCredential(UUIDMixin):
 class ToolingItem(UUIDMixin):
     """Consumable tooling stock, kept separate from serialized loan/return equipment."""
     name = models.CharField(max_length=250)
+    equipment_number = models.CharField(max_length=10, blank=True, default="")
     detail = models.TextField(blank=True)
     maker = models.CharField(max_length=200, blank=True)
     quantity = models.PositiveIntegerField(default=0)
@@ -955,6 +956,13 @@ class ToolingItem(UUIDMixin):
 
     class Meta:
         ordering = ["name"]
+        constraints = [
+            models.UniqueConstraint(
+                Lower("equipment_number"),
+                condition=~models.Q(equipment_number=""),
+                name="uniq_tooling_equipment_number_ci",
+            ),
+        ]
 
 
 class ToolingTransaction(UUIDMixin):
