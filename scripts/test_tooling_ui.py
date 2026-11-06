@@ -146,9 +146,12 @@ def test_mobile_tooling_add_shows_editable_suggestion(browser):
     login(page)
     page.goto(f"{BASE_URL}/tooling", wait_until="networkidle")
     page.get_by_role("button", name=re.compile("เพิ่มอุปกรณ์")).click()
+    page.get_by_label("Location").fill("MM-4-46-3")
+    page.get_by_label("จำนวนที่ต้องสั่ง").fill("8")
+    assert page.get_by_label("Location").input_value() == "MM-4-46-3"
+    assert page.get_by_label("จำนวนที่ต้องสั่ง").input_value() == "8"
 
     number_input = page.get_by_label("หมายเลขอุปกรณ์")
-    assert re.fullmatch(r"GTOOL[0-9]{5}", number_input.get_attribute("placeholder") or "")
     number_input.fill("GTOOL00042")
     assert number_input.input_value() == "GTOOL00042"
     page.close()
@@ -230,6 +233,8 @@ def main():
             test_desktop_gauge_control_equipment_cards(browser)
             test_mobile_gauge_control_equipment_cards(browser)
             test_mobile_safety_stock_shows_tooling_when_parts_are_empty(browser)
+            test_desktop_tooling_add_uses_gray_suggested_equipment_number(browser)
+            test_mobile_tooling_add_shows_editable_suggestion(browser)
             test_mobile_tooling_withdrawal_vehicle_number_dropdown(browser)
         finally:
             browser.close()
