@@ -62,10 +62,12 @@ ToolingVehicleKey.objects.update_or_create(
 ToolingItem.objects.update_or_create(
     name="E2E Test Sealant",
     defaults={
-        "detail": "Disposable browser-test item",
+        "detail": "Model-E2E-01",
+        "location": "MM-4-46-1",
         "maker": "Test Maker",
         "quantity": 4,
         "min_quantity": 5,
+        "order_quantity": 4,
         "unit": "pcs",
         "active": True,
     },

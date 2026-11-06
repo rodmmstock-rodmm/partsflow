@@ -948,9 +948,11 @@ class ToolingItem(UUIDMixin):
     name = models.CharField(max_length=250)
     equipment_number = models.CharField(max_length=10, blank=True, default="")
     detail = models.TextField(blank=True)
+    location = models.CharField(max_length=120, blank=True)
     maker = models.CharField(max_length=200, blank=True)
     quantity = models.PositiveIntegerField(default=0)
     min_quantity = models.PositiveIntegerField(default=0)
+    order_quantity = models.PositiveIntegerField(default=0)
     unit = models.CharField(max_length=60, blank=True)
     active = models.BooleanField(default=True)
 

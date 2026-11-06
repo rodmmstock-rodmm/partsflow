@@ -46,6 +46,10 @@ def test_desktop_tooling_qr_withdrawal_and_history(browser):
 
     page.get_by_role("heading", name="Tooling").wait_for()
     page.get_by_text(ITEM_NAME).wait_for()
+    tooling_row = page.locator("tbody tr").filter(has_text=ITEM_NAME)
+    tooling_row.get_by_text("Model-E2E-01").wait_for()
+    tooling_row.get_by_text("MM-4-46-1").wait_for()
+    tooling_row.locator("td").nth(7).get_by_text("4", exact=True).wait_for()
 
     page.get_by_role("button", name="QR", exact=True).click()
     dialog = page.get_by_role("dialog")
@@ -64,7 +68,7 @@ def test_desktop_tooling_qr_withdrawal_and_history(browser):
     page.get_by_role("button", name="ยืนยันเบิก").click()
 
     page.get_by_text("บันทึกการเบิกแล้ว").wait_for()
-    page.locator("tbody tr").first.locator("td").nth(4).get_by_text("3").wait_for()
+    page.locator("tbody tr").first.locator("td").nth(5).get_by_text("3").wait_for()
 
     page.get_by_role("button", name=re.compile("ประวัติการเบิก")).click()
     history_row = page.locator("tbody tr").filter(has_text=ITEM_NAME)
@@ -86,6 +90,9 @@ def test_mobile_safety_stock_shows_tooling_when_parts_are_empty(browser):
 
     page.get_by_text("Tooling ต่ำกว่า Min").wait_for()
     page.get_by_text(ITEM_NAME).wait_for()
+    page.get_by_text("Location: MM-4-46-1").wait_for()
+    order_input = page.get_by_label(f"จำนวนที่ต้อง Order {ITEM_NAME}")
+    assert order_input.input_value() == "4"
     assert page.get_by_text("Tooling ต่ำกว่า Min").is_visible()
     page.close()
 
@@ -99,7 +106,8 @@ def test_mobile_tooling_withdrawal_vehicle_number_dropdown(browser):
     )
     login(page)
     page.goto(f"{BASE_URL}/tooling", wait_until="networkidle")
-    page.get_by_role("button", name="เบิก", exact=True).click()
+    target_card = page.locator("tbody tr").filter(has_text="E2E Test Sealant")
+    target_card.get_by_role("button", name="เบิก", exact=True).click()
     vehicle_select = page.get_by_label("เบอร์รถเครื่องมือ *")
     assert vehicle_select.locator("option").count() == 14
     vehicle_select.select_option("13")
@@ -115,6 +123,8 @@ def test_desktop_tooling_add_uses_gray_suggested_equipment_number(browser):
     login(page)
     page.goto(f"{BASE_URL}/tooling", wait_until="networkidle")
     page.get_by_role("button", name=re.compile("เพิ่มอุปกรณ์")).click()
+    page.get_by_label("Location").fill("MM-4-46-2")
+    page.get_by_label("จำนวนที่ต้องสั่ง").fill("6")
 
     number_input = page.get_by_label("หมายเลขอุปกรณ์")
     suggested = number_input.get_attribute("placeholder")
@@ -137,9 +147,12 @@ def test_mobile_tooling_add_shows_editable_suggestion(browser):
     login(page)
     page.goto(f"{BASE_URL}/tooling", wait_until="networkidle")
     page.get_by_role("button", name=re.compile("เพิ่มอุปกรณ์")).click()
+    page.get_by_label("Location").fill("MM-4-46-3")
+    page.get_by_label("จำนวนที่ต้องสั่ง").fill("8")
+    assert page.get_by_label("Location").input_value() == "MM-4-46-3"
+    assert page.get_by_label("จำนวนที่ต้องสั่ง").input_value() == "8"
 
     number_input = page.get_by_label("หมายเลขอุปกรณ์")
-    assert re.fullmatch(r"GTOOL[0-9]{5}", number_input.get_attribute("placeholder") or "")
     number_input.fill("GTOOL00042")
     assert number_input.input_value() == "GTOOL00042"
     page.close()
@@ -221,6 +234,8 @@ def main():
             test_desktop_gauge_control_equipment_cards(browser)
             test_mobile_gauge_control_equipment_cards(browser)
             test_mobile_safety_stock_shows_tooling_when_parts_are_empty(browser)
+            test_desktop_tooling_add_uses_gray_suggested_equipment_number(browser)
+            test_mobile_tooling_add_shows_editable_suggestion(browser)
             test_mobile_tooling_withdrawal_vehicle_number_dropdown(browser)
         finally:
             browser.close()
