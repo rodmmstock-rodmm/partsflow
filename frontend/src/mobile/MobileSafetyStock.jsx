@@ -20,7 +20,7 @@ export default function MobileSafetyStock(){
   useEffect(()=>{load()},[]);
 
   const shown=useMemo(()=>rows.filter(x=>!q||`${x.sku} ${x.name} ${x.description} ${x.maker_name} ${x.last_machine}`.toLowerCase().includes(q.toLowerCase())),[rows,q]);
-  const selectedRows=useMemo(()=>rows.filter(x=>selected.has(`PART:${x.id}`)).map(x=>({...x,item_type:"PART"})).concat(toolingRows.filter(x=>selected.has(`TOOLING:${x.id}`)).map(x=>({...x,item_type:"TOOLING",order_qty:x.order_quantity ?? 0}))),[rows,toolingRows,selected,toolingOrderQty]);
+  const selectedRows=useMemo(()=>rows.filter(x=>selected.has(`PART:${x.id}`)).map(x=>({...x,item_type:"PART"})).concat(toolingRows.filter(x=>selected.has(`TOOLING:${x.id}`)).map(x=>({...x,item_type:"TOOLING",order_qty:x.order_quantity ?? 0}))),[rows,toolingRows,selected]);
   const visibleTooling=toolingRows.filter(x=>!q||`${x.name} ${x.detail} ${x.location || ""} ${x.maker}`.toLowerCase().includes(q.toLowerCase()));
   const allVisibleKeys=[...shown.map(x=>`PART:${x.id}`),...visibleTooling.map(x=>`TOOLING:${x.id}`)];
   const allShownSelected=allVisibleKeys.length>0&&allVisibleKeys.every(key=>selected.has(key));
