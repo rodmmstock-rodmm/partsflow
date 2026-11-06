@@ -3,6 +3,7 @@ import QRCode from "qrcode";
 import { apiDelete, apiGet, apiPatch, apiPost } from "../api";
 import { useAuth } from "../auth";
 import { Alert, PageHeader } from "../components/Common";
+import BackupDownloadButton from "../components/BackupDownloadButton";
 
 const empty = { name: "", detail: "", maker: "", quantity: 0, min_quantity: 0, unit: "" };
 export default function Tooling() {
