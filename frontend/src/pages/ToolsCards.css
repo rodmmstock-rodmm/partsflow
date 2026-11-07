@@ -1,12 +1,14 @@
 .gauge-equipment-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,270px),1fr));gap:12px;align-items:stretch}
 .gauge-equipment-card{min-width:0;display:flex;flex-direction:column;padding:13px;border:1px solid var(--border);border-radius:12px;background:#fff;transition:border-color .15s ease,box-shadow .15s ease}
 .gauge-equipment-card:hover{border-color:#b8d1e9;box-shadow:0 3px 12px rgba(35,76,115,.06)}
-.gauge-equipment-card-top{display:flex;align-items:center;gap:11px;min-width:0;padding-bottom:10px;border-bottom:1px solid var(--border-soft)}
-.gauge-equipment-photo{flex:0 0 68px;width:68px;height:64px;display:grid;place-items:center;overflow:hidden;border-radius:8px;background:#f5f7fa}
-.gauge-equipment-photo img{width:100%;height:100%;object-fit:contain}
-.gauge-equipment-photo .gauge-equipment-placeholder{width:56px;height:52px}
-.gauge-equipment-photo .gauge-equipment-placeholder svg{width:30px;height:30px}
-.gauge-equipment-identity{min-width:0;display:flex;flex-direction:column;align-items:flex-start;gap:7px}
+.gauge-equipment-card-top{display:flex;flex-direction:column;align-items:stretch;gap:10px;min-width:0;padding-bottom:10px;border-bottom:1px solid var(--border-soft)}
+.gauge-equipment-photo-button{display:block;width:100%;min-width:0;padding:0;border:0;border-radius:8px;background:transparent;text-align:left;line-height:0;cursor:zoom-in}
+.gauge-equipment-photo-button:focus-visible{outline:2px solid #93c5fd;outline-offset:3px}
+.gauge-equipment-photo{width:100%;height:180px;display:grid;place-items:center;overflow:hidden;border-radius:8px;background:#f5f7fa}
+.gauge-equipment-photo img{display:block;width:100%;height:100%;object-fit:contain}
+.gauge-equipment-photo .gauge-equipment-placeholder{width:100%;height:100%;border-radius:8px}
+.gauge-equipment-photo .gauge-equipment-placeholder svg{width:48px;height:48px}
+.gauge-equipment-identity{min-width:0;display:flex;flex-direction:row;align-items:center;justify-content:space-between;gap:8px}
 .gauge-equipment-code{color:var(--brand);font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12px;font-weight:700;overflow-wrap:anywhere}
 .gauge-equipment-card-body{flex:1;min-width:0;padding:10px 0 12px}
 .gauge-equipment-card-body h3{margin:0 0 10px;color:var(--text);font-size:14px;font-weight:650;line-height:1.4;overflow-wrap:anywhere}
@@ -19,3 +21,12 @@
 .gauge-equipment-card-actions .row-actions{display:flex;align-items:center;gap:5px}
 .gauge-equipment-empty{padding:28px 12px;border:1px dashed var(--border);border-radius:10px;background:#fafbfd;text-align:center}
 @media(max-width:767px){.gauge-equipment-grid{grid-template-columns:minmax(0,1fr);gap:9px}.gauge-equipment-card{padding:11px;border-radius:10px}.gauge-equipment-card-body{padding:9px 0 10px}.gauge-equipment-card-actions button{min-height:32px;padding:6px 10px}}
+
+
+/* Gauge Control: full-size equipment photo preview, scoped to this page. */
+.gauge-image-preview-backdrop{position:fixed;inset:0;z-index:1200;display:flex;align-items:center;justify-content:center;padding:16px;background:rgba(15,23,42,.68)}
+.gauge-image-preview-modal{width:min(94vw,1000px);max-width:1000px;max-height:calc(100dvh - 32px);overflow:auto;padding:16px;border:1px solid var(--border,#e2e8f0);border-radius:14px;background:#fff;box-shadow:0 24px 60px rgba(15,23,42,.28)}
+.gauge-image-preview-header{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:12px}
+.gauge-image-preview-header h3{min-width:0;margin:0;color:var(--text);font-size:16px;overflow-wrap:anywhere}
+.gauge-image-preview-modal>img{display:block;width:100%;height:min(78vh,760px);object-fit:contain;border-radius:8px;background:#f8fafc}
+@media(max-width:767px){.gauge-equipment-photo{height:190px}.gauge-image-preview-backdrop{padding:10px}.gauge-image-preview-modal{width:100%;max-height:calc(100dvh - 20px);padding:12px;border-radius:12px}.gauge-image-preview-modal>img{height:min(72vh,680px)}}
