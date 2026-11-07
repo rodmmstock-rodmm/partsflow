@@ -215,6 +215,7 @@ def test_desktop_gauge_control_equipment_cards(browser):
     card.get_by_text("GAUGE-SN-001").wait_for()
     card.get_by_text("Phase4").wait_for()
     card.get_by_text("QA Shelf A1").wait_for()
+    assert card.locator(".tool-empty-image").count() == 1
     assert page.locator(".gauge-equipment-grid .gauge-equipment-card").count() == 1
     assert page.locator(".gauge-equipment-grid table").count() == 0
 
