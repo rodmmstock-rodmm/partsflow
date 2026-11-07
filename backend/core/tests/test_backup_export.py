@@ -51,8 +51,8 @@ class BackupExportTests(TestCase):
         self.assertEqual({row[0] for row in rows[1:]}, {"Backup active", "Backup inactive"})
         self.assertEqual(rows[0][1], "หมายเลขอุปกรณ์")
         self.assertEqual({row[1] for row in rows[1:]}, {"GTOOL00031", "GTOOL00032"})
-        self.assertEqual(rows[0][10], "Image Path / URL")
-        self.assertEqual(rows[1][10], "DATA1_Images/Tooling/GTOOL00031/image.jpg")
+        self.assertEqual(rows[0][11], "Image Path / URL")
+        self.assertEqual(rows[1][11], "DATA1_Images/Tooling/GTOOL00031/image.jpg")
 
     @patch("core.backup_api.require_permission", return_value=(object(), None))
     def test_gauge_backup_exports_equipment_only(self, _permission):
