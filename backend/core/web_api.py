@@ -528,7 +528,7 @@ def apply_part_fields(part, data):
     if "reorder_unit_code" in data:
         part.reorder_unit_code = str(data.get("reorder_unit_code") or "").strip().upper()
     if "reorder_unit_stock_qty" in data:
-        part.reorder_unit_stock_qty = dec(data.get("reorder_unit_stock_qty"), default="1")
+        part.reorder_unit_stock_qty = dec(data.get("reorder_unit_stock_qty"), default="0")
     if part.reorder_unit_code and part.unit_id and part.reorder_unit_code == part.unit.code:
         part.reorder_unit_stock_qty = Decimal("1")
     elif part.reorder_unit_code in {"PAK", "BOX"}:
