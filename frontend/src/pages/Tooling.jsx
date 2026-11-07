@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import QRCode from "qrcode";
-import { apiDelete, apiGet, apiPatch, apiPost } from "../api";
+import { apiDelete, apiGet, apiPatch, apiPost, apiUpload } from "../api";
 import { useAuth } from "../auth";
 import { Alert, PageHeader } from "../components/Common";
 import BackupDownloadButton from "../components/BackupDownloadButton";
@@ -18,6 +18,7 @@ export default function Tooling() {
   const [editing, setEditing] = useState(null);
   const [formOpen, setFormOpen] = useState(false);
   const [form, setForm] = useState(empty);
+  const [imageFile, setImageFile] = useState(null);
   const [withdrawItem, setWithdrawItem] = useState(null);
   const [qrItem, setQrItem] = useState(null);
   const [removeTarget, setRemoveTarget] = useState(null);
@@ -81,9 +82,17 @@ export default function Tooling() {
   async function save(e) {
     e.preventDefault(); setBusy(true); setError("");
     try {
-      if (editing) await apiPatch(`/tooling/items/${editing.id}/`, form);
-      else await apiPost("/tooling/items/", form);
-      setEditing(null); setForm(empty); setFormOpen(false); setSuccess("บันทึกข้อมูล Tooling แล้ว"); await load();
+      const saved = editing
+        ? await apiPatch(`/tooling/items/${editing.id}/`, form)
+        : await apiPost("/tooling/items/", form);
+      if (imageFile) {
+        const payload = new FormData();
+        payload.append("image", imageFile);
+        await apiUpload(`/tooling/items/${saved.id}/image/`, payload);
+      }
+      setEditing(null); setForm(empty); setImageFile(null); setFormOpen(false);
+      setSuccess(imageFile ? "บันทึกข้อมูลและรูปภาพ Tooling แล้ว" : "บันทึกข้อมูล Tooling แล้ว");
+      await load();
     } catch (e) { setError(e.message); } finally { setBusy(false); }
   }
   async function submitWithdraw(e) {
@@ -121,7 +130,7 @@ export default function Tooling() {
     return numberA.localeCompare(numberB, undefined, { numeric: true, sensitivity: "base" });
   }).filter(x => !itemQuery || `${x.name} ${x.equipment_number || ""} ${x.detail} ${x.location || ""} ${x.maker}`.toLowerCase().includes(itemQuery.toLowerCase()));
   return <div className="tooling-page">
-    <PageHeader title="Tooling" subtitle="รายการอุปกรณ์ที่มีสต็อกและสามารถเบิกตัดจำนวนได้" actions={<><BackupDownloadButton type="tooling" />{auth.can("can_add_tooling") && <button className="btn primary" onClick={() => {setEditing(null);setForm(empty);setFormOpen(true);setTab("items");}}>+ เพิ่มอุปกรณ์</button>}</>} />
+    <PageHeader title="Tooling" subtitle="รายการอุปกรณ์ที่มีสต็อกและสามารถเบิกตัดจำนวนได้" actions={<><BackupDownloadButton type="tooling" />{auth.can("can_add_tooling") && <button className="btn primary" onClick={() => {setEditing(null);setForm(empty);setImageFile(null);setFormOpen(true);setTab("items");}}>+ เพิ่มอุปกรณ์</button>}</>} />
     <Alert>{error}</Alert><Alert type="success">{success}</Alert>
     <div className="toolbar" style={{marginBottom:16}}>
       <button className={tab==="items"?"btn primary":"btn ghost"} onClick={()=>setTab("items")}>รายการอุปกรณ์ ({items.length})</button>
@@ -135,15 +144,21 @@ export default function Tooling() {
         <label className="field"><span>Location</span><input value={form.location || ""} onChange={e=>setForm({...form,location:e.target.value})}/></label>
         <label className="field"><span>Maker</span><input value={form.maker} onChange={e=>setForm({...form,maker:e.target.value})}/></label>
         <label className="field span2"><span>Model</span><input value={form.detail} onChange={e=>setForm({...form,detail:e.target.value})}/></label>
+        <div className="field span2"><span>รูปภาพอุปกรณ์</span>
+          {editing?.image_url && !imageFile && <img src={editing.image_url} alt={editing.name} style={{width:112,height:84,objectFit:"contain",border:"1px solid var(--border,#e2e8f0)",borderRadius:8,background:"#fff",marginBottom:8}} />}
+          <input type="file" accept="image/jpeg,image/png,image/webp,image/gif" onChange={e=>setImageFile(e.target.files?.[0] || null)} />
+          <small>รองรับ JPG, PNG, WEBP, GIF ขนาดไม่เกิน 10 MB รูปจะถูกปรับขนาดก่อนจัดเก็บ</small>
+          {imageFile && <small>ไฟล์ที่เลือก: {imageFile.name}</small>}
+        </div>
         <label className="field"><span>จำนวนคงเหลือ</span><input type="number" min="0" required value={form.quantity} onChange={e=>setForm({...form,quantity:e.target.value})}/></label>
         <label className="field"><span>จำนวนขั้นต่ำ (Min)</span><input type="number" min="0" required value={form.min_quantity} onChange={e=>setForm({...form,min_quantity:e.target.value})}/></label>
         <label className="field"><span>จำนวนที่ต้องสั่ง</span><input type="number" min="0" step="1" required value={form.order_quantity ?? 0} onChange={e=>setForm({...form,order_quantity:e.target.value})}/></label>
         <label className="field"><span>หน่วย</span><input value={form.unit} onChange={e=>setForm({...form,unit:e.target.value})}/></label>
-        <div className="field"><span>&nbsp;</span><div><button className="btn primary" disabled={busy}>{busy?"กำลังบันทึก...":"บันทึก"}</button> <button type="button" className="btn ghost" onClick={()=>{setEditing(null);setForm(empty);setFormOpen(false)}}>ยกเลิก</button></div></div>
+        <div className="field"><span>&nbsp;</span><div><button className="btn primary" disabled={busy}>{busy?"กำลังบันทึก...":"บันทึก"}</button> <button type="button" className="btn ghost" onClick={()=>{setEditing(null);setForm(empty);setImageFile(null);setFormOpen(false)}}>ยกเลิก</button></div></div>
       </form></section>}
-      <section className="panel"><div className="table-wrap"><table><thead><tr><th>หมายเลขอุปกรณ์</th><th>ชื่ออุปกรณ์</th><th>Model</th><th>Location</th><th>Maker</th><th>คงเหลือ</th><th>Min</th><th>จำนวนที่ต้องสั่ง</th><th>หน่วย</th><th>QR / จัดการ</th></tr></thead><tbody>
-        {shown.map(x=><tr key={x.id}><td>{x.equipment_number||"-"}</td><td><b>{x.name}</b></td><td>{x.detail||"-"}</td><td>{x.location||"-"}</td><td>{x.maker||"-"}</td><td className={x.low_stock?"text-danger":""}><b>{x.quantity}</b></td><td>{x.min_quantity}</td><td>{x.order_quantity ?? 0}</td><td>{x.unit||"-"}</td><td><div className="toolbar"><button className="btn ghost" onClick={()=>showQr(x)}>QR</button>{auth.can("can_withdraw_tooling")&&<button className="btn primary" onClick={()=>{setWithdrawItem(x);setWithdraw({quantity:1,requester_id:auth.employee?.id||"",reason:"LOST",vehicle_number:"",remark:""})}}>เบิก</button>}{auth.can("can_edit_tooling")&&<button className="btn ghost" onClick={()=>{setEditing(x);setForm({...x});setFormOpen(true);}}>แก้ไข</button>}{auth.can("can_delete_tooling")&&<button className="btn ghost" onClick={()=>remove(x)}>ปิดใช้งาน</button>}</div></td></tr>)}
-        {!shown.length&&<tr><td colSpan="10">ไม่พบรายการ Tooling</td></tr>}
+      <section className="panel"><div className="table-wrap"><table><thead><tr><th>หมายเลขอุปกรณ์</th><th>รูปภาพ</th><th>ชื่ออุปกรณ์</th><th>Model</th><th>Location</th><th>Maker</th><th>คงเหลือ</th><th>Min</th><th>จำนวนที่ต้องสั่ง</th><th>หน่วย</th><th>QR / จัดการ</th></tr></thead><tbody>
+        {shown.map(x=><tr key={x.id}><td>{x.equipment_number||"-"}</td><td>{x.image_url ? <img src={x.image_url} alt={x.name} loading="lazy" style={{width:64,height:48,objectFit:"contain",borderRadius:6,background:"#fff"}} /> : <span style={{color:"var(--muted,#94a3b8)"}}>ไม่มีรูป</span>}</td><td><b>{x.name}</b></td><td>{x.detail||"-"}</td><td>{x.location||"-"}</td><td>{x.maker||"-"}</td><td className={x.low_stock?"text-danger":""}><b>{x.quantity}</b></td><td>{x.min_quantity}</td><td>{x.order_quantity ?? 0}</td><td>{x.unit||"-"}</td><td><div className="toolbar"><button className="btn ghost" onClick={()=>showQr(x)}>QR</button>{auth.can("can_withdraw_tooling")&&<button className="btn primary" onClick={()=>{setWithdrawItem(x);setWithdraw({quantity:1,requester_id:auth.employee?.id||"",reason:"LOST",vehicle_number:"",remark:""})}}>เบิก</button>}{auth.can("can_edit_tooling")&&<button className="btn ghost" onClick={()=>{setEditing(x);setForm({...x});setImageFile(null);setFormOpen(true);}}>แก้ไข</button>}{auth.can("can_delete_tooling")&&<button className="btn ghost" onClick={()=>remove(x)}>ปิดใช้งาน</button>}</div></td></tr>)}
+        {!shown.length&&<tr><td colSpan="11">ไม่พบรายการ Tooling</td></tr>}
       </tbody></table></div></section>
     </> : <section className="panel"><div className="toolbar"><button className="btn ghost" onClick={()=>setHistoryFilter("")}>ทั้งหมด</button><button className="btn ghost" onClick={()=>setHistoryFilter("LOST")}>หาย</button><button className="btn ghost" onClick={()=>setHistoryFilter("DAMAGED")}>ชำรุด</button></div><div className="table-wrap"><table><thead><tr><th>วันที่</th><th>อุปกรณ์</th><th>จำนวน</th><th>ผู้เบิก</th><th>ผู้ทำรายการ</th><th>เบอร์รถเครื่องมือ</th><th>เหตุผล</th><th>หมายเหตุ</th>{auth.can("can_delete_tooling_history") && <th>จัดการ</th>}</tr></thead><tbody>{history.filter(x=>!["LOST","DAMAGED"].includes(historyFilter)||x.reason===historyFilter).map(x=><tr key={x.id}><td>{new Date(x.created_at).toLocaleString("th-TH")}</td><td>{x.item_name}</td><td>{x.quantity}</td><td>{x.requester_name}</td><td>{x.created_by_name||"-"}</td><td>{x.vehicle_number ?? "-"}</td><td>{x.reason_label}</td><td>{x.remark||"-"}</td>{auth.can("can_delete_tooling_history") && <td><button className="btn ghost" style={{color:"#be344b"}} onClick={()=>setHistoryDeleteTarget(x)}>ลบ</button></td>}</tr>)}{!history.length&&<tr><td colSpan={auth.can("can_delete_tooling_history")?"9":"8"}>ยังไม่มีประวัติการเบิก</td></tr>}</tbody></table></div></section>}
     {historyDeleteTarget && <div className="modal-backdrop" role="presentation"><section className="modal" role="dialog" aria-modal="true" aria-labelledby="tooling-history-delete-title"><h3 id="tooling-history-delete-title">ยืนยันลบประวัติ Tooling</h3><p>ต้องการลบประวัติการเบิก {historyDeleteTarget.item_name} จำนวน {historyDeleteTarget.quantity} รายการนี้ใช่หรือไม่?</p><p style={{color:"var(--muted,#64748b)"}}>ยอดคงเหลือจะถูกปรับกลับตามรายการที่ลบ</p><div className="toolbar" style={{justifyContent:"flex-end",marginTop:20}}><button className="btn ghost" disabled={deletingHistory} onClick={()=>setHistoryDeleteTarget(null)}>ยกเลิก</button><button className="btn danger" disabled={deletingHistory} onClick={confirmDeleteHistory}>{deletingHistory?"กำลังลบ...":"ยืนยันลบ"}</button></div></section></div>}
