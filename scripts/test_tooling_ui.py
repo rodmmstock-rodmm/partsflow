@@ -84,6 +84,32 @@ def test_desktop_tooling_qr_withdrawal_and_history(browser):
     page.close()
 
 
+
+def test_tooling_image_opens_full_size_preview_desktop_and_mobile(browser):
+    for viewport, mobile in [({"width": 1440, "height": 1000}, False), ({"width": 390, "height": 844}, True)]:
+        page = browser.new_page(viewport=viewport, is_mobile=mobile, has_touch=mobile)
+        login(page)
+
+        def add_test_image(route):
+            response = route.fetch()
+            payload = response.json()
+            items = payload.get("results", [])
+            if items:
+                items[0]["image_url"] = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='640' height='480'%3E%3Crect width='640' height='480' fill='%23dbeafe'/%3E%3C/svg%3E"
+            route.fulfill(response=response, json=payload)
+
+        page.route("**/tooling/items/", add_test_image)
+        page.goto(f"{BASE_URL}/tooling", wait_until="networkidle")
+        image_button = page.get_by_role("button", name="ขยายรูปภาพ E2E Test Sealant")
+        image_button.wait_for()
+        image_button.click()
+        dialog = page.get_by_role("dialog", name="รูปภาพ E2E Test Sealant")
+        dialog.locator("img").wait_for()
+        assert dialog.locator("img").get_attribute("src").startswith("data:image/svg+xml,")
+        page.keyboard.press("Escape")
+        assert page.get_by_role("dialog", name="รูปภาพ E2E Test Sealant").count() == 0
+        page.close()
+
 def test_mobile_safety_stock_shows_tooling_when_parts_are_empty(browser):
     page = browser.new_page(
         viewport={"width": 390, "height": 844},
@@ -247,6 +273,7 @@ def main():
         browser = playwright.chromium.launch()
         try:
             test_desktop_tooling_qr_withdrawal_and_history(browser)
+            test_tooling_image_opens_full_size_preview_desktop_and_mobile(browser)
             test_desktop_stock_backup_button(browser)
             test_mobile_stock_backup_button(browser)
             test_desktop_gauge_control_equipment_cards(browser)
