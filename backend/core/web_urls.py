@@ -72,6 +72,7 @@ urlpatterns = [
     path("tooling/safety-stock/", tooling_api.safety_stock, name="web-tooling-safety-stock"),
     path("tooling/items/", tooling_api.items, name="web-tooling-items"),
     path("tooling/items/<uuid:pk>/", tooling_api.item_detail, name="web-tooling-item-detail"),
+    path("tooling/items/<uuid:pk>/image/", tooling_api.item_image, name="web-tooling-item-image"),
     path("tooling/items/<uuid:pk>/withdraw/", tooling_api.withdraw, name="web-tooling-withdraw"),
     path("tooling/history/", tooling_api.history, name="web-tooling-history"),
     path("tooling/history/<uuid:pk>/", tooling_api.delete_history, name="web-tooling-history-delete"),
