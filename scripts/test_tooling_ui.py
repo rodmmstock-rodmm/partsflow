@@ -47,13 +47,14 @@ def test_desktop_tooling_qr_withdrawal_and_history(browser):
     page.get_by_role("heading", name="Tooling").wait_for()
     page.get_by_text(ITEM_NAME).wait_for()
     tooling_row = page.locator("tbody tr").filter(has_text=ITEM_NAME)
-    assert page.locator("thead th").first.inner_text() == "หมายเลขอุปกรณ์"
-    assert page.locator("tbody tr").nth(0).locator("td").first.inner_text() == "GTOOL00001"
-    assert page.locator("tbody tr").nth(1).locator("td").first.inner_text() == "GTOOL00002"
-    assert tooling_row.locator("td").first.inner_text() == "GTOOL00001"
+    assert page.locator("thead th").nth(0).inner_text() == "รูปภาพ"
+    assert page.locator("thead th").nth(1).inner_text() == "หมายเลขอุปกรณ์"
+    assert page.locator("tbody tr").nth(0).locator("td").nth(1).inner_text() == "GTOOL00001"
+    assert page.locator("tbody tr").nth(1).locator("td").nth(1).inner_text() == "GTOOL00002"
+    assert tooling_row.locator("td").nth(1).inner_text() == "GTOOL00001"
     tooling_row.get_by_text("Model-E2E-01").wait_for()
     tooling_row.get_by_text("MM-4-46-1").wait_for()
-    tooling_row.locator("td").nth(7).get_by_text("4", exact=True).wait_for()
+    tooling_row.locator("td").nth(8).get_by_text("4", exact=True).wait_for()
 
     tooling_row.get_by_role("button", name="QR", exact=True).click()
     dialog = page.get_by_role("dialog")
@@ -72,7 +73,7 @@ def test_desktop_tooling_qr_withdrawal_and_history(browser):
     page.get_by_role("button", name="ยืนยันเบิก").click()
 
     page.get_by_text("บันทึกการเบิกแล้ว").wait_for()
-    page.locator("tbody tr").first.locator("td").nth(5).get_by_text("3").wait_for()
+    page.locator("tbody tr").first.locator("td").nth(6).get_by_text("3").wait_for()
 
     page.get_by_role("button", name=re.compile("ประวัติการเบิก")).click()
     history_row = page.locator("tbody tr").filter(has_text=ITEM_NAME)
@@ -82,6 +83,32 @@ def test_desktop_tooling_qr_withdrawal_and_history(browser):
     history_row.get_by_text("Desktop E2E smoke test").wait_for()
     page.close()
 
+
+
+def test_tooling_image_opens_full_size_preview_desktop_and_mobile(browser):
+    for viewport, mobile in [({"width": 1440, "height": 1000}, False), ({"width": 390, "height": 844}, True)]:
+        page = browser.new_page(viewport=viewport, is_mobile=mobile, has_touch=mobile)
+        login(page)
+
+        def add_test_image(route):
+            response = route.fetch()
+            payload = response.json()
+            items = payload.get("results", [])
+            if items:
+                items[0]["image_url"] = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='640' height='480'%3E%3Crect width='640' height='480' fill='%23dbeafe'/%3E%3C/svg%3E"
+            route.fulfill(response=response, json=payload)
+
+        page.route("**/tooling/items/", add_test_image)
+        page.goto(f"{BASE_URL}/tooling", wait_until="networkidle")
+        image_button = page.get_by_role("button", name="ขยายรูปภาพ E2E Test Sealant")
+        image_button.wait_for()
+        image_button.click()
+        dialog = page.get_by_role("dialog", name="รูปภาพ E2E Test Sealant")
+        dialog.locator("img").wait_for()
+        assert dialog.locator("img").get_attribute("src").startswith("data:image/svg+xml,")
+        page.keyboard.press("Escape")
+        assert page.get_by_role("dialog", name="รูปภาพ E2E Test Sealant").count() == 0
+        page.close()
 
 def test_mobile_safety_stock_shows_tooling_when_parts_are_empty(browser):
     page = browser.new_page(
@@ -151,7 +178,7 @@ def test_desktop_tooling_add_uses_gray_suggested_equipment_number(browser):
     page.get_by_label("ชื่ออุปกรณ์ *").fill("E2E Suggested Number Item")
     page.get_by_role("button", name="บันทึก", exact=True).click()
     row = page.locator("tbody tr").filter(has_text="E2E Suggested Number Item")
-    row.locator("td").first.get_by_text(suggested, exact=True).wait_for()
+    row.locator("td").nth(1).get_by_text(suggested, exact=True).wait_for()
     page.close()
 
 
@@ -246,6 +273,7 @@ def main():
         browser = playwright.chromium.launch()
         try:
             test_desktop_tooling_qr_withdrawal_and_history(browser)
+            test_tooling_image_opens_full_size_preview_desktop_and_mobile(browser)
             test_desktop_stock_backup_button(browser)
             test_mobile_stock_backup_button(browser)
             test_desktop_gauge_control_equipment_cards(browser)
