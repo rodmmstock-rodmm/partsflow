@@ -81,8 +81,9 @@ export default function Tooling() {
   }
   async function save(e) {
     e.preventDefault(); setBusy(true); setError("");
+    let saved = null;
     try {
-      const saved = editing
+      saved = editing
         ? await apiPatch(`/tooling/items/${editing.id}/`, form)
         : await apiPost("/tooling/items/", form);
       if (imageFile) {
@@ -93,7 +94,10 @@ export default function Tooling() {
       setEditing(null); setForm(empty); setImageFile(null); setFormOpen(false);
       setSuccess(imageFile ? "บันทึกข้อมูลและรูปภาพ Tooling แล้ว" : "บันทึกข้อมูล Tooling แล้ว");
       await load();
-    } catch (e) { setError(e.message); } finally { setBusy(false); }
+    } catch (e) {
+      if (saved && !editing) { setEditing(saved); setForm({...saved}); }
+      setError(e.message);
+    } finally { setBusy(false); }
   }
   async function submitWithdraw(e) {
     e.preventDefault(); setBusy(true); setError("");
