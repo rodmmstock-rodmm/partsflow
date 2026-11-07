@@ -20,6 +20,10 @@ class OptimizePartImageTests(unittest.TestCase):
         self.assertEqual(optimized, payload)
         self.assertEqual(content_type, "image/gif")
 
+    def test_invalid_gif_payload_is_rejected(self):
+        with self.assertRaises(ValueError):
+            optimize_part_image(b"not a gif", "image/gif")
+
     def test_png_keeps_transparency(self):
         payload = make_image("PNG", mode="RGBA", color=(20, 80, 140, 0))
         optimized, content_type = optimize_part_image(payload, "image/png")
