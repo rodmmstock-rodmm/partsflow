@@ -178,6 +178,7 @@ function EquipmentTab() {
   const [error, setError] = useState("");
   const [modal, setModal] = useState(undefined);
   const [qrTool, setQrTool] = useState(null);
+  const [previewImage, setPreviewImage] = useState(null);
 
   async function load() {
     try {
@@ -197,6 +198,15 @@ function EquipmentTab() {
     }, 10000);
     return () => clearInterval(timer);
   }, []);
+
+  useEffect(() => {
+    if (!previewImage) return undefined;
+    const closeOnEscape = (event) => {
+      if (event.key === "Escape") setPreviewImage(null);
+    };
+    window.addEventListener("keydown", closeOnEscape);
+    return () => window.removeEventListener("keydown", closeOnEscape);
+  }, [previewImage]);
 
   const shown = useMemo(
     () =>
@@ -250,13 +260,23 @@ function EquipmentTab() {
           {shown.map((x) => (
             <article className="gauge-equipment-card" key={x.id}>
               <div className="gauge-equipment-card-top">
-                <div className="gauge-equipment-photo">
-                  {x.image_url ? (
-                    <img src={x.image_url} alt={x.name} loading="lazy" />
-                  ) : (
+                {x.image_url ? (
+                  <button
+                    type="button"
+                    className="gauge-equipment-photo-button"
+                    aria-label={`ขยายรูปภาพ ${x.name}`}
+                    title="คลิกเพื่อขยายรูปภาพ"
+                    onClick={() => setPreviewImage({ url: x.image_url, name: x.name })}
+                  >
+                    <span className="gauge-equipment-photo">
+                      <img src={x.image_url} alt={x.name} loading="lazy" />
+                    </span>
+                  </button>
+                ) : (
+                  <div className="gauge-equipment-photo">
                     <EmptyToolImage className="gauge-equipment-placeholder" />
-                  )}
-                </div>
+                  </div>
+                )}
                 <div className="gauge-equipment-identity">
                   <span className="gauge-equipment-code">{x.code}</span>
                   <span className={`status ${x.status === "BORROWED" ? "warning" : "success"}`}>
@@ -289,6 +309,30 @@ function EquipmentTab() {
               </div>
             </article>
           ))}
+        </div>
+      )}
+      {previewImage && (
+        <div
+          className="gauge-image-preview-backdrop"
+          role="presentation"
+          onMouseDown={(event) => {
+            if (event.target === event.currentTarget) setPreviewImage(null);
+          }}
+        >
+          <section
+            className="gauge-image-preview-modal"
+            role="dialog"
+            aria-modal="true"
+            aria-label={`รูปภาพ ${previewImage.name}`}
+          >
+            <div className="gauge-image-preview-header">
+              <h3>{previewImage.name}</h3>
+              <button type="button" className="btn ghost" aria-label="ปิดรูปภาพ" onClick={() => setPreviewImage(null)}>
+                ปิด ✕
+              </button>
+            </div>
+            <img src={previewImage.url} alt={previewImage.name} />
+          </section>
         </div>
       )}
       {modal !== undefined && (

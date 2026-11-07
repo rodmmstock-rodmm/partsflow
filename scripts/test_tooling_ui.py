@@ -215,6 +215,7 @@ def test_desktop_gauge_control_equipment_cards(browser):
     card.get_by_text("GAUGE-SN-001").wait_for()
     card.get_by_text("Phase4").wait_for()
     card.get_by_text("QA Shelf A1").wait_for()
+    assert card.locator(".tool-empty-image").count() == 1
     assert page.locator(".gauge-equipment-grid .gauge-equipment-card").count() == 1
     assert page.locator(".gauge-equipment-grid table").count() == 0
 
@@ -222,6 +223,43 @@ def test_desktop_gauge_control_equipment_cards(browser):
     page.get_by_role("heading", name="QR Code - E2E-GAUGE-001").wait_for()
     page.locator(".modal-head button").click()
     page.close()
+
+
+def test_gauge_control_image_preview_desktop_and_mobile(browser):
+    for viewport, mobile in [({"width": 1440, "height": 1000}, False), ({"width": 390, "height": 844}, True)]:
+        page = browser.new_page(viewport=viewport, is_mobile=mobile, has_touch=mobile)
+        login(page)
+
+        def add_test_image(route):
+            response = route.fetch()
+            payload = response.json()
+            items = payload.get("results", [])
+            if items:
+                items[0]["image_url"] = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='640' height='480'%3E%3Crect width='640' height='480' fill='%23dbeafe'/%3E%3C/svg%3E"
+            route.fulfill(response=response, json=payload)
+
+        page.route("**/tools/", add_test_image)
+        page.goto(f"{BASE_URL}/tools", wait_until="networkidle")
+        card = page.locator(".gauge-equipment-card").filter(has_text="E2E-GAUGE-001")
+        image_button = card.get_by_role("button", name="ขยายรูปภาพ E2E Gauge Caliper")
+        image_button.wait_for()
+        image_button.click()
+        dialog = page.get_by_role("dialog", name="รูปภาพ E2E Gauge Caliper")
+        image = dialog.locator("img")
+        image.wait_for()
+        assert image.get_attribute("src").startswith("data:image/svg+xml,")
+        assert image.evaluate("el => getComputedStyle(el).objectFit") == "contain"
+        dialog.get_by_role("button", name="ปิดรูปภาพ").click()
+        assert page.get_by_role("dialog", name="รูปภาพ E2E Gauge Caliper").count() == 0
+
+        image_button.click()
+        page.locator(".gauge-image-preview-backdrop").click(position={"x": 2, "y": 2})
+        assert page.get_by_role("dialog", name="รูปภาพ E2E Gauge Caliper").count() == 0
+
+        image_button.click()
+        page.keyboard.press("Escape")
+        assert page.get_by_role("dialog", name="รูปภาพ E2E Gauge Caliper").count() == 0
+        page.close()
 
 
 def test_mobile_gauge_control_equipment_cards(browser):
@@ -277,6 +315,7 @@ def main():
             test_desktop_stock_backup_button(browser)
             test_mobile_stock_backup_button(browser)
             test_desktop_gauge_control_equipment_cards(browser)
+            test_gauge_control_image_preview_desktop_and_mobile(browser)
             test_mobile_gauge_control_equipment_cards(browser)
             test_mobile_safety_stock_shows_tooling_when_parts_are_empty(browser)
             test_desktop_tooling_add_uses_gray_suggested_equipment_number(browser)
