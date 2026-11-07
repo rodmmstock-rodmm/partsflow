@@ -164,11 +164,11 @@ def tooling_backup(request):
     _write_sheet(
         workbook,
         "รายการ Tooling",
-        ["ชื่ออุปกรณ์", "หมายเลขอุปกรณ์", "Tooling ID", "Model", "Location", "Maker", "จำนวนคงเหลือ", "จำนวนขั้นต่ำ", "จำนวนที่ต้องสั่ง", "หน่วย", "สถานะ", "Created At", "Updated At"],
+        ["ชื่ออุปกรณ์", "หมายเลขอุปกรณ์", "Tooling ID", "Model", "Location", "Maker", "จำนวนคงเหลือ", "จำนวนขั้นต่ำ", "จำนวนที่ต้องสั่ง", "หน่วย", "สถานะ", "Image Path / URL", "Created At", "Updated At"],
         [
             [item.name, item.equipment_number, str(item.id), item.detail, item.location, item.maker, item.quantity,
              item.min_quantity, item.order_quantity, item.unit,
-             "Active" if item.active else "Inactive", item.created_at, item.updated_at]
+             "Active" if item.active else "Inactive", item.image_path, item.created_at, item.updated_at]
             for item in items
         ],
     )
