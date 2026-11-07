@@ -47,10 +47,11 @@ def test_desktop_tooling_qr_withdrawal_and_history(browser):
     page.get_by_role("heading", name="Tooling").wait_for()
     page.get_by_text(ITEM_NAME).wait_for()
     tooling_row = page.locator("tbody tr").filter(has_text=ITEM_NAME)
-    assert page.locator("thead th").first.inner_text() == "หมายเลขอุปกรณ์"
-    assert page.locator("tbody tr").nth(0).locator("td").first.inner_text() == "GTOOL00001"
-    assert page.locator("tbody tr").nth(1).locator("td").first.inner_text() == "GTOOL00002"
-    assert tooling_row.locator("td").first.inner_text() == "GTOOL00001"
+    assert page.locator("thead th").nth(0).inner_text() == "รูปภาพ"
+    assert page.locator("thead th").nth(1).inner_text() == "หมายเลขอุปกรณ์"
+    assert page.locator("tbody tr").nth(0).locator("td").nth(1).inner_text() == "GTOOL00001"
+    assert page.locator("tbody tr").nth(1).locator("td").nth(1).inner_text() == "GTOOL00002"
+    assert tooling_row.locator("td").nth(1).inner_text() == "GTOOL00001"
     tooling_row.get_by_text("Model-E2E-01").wait_for()
     tooling_row.get_by_text("MM-4-46-1").wait_for()
     tooling_row.locator("td").nth(7).get_by_text("4", exact=True).wait_for()
