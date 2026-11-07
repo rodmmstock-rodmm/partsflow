@@ -16,11 +16,18 @@ WEBP_QUALITY = 82
 
 
 def optimize_part_image(payload: bytes, content_type: str) -> tuple[bytes, str]:
-    """Return (optimized bytes, content type); animated GIFs remain untouched."""
+    """Return optimized bytes and type; valid animated GIFs remain untouched."""
     normalized_type = str(content_type or "").lower().split(";", 1)[0].strip()
     if normalized_type == "image/jpg":
         normalized_type = "image/jpeg"
     if normalized_type == "image/gif":
+        try:
+            with Image.open(BytesIO(payload)) as source:
+                if source.format != "GIF":
+                    raise ValueError("ไฟล์รูปภาพไม่ถูกต้องหรืออ่านไม่ได้")
+                source.verify()
+        except (UnidentifiedImageError, OSError) as exc:
+            raise ValueError("ไฟล์รูปภาพไม่ถูกต้องหรืออ่านไม่ได้") from exc
         return payload, normalized_type
 
     format_by_type = {

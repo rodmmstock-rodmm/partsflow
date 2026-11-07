@@ -1,9 +1,10 @@
+import hashlib
+import re
 from uuid import UUID
 
 from django.core.exceptions import ValidationError
 from django.db import IntegrityError, transaction
 from django.db.models import F
-import re
 from django.views.decorators.csrf import csrf_exempt
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import AllowAny
@@ -12,6 +13,15 @@ from rest_framework.response import Response
 from .auth_api import require_permission
 from .audit_utils import audit
 from .models import Employee, OrderRecord, ToolingItem, ToolingTransaction
+from .image_optimizer import optimize_part_image
+from .supabase_storage import (
+    SupabaseStorageConfigError,
+    SupabaseStorageRequestError,
+    public_image_url,
+    storage_enabled,
+    storage_object_path,
+    upload_object,
+)
 
 def parse_whole_number(value, *, allow_zero=True):
     """Accept integer values only; never silently truncate decimals or booleans."""
@@ -47,6 +57,7 @@ def item_json(item):
         "location": item.location, "maker": item.maker, "quantity": item.quantity,
         "min_quantity": item.min_quantity, "order_quantity": item.order_quantity, "unit": item.unit,
         "active": item.active, "low_stock": item.quantity < item.min_quantity,
+        "image_url": public_image_url(item.image_path) if item.image_path else "",
     }
 
 
@@ -174,6 +185,52 @@ def item_detail(request, pk):
     except IntegrityError:
         return Response({"detail": "หมายเลขอุปกรณ์นี้มีอยู่แล้ว กรุณาใช้หมายเลขอื่น"}, status=409)
     audit(actor, "UPDATE", "ToolingItem", item.id, item_json(item))
+    return Response(item_json(item))
+
+
+@csrf_exempt
+@api_view(["POST"])
+@permission_classes([AllowAny])
+def item_image(request, pk):
+    actor, err = require_permission(request, "can_edit_tooling")
+    if err:
+        actor, err = require_permission(request, "can_add_tooling")
+    if err:
+        return err
+    item = ToolingItem.objects.filter(pk=pk, active=True).first()
+    if not item:
+        return Response({"detail": "ไม่พบรายการ Tooling"}, status=404)
+    if not storage_enabled():
+        return Response({"detail": "Supabase image storage ยังไม่ได้เปิดใช้งาน"}, status=503)
+    upload = request.FILES.get("image")
+    if not upload:
+        return Response({"detail": "กรุณาเลือกไฟล์รูปภาพ"}, status=400)
+    content_type = str(getattr(upload, "content_type", "") or "").lower().split(";", 1)[0].strip()
+    extensions = {
+        "image/jpeg": ".jpg", "image/jpg": ".jpg",
+        "image/png": ".png", "image/webp": ".webp", "image/gif": ".gif",
+    }
+    extension = extensions.get(content_type)
+    if not extension:
+        return Response({"detail": "รองรับเฉพาะ JPG, PNG, WEBP และ GIF"}, status=400)
+    original = upload.read()
+    if not original or len(original) > 10 * 1024 * 1024:
+        return Response({"detail": "รูปภาพต้องมีขนาดมากกว่า 0 และไม่เกิน 10 MB"}, status=400)
+    try:
+        payload, content_type = optimize_part_image(original, content_type)
+        digest = hashlib.sha256(payload).hexdigest()
+        safe_number = re.sub(r"[^A-Za-z0-9._-]+", "_", item.equipment_number or str(item.id))[:80] or "tooling"
+        logical_path = f"DATA1_Images/Tooling/{safe_number}/{digest[:24]}{extension}"
+        upload_object(storage_object_path(logical_path), payload, content_type=content_type, upsert=False)
+    except (ValueError, SupabaseStorageConfigError) as exc:
+        return Response({"detail": str(exc)}, status=400)
+    except SupabaseStorageRequestError as exc:
+        return Response({"detail": str(exc)}, status=502)
+    item.image_path = logical_path
+    item.save(update_fields=["image_path", "updated_at"])
+    audit(actor, "UPDATE", "ToolingItem", item.id, {
+        "image_upload": {"size": len(payload), "sha256": digest},
+    })
     return Response(item_json(item))
 
 

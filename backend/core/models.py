@@ -954,6 +954,7 @@ class ToolingItem(UUIDMixin):
     min_quantity = models.PositiveIntegerField(default=0)
     order_quantity = models.PositiveIntegerField(default=0)
     unit = models.CharField(max_length=60, blank=True)
+    image_path = models.TextField(blank=True)
     active = models.BooleanField(default=True)
 
     class Meta:
