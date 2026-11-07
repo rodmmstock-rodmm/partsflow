@@ -453,3 +453,65 @@ class ToolingEquipmentNumberTests(TestCase):
         )
 
         self.assertEqual(response.status_code, 400)
+
+
+
+class ToolingItemImageUploadTests(TestCase):
+    def setUp(self):
+        from django.core.files.uploadedfile import SimpleUploadedFile
+
+        self.SimpleUploadedFile = SimpleUploadedFile
+        self.client = APIClient()
+        self.role = RoleAccess.objects.create(
+            role_name="TOOLING_IMAGE_EDITOR",
+            can_edit_tooling=True,
+        )
+        self.actor = Employee.objects.create(
+            employee_code="TEST-TOOLING-IMAGE",
+            name="Tooling Image Editor",
+            role=self.role.role_name,
+        )
+        session = self.client.session
+        session["partsflow_employee_id"] = str(self.actor.id)
+        session.save()
+        self.item = ToolingItem.objects.create(
+            name="Image Test Item",
+            equipment_number="GTOOL00991",
+        )
+        self.url = reverse("web-tooling-item-image", kwargs={"pk": self.item.id})
+
+    @patch("core.tooling_api.upload_object")
+    @patch("core.tooling_api.storage_object_path", return_value="tooling/test-image")
+    @patch("core.tooling_api.storage_enabled", return_value=True)
+    @patch("core.tooling_api.public_image_url", return_value="https://example.test/tooling.png")
+    @patch("core.tooling_api.optimize_part_image", return_value=(b"optimized-image", "image/png"))
+    def test_authorized_user_can_upload_and_retrieve_tooling_image(
+        self, _optimize, _public_url, _enabled, _object_path, upload_object
+    ):
+        image = self.SimpleUploadedFile(
+            "tooling.png",
+            b"original-image",
+            content_type="image/png",
+        )
+        response = self.client.post(self.url, {"image": image}, format="multipart")
+
+        self.assertEqual(response.status_code, 200, response.data)
+        self.item.refresh_from_db()
+        self.assertTrue(self.item.image_path.startswith("DATA1_Images/Tooling/GTOOL00991/"))
+        self.assertEqual(response.data["image_url"], "https://example.test/tooling.png")
+        upload_object.assert_called_once()
+
+    def test_upload_requires_tooling_edit_or_add_permission(self):
+        self.role.can_edit_tooling = False
+        self.role.save(update_fields=["can_edit_tooling"])
+
+        image = self.SimpleUploadedFile(
+            "tooling.png",
+            b"original-image",
+            content_type="image/png",
+        )
+        response = self.client.post(self.url, {"image": image}, format="multipart")
+
+        self.assertEqual(response.status_code, 403)
+        self.item.refresh_from_db()
+        self.assertEqual(self.item.image_path, "")
