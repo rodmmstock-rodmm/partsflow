@@ -137,6 +137,9 @@ class Part(LegacyMixin):
     min_stock = models.DecimalField(max_digits=14, decimal_places=2, default=0)
     max_stock = models.DecimalField(max_digits=14, decimal_places=2, default=0)
     reorder_qty = models.DecimalField(max_digits=14, decimal_places=2, default=0)
+    # Purchase settings are separate from the canonical inventory unit.
+    reorder_unit_code = models.CharField(max_length=30, blank=True, default="")
+    reorder_unit_stock_qty = models.DecimalField(max_digits=14, decimal_places=2, default=1)
     vendor_lead_time_days = models.PositiveIntegerField(default=0)
     purchasing_lead_time_days = models.PositiveIntegerField(default=0)
     total_lead_time_days = models.PositiveIntegerField(default=0)
@@ -559,6 +562,10 @@ class OrderRecord(LegacyMixin):
     maker_text = models.CharField(max_length=250, blank=True)
     amount = models.PositiveIntegerField(default=1)
     unit_text = models.CharField(max_length=80)
+    # Immutable purchase-to-stock conversion snapshot for this Order.
+    stock_unit_conversion = models.DecimalField(max_digits=14, decimal_places=4, default=1)
+    stock_unit_text = models.CharField(max_length=80, blank=True)
+    stock_quantity_ordered = models.DecimalField(max_digits=16, decimal_places=2, default=0)
 
     po_number = models.CharField(max_length=120, blank=True)
     price_per_unit = models.DecimalField(max_digits=16, decimal_places=4, default=0)
