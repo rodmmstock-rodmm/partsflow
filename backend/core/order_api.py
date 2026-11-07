@@ -228,6 +228,9 @@ def order_json(order):
         "maker": order.maker_text,
         "amount": order.amount,
         "unit": order.unit_text,
+        "stock_unit": order.stock_unit_text,
+        "stock_unit_conversion": float(order.stock_unit_conversion or 1),
+        "stock_quantity_ordered": float(order.stock_quantity_ordered or 0),
         "po_number": order.po_number,
         "price_per_unit": float(order.price_per_unit or 0),
         "price_total": float(order.price_total or 0),
@@ -369,7 +372,7 @@ def apply_order_info(order, data, *, creating=False, allow_order_date=False):
         order.part_name = order.part.name
         order.part_detail = order.part.description or ""
         order.maker_text = order.part.maker.name if order.part.maker else ""
-        order.unit_text = order.part.unit.code if order.part.unit else ""
+        order.unit_text = str(data.get("unit") or (order.part.unit.code if order.part.unit else "")).strip()
     else:
         if "part_name" in data or creating:
             order.part_name = str(data.get("part_name") or "").strip()
@@ -584,6 +587,17 @@ def create_orders_batch(request):
                     part_id = str(raw.get("part_id") or "").strip()
                     if not part_id:
                         raise ValueError(f"รายการที่ {index}: ไม่พบ Part ID")
+                    part_for_order = Part.objects.select_related("unit").filter(pk=part_id, active=True).first()
+                    if not part_for_order:
+                        raise ValueError(f"รายการที่ {index}: ไม่พบอะไหล่หรือถูกปิดใช้งานแล้ว")
+                    saved_qty = Decimal(str(part_for_order.reorder_qty or 0))
+                    if saved_qty <= 0 or saved_qty != saved_qty.to_integral_value():
+                        raise ValueError(f"รายการที่ {index}: กรุณากำหนดจำนวนที่ต้อง Order เป็นจำนวนเต็มมากกว่า 0 ในหน้าแก้ไขอะไหล่")
+                    purchase_unit = part_for_order.reorder_unit_code or (part_for_order.unit.code if part_for_order.unit else "")
+                    stock_unit = part_for_order.unit.code if part_for_order.unit else ""
+                    conversion = Decimal(str(part_for_order.reorder_unit_stock_qty or 1))
+                    if not purchase_unit or not stock_unit or conversion <= 0:
+                        raise ValueError(f"รายการที่ {index}: ข้อมูลหน่วยจัดซื้อหรืออัตราแปลงไม่ถูกต้อง")
                     duplicate_key = f"PART:{part_id}"
                     if OrderRecord.objects.filter(
                         part_id=part_id, is_deleted=False,
@@ -605,9 +619,9 @@ def create_orders_batch(request):
                     "part_name": tooling.name if is_tooling else raw.get("part_name", ""),
                     "part_detail": tooling.detail if is_tooling else raw.get("part_detail", ""),
                     "maker": tooling.maker if is_tooling else raw.get("maker", ""),
-                    "unit": tooling.unit if is_tooling else raw.get("unit", ""),
+                    "unit": tooling.unit if is_tooling else purchase_unit,
                     "item_type": "TOOLING" if is_tooling else "PART",
-                    "amount": raw.get("amount"),
+                    "amount": raw.get("amount") if is_tooling else int(saved_qty),
                     "remark": raw.get("remark") or shared_remark or "Safety Stock",
                     "ordered_by_id": raw.get("ordered_by_id") or shared_ordered_by_id,
                 }
@@ -625,6 +639,14 @@ def create_orders_batch(request):
                     apply_order_info(order, payload, creating=True)
                 except ValueError as exc:
                     raise ValueError(f"รายการที่ {index}: {exc}")
+                if not is_tooling:
+                    order.stock_unit_conversion = conversion
+                    order.stock_unit_text = stock_unit
+                    order.stock_quantity_ordered = saved_qty * conversion
+                else:
+                    order.stock_unit_text = tooling.unit or ""
+                    order.stock_unit_conversion = Decimal("1")
+                    order.stock_quantity_ordered = Decimal(str(order.amount or 0))
                 order.save()
                 created_ids.append(order.id)
                 audit(
@@ -1125,9 +1147,11 @@ def receive_order(request, pk):
                 rows, target = locked_inventory(part)
                 stock_before = stock_total(rows)
 
-                amount = Decimal(str(order.amount or 0))
-                if amount <= 0:
-                    raise ValueError("AMOUNT ต้องมากกว่า 0")
+                purchase_amount = Decimal(str(order.amount or 0))
+                conversion = Decimal(str(order.stock_unit_conversion or 1))
+                amount = purchase_amount * conversion
+                if purchase_amount <= 0 or conversion <= 0 or amount <= 0:
+                    raise ValueError("AMOUNT หรืออัตราแปลงหน่วยต้องมากกว่า 0")
 
                 target.quantity = Decimal(str(target.quantity or 0)) + amount
                 target.save(update_fields=["quantity", "updated_at"])
@@ -1146,7 +1170,7 @@ def receive_order(request, pk):
                     reference_type="ORDER",
                     reference_id=str(order.id),
                     transaction_date=timezone.now(),
-                    remark=f"รับเข้าจาก Order {order.order_number}",
+                    remark=f"รับเข้าจาก Order {order.order_number} ({purchase_amount} {order.unit_text} × {conversion} {order.stock_unit_text})",
                     created_by=None,
                 )
 
