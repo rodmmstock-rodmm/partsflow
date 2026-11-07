@@ -215,14 +215,14 @@ export function PartModal({ part, options, onClose, onSaved }) {
           </label>
           <label className="field">
             <span>หน่วยที่ต้อง Order *</span>
-            <select value={form.reorder_unit_code || form.unit_code || ""} onChange={(e) => set("reorder_unit_code", e.target.value)}>
+            <select value={form.reorder_unit_code || form.unit_code || ""} onChange={(e) => { const value = e.target.value; const previous = form.reorder_unit_code || form.unit_code; set("reorder_unit_code", value); if (value === (form.unit_code || "")) set("reorder_unit_stock_qty", 1); else if (previous === (form.unit_code || "")) set("reorder_unit_stock_qty", ""); }}>
               {[...new Set([form.unit_code, "PCS", "PAK", "BOX"].filter(Boolean))].map(code => <option key={code} value={code}>{code}</option>)}
             </select>
           </label>
           {form.reorder_unit_code && form.reorder_unit_code !== (form.unit_code || "") && (
             <label className="field">
               <span>จำนวน {form.unit_code || "Stock"} ต่อ 1 {form.reorder_unit_code} *</span>
-              <input type="number" min="1" step="1" value={form.reorder_unit_stock_qty ?? 1} onChange={(e) => set("reorder_unit_stock_qty", e.target.value)} />
+              <input type="number" min="1" step="1" value={form.reorder_unit_stock_qty ?? ""} required onChange={(e) => set("reorder_unit_stock_qty", e.target.value)} />
               <small className="field-help">ตัวอย่าง 1 BOX = 500 PCS</small>
             </label>
           )}
