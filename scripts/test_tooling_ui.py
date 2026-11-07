@@ -152,7 +152,7 @@ def test_desktop_tooling_add_uses_gray_suggested_equipment_number(browser):
     page.get_by_label("ชื่ออุปกรณ์ *").fill("E2E Suggested Number Item")
     page.get_by_role("button", name="บันทึก", exact=True).click()
     row = page.locator("tbody tr").filter(has_text="E2E Suggested Number Item")
-    row.locator("td").first.get_by_text(suggested, exact=True).wait_for()
+    row.locator("td").nth(1).get_by_text(suggested, exact=True).wait_for()
     page.close()
 
 
