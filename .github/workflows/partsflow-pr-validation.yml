@@ -48,6 +48,7 @@ jobs:
         run: |
           python manage.py test core.tests.test_backup_export --verbosity 2
           python manage.py test core.tests.test_api_pagination_cache --verbosity 2
+          python manage.py test core.tests.test_purchase_unit_conversion --verbosity 2
           python manage.py test core.tests.test_tooling_inventory --verbosity 2
           python manage.py test core.tests.test_cloth_roll_history --verbosity 2
           python manage.py test core.tests.test_tooling_vehicle_keys --verbosity 2
