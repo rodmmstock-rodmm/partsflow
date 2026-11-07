@@ -54,7 +54,7 @@ def test_desktop_tooling_qr_withdrawal_and_history(browser):
     assert tooling_row.locator("td").nth(1).inner_text() == "GTOOL00001"
     tooling_row.get_by_text("Model-E2E-01").wait_for()
     tooling_row.get_by_text("MM-4-46-1").wait_for()
-    tooling_row.locator("td").nth(7).get_by_text("4", exact=True).wait_for()
+    tooling_row.locator("td").nth(8).get_by_text("4", exact=True).wait_for()
 
     tooling_row.get_by_role("button", name="QR", exact=True).click()
     dialog = page.get_by_role("dialog")
@@ -73,7 +73,7 @@ def test_desktop_tooling_qr_withdrawal_and_history(browser):
     page.get_by_role("button", name="ยืนยันเบิก").click()
 
     page.get_by_text("บันทึกการเบิกแล้ว").wait_for()
-    page.locator("tbody tr").first.locator("td").nth(5).get_by_text("3").wait_for()
+    page.locator("tbody tr").first.locator("td").nth(6).get_by_text("3").wait_for()
 
     page.get_by_role("button", name=re.compile("ประวัติการเบิก")).click()
     history_row = page.locator("tbody tr").filter(has_text=ITEM_NAME)
