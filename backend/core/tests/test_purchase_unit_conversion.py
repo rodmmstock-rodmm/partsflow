@@ -12,6 +12,7 @@ class SparePartPurchaseUnitConversionTests(TestCase):
             role_name="PURCHASE_UNIT_TEST",
             can_add_order=True,
             can_receive_order=True,
+            can_view_safety_stock=True,
         )
         self.actor = Employee.objects.create(
             employee_code="TEST-PU-ACTOR",
@@ -34,7 +35,7 @@ class SparePartPurchaseUnitConversionTests(TestCase):
             description="M8 bolt",
             unit=self.unit,
             maker=self.maker,
-            min_stock=10,
+            min_stock=20,
             reorder_qty=5,
             reorder_unit_code="BOX",
             reorder_unit_stock_qty=500,
