@@ -195,6 +195,8 @@ def item_detail(request, pk):
 def item_image(request, pk):
     actor, err = require_permission(request, "can_edit_tooling")
     if err:
+        actor, err = require_permission(request, "can_add_tooling")
+    if err:
         return err
     item = ToolingItem.objects.filter(pk=pk, active=True).first()
     if not item:
