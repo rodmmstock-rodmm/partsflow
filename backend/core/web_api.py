@@ -520,7 +520,10 @@ def apply_part_fields(part, data):
     for field in ["min_stock", "max_stock", "reorder_qty", "last_purchase_price"]:
         if field in data:
             setattr(part, field, dec(data.get(field)))
-    if part.reorder_qty < 0 or part.reorder_qty != part.reorder_qty.to_integral_value():
+    if "reorder_qty" in data and (
+        part.reorder_qty < 0
+        or part.reorder_qty != part.reorder_qty.to_integral_value()
+    ):
         raise ValueError("จำนวนที่ต้อง Order ต้องเป็นจำนวนเต็มตั้งแต่ 0 ขึ้นไป")
     if "reorder_unit_code" in data:
         part.reorder_unit_code = str(data.get("reorder_unit_code") or "").strip().upper()
