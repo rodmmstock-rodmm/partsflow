@@ -1,11 +1,10 @@
-from uuid import UUID
 import hashlib
 import re
+from uuid import UUID
 
 from django.core.exceptions import ValidationError
 from django.db import IntegrityError, transaction
 from django.db.models import F
-import re
 from django.views.decorators.csrf import csrf_exempt
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import AllowAny
