@@ -248,6 +248,14 @@ def test_gauge_control_image_preview_desktop_and_mobile(browser):
         image.wait_for()
         assert image.get_attribute("src").startswith("data:image/svg+xml,")
         assert image.evaluate("el => getComputedStyle(el).objectFit") == "contain"
+        dialog.get_by_role("button", name="ปิดรูปภาพ").click()
+        assert page.get_by_role("dialog", name="รูปภาพ E2E Gauge Caliper").count() == 0
+
+        image_button.click()
+        page.locator(".gauge-image-preview-backdrop").click(position={"x": 2, "y": 2})
+        assert page.get_by_role("dialog", name="รูปภาพ E2E Gauge Caliper").count() == 0
+
+        image_button.click()
         page.keyboard.press("Escape")
         assert page.get_by_role("dialog", name="รูปภาพ E2E Gauge Caliper").count() == 0
         page.close()
