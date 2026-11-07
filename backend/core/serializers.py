@@ -46,6 +46,8 @@ PART_LIST_ONLY_FIELDS = (
     "min_stock",
     "max_stock",
     "reorder_qty",
+    "reorder_unit_code",
+    "reorder_unit_stock_qty",
     "vendor_lead_time_days",
     "purchasing_lead_time_days",
     "total_lead_time_days",
@@ -156,6 +158,7 @@ class PartListSerializer(serializers.ModelSerializer):
     min_stock = serializers.FloatField(read_only=True)
     max_stock = serializers.FloatField(read_only=True)
     reorder_qty = serializers.FloatField(read_only=True)
+    reorder_unit_stock_qty = serializers.FloatField(read_only=True)
     last_purchase_price = serializers.FloatField(read_only=True)
     stock_qty = serializers.SerializerMethodField()
     stock_status = serializers.SerializerMethodField()
@@ -186,6 +189,8 @@ class PartListSerializer(serializers.ModelSerializer):
             "min_stock",
             "max_stock",
             "reorder_qty",
+            "reorder_unit_code",
+            "reorder_unit_stock_qty",
             "vendor_lead_time_days",
             "purchasing_lead_time_days",
             "total_lead_time_days",

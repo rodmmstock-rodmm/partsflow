@@ -23,6 +23,8 @@ const blankPart = {
   image_path: "",
   min_stock: 0,
   reorder_qty: 0,
+  reorder_unit_code: "",
+  reorder_unit_stock_qty: 1,
   vendor_lead_time_days: 0,
   last_purchase_price: 0,
   critical: false,
@@ -208,9 +210,22 @@ export function PartModal({ part, options, onClose, onSaved }) {
             <input type="number" step="any" value={form.min_stock} onChange={(e) => set("min_stock", e.target.value)} />
           </label>
           <label className="field">
-            <span>จำนวนที่ Order</span>
-            <input type="number" step="any" value={form.reorder_qty} onChange={(e) => set("reorder_qty", e.target.value)} />
+            <span>จำนวนที่ต้อง Order *</span>
+            <input type="number" min="0" step="1" value={form.reorder_qty} onChange={(e) => set("reorder_qty", e.target.value)} />
           </label>
+          <label className="field">
+            <span>หน่วยที่ต้อง Order *</span>
+            <select value={form.reorder_unit_code || form.unit_code || ""} onChange={(e) => { const value = e.target.value; const previous = form.reorder_unit_code || form.unit_code; set("reorder_unit_code", value); if (value === (form.unit_code || "")) set("reorder_unit_stock_qty", 1); else if (previous === (form.unit_code || "")) set("reorder_unit_stock_qty", ""); }}>
+              {[...new Set([form.unit_code, "PCS", "PAK", "BOX"].filter(Boolean))].map(code => <option key={code} value={code}>{code}</option>)}
+            </select>
+          </label>
+          {form.reorder_unit_code && form.reorder_unit_code !== (form.unit_code || "") && (
+            <label className="field">
+              <span>จำนวน {form.unit_code || "Stock"} ต่อ 1 {form.reorder_unit_code} *</span>
+              <input type="number" min="1" step="1" value={form.reorder_unit_stock_qty ?? ""} required onChange={(e) => set("reorder_unit_stock_qty", e.target.value)} />
+              <small className="field-help">ตัวอย่าง 1 BOX = 500 PCS</small>
+            </label>
+          )}
           <label className="field">
             <span>Last Purchase Price</span>
             <div className="input-suffix">

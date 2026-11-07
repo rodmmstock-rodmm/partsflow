@@ -520,6 +520,23 @@ def apply_part_fields(part, data):
     for field in ["min_stock", "max_stock", "reorder_qty", "last_purchase_price"]:
         if field in data:
             setattr(part, field, dec(data.get(field)))
+    if "reorder_qty" in data and (
+        part.reorder_qty < 0
+        or part.reorder_qty != part.reorder_qty.to_integral_value()
+    ):
+        raise ValueError("จำนวนที่ต้อง Order ต้องเป็นจำนวนเต็มตั้งแต่ 0 ขึ้นไป")
+    if "reorder_unit_code" in data:
+        part.reorder_unit_code = str(data.get("reorder_unit_code") or "").strip().upper()
+    if "reorder_unit_stock_qty" in data:
+        part.reorder_unit_stock_qty = dec(data.get("reorder_unit_stock_qty"), default="0")
+    if part.reorder_unit_code and part.unit_id and part.reorder_unit_code == part.unit.code:
+        part.reorder_unit_stock_qty = Decimal("1")
+    elif part.reorder_unit_code in {"PAK", "BOX"}:
+        rate = Decimal(str(part.reorder_unit_stock_qty or 0))
+        if rate <= 0 or rate != rate.to_integral_value():
+            raise ValueError("จำนวน Stock ต่อ 1 PAK/BOX ต้องเป็นจำนวนเต็มมากกว่า 0")
+    elif part.reorder_unit_stock_qty <= 0:
+        raise ValueError("อัตราแปลงหน่วยต้องมากกว่า 0")
     for field in ["vendor_lead_time_days", "purchasing_lead_time_days"]:
         if field in data:
             setattr(part, field, max(0, int(data.get(field) or 0)))
@@ -1192,6 +1209,8 @@ def safety_stock(request):
             "last_machine_id": str(UUID(str(part.last_machine_id))) if part.last_machine_id else "",
             "last_machine_name": part.last_machine_name or "",
             "order_qty": float(part.reorder_qty or 0),
+            "order_unit_code": part.reorder_unit_code or (part.unit.code if part.unit else ""),
+            "order_unit_stock_qty": float(part.reorder_unit_stock_qty or 1),
         }
         for part in parts
     ]
