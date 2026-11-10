@@ -63,6 +63,28 @@ class ClothRollHistoryFilterAndDeleteTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual([row["id"] for row in response.data["transactions"]], [str(february.id)])
 
+    def test_adjustment_note_is_saved_and_returned_in_history(self):
+        response = self.client.post(
+            reverse("web-cloth-roll-transaction"),
+            {
+                "phase": ClothRollStock.PHASE_4,
+                "transaction_type": ClothRollTransaction.TYPE_ADJUST,
+                "quantity": "8",
+                "note": "ตรวจนับยอดคงเหลือประจำเดือน",
+                "source": "WEB",
+            },
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, 201)
+        self.assertEqual(response.data["transaction"]["note"], "ตรวจนับยอดคงเหลือประจำเดือน")
+        history = self.client.get(
+            reverse("web-cloth-rolls"),
+            {"year": datetime.now().year, "month": datetime.now().month},
+        )
+        self.assertEqual(history.status_code, 200)
+        self.assertEqual(history.data["transactions"][0]["note"], "ตรวจนับยอดคงเหลือประจำเดือน")
+
     def test_delete_history_requires_dedicated_permission(self):
         self.role.can_delete_cloth_roll_history = False
         self.role.save(update_fields=["can_delete_cloth_roll_history"])
