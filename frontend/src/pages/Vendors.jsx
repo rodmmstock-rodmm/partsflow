@@ -66,7 +66,7 @@ export function VendorModal({ row, onClose, onSaved }) {
   const auth = useAuth();
   const { confirm } = useFeedback();
   const [form, setForm] = useState(
-    row || { code: "", name: "", contact: "", phone: "", email: "", remark: "", active: true }
+    row || { name: "", contact: "", phone: "", email: "", remark: "", active: true }
   );
   const [contacts, setContacts] = useState(row?.contacts || []);
   const [error, setError] = useState("");
@@ -82,7 +82,7 @@ export function VendorModal({ row, onClose, onSaved }) {
       if (row) {
         await apiPatch(`/suppliers/${row.id}/`, form);
       } else {
-        await apiPost("/suppliers/", form);
+        await apiPost("/suppliers/", { ...form, code: `SYS-${crypto.randomUUID().replaceAll("-", "").slice(0, 20).toUpperCase()}` });
       }
       onSaved();
     } catch (err) {
@@ -231,12 +231,12 @@ export default function Vendors() {
   }, []);
 
   const shown = useMemo(
-    () => rows.filter((x) => !q || `${x.code} ${x.name}`.toLowerCase().includes(q.toLowerCase())),
+    () => rows.filter((x) => !q || `${x.name}`.toLowerCase().includes(q.toLowerCase())),
     [rows, q]
   );
 
   async function remove(x) {
-    const ok = await confirm(`ยืนยันลบ Vendor ${x.code}?`, {
+    const ok = await confirm(`ยืนยันลบ Vendor ${x.name}?`, {
       title: "ยืนยันการลบ",
       confirmLabel: "ลบ",
       danger: true,
@@ -270,14 +270,13 @@ export default function Vendors() {
             className="search-input"
             value={q}
             onChange={(e) => setQ(e.target.value)}
-            placeholder="ค้นหา Vendor Code / Vendor Name..."
+            placeholder="ค้นหาชื่อ Vendor..."
           />
         </div>
         <div className="table-wrap">
           <table>
             <thead>
               <tr>
-                <th>Vendor Code</th>
                 <th>Vendor Name</th>
                 <th>Contact หลัก</th>
                 <th>Phone หลัก</th>
@@ -290,9 +289,6 @@ export default function Vendors() {
             <tbody>
               {shown.map((x) => (
                 <tr key={x.id}>
-                  <td className="mono-cell">
-                    <b>{x.code}</b>
-                  </td>
                   <td>{x.name}</td>
                   <td>{x.contact || "-"}</td>
                   <td>{x.phone || "-"}</td>
