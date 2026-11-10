@@ -669,9 +669,9 @@ export function PurchaseModal({
               onChange={(value) => {
                 set("vendor_id", value);
               }}
-              getLabel={(x) => `${x.code ? `${x.code} · ` : ""}${x.name}`}
-              getSearchText={(x) => `${x.code || ""} ${x.name || ""} ${x.email || ""} ${x.contact_person || ""}`}
-              placeholder="พิมพ์ชื่อหรือรหัส Vendor"
+              getLabel={(x) => x.name}
+              getSearchText={(x) => `${x.name || ""} ${x.email || ""} ${x.contact_person || ""}`}
+              placeholder="ค้นหาชื่อ Vendor"
             />
           </div>
           <button
@@ -869,7 +869,7 @@ function DeletedOrderTable({ rows, onRestore, restoringId }) {
                 <b>{o.order_number}</b>
               </td>
               <td>{formatDMY(o.date)}</td>
-              <td>{o.machine_code || o.machine_name || "-"}</td>
+              <td>{o.machine_code || "-"}</td>
               <td>{o.part_name}</td>
               <td>{fmt(o.amount)}</td>
               <td>{o.lifecycle_status}</td>
@@ -1523,7 +1523,7 @@ function MinimalStepOrderTable({
                 <b>{o.part_name || o.item_id || "-"}</b>
                 {o.item_id && <div className="stack-sub mono-cell">{o.item_id}</div>}
               </td>
-              <td className="mono-cell">{o.machine_name || o.machine_code || "-"}</td>
+              <td className="mono-cell">{o.machine_code || "-"}</td>
               <td className="mono-cell">
                 {fmt(o.amount)} {o.unit}
               </td>
@@ -1643,7 +1643,7 @@ function QuotationTable({
                 </td>
                 <td>{row.date}</td>
                 <td>{row.group_order || "-"}</td>
-                <td>{row.machine_name || row.machine_code || "-"}</td>
+                <td>{row.machine_code || "-"}</td>
                 <td><b>{row.item_id || "-"}</b></td>
                 <td>{row.part_name}</td>
                 <td className="detail-cell">{row.part_detail}</td>
