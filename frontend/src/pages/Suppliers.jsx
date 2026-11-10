@@ -56,7 +56,7 @@ export default function Suppliers() {
           <input
             value={q}
             onChange={(e) => setQ(e.target.value)}
-            placeholder="ค้นหา Supplier / Code / Contact"
+            placeholder="ค้นหา Supplier / Contact"
           />
           <button type="submit">Search</button>
         </form>
@@ -70,7 +70,6 @@ export default function Suppliers() {
             <table>
               <thead>
                 <tr>
-                  <th>Code</th>
                   <th>Supplier</th>
                   <th>Contact</th>
                   <th>Phone</th>
@@ -81,7 +80,6 @@ export default function Suppliers() {
               <tbody>
                 {rows.map((supplier) => (
                   <tr key={supplier.id}>
-                    <td>{supplier.code || supplier.supplier_code || "-"}</td>
                     <td>
                       <strong>{supplier.name || supplier.supplier_name || "-"}</strong>
                     </td>
@@ -93,7 +91,7 @@ export default function Suppliers() {
 
                 {!rows.length && (
                   <tr>
-                    <td colSpan="5" className="empty">
+                    <td colSpan="4" className="empty">
                       ไม่พบ Supplier
                     </td>
                   </tr>
