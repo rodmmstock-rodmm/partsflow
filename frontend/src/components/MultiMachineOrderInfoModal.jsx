@@ -282,7 +282,7 @@ export default function MultiMachineOrderInfoModal({
                   {selectedMachines.map((machine, index) => (
                     <span className="order-machine-chip" key={machine.id}>
                       <b>{machine.code}</b>
-                      {machine.name && <span>{machine.name}</span>}
+                      
                       {index === 0 && <small className="order-machine-primary">เครื่องหลัก</small>}
                       <button
                         type="button"
@@ -298,7 +298,7 @@ export default function MultiMachineOrderInfoModal({
                 options={remainingMachines}
                 onChange={(value) => addMachine(value)}
                 getLabel={(machine) => machine.code}
-                getSearchText={(machine) => `${machine.code || ""} ${machine.name || ""} ${machine.location || ""}`}
+                getSearchText={(machine) => `${machine.code || ""} ${machine.location || ""}`}
                 placeholder="พิมพ์รหัส Machine เพื่อเพิ่ม"
                 emptyText="ไม่พบ Machine หรือเลือกไว้แล้ว"
               />
