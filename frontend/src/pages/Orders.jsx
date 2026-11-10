@@ -102,7 +102,7 @@ function findLabel(list, text, kind) {
           ? `${x.code}`
           : kind === "part"
             ? `${x.sku} · ${x.name}`
-            : `${x.code} · ${x.name}`;
+            : `${x.name}`;
     const code =
       kind === "employee"
         ? x.employee_code
