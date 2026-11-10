@@ -99,7 +99,7 @@ function findLabel(list, text, kind) {
       kind === "employee"
         ? `${x.name}`
         : kind === "machine"
-          ? `${x.name}`
+          ? `${x.code}`
           : kind === "part"
             ? `${x.sku} · ${x.name}`
             : `${x.code} · ${x.name}`;
@@ -316,7 +316,7 @@ export function OrderInfoModal({
               options={options.machines || []}
               onChange={(value) => set("machine_id", value)}
               getLabel={(x) => x.code}
-              getSearchText={(x) => `${x.code || ""} ${x.name || ""} ${x.location || ""}`}
+              getSearchText={(x) => `${x.code || ""} ${x.location || ""}`}
               placeholder="พิมพ์รหัส Machine"
             />
           </label>
@@ -1157,7 +1157,7 @@ function OrderTable({
                       type="searchable"
                       options={options.machines || []}
                       getLabel={(x) => x.code}
-                      getSearchText={(x) => `${x.code || ""} ${x.name || ""}`}
+                      getSearchText={(x) => `${x.code || ""}`}
                       placeholder="พิมพ์รหัส Machine"
                       canEdit={auth.can("can_edit_order_info")}
                       onSave={(val) => onInlineSave(o, "machine_id", val)}
@@ -1273,7 +1273,7 @@ function OrderTable({
                       type="searchable"
                       options={options.vendors || []}
                       getLabel={(x) => x.name}
-                      getSearchText={(x) => `${x.code || ""} ${x.name || ""}`}
+                      getSearchText={(x) => `${x.code || ""}`}
                       placeholder="พิมพ์ชื่อ Vendor"
                       canEdit={auth.can("can_edit_purchase_info")}
                       onSave={(val) => onInlinePurchaseSave(o, "vendor_id", val)}
@@ -3327,7 +3327,7 @@ export default function Orders({ mode = "orders" }) {
       STEP: o.step_no || "",
       DATE: o.date,
       FACTORY: o.factory === "MM-11" ? "Phase11" : "Phase4",
-      "MACHINE NAME": o.machine_name || o.machine_code || "",
+      "MACHINE CODE": o.machine_code || "",
       JOB: o.job,
       "PART ID": o.item_id || "",
       "PART NAME": o.part_name,
