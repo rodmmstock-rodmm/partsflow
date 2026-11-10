@@ -133,7 +133,7 @@ export function FastOrderModal({ row, onClose, onSaved }) {
               options={machines}
               onChange={(value) => set("machine_id", value)}
               getLabel={(machine) => machine.code}
-              getSearchText={(machine) => `${machine.code || ""} ${machine.name || ""} ${machine.location || ""}`}
+              getSearchText={(machine) => `${machine.code || ""} ${machine.location || ""}`}
               placeholder="พิมพ์รหัส Machine (ไม่บังคับ)"
             />
           </label>
@@ -232,7 +232,7 @@ export function QuickOrderModal({ row, onClose, onSaved }) {
               options={machines}
               onChange={setMachineId}
               getLabel={(machine) => machine.code}
-              getSearchText={(machine) => `${machine.code || ""} ${machine.name || ""} ${machine.location || ""}`}
+              getSearchText={(machine) => `${machine.code || ""} ${machine.location || ""}`}
               placeholder="พิมพ์รหัส Machine"
             />
           </label>
@@ -315,7 +315,7 @@ export function BulkOrderModal({ rows, onClose, onSaved }) {
               options={machines}
               onChange={setMachineId}
               getLabel={(machine) => machine.code}
-              getSearchText={(machine) => `${machine.code || ""} ${machine.name || ""} ${machine.location || ""}`}
+              getSearchText={(machine) => `${machine.code || ""} ${machine.location || ""}`}
               placeholder="พิมพ์รหัส Machine"
             />
           </label>

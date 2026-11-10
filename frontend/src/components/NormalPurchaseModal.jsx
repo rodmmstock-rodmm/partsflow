@@ -60,7 +60,7 @@ export default function NormalPurchaseModal({ order, options, onClose, onChanged
     );
     return master || {
       id: row.vendor_id,
-      code: row.vendor_code,
+      
       name: row.vendor_name,
       email: row.vendor_email || "",
       contact_person: row.vendor_contact || "",

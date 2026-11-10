@@ -92,6 +92,7 @@ const STEP_HEADERS = [
   "PERSON IN CHARGE OF ORDER",
 ];
 
+// Vendor matching is name-only; Machine matching is code-only.
 function findLabel(list, text, kind) {
   const t = String(text || "").trim().toLowerCase();
   return (list || []).find((x) => {
@@ -99,16 +100,18 @@ function findLabel(list, text, kind) {
       kind === "employee"
         ? `${x.name}`
         : kind === "machine"
-          ? `${x.name}`
+          ? `${x.code}`
           : kind === "part"
             ? `${x.sku} · ${x.name}`
-            : `${x.code} · ${x.name}`;
+            : `${x.name}`;
     const code =
       kind === "employee"
         ? x.employee_code
         : kind === "part"
           ? x.sku
-          : x.code;
+          : kind === "machine"
+            ? x.code
+            : "";
     return (
       label.toLowerCase() === t ||
       String(code || "").toLowerCase() === t ||
@@ -316,7 +319,7 @@ export function OrderInfoModal({
               options={options.machines || []}
               onChange={(value) => set("machine_id", value)}
               getLabel={(x) => x.code}
-              getSearchText={(x) => `${x.code || ""} ${x.name || ""} ${x.location || ""}`}
+              getSearchText={(x) => `${x.code || ""} ${x.location || ""}`}
               placeholder="พิมพ์รหัส Machine"
             />
           </label>
@@ -669,9 +672,9 @@ export function PurchaseModal({
               onChange={(value) => {
                 set("vendor_id", value);
               }}
-              getLabel={(x) => `${x.code ? `${x.code} · ` : ""}${x.name}`}
-              getSearchText={(x) => `${x.code || ""} ${x.name || ""} ${x.email || ""} ${x.contact_person || ""}`}
-              placeholder="พิมพ์ชื่อหรือรหัส Vendor"
+              getLabel={(x) => x.name}
+              getSearchText={(x) => `${x.name || ""} ${x.email || ""} ${x.contact_person || ""}`}
+              placeholder="ค้นหาชื่อ Vendor"
             />
           </div>
           <button
@@ -869,7 +872,7 @@ function DeletedOrderTable({ rows, onRestore, restoringId }) {
                 <b>{o.order_number}</b>
               </td>
               <td>{formatDMY(o.date)}</td>
-              <td>{o.machine_code || o.machine_name || "-"}</td>
+              <td>{o.machine_code || "-"}</td>
               <td>{o.part_name}</td>
               <td>{fmt(o.amount)}</td>
               <td>{o.lifecycle_status}</td>
@@ -1157,7 +1160,7 @@ function OrderTable({
                       type="searchable"
                       options={options.machines || []}
                       getLabel={(x) => x.code}
-                      getSearchText={(x) => `${x.code || ""} ${x.name || ""}`}
+                      getSearchText={(x) => `${x.code || ""}`}
                       placeholder="พิมพ์รหัส Machine"
                       canEdit={auth.can("can_edit_order_info")}
                       onSave={(val) => onInlineSave(o, "machine_id", val)}
@@ -1273,7 +1276,7 @@ function OrderTable({
                       type="searchable"
                       options={options.vendors || []}
                       getLabel={(x) => x.name}
-                      getSearchText={(x) => `${x.code || ""} ${x.name || ""}`}
+                      getSearchText={(x) => `${x.name || ""} ${x.email || ""} ${x.contact_person || ""}`}
                       placeholder="พิมพ์ชื่อ Vendor"
                       canEdit={auth.can("can_edit_purchase_info")}
                       onSave={(val) => onInlinePurchaseSave(o, "vendor_id", val)}
@@ -1523,7 +1526,7 @@ function MinimalStepOrderTable({
                 <b>{o.part_name || o.item_id || "-"}</b>
                 {o.item_id && <div className="stack-sub mono-cell">{o.item_id}</div>}
               </td>
-              <td className="mono-cell">{o.machine_name || o.machine_code || "-"}</td>
+              <td className="mono-cell">{o.machine_code || "-"}</td>
               <td className="mono-cell">
                 {fmt(o.amount)} {o.unit}
               </td>
@@ -1643,7 +1646,7 @@ function QuotationTable({
                 </td>
                 <td>{row.date}</td>
                 <td>{row.group_order || "-"}</td>
-                <td>{row.machine_name || row.machine_code || "-"}</td>
+                <td>{row.machine_code || "-"}</td>
                 <td><b>{row.item_id || "-"}</b></td>
                 <td>{row.part_name}</td>
                 <td className="detail-cell">{row.part_detail}</td>
@@ -3327,7 +3330,7 @@ export default function Orders({ mode = "orders" }) {
       STEP: o.step_no || "",
       DATE: o.date,
       FACTORY: o.factory === "MM-11" ? "Phase11" : "Phase4",
-      "MACHINE NAME": o.machine_name || o.machine_code || "",
+      "MACHINE CODE": o.machine_code || "",
       JOB: o.job,
       "PART ID": o.item_id || "",
       "PART NAME": o.part_name,

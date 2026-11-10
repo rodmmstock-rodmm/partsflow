@@ -4,7 +4,7 @@ import { Alert, Modal, SearchableSelect } from "./Common";
 
 function vendorLabel(vendor) {
   if (!vendor) return "";
-  return `${vendor.code ? `${vendor.code} · ` : ""}${vendor.name || ""}`;
+  return vendor.name || "";
 }
 
 export default function BulkOrderQuotationModal({
@@ -269,8 +269,8 @@ export default function BulkOrderQuotationModal({
             options={vendorOptions}
             onChange={setVendorId}
             getLabel={vendorLabel}
-            getSearchText={(vendor) => (vendor.code || "") + " " + (vendor.name || "") + " " + (vendor.email || "") + " " + (vendor.contact_person || "")}
-            placeholder="พิมพ์ชื่อหรือรหัส Vendor"
+            getSearchText={(vendor) => (vendor.name || "") + " " + (vendor.email || "") + " " + (vendor.contact_person || "")}
+            placeholder="ค้นหาชื่อ Vendor"
           />
           {mode === "quotation" && (
             <div style={{ marginTop: 8 }}>

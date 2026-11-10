@@ -10,7 +10,7 @@ function splitEmails(value) {
 }
 
 function vendorLabel(vendor) {
-  return vendor ? `${vendor.code} · ${vendor.name}` : "";
+  return vendor ? vendor.name : "";
 }
 
 function localDateTimeNow() {
@@ -174,8 +174,8 @@ export default function RFQComposeModal({ orders, options, onClose, onRecorded }
                   options={options.vendors || []}
                   onChange={chooseVendor}
                   getLabel={vendorLabel}
-                  getSearchText={(vendor) => `${vendor.code || ""} ${vendor.name || ""} ${vendor.email || ""} ${vendor.contact_person || ""}`}
-                  placeholder="พิมพ์ชื่อหรือรหัส Vendor"
+                  getSearchText={(vendor) => `${vendor.name || ""} ${vendor.email || ""} ${vendor.contact_person || ""}`}
+                  placeholder="ค้นหาชื่อ Vendor"
                 />
               </label>
               <label className="field">

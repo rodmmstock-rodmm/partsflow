@@ -18,7 +18,7 @@ const ORDER_FIELDS = [
   {
     key: "machine",
     label: "MACHINE",
-    value: (d) => joinCodeName(d.machine_code, d.machine_name),
+    value: (d) => cleanText(d.machine_code),
   },
   { key: "job", label: "JOB", value: (d) => d.job },
   { key: "urgent_status", label: "Urgent", value: (d) => d.urgent_status },

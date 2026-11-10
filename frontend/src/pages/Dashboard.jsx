@@ -171,9 +171,9 @@ export function PartModal({ part, options, onClose, onSaved }) {
               value={form.supplier_id || ""}
               options={options.vendors || []}
               onChange={(value) => set("supplier_id", value)}
-              getLabel={(item) => `${item.code} · ${item.name}`}
-              getSearchText={(item) => `${item.code || ""} ${item.name || ""} ${item.email || ""} ${item.contact_person || ""}`}
-              placeholder="พิมพ์ชื่อหรือรหัส Vendor"
+              getLabel={(item) => item.name}
+              getSearchText={(item) => `${item.name || ""} ${item.email || ""} ${item.contact_person || ""}`}
+              placeholder="ค้นหาชื่อ Vendor"
             />
           </label>
           <label className="field">
@@ -344,7 +344,7 @@ function StockModal({ mode, part, options, canSelectRequester, onClose, onSaved 
                   options={options.machines || []}
                   onChange={setMachineId}
                   getLabel={(item) => item.code}
-                  getSearchText={(item) => `${item.code || ""} ${item.name || ""} ${item.location || ""}`}
+                  getSearchText={(item) => `${item.code || ""} ${item.location || ""}`}
                   placeholder="พิมพ์รหัส Machine"
                 />
               </label>

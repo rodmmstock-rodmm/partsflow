@@ -326,7 +326,7 @@ export default function OrdersV2(){
           "ORDER NUMBER":o.order_number||"",
           DATE:o.date||"",
           FACTORY:o.factory||"",
-          "MACHINE NAME":o.machine_codes||o.machine_code||o.machine_names||o.machine_name||"",
+          "MACHINE CODE":o.machine_codes||o.machine_code||"",
           JOB:o.job||"",
           "URGENT STATUS":o.urgent_status||"",
           "PENDING DATA DATE":o.pending_data_date||"",

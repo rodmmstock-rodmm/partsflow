@@ -108,7 +108,7 @@ export default function SpareSetModal({ spareSet, options, onClose, onSaved }) {
               options={machines}
               onChange={(value) => set("machine_id", value)}
               getLabel={machineLabel}
-              getSearchText={(m) => `${m.code || ""} ${m.name || ""} ${m.location || ""}`}
+              getSearchText={(m) => `${m.code || ""} ${m.location || ""}`}
               placeholder="พิมพ์รหัส Machine"
             />
             <small className="field-help">พิมพ์ค้นหา แล้วเลือกเครื่องจักรจากรายการ</small>
