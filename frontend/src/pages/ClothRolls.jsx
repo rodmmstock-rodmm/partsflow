@@ -274,7 +274,7 @@ export default function ClothRolls() {
         .cloth-rolls-page .cloth-rolls-qr-card > div:last-child,.cloth-rolls-page .cloth-rolls-history-card > div:last-child { padding:18px!important; }
         .cloth-rolls-page .cloth-rolls-history-card { min-width:0; }
         .cloth-rolls-page .cloth-rolls-history-card .data-table { min-width:0!important; width:100%!important; table-layout:fixed!important; }
-        .cloth-rolls-page .cloth-rolls-history-scroll { max-height:470px; overflow-y:auto; overflow-x:hidden; overscroll-behavior:contain; scrollbar-gutter:stable; }
+        .cloth-rolls-page .cloth-rolls-history-scroll { max-height:480px; overflow-y:auto; overflow-x:hidden; overscroll-behavior:contain; scrollbar-gutter:stable; }
         .cloth-rolls-page .cloth-rolls-history-scroll .data-table tbody tr { height:43px; }
         .cloth-rolls-page .cloth-rolls-history-scroll .data-table tbody td { height:43px; max-height:43px; overflow:hidden; }
         .cloth-rolls-page .cloth-rolls-history-scroll .data-table thead { position:sticky; top:0; z-index:2; }
