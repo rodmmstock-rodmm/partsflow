@@ -92,6 +92,7 @@ const STEP_HEADERS = [
   "PERSON IN CHARGE OF ORDER",
 ];
 
+// Vendor matching is name-only; Machine matching is code-only.
 function findLabel(list, text, kind) {
   const t = String(text || "").trim().toLowerCase();
   return (list || []).find((x) => {
