@@ -1148,6 +1148,7 @@ class ClothRollTransaction(UUIDMixin):
     )
     source = models.CharField(max_length=8, choices=[("WEB", "Web"), ("QR", "QR")], default="WEB")
     machine_name = models.CharField(max_length=120, blank=True)
+    note = models.TextField(blank=True)
 
     class Meta:
         ordering = ["-created_at"]
