@@ -108,7 +108,9 @@ function findLabel(list, text, kind) {
         ? x.employee_code
         : kind === "part"
           ? x.sku
-          : x.code;
+          : kind === "machine"
+            ? x.code
+            : "";
     return (
       label.toLowerCase() === t ||
       String(code || "").toLowerCase() === t ||
