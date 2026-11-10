@@ -35,6 +35,7 @@ export default function ClothRolls() {
   const [phase, setPhase] = useState("PHASE4");
   const [type, setType] = useState("OUT");
   const [quantity, setQuantity] = useState("1");
+  const [adjustmentNote, setAdjustmentNote] = useState("");
   const [borrowerId, setBorrowerId] = useState("");
   const [machineId, setMachineId] = useState("");
   const [busy, setBusy] = useState(false);
@@ -102,12 +103,14 @@ export default function ClothRolls() {
         phase,
         transaction_type: type,
         quantity,
+        note: type === "ADJ" ? adjustmentNote.trim() : "",
         borrower_employee_id: !isQr && type === "OUT" ? borrowerId : "",
         machine_name: type === "OUT" ? (data.machines.find((machine) => String(machine.id) === String(machineId))?.code || "") : "",
         source: isQr ? "QR" : "WEB",
         qr_token: isQr ? qrToken : "",
       });
       setQuantity("1");
+      setAdjustmentNote("");
       setBorrowerId("");
       setMachineId("");
       await load();
@@ -270,7 +273,13 @@ export default function ClothRolls() {
         .cloth-rolls-page .cloth-rolls-qr-card h2,.cloth-rolls-page .cloth-rolls-history-card h2 { color:#254968!important; font-size:17px!important; font-weight:700; }
         .cloth-rolls-page .cloth-rolls-qr-card > div:last-child,.cloth-rolls-page .cloth-rolls-history-card > div:last-child { padding:18px!important; }
         .cloth-rolls-page .cloth-rolls-history-card { min-width:0; }
-        .cloth-rolls-page .cloth-rolls-history-card .data-table { min-width:650px!important; }
+        .cloth-rolls-page .cloth-rolls-history-card .data-table { min-width:0!important; width:100%!important; table-layout:fixed!important; }
+        .cloth-rolls-page .cloth-rolls-history-scroll { max-height:520px; overflow-y:auto; overflow-x:hidden; overscroll-behavior:contain; scrollbar-gutter:stable; }
+        .cloth-rolls-page .cloth-rolls-history-scroll .data-table thead { position:sticky; top:0; z-index:2; }
+        .cloth-rolls-page .cloth-rolls-history-scroll .data-table th,
+        .cloth-rolls-page .cloth-rolls-history-scroll .data-table td { padding:7px 4px!important; font-size:11px!important; line-height:1.25!important; white-space:normal!important; overflow-wrap:anywhere!important; word-break:break-word!important; }
+        .cloth-rolls-page .cloth-rolls-history-scroll .data-table td:last-child { text-align:center; }
+        .cloth-rolls-page .cloth-rolls-history-scroll .data-table td button { min-height:28px!important; padding:3px 6px!important; white-space:nowrap; }
         /* Portrait mobile: fit every history column inside the viewport without horizontal scrolling. */
         @media (max-width: 640px) {
           .cloth-rolls-page .cloth-rolls-history-card > div:last-child { min-width:0!important; overflow-x:hidden!important; }
@@ -454,6 +463,9 @@ export default function ClothRolls() {
             <label className="field" style={{ display: "block", marginBottom: 14 }}><span>{type === "ADJ" ? "ยอดคงเหลือใหม่ (ม้วน) *" : "จำนวน (ม้วน) *"}</span>
               <input required type="number" min={type === "ADJ" ? "0" : "1"} step="1" inputMode="numeric" pattern="[0-9]*" value={quantity} onChange={(e) => setQuantity(e.target.value)} />
             </label>
+            {type === "ADJ" && <label className="field cloth-adjustment-note-field" style={{ display: "block", marginBottom: 14 }}><span>หมายเหตุ</span>
+              <textarea rows={3} maxLength={500} value={adjustmentNote} onChange={(e) => setAdjustmentNote(e.target.value)} placeholder="ระบุเหตุผลหรือรายละเอียดการปรับยอด (ถ้ามี)" disabled={busy} style={{ width: "100%", boxSizing: "border-box", resize: "vertical", border: "1px solid #d4e1ed", borderRadius: 8, padding: "10px 12px", font: "inherit" }} />
+            </label>}
             {type === "OUT" && <label className="field cloth-machine-field" style={{ display: "block", marginBottom: 14 }}><span>Machine Code</span>
               <SearchableSelect value={machineId} options={data.machines || []} onChange={setMachineId} getLabel={(machine) => machine.code} getSearchText={(machine) => machine.code || ""} placeholder="ค้นหาและเลือก Machine Code (ถ้ามี)" disabled={busy} emptyText="ไม่พบ Machine Code" />
             </label>}
@@ -480,7 +492,7 @@ export default function ClothRolls() {
         </section>}
 
         {!isQr && <section className="card cloth-rolls-history-card" style={{ padding: 0, borderRadius: 16, overflow: "hidden" }}><div style={{ padding: "16px 20px", background: "#fafafa", borderBottom: "1px solid var(--border-soft)" }}><div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}><div><h2 style={{ margin: 0, fontSize: 18 }}>ประวัติการเบิกจ่าย</h2><p style={{ margin: "4px 0 0", fontSize: 14, color: "var(--muted,#64748b)" }}>แสดงรายการเฉพาะเดือนและปีที่เลือก</p></div><div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}><div className="toolbar" style={{ gap: 4 }}><button type="button" className="btn ghost" aria-label="ปีก่อนหน้า" onClick={() => setHistoryYear(y => y - 1)}>‹</button><strong style={{ minWidth: 48, textAlign: "center" }}>{historyYear}</strong><button type="button" className="btn ghost" aria-label="ปีถัดไป" onClick={() => setHistoryYear(y => y + 1)}>›</button></div><select aria-label="เลือกเดือนของประวัติ" value={historyMonth} onChange={e => setHistoryMonth(Number(e.target.value))} style={{ minWidth: 100 }}><option value={0}>มกราคม</option><option value={1}>กุมภาพันธ์</option><option value={2}>มีนาคม</option><option value={3}>เมษายน</option><option value={4}>พฤษภาคม</option><option value={5}>มิถุนายน</option><option value={6}>กรกฎาคม</option><option value={7}>สิงหาคม</option><option value={8}>กันยายน</option><option value={9}>ตุลาคม</option><option value={10}>พฤศจิกายน</option><option value={11}>ธันวาคม</option></select></div><div className="tab-row cloth-rolls-history-tabs" role="group" aria-label="กรองประเภทประวัติ">{[["ALL", "ทั้งหมด"], ["OUT", "เบิก"], ["IN", "รับเข้า"], ["ADJ", "ปรับยอด"]].map(([value, label]) => <button key={value} type="button" className={`tab ${historyType === value ? "active" : ""}`} aria-pressed={historyType === value} onClick={() => setHistoryType(value)}>{label}</button>)}</div></div></div><div style={{ padding: 14 }}>
-          {filteredTransactions.length === 0 ? <div className="empty">ไม่พบประวัติใน {MONTHS_TH[historyMonth]} {historyYear}</div> : <div style={{ overflowX: "auto" }}>
+          {filteredTransactions.length === 0 ? <div className="empty">ไม่พบประวัติใน {MONTHS_TH[historyMonth]} {historyYear}</div> : <div className="cloth-rolls-history-scroll" role="region" aria-label="รายการประวัติ เลื่อนเพื่อดูรายการเพิ่มเติม" tabIndex={0}>
             <table className="data-table" style={{ width: "100%", minWidth: 0 }}>
               <thead><tr><th>วันเวลา</th><th>Phase</th><th>รายการ</th><th>จำนวน / ยอดปรับ</th><th>Machine</th><th>ผู้เบิก</th><th>ผู้บันทึก</th>{auth.can("can_delete_cloth_roll_history") && <th>จัดการ</th>}</tr></thead>
               <tbody>{filteredTransactions.map((row) => <tr key={row.id}>
