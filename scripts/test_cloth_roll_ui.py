@@ -22,7 +22,7 @@ def assert_history_layout(page, viewport_width):
     rows = history.locator("tbody tr")
     assert rows.count() == 12, f"Expected 12 seeded rows, got {rows.count()}"
 
-    # Ten 43px rows plus the sticky header should fit in the 470px scroll viewport.
+    # Ten 43px rows plus the sticky header should fit in the 480px scroll viewport.
     metrics = history.evaluate(
         """el => {
           const rows = [...el.querySelectorAll('tbody tr')];
