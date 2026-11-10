@@ -274,7 +274,9 @@ export default function ClothRolls() {
         .cloth-rolls-page .cloth-rolls-qr-card > div:last-child,.cloth-rolls-page .cloth-rolls-history-card > div:last-child { padding:18px!important; }
         .cloth-rolls-page .cloth-rolls-history-card { min-width:0; }
         .cloth-rolls-page .cloth-rolls-history-card .data-table { min-width:0!important; width:100%!important; table-layout:fixed!important; }
-        .cloth-rolls-page .cloth-rolls-history-scroll { max-height:520px; overflow-y:auto; overflow-x:hidden; overscroll-behavior:contain; scrollbar-gutter:stable; }
+        .cloth-rolls-page .cloth-rolls-history-scroll { max-height:470px; overflow-y:auto; overflow-x:hidden; overscroll-behavior:contain; scrollbar-gutter:stable; }
+        .cloth-rolls-page .cloth-rolls-history-scroll .data-table tbody tr { height:43px; }
+        .cloth-rolls-page .cloth-rolls-history-scroll .data-table tbody td { height:43px; max-height:43px; overflow:hidden; }
         .cloth-rolls-page .cloth-rolls-history-scroll .data-table thead { position:sticky; top:0; z-index:2; }
         .cloth-rolls-page .cloth-rolls-history-scroll .data-table th,
         .cloth-rolls-page .cloth-rolls-history-scroll .data-table td { padding:7px 4px!important; font-size:11px!important; line-height:1.25!important; white-space:normal!important; overflow-wrap:anywhere!important; word-break:break-word!important; }
@@ -498,7 +500,7 @@ export default function ClothRolls() {
               <tbody>{filteredTransactions.map((row) => <tr key={row.id}>
                 <td>{row.created_at ? new Date(row.created_at).toLocaleString("th-TH") : "—"}</td>
                 <td>{row.phase_label || phaseName(row.phase)}</td>
-                <td>{row.type_label}{row.note && <div style={{ marginTop: 3, color: "#64748b", fontSize: 10 }}>หมายเหตุ: {row.note}</div>}</td>
+                <td>{row.type_label}{row.note && <div title={row.note} style={{ marginTop: 3, color: "#64748b", fontSize: 10, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>หมายเหตุ: {row.note}</div>}</td>
                 <td style={{ fontVariantNumeric: "tabular-nums" }}>{row.quantity} ม้วน</td>
                 <td>{row.machine_name || "—"}</td>
                 <td>{row.borrower_name || "—"}</td>
