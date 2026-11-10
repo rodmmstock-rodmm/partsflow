@@ -213,9 +213,9 @@ function POBalanceDetail({ initial, options, auth, onClose, onChanged }) {
                   setVendorId(value);
                   setVendorName(vendor?.name || "");
                 }}
-                getLabel={(vendor) => `${vendor.code} · ${vendor.name}`}
-                getSearchText={(vendor) => `${vendor.code || ""} ${vendor.name || ""} ${vendor.email || ""} ${vendor.contact_person || ""}`}
-                placeholder="พิมพ์ชื่อหรือรหัส Vendor"
+                getLabel={(vendor) => vendor.name}
+                getSearchText={(vendor) => `${vendor.name || ""} ${vendor.email || ""} ${vendor.contact_person || ""}`}
+                placeholder="ค้นหาชื่อ Vendor"
               />
               <button className="btn primary" type="button" onClick={saveVendor} disabled={busy === "vendor" || !vendorId}>บันทึก Vendor</button>
             </div>
