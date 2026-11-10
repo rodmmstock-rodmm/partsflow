@@ -141,10 +141,6 @@ export function VendorModal({ row, onClose, onSaved }) {
       <form onSubmit={save}>
         <div className="form-grid">
           <label className="field">
-            <span>Vendor Code *</span>
-            <input required value={form.code} onChange={(e) => set("code", e.target.value)} />
-          </label>
-          <label className="field">
             <span>Vendor Name *</span>
             <input required value={form.name} onChange={(e) => set("name", e.target.value)} />
           </label>
