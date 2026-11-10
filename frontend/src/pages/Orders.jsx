@@ -1157,7 +1157,7 @@ function OrderTable({
                       type="searchable"
                       options={options.machines || []}
                       getLabel={(x) => x.code}
-                      getSearchText={(x) => `${x.code || ""}`}
+                      getSearchText={(x) => `${x.name || ""}`}
                       placeholder="พิมพ์รหัส Machine"
                       canEdit={auth.can("can_edit_order_info")}
                       onSave={(val) => onInlineSave(o, "machine_id", val)}
