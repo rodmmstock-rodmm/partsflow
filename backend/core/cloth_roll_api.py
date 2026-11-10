@@ -106,6 +106,7 @@ def _transaction_json(row):
         "borrower_employee_id": str(row.borrower_employee_id) if row.borrower_employee_id else "",
         "borrower_name": row.borrower_employee.name if row.borrower_employee else "",
         "machine_name": row.machine_name,
+        "note": row.note,
         "recorded_by_name": row.recorded_by_employee.name if row.recorded_by_employee else "",
         "source": row.source,
         "created_at": row.created_at.isoformat(),
@@ -259,6 +260,9 @@ def cloth_roll_transaction(request):
     machine_name = str(request.data.get("machine_name") or "").strip()
     if len(machine_name) > 120:
         return Response({"detail": "ชื่อ Machine ต้องไม่เกิน 120 ตัวอักษร"}, status=400)
+    note = str(request.data.get("note") or "").strip() if tx_type == ClothRollTransaction.TYPE_ADJUST else ""
+    if len(note) > 500:
+        return Response({"detail": "หมายเหตุต้องไม่เกิน 500 ตัวอักษร"}, status=400)
 
     _stock_row(phase)
     with transaction.atomic():
@@ -283,6 +287,7 @@ def cloth_roll_transaction(request):
             recorded_by_employee=actor,
             source=source,
             machine_name=machine_name,
+            note=note,
         )
     _maybe_notify_low_stock(stock)
     row = ClothRollTransaction.objects.select_related("borrower_employee", "recorded_by_employee").get(pk=row.pk)
