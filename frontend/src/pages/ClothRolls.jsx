@@ -498,7 +498,7 @@ export default function ClothRolls() {
               <tbody>{filteredTransactions.map((row) => <tr key={row.id}>
                 <td>{row.created_at ? new Date(row.created_at).toLocaleString("th-TH") : "—"}</td>
                 <td>{row.phase_label || phaseName(row.phase)}</td>
-                <td>{row.type_label}</td>
+                <td>{row.type_label}{row.note && <div style={{ marginTop: 3, color: "#64748b", fontSize: 10 }}>หมายเหตุ: {row.note}</div>}</td>
                 <td style={{ fontVariantNumeric: "tabular-nums" }}>{row.quantity} ม้วน</td>
                 <td>{row.machine_name || "—"}</td>
                 <td>{row.borrower_name || "—"}</td>
