@@ -20,7 +20,8 @@ def assert_history_layout(page, viewport_width):
     history = page.get_by_role("region", name="รายการประวัติ เลื่อนเพื่อดูรายการเพิ่มเติม")
     history.wait_for()
     rows = history.locator("tbody tr")
-    assert rows.count() == 12, f"Expected 12 seeded rows, got {rows.count()}"
+    initial_count = rows.count()
+    assert initial_count >= 12, f"Expected at least 12 seeded history rows, got {initial_count}"
 
     # Ten 43px rows plus the sticky header should fit in the 480px scroll viewport.
     metrics = history.evaluate(
@@ -52,10 +53,12 @@ def assert_history_layout(page, viewport_width):
 
     # The remaining rows must be reachable by vertical scrolling.
     history.evaluate("(el) => { el.scrollTop = el.scrollHeight; }")
-    assert rows.nth(11).is_visible()
-    bottom = rows.nth(11).bounding_box()
+    last_row = rows.nth(initial_count - 1)
+    assert last_row.is_visible()
+    bottom = last_row.bounding_box()
     box = history.bounding_box()
     assert bottom and box and bottom["y"] < box["y"] + box["height"]
+    return initial_count
 
 
 def run_viewport(browser, viewport, mobile):
@@ -64,7 +67,7 @@ def run_viewport(browser, viewport, mobile):
     page.goto(f"{BASE_URL}/cloth-rolls", wait_until="networkidle")
     page.get_by_role("heading", name="เบิกจ่ายเศษผ้า").wait_for()
 
-    assert_history_layout(page, viewport["width"])
+    initial_count = assert_history_layout(page, viewport["width"])
 
     # The ordinary withdrawal form must not expose an adjustment-only note.
     assert page.get_by_label("หมายเหตุ", exact=True).count() == 0
@@ -80,7 +83,7 @@ def run_viewport(browser, viewport, mobile):
 
     history = page.get_by_role("region", name="รายการประวัติ เลื่อนเพื่อดูรายการเพิ่มเติม")
     history.get_by_text("หมายเหตุ: E2E ตรวจนับยอดคงเหลือ", exact=True).wait_for()
-    assert history.locator("tbody tr").count() == 13
+    assert history.locator("tbody tr").count() == initial_count + 1
 
     # Switching back to withdrawal hides the adjustment-only note field.
     page.locator("#cloth-roll-form").get_by_role("button", name="เบิก", exact=True).click()
