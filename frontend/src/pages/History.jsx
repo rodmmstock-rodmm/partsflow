@@ -70,7 +70,7 @@ export function EditHistory({ row, options, onClose, onSaved }) {
           </label>
           <label className="field">
             <span>เครื่องจักร</span>
-            <SearchableSelect value={machineId} options={options.machines || []} onChange={setMachineId} getLabel={(x) => x.code} getSearchText={(x) => `${x.code || ""} ${x.name || ""} ${x.location || ""}`} placeholder="พิมพ์รหัส Machine" />
+            <SearchableSelect value={machineId} options={options.machines || []} onChange={setMachineId} getLabel={(x) => x.code} getSearchText={(x) => `${x.code || ""} ${x.location || ""}`} placeholder="พิมพ์รหัส Machine" />
           </label>
           <label className="field">
             <span>ผู้เบิก</span>
