@@ -82,7 +82,9 @@ def run_viewport(browser, viewport, mobile):
     page.get_by_text("บันทึกรายการสำเร็จ").wait_for()
 
     history = page.get_by_role("region", name="รายการประวัติ เลื่อนเพื่อดูรายการเพิ่มเติม")
-    history.get_by_text("หมายเหตุ: E2E ตรวจนับยอดคงเหลือ", exact=True).wait_for()
+    # Desktop and mobile share the disposable CI database, so a previous viewport
+    # may already have created a transaction with the same note.
+    history.get_by_text("หมายเหตุ: E2E ตรวจนับยอดคงเหลือ", exact=True).first.wait_for()
     assert history.locator("tbody tr").count() == initial_count + 1
 
     # Switching back to withdrawal hides the adjustment-only note field.
