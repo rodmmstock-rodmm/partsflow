@@ -1160,7 +1160,7 @@ function OrderTable({
                       type="searchable"
                       options={options.machines || []}
                       getLabel={(x) => x.code}
-                      getSearchText={(x) => `${x.name || ""}`}
+                      getSearchText={(x) => `${x.code || ""}`}
                       placeholder="พิมพ์รหัส Machine"
                       canEdit={auth.can("can_edit_order_info")}
                       onSave={(val) => onInlineSave(o, "machine_id", val)}
@@ -1276,7 +1276,7 @@ function OrderTable({
                       type="searchable"
                       options={options.vendors || []}
                       getLabel={(x) => x.name}
-                      getSearchText={(x) => `${x.code || ""}`}
+                      getSearchText={(x) => `${x.name || ""} ${x.email || ""} ${x.contact_person || ""}`}
                       placeholder="พิมพ์ชื่อ Vendor"
                       canEdit={auth.can("can_edit_purchase_info")}
                       onSave={(val) => onInlinePurchaseSave(o, "vendor_id", val)}
