@@ -5,7 +5,7 @@ import { useFeedback } from "../feedback";
 
 function vendorLabel(vendor) {
   if (!vendor) return "";
-  return `${vendor.code ? `${vendor.code} · ` : ""}${vendor.name}`;
+  return vendor.name || "";
 }
 
 function formatAddedAt(value) {
@@ -105,8 +105,8 @@ export default function OrderVendorModal({ order, options, onClose, onChanged })
             options={available}
             onChange={setVendorId}
             getLabel={vendorLabel}
-            getSearchText={(vendor) => `${vendor.code || ""} ${vendor.name || ""} ${vendor.email || ""} ${vendor.contact_person || ""}`}
-            placeholder="พิมพ์ชื่อหรือรหัส Vendor"
+            getSearchText={(vendor) => `${vendor.name || ""} ${vendor.email || ""} ${vendor.contact_person || ""}`}
+            placeholder="ค้นหาชื่อ Vendor"
           />
         </label>
         <div className="field">
