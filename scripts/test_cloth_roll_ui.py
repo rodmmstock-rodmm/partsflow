@@ -69,7 +69,7 @@ def run_viewport(browser, viewport, mobile):
     # The ordinary withdrawal form must not expose an adjustment-only note.
     assert page.get_by_label("หมายเหตุ", exact=True).count() == 0
 
-    page.get_by_role("button", name="ปรับยอด", exact=True).click()
+    page.locator("#cloth-roll-form").get_by_role("button", name="ปรับยอด", exact=True).click()
     note = page.get_by_label("หมายเหตุ", exact=True)
     note.wait_for()
     note.fill("E2E ตรวจนับยอดคงเหลือ")
@@ -83,7 +83,7 @@ def run_viewport(browser, viewport, mobile):
     assert history.locator("tbody tr").count() == 13
 
     # Switching back to withdrawal hides the adjustment-only note field.
-    page.get_by_role("button", name="เบิก", exact=True).click()
+    page.locator("#cloth-roll-form").get_by_role("button", name="เบิก", exact=True).click()
     assert page.get_by_label("หมายเหตุ", exact=True).count() == 0
     page.close()
 
