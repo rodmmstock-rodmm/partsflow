@@ -75,6 +75,7 @@ for number, part_name, sku in [
         defaults={
             "order_date": date.today(),
             "factory": "MM-4",
+            "procurement_phase": OrderRecord.PROCUREMENT_PURCHASE,
             "machine": machine,
             "job": "REPAIR",
             "part_name": part_name,
