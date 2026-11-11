@@ -41,11 +41,19 @@ def assert_gmail_compose(page):
 def test_desktop_order_rfq_gmail_compose(browser):
     page = browser.new_page(viewport={"width": 1440, "height": 1000})
     login(page)
+    page.on("response", lambda response: print(
+        f"RFQ E2E orders API {response.status}: {response.url} :: "
+        f"{response.text()[:1200]}"
+    ) if "/api/orders/?" in response.url else None)
     page.goto(f"{BASE_URL}/orders", wait_until="networkidle")
 
     for order_number in ORDER_NUMBERS:
         row = page.locator("tbody tr").filter(has_text=order_number)
-        row.wait_for()
+        try:
+            row.wait_for(timeout=10000)
+        except Exception:
+            print("Desktop Order page text:", page.locator("body").inner_text()[:5000])
+            raise
         row.locator("input[type=checkbox]").first.check()
 
     page.get_by_role("button", name="ขอราคา (RFQ)").click()
