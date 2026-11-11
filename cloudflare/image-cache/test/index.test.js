@@ -25,6 +25,28 @@ test("rejects a mismatched cache-busting version", async () => {
   assert.equal(response.status, 400);
 });
 
+test("accepts a bumped optimizer version for an in-place image rewrite", async (t) => {
+  const originalFetch = globalThis.fetch;
+  let called = false;
+  globalThis.fetch = async () => {
+    called = true;
+    return new Response("image-bytes", {
+      status: 200,
+      headers: { "Content-Type": "image/jpeg" },
+    });
+  };
+  t.after(() => { globalThis.fetch = originalFetch; });
+
+  const bumpedPath = PATH.replace("imgopt1-", "imgopt2-");
+  const response = await worker.fetch(
+    new Request("https://images.example.workers.dev" + bumpedPath),
+    ENV,
+  );
+
+  assert.equal(response.status, 200);
+  assert.equal(called, true);
+});
+
 test("rejects methods other than GET and HEAD", async () => {
   const response = await worker.fetch(
     new Request("https://images.example.workers.dev" + PATH, { method: "POST" }),
