@@ -144,5 +144,6 @@ test("returns an empty body for HEAD requests", async (t) => {
 
   assert.equal(method, "HEAD");
   assert.equal(response.status, 200);
+  assert.equal(response.headers.get("Cache-Control"), "private, no-store");
   assert.equal(await response.text(), "");
 });
