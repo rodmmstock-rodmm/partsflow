@@ -241,7 +241,7 @@ export default function ClothRolls() {
           .cloth-rolls-page #cloth-roll-form form button { min-height: 42px; }
         }
         /* Desktop workspace: history on the left, compact transaction form on the right, QR below */
-        .cloth-rolls-page { display:grid; grid-template-columns:minmax(0,1fr) minmax(0,.5fr); grid-template-areas:"hero hero" "stock stock" "history form" "qr qr"; gap:18px; align-items:start; max-width:1240px!important; padding:4px 0 28px; }
+        .cloth-rolls-page { display:grid; grid-template-columns:minmax(0,1fr) minmax(400px,.72fr); grid-template-areas:"hero hero" "stock stock" "history form" "qr qr"; gap:18px; align-items:start; max-width:1240px!important; padding:4px 0 28px; }
         .cloth-rolls-page > .cloth-rolls-hero { grid-area:hero; }
         .cloth-rolls-page > .cloth-rolls-stock-grid { grid-area:stock; }
         .cloth-rolls-page > .cloth-rolls-history-card { grid-area:history; min-width:0; }
@@ -257,7 +257,13 @@ export default function ClothRolls() {
         .cloth-rolls-page .cloth-rolls-stock-card > div:first-child { height:4px!important; background:#dce8f2!important; }
         .cloth-rolls-page .cloth-rolls-stock-card strong { color:#254968; }
         .cloth-rolls-page .cloth-rolls-stock-card button.btn.full { width:100%; min-height:42px; }
-        .cloth-rolls-page #cloth-roll-form { margin:0!important; border:1px solid #dce5ee!important; border-radius:14px!important; box-shadow:0 3px 12px rgba(36,68,98,.035)!important; scroll-margin-top:18px; }
+        .cloth-rolls-page #cloth-roll-form { position:relative; margin:0!important; border:1px solid #dce5ee!important; border-radius:14px!important; overflow:visible!important; box-shadow:0 3px 12px rgba(36,68,98,.035)!important; scroll-margin-top:18px; }
+        .cloth-rolls-page #cloth-roll-form:focus-within { z-index:50; }
+        /* Keep searchable dropdowns fully inside the transaction form width and readable on desktop/mobile. */
+        .cloth-rolls-page #cloth-roll-form .searchable-select { position:relative; display:block; width:100%; min-width:0; }
+        .cloth-rolls-page #cloth-roll-form .searchable-select input { display:block; width:100%; min-width:0; box-sizing:border-box; }
+        .cloth-rolls-page #cloth-roll-form .searchable-menu { position:absolute; left:0!important; right:0!important; width:100%!important; min-width:100%!important; max-width:100%!important; max-height:min(320px,45vh)!important; overflow-y:auto!important; overflow-x:hidden!important; z-index:10000!important; box-sizing:border-box!important; }
+        .cloth-rolls-page #cloth-roll-form .searchable-menu button { display:block; width:100%; min-width:0; box-sizing:border-box; padding:10px 12px!important; text-align:left; white-space:normal!important; overflow-wrap:anywhere; word-break:break-word; line-height:1.45; }
         .cloth-rolls-page #cloth-roll-form > div:first-child { padding:20px 22px!important; background:#f7fafc!important; border-bottom:1px solid #e4ebf2!important; }
         .cloth-rolls-page #cloth-roll-form > div:first-child h2 { font-size:18px!important; font-weight:700; color:#254968!important; }
         .cloth-rolls-page #cloth-roll-form > div:first-child span { background:#eaf3fb!important; color:#356b9c!important; }
