@@ -24,8 +24,17 @@ def assert_gmail_compose(page, expected_order_numbers):
     with page.expect_popup() as popup_info:
         page.get_by_role("button", name="สร้างอีเมลและเปิด Gmail").click()
     popup = popup_info.value
-    popup.wait_for_url("https://mail.google.com/**", timeout=15000)
+    popup.wait_for_url(re.compile(r"https://(mail\\.google\\.com|accounts\\.google\\.com)/.*"), timeout=15000)
     parsed = urlparse(popup.url)
+    if parsed.hostname == "accounts.google.com":
+        # CI has no signed-in Google account. Validate the Gmail compose URL
+        # carried by Google sign-in instead of requiring an authenticated session.
+        continuation = parse_qs(parsed.query).get("continue", [None])[0]
+        assert continuation, f"Google sign-in URL has no Gmail continuation: {popup.url}"
+        parsed = urlparse(continuation)
+        assert parsed.hostname == "mail.google.com", f"Unexpected Google continuation: {continuation}"
+    else:
+        assert parsed.hostname == "mail.google.com"
     params = parse_qs(parsed.query)
     assert params.get("view") == ["cm"]
     assert params.get("to") == ["rfq-primary@example.com"]
