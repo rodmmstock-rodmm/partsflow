@@ -33,7 +33,7 @@ export const PERMISSIONS = [
   ["can_edit_purchase_info", "Edit Purchase Information", "Order"],
   ["can_create_rfq", "Order – สร้างอีเมลขอราคา (RFQ)", "Order"],
   ["can_receive_order", "Receive Order", "Order"],
-  ["can_cancel_order", "Cancel / Restore Order", "Order"],
+  ["can_cancel_order", "Cancel / Restore Order (requires View Order)", "Order"],
   ["can_delete_order", "Delete Order", "Order"],
   ["can_update_edit_data", "Update Data Workflow", "Order"],
   ["can_view_order_updates", "View Order Update List", "Order"],
