@@ -7,6 +7,7 @@ class RoleAccess(UUIDMixin):
     can_edit_parts = models.BooleanField(default=False)
     can_receive_stock = models.BooleanField(default=False)
     can_issue_stock = models.BooleanField(default=False)
+    can_create_rfq = models.BooleanField(default=False)
     can_view_suppliers = models.BooleanField(default=False)
     can_view_machines = models.BooleanField(default=False)
     can_manage_roles = models.BooleanField(default=False)

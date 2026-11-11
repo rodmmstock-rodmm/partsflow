@@ -857,6 +857,7 @@ def supplier_json(item):
         "contact": item.contact or "",
         "phone": item.phone or "",
         "email": item.email or "",
+        "rfq_message": item.rfq_message or "",
         "lead_time_days": item.lead_time_days or 0,
         "active": item.active,
         "remark": item.remark or "",
@@ -899,6 +900,7 @@ def suppliers_list(request):
             contact=str(request.data.get("contact", "")).strip(),
             phone=str(request.data.get("phone", "")).strip(),
             email=str(request.data.get("email", "")).strip(),
+            rfq_message=str(request.data.get("rfq_message", "")),
             lead_time_days=max(0, int(request.data.get("lead_time_days") or 0)),
             active=bool(request.data.get("active", True)),
             remark=str(request.data.get("remark", "")).strip(),
@@ -932,6 +934,8 @@ def supplier_detail(request, pk):
     for field in ["code", "name", "contact", "phone", "email", "remark"]:
         if field in request.data:
             setattr(item, field, str(request.data.get(field) or "").strip())
+    if "rfq_message" in request.data:
+        item.rfq_message = str(request.data.get("rfq_message") or "")
     if "lead_time_days" in request.data:
         item.lead_time_days = max(0, int(request.data.get("lead_time_days") or 0))
     if "active" in request.data:
@@ -1104,7 +1108,7 @@ def options(request):
     ).order_by("created_at")
     vendors = Supplier.objects.filter(active=True).only(
         "id", "code", "name", "contact", "phone", "email",
-        "lead_time_days", "active", "remark"
+        "lead_time_days", "active", "remark", "rfq_message"
     ).prefetch_related(Prefetch("contacts", queryset=contact_rows)).order_by("code")
     locations = Location.objects.filter(active=True).only(
         "id", "code", "name", "warehouse", "active"

@@ -6,6 +6,7 @@ import { useFeedback } from "../feedback";
 import MultiMachineOrderInfoModal from "../components/MultiMachineOrderInfoModal";
 import NormalPurchaseModal from "../components/NormalPurchaseModal";
 import BulkOrderQuotationModal from "../components/BulkOrderQuotationModal";
+import OrderRFQComposeModal from "../components/OrderRFQComposeModal";
 import { openOrderDetailByNumber } from "../orderDetailEnhancer";
 import { MobileEmpty, MobileLoading, MobilePage, MobileSearch } from "./MobileCommon";
 
@@ -67,6 +68,7 @@ export default function MobileOrders() {
   const [purchase, setPurchase] = useState(null);
   const [selected, setSelected] = useState(() => new Set());
   const [quotationMode, setQuotationMode] = useState(null);
+  const [rfqModal, setRfqModal] = useState(false);
   const range = useMemo(() => monthRange(year, month), [year, month]);
   const admin = isAdmin(auth.employee);
 
@@ -124,7 +126,7 @@ export default function MobileOrders() {
     ),
     [rows, q]
   );
-  const selectedRows = shown.filter((order) => selected.has(order.id));
+  const selectedRows = Array.from(selected).map((id) => shown.find((order) => order.id === id)).filter(Boolean);
 
   function toggle(id, checked) {
     setSelected((current) => {
@@ -336,6 +338,11 @@ export default function MobileOrders() {
       {selectedRows.length > 0 && (
         <div className="m-rfq-selection">
           <b>เลือกแล้ว {selectedRows.length} รายการ</b>
+          {auth.can("can_create_rfq") && (
+            <button onClick={() => setRfqModal(true)} disabled={!!busy || !selectedRows.every((row) => ["ACTIVE", "WAIT_CONFIRM"].includes(row.lifecycle_status) && !row.cancel_status && !row.received_at)}>
+              ขอราคา (RFQ)
+            </button>
+          )}
           {auth.can("can_edit_purchase_info") && (
             <>
               <button
@@ -376,7 +383,7 @@ export default function MobileOrders() {
         <div className="m-card-list">
           {shown.map((order) => (
             <article className={`m-order-card m-order-card-v9 order-row-${orderStatus(order).toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "")} ${selected.has(order.id) ? "selected" : ""}`} key={order.id}>
-              {auth.can("can_edit_purchase_info") && ["ACTIVE", "WAIT_CONFIRM"].includes(order.lifecycle_status) && (
+              {(auth.can("can_edit_purchase_info") || auth.can("can_create_rfq")) && ["ACTIVE", "WAIT_CONFIRM"].includes(order.lifecycle_status) && (
                 <label className="m-rfq-check">
                   <input
                     type="checkbox"
@@ -465,6 +472,13 @@ export default function MobileOrders() {
           options={options}
           onClose={() => setPurchase(null)}
           onChanged={(result) => { setPurchase(result); load(true); }}
+        />
+      )}
+      {rfqModal && (
+        <OrderRFQComposeModal
+          orders={selectedRows}
+          options={options}
+          onClose={() => setRfqModal(false)}
         />
       )}
       {quotationMode && (
