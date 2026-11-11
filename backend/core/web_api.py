@@ -1108,7 +1108,7 @@ def options(request):
     ).order_by("created_at")
     vendors = Supplier.objects.filter(active=True).only(
         "id", "code", "name", "contact", "phone", "email",
-        "lead_time_days", "active", "remark"
+        "lead_time_days", "active", "remark", "rfq_message"
     ).prefetch_related(Prefetch("contacts", queryset=contact_rows)).order_by("code")
     locations = Location.objects.filter(active=True).only(
         "id", "code", "name", "warehouse", "active"
