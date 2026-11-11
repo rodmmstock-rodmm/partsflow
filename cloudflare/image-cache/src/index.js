@@ -73,7 +73,7 @@ function imageResponse(originResponse, requestMethod) {
   }
 
   const headers = new Headers({
-    "Cache-Control": originResponse.status === 200 ? CACHE_CONTROL : "private, no-store",
+    "Cache-Control": originResponse.status === 200 && requestMethod === "GET"\n      ? CACHE_CONTROL\n      : "private, no-store",
     "X-Content-Type-Options": "nosniff",
     "Access-Control-Allow-Origin": "*",
     "Cross-Origin-Resource-Policy": "cross-origin",
