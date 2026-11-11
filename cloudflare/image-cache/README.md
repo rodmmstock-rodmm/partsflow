@@ -14,7 +14,12 @@ No image is copied, moved, deleted, or rewritten by this Worker.
 4. Successful image responses receive a one-year immutable cache policy. The
    URL includes a version marker derived from the source path, so a changed
    source path receives a different cache key.
-5. 404s, origin errors, invalid paths, and non-image responses are never cached.\n\nWhen an existing Storage object is rewritten in place (rather than receiving a\nnew object path), bump the backend URL marker from `imgopt1` to `imgopt2` in\n`public_url_for_object` and `public_image_url`. The Worker accepts numbered\n`imgoptN` markers so the new URL bypasses the old cached bytes.
+5. 404s, origin errors, invalid paths, and non-image responses are never cached.
+
+When an existing Storage object is rewritten in place (rather than receiving a
+new object path), bump the backend URL marker from `imgopt1` to `imgopt2` in
+`public_url_for_object` and `public_image_url`. The Worker accepts numbered
+`imgoptN` markers so the new URL bypasses the old cached bytes.
 
 The Worker does not accept arbitrary origin URLs, does not forward browser
 Authorization/Cookie headers, and only serves the expected
