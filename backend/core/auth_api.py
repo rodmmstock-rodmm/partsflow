@@ -27,6 +27,7 @@ PERMISSION_FIELDS = [
     "can_edit_order_info",
     "can_edit_order_date",
     "can_edit_purchase_info",
+    "can_create_rfq",
     "can_receive_order",
     "can_cancel_order",
     "can_delete_order",
