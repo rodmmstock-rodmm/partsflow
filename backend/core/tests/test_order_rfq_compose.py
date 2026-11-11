@@ -62,7 +62,7 @@ class OrderRFQComposeTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(len(response.data["groups"]), 2)
         first_group = response.data["groups"][0]
-        self.assertEqual(first_group["order_numbers"], ["ORD-RFQ-2", "ORD-RFQ-1"])
+        self.assertEqual(first_group["order_numbers"], [first.order_number, second.order_number])
         self.assertEqual(first_group["to"], "main@example.com")
         self.assertEqual(first_group["cc"], ["cc@example.com"])
         self.assertIn("Please quote the following items.\n\n", first_group["body"])
