@@ -6,7 +6,6 @@
   "workers_dev": true,
   "cache": {
     "enabled": true,
-    "cross_version_cache": true
   },
   "vars": {
     "SUPABASE_STORAGE_BUCKET": "parts-images"
