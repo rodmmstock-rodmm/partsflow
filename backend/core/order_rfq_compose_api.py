@@ -48,11 +48,10 @@ def _compose_group(group, vendor):
     ]
     subject = " ".join(part for part in parts if part).strip()
 
-    headers = ["Order No.", "Part ID", "Description", "Maker", "Qty", "Unit"]
+    headers = ["Part ID", "Description", "Maker", "Qty", "Unit"]
     lines = [" | ".join(headers), " | ".join(["---"] * len(headers))]
     for row in group["orders"]:
         lines.append(" | ".join([
-            row.order_number or "-",
             row.part.sku if row.part else "-",
             row.part_name or "-",
             row.maker_text or "-",
