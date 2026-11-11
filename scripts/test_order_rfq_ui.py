@@ -64,7 +64,7 @@ def test_desktop_order_rfq_gmail_compose(browser):
         row.locator("input[type=checkbox]").first.check()
 
     page.get_by_role("button", name="ขอราคา (RFQ)").click()
-    dialog = page.get_by_role("dialog", name="สร้างอีเมลขอราคา RFQ · 2 Order")
+    dialog = page.locator(".modal-card").filter(has_text="สร้างอีเมลขอราคา RFQ · 2 Order")
     vendor_input = dialog.get_by_placeholder("ค้นหาชื่อ Vendor")
     vendor_input.fill("RFQ E2E Vendor")
     dialog.get_by_role("option", name="RFQ E2E Vendor").click()
