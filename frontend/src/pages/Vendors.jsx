@@ -66,7 +66,7 @@ export function VendorModal({ row, onClose, onSaved }) {
   const auth = useAuth();
   const { confirm } = useFeedback();
   const [form, setForm] = useState(
-    row || { name: "", contact: "", phone: "", email: "", remark: "", active: true }
+    row || { name: "", contact: "", phone: "", email: "", rfq_message: "", remark: "", active: true }
   );
   const [contacts, setContacts] = useState(row?.contacts || []);
   const [error, setError] = useState("");
@@ -155,6 +155,11 @@ export function VendorModal({ row, onClose, onSaved }) {
           <label className="field">
             <span>Email หลัก</span>
             <input value={form.email || ""} onChange={(e) => set("email", e.target.value)} />
+          </label>
+          <label className="field span2">
+            <span>RFQ Message</span>
+            <textarea rows="4" value={form.rfq_message || ""} onChange={(e) => set("rfq_message", e.target.value)} placeholder="ข้อความขอราคาสำหรับ Vendor รายนี้ (ภาษาไทย / English)"/>
+            <small className="field-help">ระบบจะนำข้อความนี้ไปวางไว้ก่อนตารางรายการสินค้า โดยคงข้อความตามที่บันทึกไว้</small>
           </label>
           <label className="field span2">
             <span>Remark</span>
