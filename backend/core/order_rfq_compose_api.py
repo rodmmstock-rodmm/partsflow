@@ -134,8 +134,13 @@ def compose_order_rfq(request):
     cc_emails = []
     for contact in vendor.contacts.all():
         email = str(contact.email or "").strip().lower()
-        if email and email != primary_email.lower() and email not in cc_emails:
-            cc_emails.append(email)
+        if not email or email == primary_email.lower() or email in cc_emails:
+            continue
+        try:
+            validate_email(email)
+        except ValidationError:
+            continue
+        cc_emails.append(email)
 
     groups = OrderedDict()
     for order_id in ordered_ids:
