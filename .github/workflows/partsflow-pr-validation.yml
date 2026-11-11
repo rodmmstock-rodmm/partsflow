@@ -96,7 +96,7 @@ jobs:
       - name: Build frontend for isolated end-to-end tests
         run: VITE_API_BASE_URL=http://127.0.0.1:8000/api npm run build
 
-      - name: Run desktop and mobile Tooling end-to-end tests
+      - name: Run desktop and mobile browser end-to-end tests
         run: |
           export DEBUG=1
           export DJANGO_SECRET_KEY=ci-only-not-a-production-secret
