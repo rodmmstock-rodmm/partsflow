@@ -1,0 +1,38 @@
+name: Cloudflare image cache validation
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - "cloudflare/image-cache/**"
+      - ".github/workflows/cloudflare-image-cache-validation.yml"
+  push:
+    branches: [main]
+    paths:
+      - "cloudflare/image-cache/**"
+      - ".github/workflows/cloudflare-image-cache-validation.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  worker:
+    name: Worker unit tests and Wrangler dry run
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: cloudflare/image-cache
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Run Worker unit tests
+        run: npm test
+
+      - name: Validate Wrangler configuration and Worker bundle without deploying
+        run: npx --yes wrangler@4.69.0 deploy --dry-run

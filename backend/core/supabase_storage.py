@@ -129,10 +129,26 @@ def public_url_for_object(object_path: str, *, with_version: bool = True) -> str
 
 
 def public_image_url(image_path: str) -> str:
+    """Return the public image URL, optionally through the Cloudflare cache.
+
+    SUPABASE_IMAGE_PROXY_URL is an opt-in, reversible delivery setting. Leaving
+    it empty preserves the existing direct-Supabase URL exactly. Uploads,
+    existence checks, and Google Drive backups continue to use Supabase/Drive.
+    """
     object_path = storage_object_path(image_path)
     if not object_path:
         return ""
     try:
+        # Validate the existing Supabase public configuration even when a
+        # proxy is configured, so a typo cannot silently mask a missing origin.
+        _, _ = require_public_config()
+        proxy_base = _env("SUPABASE_IMAGE_PROXY_URL").rstrip("/")
+        if proxy_base:
+            version = PurePosixPath(object_path).parts[-2]
+            return (
+                f"{proxy_base}/image/{_quoted_object_path(object_path)}"
+                f"?v={quote('imgopt1-' + version, safe='-_.~')}"
+            )
         return public_url_for_object(object_path)
     except SupabaseStorageConfigError:
         return ""

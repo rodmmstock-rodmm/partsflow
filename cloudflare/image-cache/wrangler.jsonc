@@ -1,0 +1,13 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "partsflow-image-cache",
+  "main": "src/index.js",
+  "compatibility_date": "2026-11-11",
+  "workers_dev": true,
+  "cache": {
+    "enabled": true,
+  },
+  "vars": {
+    "SUPABASE_STORAGE_BUCKET": "parts-images"
+  }
+}
