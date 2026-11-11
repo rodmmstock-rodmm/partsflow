@@ -40,7 +40,7 @@ function parseImagePath(pathname, version) {
   ) {
     return null;
   }
-  if (version !== `imgopt1-${digest}`) return null;
+  if (!/^imgopt[0-9]+-[a-f0-9]{20}$/i.test(version) || !version.endsWith(`-${digest}`)) return null;
 
   return parts;
 }
