@@ -65,7 +65,21 @@ export default function OrderRFQComposeModal({ orders, options, onClose, onOpene
     <Modal title={`สร้างอีเมลขอราคา RFQ · ${orderIds.length} Order`} onClose={onClose} wide>
       <form onSubmit={createEmails}>
         <Alert>{error}</Alert>
-        {groups.length > 1 ? (
+        {groups.length === 1 ? (
+          <>
+            <div className="alert success">เตรียมอีเมล RFQ แล้ว และเปิด Gmail ในแท็บใหม่</div>
+            <section className="rfq-result">
+              <div>
+                <strong>{groups[0].subject}</strong>
+                <span>Order: {(groups[0].order_numbers || []).join(", ")}</span>
+                <span>To: {groups[0].to}</span>
+                {(groups[0].cc || []).length > 0 && <span>CC: {groups[0].cc.join(", ")}</span>}
+              </div>
+              <button type="button" className="mini primary" onClick={() => openGroup(groups[0])}>เปิด Gmail อีกครั้ง</button>
+            </section>
+            <div className="modal-actions"><button type="button" className="btn primary" onClick={onClose}>เสร็จสิ้น</button></div>
+          </>
+        ) : groups.length > 1 ? (
           <>
             <div className="alert info">
               พบ {groups.length} กลุ่มอีเมล เนื่องจาก Machine Code, JOB หรือวันที่งานค้างแตกต่างกัน
