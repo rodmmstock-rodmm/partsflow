@@ -36,7 +36,7 @@ def assert_gmail_compose(page):
         });
     }""")
 
-    page.get_by_role("button", name="สร้างอีเมลและเปิด Gmail").click()
+    page.get_by_role("button", name="เตรียมอีเมล RFQ").click()
     copy_button = page.get_by_role("button", name="คัดลอกตารางและเปิด Gmail")
     copy_button.wait_for(timeout=10000)
 
