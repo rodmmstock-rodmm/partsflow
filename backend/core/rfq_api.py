@@ -798,7 +798,7 @@ def _cc_rule_json(row):
 @api_view(["GET", "POST"])
 @permission_classes([AllowAny])
 def cc_rules(request):
-    permission = "can_edit_purchase_info"
+    permission = "can_view_po_balance" if request.method == "GET" else "can_edit_purchase_info"
     actor, err = require_permission(request, permission)
     if err:
         return err
