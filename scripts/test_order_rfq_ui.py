@@ -20,15 +20,13 @@ def login(page):
     )
 
 
-def assert_gmail_compose(page, expected_order_numbers):
+def assert_gmail_compose(page):
     with page.expect_popup() as popup_info:
         page.get_by_role("button", name="สร้างอีเมลและเปิด Gmail").click()
     popup = popup_info.value
     popup.wait_for_url(re.compile(r"https://(mail\.google\.com|accounts\.google\.com)/.*"), timeout=15000)
     parsed = urlparse(popup.url)
     if parsed.hostname == "accounts.google.com":
-        # CI has no signed-in Google account. Validate the Gmail compose URL
-        # carried by Google sign-in instead of requiring an authenticated session.
         continuation = parse_qs(parsed.query).get("continue", [None])[0]
         assert continuation, f"Google sign-in URL has no Gmail continuation: {popup.url}"
         parsed = urlparse(continuation)
@@ -43,9 +41,11 @@ def assert_gmail_compose(page, expected_order_numbers):
     assert "MC-RFQ-E2E" in params.get("su", [""])[0]
     body = params.get("body", [""])[0]
     assert "Please quote the following items." in body
-    assert "Order No. | Part ID | Description | Maker | Qty | Unit" in body
-    for order_number in expected_order_numbers:
-        assert order_number in body
+    assert "┌" in body and "┬" in body and "└" in body
+    assert "RFQ E2E Bearing" in body
+    assert "Part ID" not in body
+    assert "Order No." not in body
+    assert not ORDER_NUMBER_PATTERN.search(body), "Order number unexpectedly appears in RFQ email body"
     popup.close()
 
 
@@ -58,7 +58,6 @@ def test_desktop_order_rfq_gmail_compose(browser):
     ) if "/api/orders/?" in response.url else None)
     page.goto(f"{BASE_URL}/orders", wait_until="networkidle")
 
-    expected_order_numbers = []
     for part_name in ORDER_PART_NAMES:
         row = page.locator("tbody tr").filter(has_text=part_name)
         try:
@@ -66,10 +65,6 @@ def test_desktop_order_rfq_gmail_compose(browser):
         except Exception:
             print("Desktop Order page text:", page.locator("body").inner_text()[:5000])
             raise
-        row_text = row.inner_text()
-        match = ORDER_NUMBER_PATTERN.search(row_text)
-        assert match, f"Could not read generated Order Number from row: {row_text}"
-        expected_order_numbers.append(match.group(0))
         row.locator("input[type=checkbox]").first.check()
 
     page.get_by_role("button", name="ขอราคา (RFQ)").click()
@@ -77,7 +72,7 @@ def test_desktop_order_rfq_gmail_compose(browser):
     vendor_input = dialog.get_by_placeholder("ค้นหาชื่อ Vendor")
     vendor_input.fill("RFQ E2E Vendor")
     dialog.get_by_role("option", name="RFQ E2E Vendor").click()
-    assert_gmail_compose(page, expected_order_numbers)
+    assert_gmail_compose(page)
     page.close()
 
 
@@ -90,14 +85,9 @@ def test_mobile_order_rfq_gmail_compose(browser):
     login(page)
     page.goto(f"{BASE_URL}/orders", wait_until="networkidle")
 
-    expected_order_numbers = []
     for part_name in ORDER_PART_NAMES:
         card = page.locator(".m-order-card").filter(has_text=part_name)
         card.wait_for()
-        card_text = card.inner_text()
-        match = ORDER_NUMBER_PATTERN.search(card_text)
-        assert match, f"Could not read generated Order Number from card: {card_text}"
-        expected_order_numbers.append(match.group(0))
         card.locator('input[type="checkbox"]').check()
 
     page.get_by_role("button", name="ขอราคา (RFQ)").click()
@@ -105,7 +95,7 @@ def test_mobile_order_rfq_gmail_compose(browser):
     vendor_input = dialog.get_by_placeholder("ค้นหาชื่อ Vendor")
     vendor_input.fill("RFQ E2E Vendor")
     dialog.get_by_role("option", name="RFQ E2E Vendor").click()
-    assert_gmail_compose(page, expected_order_numbers)
+    assert_gmail_compose(page)
     page.close()
 
 

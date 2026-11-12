@@ -161,8 +161,8 @@ input[type="date"][style*="#c1622b"]{
 .order-admin-v9{border-color:#a9c9e8;background:#f3f8fd}
 
 /* Approved: Lifecycle remains functional internally but is not shown in the Order list. */
-.order-table-v9 th:nth-child(8),
-.order-table-v9 td:nth-child(8){display:none!important}
+.order-table-v9 th:nth-child(9),
+.order-table-v9 td:nth-child(9){display:none!important}
 
 @media(max-width:767px){
   /* iOS/Safari auto-zooms focused form controls below 16px. Keep controls at 16px

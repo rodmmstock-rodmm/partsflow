@@ -66,7 +66,20 @@ class OrderRFQComposeTests(TestCase):
         self.assertEqual(first_group["to"], "main@example.com")
         self.assertEqual(first_group["cc"], ["cc@example.com"])
         self.assertIn("Please quote the following items.\n\n", first_group["body"])
-        self.assertIn("Order No. | Part ID | Description | Maker | Qty | Unit", first_group["body"])
+        self.assertIn("┌", first_group["body"])
+        self.assertIn("┬", first_group["body"])
+        self.assertIn("├", first_group["body"])
+        self.assertIn("└", first_group["body"])
+        self.assertIn("Description ORD-RFQ-2", first_group["body"])
+        self.assertIn("Description ORD-RFQ-1", first_group["body"])
+        self.assertLess(
+            first_group["body"].index("Description ORD-RFQ-2"),
+            first_group["body"].index("Description ORD-RFQ-1"),
+        )
+        self.assertNotIn("Part ID", first_group["body"])
+        self.assertNotIn("Description | Maker", first_group["body"])
+        self.assertNotIn("Order No.", first_group["body"])
+        self.assertNotIn("ORD-RFQ-2", first_group["body"].split("Please quote")[0])
         self.assertIn("Requester One", first_group["subject"])
         self.assertIn("(R)", first_group["subject"])
         self.assertNotIn("Machine name", first_group["subject"])

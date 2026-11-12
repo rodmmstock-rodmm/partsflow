@@ -1,8 +1,8 @@
 /* PartsFlow Order V10 -------------------------------------------------------
    Loaded after production-theme-final.css so the old positional Lifecycle
    hide cannot hide the new visible status column after DATE was inserted. */
-.order-table-v9 th:nth-child(8),
-.order-table-v9 td:nth-child(8){
+.order-table-v9 th:nth-child(9),
+.order-table-v9 td:nth-child(9){
   display:table-cell!important;
 }
 

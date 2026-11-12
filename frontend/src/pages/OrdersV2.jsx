@@ -129,6 +129,7 @@ function CompactOrderTable({
       <th><input type="checkbox" checked={all} onChange={e=>onToggleAll(rows,e.target.checked)} /></th>
       <th>ORDER</th>
       <th>DATE</th>
+      <th>MACHINE CODE</th>
       <th>อะไหล่ที่สั่ง</th>
       <th>จำนวน</th>
       <th>สถานะงานด่วน</th>
@@ -142,6 +143,7 @@ function CompactOrderTable({
       <td><input type="checkbox" checked={selected.has(o.id)} onChange={e=>onToggle(o.id,e.target.checked)} /></td>
       <td><b className="mono-cell">{o.order_number}</b></td>
       <td className="mono-cell">{o.date ? formatDMY(o.date) : "-"}</td>
+      <td className="mono-cell">{o.machine_codes || o.machine_code || "-"}</td>
       <td className="part-main-v9">{o.item_type==="TOOLING"&&<span className="badge">Tooling</span>}<b>{o.item_id || (o.item_type==="TOOLING"?"TOOLING":"-")}</b><strong>{o.part_name || "-"}</strong></td>
       <td><b>{fmt(o.amount)} {o.unit || ""}</b></td>
       <td className="urgent-cell-v9">{o.urgent_status ? <span className="urgent-badge-v9">{o.urgent_status}</span> : <span className="muted-text-v9">-</span>}</td>
