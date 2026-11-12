@@ -417,7 +417,7 @@ export default function OrdersV2(){
       actions={tab==="normal"&&auth.can("can_add_order")?<>
         <button className="btn primary" onClick={()=>setEditor({order:null})}>+ เพิ่ม Order</button>
         {auth.can("can_delete_order")&&<button className="btn ghost" disabled={importBusy} onClick={()=>fileRef.current?.click()}>{importBusy?"กำลัง Import...":"⬆ Import Excel"}</button>}
-        {auth.can("can_edit_purchase_info")&&<button className="btn ghost" onClick={()=>setJobCCSettings(true)}>ตั้งค่า CC</button>}
+        {auth.can("can_edit_purchase_info")&&auth.can("can_view_po_balance")&&<button className="btn ghost" onClick={()=>setJobCCSettings(true)}>ตั้งค่า CC</button>}
         <input hidden ref={fileRef} type="file" accept=".xlsx,.xls" onChange={e=>importExcel(e.target.files?.[0])}/>
       </>:null}
     />
