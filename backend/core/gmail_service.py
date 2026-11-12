@@ -226,6 +226,10 @@ def _load_credentials():
     except Exception as exc:
         raise GmailConfigError(f"อ่าน Gmail OAuth token ไม่สำเร็จ: {exc}") from exc
 
+    granted_scopes = set(credentials.scopes or row.scopes or [])
+    if "https://www.googleapis.com/auth/gmail.compose" not in granted_scopes:
+        raise GmailConfigError("Gmail ยังไม่ได้รับสิทธิ์สร้างฉบับร่าง กรุณาให้ ADMIN เชื่อม Gmail ใหม่เพื่ออนุญาตสิทธิ์ Gmail Compose")
+
     if credentials.expired:
         if not credentials.refresh_token:
             raise GmailConfigError("Gmail OAuth token หมดอายุ กรุณาเชื่อมใหม่")
