@@ -51,6 +51,7 @@ urlpatterns = [
 
     path("orders/", order_audit_api.orders, name="web-orders"),
     path("orders/rfq-compose/", order_rfq_compose_api.compose_order_rfq, name="web-order-rfq-compose"),
+    path("orders/rfq-drafts/", order_rfq_compose_api.create_order_rfq_drafts, name="web-order-rfq-drafts"),
     path("orders/batch/", order_api.create_orders_batch, name="web-orders-batch"),
     path("orders/import/", order_api.import_orders_excel, name="web-orders-import"),
     path("orders/quick-add/", order_api.quick_add_order, name="web-orders-quick-add"),
