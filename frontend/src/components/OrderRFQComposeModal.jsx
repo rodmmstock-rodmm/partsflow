@@ -9,9 +9,56 @@ function gmailComposeUrl(group) {
     to: group.to || "",
     cc: (group.cc || []).join(","),
     su: group.subject || "",
-    body: group.body || "",
+    body: group.message || "",
   });
   return `https://mail.google.com/mail/?${params.toString()}`;
+}
+
+async function copyTableAndOpenGroup(group, onError, onCopied) {
+  const pendingTab = window.open("about:blank", "_blank");
+  try {
+    if (!group.table_html) throw new Error("ไม่พบตาราง HTML สำหรับคัดลอก");
+
+    let copied = false;
+    if (navigator.clipboard?.write && window.ClipboardItem) {
+      try {
+        const item = new window.ClipboardItem({
+          "text/html": new Blob([group.table_html], { type: "text/html" }),
+          "text/plain": new Blob([group.table_text || ""], { type: "text/plain" }),
+        });
+        await navigator.clipboard.write([item]);
+        copied = true;
+      } catch {
+        // Continue with the browser's rich-text copy fallback below.
+      }
+    }
+
+    if (!copied) {
+      const holder = document.createElement("div");
+      holder.contentEditable = "true";
+      holder.style.position = "fixed";
+      holder.style.left = "-10000px";
+      holder.style.top = "0";
+      holder.innerHTML = group.table_html;
+      document.body.appendChild(holder);
+      const selection = window.getSelection();
+      const range = document.createRange();
+      range.selectNodeContents(holder);
+      selection.removeAllRanges();
+      selection.addRange(range);
+      copied = document.execCommand("copy");
+      selection.removeAllRanges();
+      holder.remove();
+    }
+
+    if (!copied) throw new Error("เบราว์เซอร์ไม่อนุญาตให้คัดลอกตารางแบบมีเส้นขอบ");
+    if (!pendingTab) throw new Error("เบราว์เซอร์บล็อกหน้าต่าง Gmail กรุณาอนุญาต Pop-up");
+    pendingTab.location.href = gmailComposeUrl(group);
+    onCopied?.(group.group_key || group.subject);
+  } catch (err) {
+    if (pendingTab) pendingTab.close();
+    onError(err.message || "คัดลอกตารางไม่สำเร็จ กรุณาลองอีกครั้ง");
+  }
 }
 
 export default function OrderRFQComposeModal({ orders, options, onClose, onOpened }) {
@@ -20,6 +67,7 @@ export default function OrderRFQComposeModal({ orders, options, onClose, onOpene
   const [groups, setGroups] = useState([]);
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
+  const [copiedGroup, setCopiedGroup] = useState("");
 
   async function createEmails(event) {
     event.preventDefault();
@@ -29,9 +77,6 @@ export default function OrderRFQComposeModal({ orders, options, onClose, onOpene
       return;
     }
 
-    // Open synchronously from the user's click so the browser does not block
-    // Gmail after the server validation request completes.
-    const pendingTab = window.open("about:blank", "_blank");
     setBusy(true);
     try {
       const result = await apiPost("/orders/rfq-compose/", {
@@ -41,15 +86,8 @@ export default function OrderRFQComposeModal({ orders, options, onClose, onOpene
       const nextGroups = result.groups || [];
       if (!nextGroups.length) throw new Error("ไม่พบกลุ่ม Order สำหรับสร้างอีเมล");
       setGroups(nextGroups);
-      if (nextGroups.length === 1) {
-        if (pendingTab) pendingTab.location.href = gmailComposeUrl(nextGroups[0]);
-        else setError("เบราว์เซอร์บล็อกหน้าต่าง Gmail กรุณาอนุญาต Pop-up แล้วกดเปิด Gmail อีกครั้ง");
-        onOpened?.();
-      } else if (pendingTab) {
-        pendingTab.close();
-      }
+      onOpened?.();
     } catch (err) {
-      if (pendingTab) pendingTab.close();
       setError(err.message || "สร้างอีเมล RFQ ไม่สำเร็จ");
     } finally {
       setBusy(false);
@@ -57,8 +95,10 @@ export default function OrderRFQComposeModal({ orders, options, onClose, onOpene
   }
 
   function openGroup(group) {
-    const tab = window.open(gmailComposeUrl(group), "_blank");
-    if (!tab) setError("เบราว์เซอร์บล็อกหน้าต่าง Gmail กรุณาอนุญาต Pop-up");
+    copyTableAndOpenGroup(group, setError, (key) => {
+      setError("");
+      setCopiedGroup(key);
+    });
   }
 
   return (
@@ -67,7 +107,7 @@ export default function OrderRFQComposeModal({ orders, options, onClose, onOpene
         <Alert>{error}</Alert>
         {groups.length === 1 ? (
           <>
-            <div className="alert success">เตรียมอีเมล RFQ แล้ว และเปิด Gmail ในแท็บใหม่</div>
+            <div className="alert success">เตรียมอีเมล RFQ แล้ว กดปุ่มด้านล่างเพื่อคัดลอกตารางแบบ Excel และเปิด Gmail จากนั้นวางตารางในเนื้อหาอีเมล</div>
             <section className="rfq-result">
               <div>
                 <strong>{groups[0].subject}</strong>
@@ -75,15 +115,17 @@ export default function OrderRFQComposeModal({ orders, options, onClose, onOpene
                 <span>To: {groups[0].to}</span>
                 {(groups[0].cc || []).length > 0 && <span>CC: {groups[0].cc.join(", ")}</span>}
               </div>
-              <button type="button" className="mini primary" onClick={() => openGroup(groups[0])}>เปิด Gmail อีกครั้ง</button>
+              <button type="button" className="mini primary" onClick={() => openGroup(groups[0])}>คัดลอกตารางและเปิด Gmail</button>
             </section>
+            {copiedGroup && <div className="alert success">คัดลอกตารางแล้ว ให้วางใน Gmail ด้วย Paste (Ctrl+V) หรือแตะค้างแล้วเลือก วาง</div>}
             <div className="modal-actions"><button type="button" className="btn primary" onClick={onClose}>เสร็จสิ้น</button></div>
           </>
         ) : groups.length > 1 ? (
           <>
+            {copiedGroup && <div className="alert success">คัดลอกตารางแล้ว ให้วางใน Gmail ด้วย Paste (Ctrl+V) หรือแตะค้างแล้วเลือก วาง</div>}
             <div className="alert info">
               พบ {groups.length} กลุ่มอีเมล เนื่องจาก Machine Code, JOB หรือวันที่งานค้างแตกต่างกัน
-              กรุณาเปิด Gmail ทีละฉบับ
+              กดคัดลอกตารางและเปิด Gmail ทีละฉบับ แล้ววางตารางลงในอีเมล
             </div>
             <div className="rfq-result-list">
               {groups.map((group, index) => (
@@ -95,7 +137,7 @@ export default function OrderRFQComposeModal({ orders, options, onClose, onOpene
                     {(group.cc || []).length > 0 && <span>CC: {group.cc.join(", ")}</span>}
                   </div>
                   <button type="button" className="mini primary" onClick={() => openGroup(group)}>
-                    เปิด Gmail
+                    คัดลอกตารางและเปิด Gmail
                   </button>
                 </section>
               ))}
@@ -121,7 +163,7 @@ export default function OrderRFQComposeModal({ orders, options, onClose, onOpene
             <div className="modal-actions">
               <button type="button" className="btn ghost" onClick={onClose}>ยกเลิก</button>
               <button className="btn primary" disabled={busy || !vendorId}>
-                {busy ? "กำลังเตรียมอีเมล..." : "สร้างอีเมลและเปิด Gmail"}
+                {busy ? "กำลังเตรียมอีเมล..." : "เตรียมอีเมล RFQ"}
               </button>
             </div>
           </>

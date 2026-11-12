@@ -1,4 +1,5 @@
 from collections import OrderedDict
+from html import escape
 from unicodedata import east_asian_width
 
 from django.core.exceptions import ValidationError
@@ -69,6 +70,36 @@ def _format_rfq_table(orders):
     return "\n".join(lines)
 
 
+def _format_rfq_table_html(orders):
+    rows = [
+        [
+            row.part.sku if row.part else "-",
+            row.part_name or "-",
+            row.maker_text or "-",
+            str(row.amount if row.amount is not None else ""),
+            row.unit_text or "-",
+        ]
+        for row in orders
+    ]
+    cells = []
+    for row in rows:
+        cells.append(
+            "<tr>"
+            + "".join(
+                '<td style="border:1px solid #333333;padding:6px 8px;vertical-align:top;">'
+                f"{escape(str(value))}</td>"
+                for value in row
+            )
+            + "</tr>"
+        )
+    return (
+        '<table style="border-collapse:collapse;border-spacing:0;'
+        'font-family:Arial,sans-serif;font-size:13px;color:#222222;">'
+        "<tbody>"
+        + "".join(cells)
+        + "</tbody></table>"
+    )
+
 def _compose_group(group, vendor):
     requesters = []
     for row in group["orders"]:
@@ -87,6 +118,7 @@ def _compose_group(group, vendor):
     subject = " ".join(part for part in parts if part).strip()
 
     table = _format_rfq_table(group["orders"])
+    table_html = _format_rfq_table_html(group["orders"])
     message = vendor.rfq_message or ""
     body = f"{message}\n\n{table}" if message else table
 
@@ -100,6 +132,9 @@ def _compose_group(group, vendor):
         "to": vendor.email,
         "cc": group["cc_emails"],
         "body": body,
+        "message": message,
+        "table_html": table_html,
+        "table_text": table,
     }
 
 
