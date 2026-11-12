@@ -621,7 +621,7 @@ def po_balance_list(request):
 @api_view(["GET", "PATCH"])
 @permission_classes([AllowAny])
 def po_balance_detail(request, pk):
-    permission = "can_view_po_balance" if request.method == "GET" else "can_edit_purchase_info"
+    permission = "can_edit_purchase_info"
     actor, err = require_permission(request, permission)
     if err:
         return err
