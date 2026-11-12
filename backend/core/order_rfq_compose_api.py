@@ -67,7 +67,7 @@ def _format_rfq_table(orders):
         if index < len(rows) - 1:
             lines.append(border("├", "┼", "┤"))
     lines.append(border("└", "┴", "┘"))
-    return "\n".join(lines)
+    return "\\n".join(lines)
 
 
 def _format_rfq_table_html(orders):
@@ -93,12 +93,14 @@ def _format_rfq_table_html(orders):
             + "</tr>"
         )
     return (
-        '<table style="border-collapse:collapse;border-spacing:0;'
+        '<table border="1" cellpadding="0" cellspacing="0" '
+        'style="border-collapse:collapse;border-spacing:0;'
         'font-family:Arial,sans-serif;font-size:13px;color:#222222;">'
         "<tbody>"
         + "".join(cells)
         + "</tbody></table>"
     )
+
 
 def _compose_group(group, vendor):
     requesters = []
@@ -120,7 +122,7 @@ def _compose_group(group, vendor):
     table = _format_rfq_table(group["orders"])
     table_html = _format_rfq_table_html(group["orders"])
     message = vendor.rfq_message or ""
-    body = f"{message}\n\n{table}" if message else table
+    body = f"{message}\\n\\n{table}" if message else table
 
     return {
         "group_key": group["key"],
