@@ -54,7 +54,7 @@ class OrderRFQDraftTests(SimpleTestCase):
         self.assertEqual(kwargs["to_emails"], ["vendor@example.com"])
         self.assertEqual(kwargs["cc_emails"], ["buyer@example.com"])
 
-    @patch("core.order_rfq_draft_api.compose_order_rfq")
+    @patch("core.order_rfq_draft_api.compose_order_rfq_data")
     def test_rejects_invalid_rfq_before_creating_draft(self, compose):
         compose.return_value = Response({"detail": "Invalid order"}, status=400)
         request = self.factory.post(
