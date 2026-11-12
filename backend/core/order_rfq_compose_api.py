@@ -1,4 +1,5 @@
 from collections import OrderedDict
+from unicodedata import east_asian_width
 
 from django.core.exceptions import ValidationError
 from django.core.validators import validate_email
@@ -31,6 +32,43 @@ def _job_code(value):
     return JOB_CODES.get(normalized, normalized or "G")
 
 
+def _display_width(value):
+    return sum(2 if east_asian_width(char) in ("F", "W") else 1 for char in value)
+
+
+def _pad_cell(value, width):
+    return value + (" " * max(0, width - _display_width(value)))
+
+
+def _format_rfq_table(orders):
+    rows = [
+        [
+            row.part.sku if row.part else "-",
+            row.part_name or "-",
+            row.maker_text or "-",
+            str(row.amount if row.amount is not None else ""),
+            row.unit_text or "-",
+        ]
+        for row in orders
+    ]
+    widths = [
+        max(_display_width(row[index]) for row in rows)
+        for index in range(5)
+    ]
+
+    def border(left, middle, right):
+        return left + middle.join("─" * (width + 2) for width in widths) + right
+
+    lines = [border("┌", "┬", "┐")]
+    for index, row in enumerate(rows):
+        cells = [" " + _pad_cell(value, widths[column]) + " " for column, value in enumerate(row)]
+        lines.append("│" + "│".join(cells) + "│")
+        if index < len(rows) - 1:
+            lines.append(border("├", "┼", "┤"))
+    lines.append(border("└", "┴", "┘"))
+    return "\n".join(lines)
+
+
 def _compose_group(group, vendor):
     requesters = []
     for row in group["orders"]:
@@ -48,17 +86,7 @@ def _compose_group(group, vendor):
     ]
     subject = " ".join(part for part in parts if part).strip()
 
-    headers = ["Part ID", "Description", "Maker", "Qty", "Unit"]
-    lines = [" | ".join(headers), " | ".join(["---"] * len(headers))]
-    for row in group["orders"]:
-        lines.append(" | ".join([
-            row.part.sku if row.part else "-",
-            row.part_name or "-",
-            row.maker_text or "-",
-            str(row.amount if row.amount is not None else ""),
-            row.unit_text or "-",
-        ]))
-    table = "\n".join(lines)
+    table = _format_rfq_table(group["orders"])
     message = vendor.rfq_message or ""
     body = f"{message}\n\n{table}" if message else table
 
