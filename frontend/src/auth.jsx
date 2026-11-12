@@ -16,6 +16,17 @@ import {
 } from "./api";
 
 const AuthContext = createContext(null);
+const DESKTOP_IDLE_TIMEOUT_MS = 10 * 60 * 1000;
+
+function isMobileDevice() {
+  if (typeof navigator === "undefined") return false;
+  const userAgent = navigator.userAgent || "";
+  return (
+    navigator.userAgentData?.mobile === true ||
+    /Android|iPhone|iPad|iPod|Mobile/i.test(userAgent) ||
+    (/Macintosh/i.test(userAgent) && navigator.maxTouchPoints > 1)
+  );
+}
 
 export function AuthProvider({ children }) {
   const [employee, setEmployee] = useState(null);
@@ -63,15 +74,75 @@ export function AuthProvider({ children }) {
   }
 
   async function logout() {
-    try {
-      await apiPost("/auth/logout/");
-    } catch {
-      // Token will still be removed locally.
-    } finally {
-      clearAuthToken();
-      setEmployee(null);
-    }
+    // Remove the local session immediately; the server-side logout is best effort.
+    const request = apiPost("/auth/logout/").catch(() => {});
+    clearAuthToken();
+    setEmployee(null);
+    await request;
   }
+
+  useEffect(() => {
+    if (!employee || isMobileDevice()) return undefined;
+
+    let timeoutId;
+    let lastActivityAt = Date.now();
+    let lastPointerMoveAt = 0;
+    let loggingOut = false;
+
+    const clearTimer = () => {
+      if (timeoutId) window.clearTimeout(timeoutId);
+      timeoutId = undefined;
+    };
+
+    const expireIfIdle = () => {
+      if (loggingOut) return;
+      const remaining = DESKTOP_IDLE_TIMEOUT_MS - (Date.now() - lastActivityAt);
+      if (remaining > 0) {
+        timeoutId = window.setTimeout(expireIfIdle, remaining);
+        return;
+      }
+      loggingOut = true;
+      void logout();
+    };
+
+    const recordActivity = () => {
+      if (loggingOut) return;
+      lastActivityAt = Date.now();
+      clearTimer();
+      timeoutId = window.setTimeout(expireIfIdle, DESKTOP_IDLE_TIMEOUT_MS);
+    };
+
+    const handlePointerMove = () => {
+      const now = Date.now();
+      // Avoid resetting the timer for every mouse-move event.
+      if (now - lastPointerMoveAt < 1000) return;
+      lastPointerMoveAt = now;
+      recordActivity();
+    };
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === "visible") expireIfIdle();
+    };
+
+    window.addEventListener("pointerdown", recordActivity, true);
+    window.addEventListener("keydown", recordActivity, true);
+    window.addEventListener("wheel", recordActivity, { passive: true, capture: true });
+    window.addEventListener("scroll", recordActivity, { passive: true, capture: true });
+    window.addEventListener("mousemove", handlePointerMove, { passive: true });
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+
+    timeoutId = window.setTimeout(expireIfIdle, DESKTOP_IDLE_TIMEOUT_MS);
+
+    return () => {
+      clearTimer();
+      window.removeEventListener("pointerdown", recordActivity, true);
+      window.removeEventListener("keydown", recordActivity, true);
+      window.removeEventListener("wheel", recordActivity, true);
+      window.removeEventListener("scroll", recordActivity, true);
+      window.removeEventListener("mousemove", handlePointerMove);
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+    };
+  }, [employee]);
 
   const value = useMemo(
     () => ({
