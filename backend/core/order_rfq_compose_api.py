@@ -10,7 +10,7 @@ from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 
 from .auth_api import require_permission
-from .models import OrderRecord, Supplier
+from .models import OrderRecord, RFQCCRule, Supplier
 
 
 JOB_CODES = {
@@ -212,13 +212,21 @@ def compose_order_rfq_data(request):
         date_key = pending_date.isoformat() if pending_date else ""
         key = (machine_code, job_code, date_key)
         if key not in groups:
+            job_cc = []
+            for rule in RFQCCRule.objects.filter(
+                active=True, rule_type=RFQCCRule.TYPE_JOB, job__iexact=str(order.job or "").strip()
+            ).order_by("email"):
+                email = str(rule.email or "").strip().lower()
+                if email and email != primary_email.lower() and email not in job_cc:
+                    job_cc.append(email)
+            combined_cc = list(dict.fromkeys([*cc_emails, *job_cc]))
             groups[key] = {
                 "key": "|".join(key),
                 "machine_code": machine_code,
                 "job_code": job_code,
                 "pending_data_date": pending_date,
                 "orders": [],
-                "cc_emails": cc_emails,
+                "cc_emails": combined_cc,
             }
         groups[key]["orders"].append(order)
 
