@@ -447,29 +447,21 @@ tbody tr:hover .sticky-action { background:#f7fbff; }
 }
 
 
-/* Allow desktop mouse wheels to scroll the horizontally overflowing mobile menu. */
+/* Scroll the horizontally overflowing mobile menu by dragging, without a visible scrollbar. */
 .m-bottom-nav {
   overflow-x: auto;
   overflow-y: hidden;
   overscroll-behavior-x: contain;
-  scroll-behavior: smooth;
+  scroll-behavior: auto;
   -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+.m-bottom-nav::-webkit-scrollbar {
+  display: none;
 }
 @media (max-width: 767px) and (hover: hover) and (pointer: fine) {
-  .m-bottom-nav {
-    scrollbar-width: thin;
-    scrollbar-color: #b8c9da transparent;
-    padding-bottom: 12px;
-  }
-  .m-bottom-nav::-webkit-scrollbar {
-    display: block;
-    height: 6px;
-  }
-  .m-bottom-nav::-webkit-scrollbar-track {
-    background: transparent;
-  }
-  .m-bottom-nav::-webkit-scrollbar-thumb {
-    background: #b8c9da;
-    border-radius: 999px;
-  }
+  .m-bottom-nav { cursor: grab; }
+  .m-bottom-nav:active { cursor: grabbing; }
+  .m-bottom-nav a { user-select: none; -webkit-user-drag: none; }
 }
