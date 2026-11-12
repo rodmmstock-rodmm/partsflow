@@ -16,6 +16,7 @@ export default function OrderRFQComposeModal({ orders, options, onClose, onOpene
       setError("กรุณาเลือก Vendor");
       return;
     }
+    const pendingTab = window.open("about:blank", "_blank");
     setBusy(true);
     try {
       const result = await apiPost("/orders/rfq-drafts/", {
@@ -26,22 +27,42 @@ export default function OrderRFQComposeModal({ orders, options, onClose, onOpene
       if (!nextDrafts.length) throw new Error("Gmail ไม่ได้ส่งรายการ Draft กลับมา");
       setDrafts(nextDrafts);
       onOpened?.();
-      if (nextDrafts.length === 1) window.open(nextDrafts[0].draft_url, "_blank", "noopener,noreferrer");
+      if (nextDrafts.length === 1 && pendingTab) pendingTab.location.href = nextDrafts[0].draft_url;
+      else if (pendingTab) pendingTab.close();
     } catch (err) {
+      if (pendingTab) pendingTab.close();
       setError(err.message || "สร้าง Gmail Draft ไม่สำเร็จ");
     } finally {
       setBusy(false);
     }
   }
 
-  async function reconnectGmail() {\n    setBusy(true);\n    setError("");\n    try {\n      const result = await apiGet("/gmail/oauth/start/", { cache: false });\n      if (!result.authorization_url) throw new Error(result.detail || "ไม่สามารถเริ่มเชื่อม Gmail ได้");\n      window.location.assign(result.authorization_url);\n    } catch (err) {\n      setError(err.message || "เริ่มเชื่อม Gmail ไม่สำเร็จ");\n      setBusy(false);\n    }\n  }\n\n  function openDraft(draft) {
+  async function reconnectGmail() {
+    setBusy(true);
+    setError("");
+    try {
+      const result = await apiGet("/gmail/oauth/start/", { cache: false });
+      if (!result.authorization_url) throw new Error(result.detail || "ไม่สามารถเริ่มเชื่อม Gmail ได้");
+      window.location.assign(result.authorization_url);
+    } catch (err) {
+      setError(err.message || "เริ่มเชื่อม Gmail ไม่สำเร็จ");
+      setBusy(false);
+    }
+  }
+
+  function openDraft(draft) {
     if (draft?.draft_url) window.open(draft.draft_url, "_blank", "noopener,noreferrer");
   }
 
   return (
     <Modal title={`สร้างอีเมลขอราคา RFQ · ${orderIds.length} Order`} onClose={onClose} wide>
       <form onSubmit={createDrafts}>
-        <Alert>{error}</Alert>\n        {error.includes("Gmail Compose") && (\n          <div className="alert info">ต้องให้ ADMIN อนุญาตสิทธิ์สร้าง Gmail Draft ก่อน\n            <button type="button" className="mini primary" disabled={busy} onClick={reconnectGmail}>เชื่อมต่อ / อนุญาต Gmail</button>\n          </div>\n        )}
+        <Alert>{error}</Alert>
+        {error.includes("Gmail Compose") && (
+          <div className="alert info">ต้องให้ ADMIN อนุญาตสิทธิ์สร้าง Gmail Draft ก่อน
+            <button type="button" className="mini primary" disabled={busy} onClick={reconnectGmail}>เชื่อมต่อ / อนุญาต Gmail</button>
+          </div>
+        )}
         {drafts.length > 0 ? (
           <>
             <div className="alert success">
