@@ -93,12 +93,14 @@ def _format_rfq_table_html(orders):
             + "</tr>"
         )
     return (
-        '<table style="border-collapse:collapse;border-spacing:0;'
+        '<table border="1" cellpadding="0" cellspacing="0" '
+        'style="border-collapse:collapse;border-spacing:0;'
         'font-family:Arial,sans-serif;font-size:13px;color:#222222;">'
         "<tbody>"
         + "".join(cells)
         + "</tbody></table>"
     )
+
 
 def _compose_group(group, vendor):
     requesters = []
