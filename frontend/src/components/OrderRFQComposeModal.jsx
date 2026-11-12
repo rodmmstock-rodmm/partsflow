@@ -18,13 +18,22 @@ async function copyTableAndOpenGroup(group, onError, onCopied) {
   const pendingTab = window.open("about:blank", "_blank");
   try {
     if (!group.table_html) throw new Error("ไม่พบตาราง HTML สำหรับคัดลอก");
+
+    let copied = false;
     if (navigator.clipboard?.write && window.ClipboardItem) {
-      const item = new window.ClipboardItem({
-        "text/html": new Blob([group.table_html], { type: "text/html" }),
-        "text/plain": new Blob([group.table_text || ""], { type: "text/plain" }),
-      });
-      await navigator.clipboard.write([item]);
-    } else {
+      try {
+        const item = new window.ClipboardItem({
+          "text/html": new Blob([group.table_html], { type: "text/html" }),
+          "text/plain": new Blob([group.table_text || ""], { type: "text/plain" }),
+        });
+        await navigator.clipboard.write([item]);
+        copied = true;
+      } catch {
+        // Continue with the browser's rich-text copy fallback below.
+      }
+    }
+
+    if (!copied) {
       const holder = document.createElement("div");
       holder.contentEditable = "true";
       holder.style.position = "fixed";
@@ -37,11 +46,12 @@ async function copyTableAndOpenGroup(group, onError, onCopied) {
       range.selectNodeContents(holder);
       selection.removeAllRanges();
       selection.addRange(range);
-      const copied = document.execCommand("copy");
+      copied = document.execCommand("copy");
       selection.removeAllRanges();
       holder.remove();
-      if (!copied) throw new Error("เบราว์เซอร์ไม่อนุญาตให้คัดลอกตารางแบบมีเส้นขอบ");
     }
+
+    if (!copied) throw new Error("เบราว์เซอร์ไม่อนุญาตให้คัดลอกตารางแบบมีเส้นขอบ");
     if (!pendingTab) throw new Error("เบราว์เซอร์บล็อกหน้าต่าง Gmail กรุณาอนุญาต Pop-up");
     pendingTab.location.href = gmailComposeUrl(group);
     onCopied?.(group.group_key || group.subject);
