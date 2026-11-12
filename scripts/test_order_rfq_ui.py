@@ -21,10 +21,29 @@ def login(page):
 
 
 def assert_gmail_compose(page):
+    # Simulate the rich clipboard API and verify that PartsFlow writes HTML table data.
+    page.evaluate("""() => {
+        Object.defineProperty(navigator, "clipboard", {
+            configurable: true,
+            value: {
+                write: async (items) => {
+                    const html = await items[0].getType("text/html");
+                    window.__rfqClipboardHtml = await html.text();
+                    const plain = await items[0].getType("text/plain");
+                    window.__rfqClipboardText = await plain.text();
+                },
+            },
+        });
+    }""")
+
+    page.get_by_role("button", name="สร้างอีเมลและเปิด Gmail").click()
+    copy_button = page.get_by_role("button", name="คัดลอกตารางและเปิด Gmail")
+    copy_button.wait_for(timeout=10000)
+
     with page.expect_popup() as popup_info:
-        page.get_by_role("button", name="สร้างอีเมลและเปิด Gmail").click()
+        copy_button.click()
     popup = popup_info.value
-    popup.wait_for_url(re.compile(r"https://(mail\.google\.com|accounts\.google\.com)/.*"), timeout=15000)
+    popup.wait_for_url(re.compile(r"https://(mail\\.google\\.com|accounts\\.google\\.com)/.*"), timeout=15000)
     parsed = urlparse(popup.url)
     if parsed.hostname == "accounts.google.com":
         continuation = parse_qs(parsed.query).get("continue", [None])[0]
@@ -41,11 +60,16 @@ def assert_gmail_compose(page):
     assert "MC-RFQ-E2E" in params.get("su", [""])[0]
     body = params.get("body", [""])[0]
     assert "Please quote the following items." in body
-    assert "┌" in body and "┬" in body and "└" in body
-    assert "RFQ E2E Bearing" in body
-    assert "Part ID" not in body
-    assert "Order No." not in body
+    assert "┌" not in body and "Order No." not in body
     assert not ORDER_NUMBER_PATTERN.search(body), "Order number unexpectedly appears in RFQ email body"
+
+    html = page.evaluate("window.__rfqClipboardHtml")
+    assert "<table" in html and "<td" in html
+    assert "border:1px solid" in html
+    assert "RFQ E2E Bearing" in html
+    assert "<th" not in html
+    assert "Order No." not in html
+    assert "RFQ E2E Bearing" in page.evaluate("window.__rfqClipboardText")
     popup.close()
 
 
