@@ -51,8 +51,11 @@ def assert_gmail_draft(page, captured):
 
     page.get_by_text("rfq-primary@example.com").wait_for()
     page.get_by_text("PO-E2E-001").wait_for()
-    popup.wait_for_url(re.compile(r"https://mail\.google\.com/mail/u/0/#drafts/draft-e2e-123"), timeout=10000)
-    assert "draft-e2e-123" in popup.url
+    # CI has no authenticated Google session, so Gmail may redirect to accounts.google.com
+    # while preserving the target draft as the URL fragment. Verify the draft target,
+    # not the authentication state or hostname.
+    popup.wait_for_function("() => window.location.hash === '#drafts/draft-e2e-123'", timeout=10000)
+    assert popup.url.endswith("#drafts/draft-e2e-123"), popup.url
     popup.close()
 
 
