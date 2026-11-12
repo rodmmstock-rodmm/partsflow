@@ -10,7 +10,7 @@ from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 
 from .auth_api import require_permission
-from .models import OrderRecord, Supplier
+from .models import OrderRecord, RFQCCRule, Supplier
 
 
 JOB_CODES = {
@@ -207,10 +207,13 @@ def compose_order_rfq_data(request):
     for order_id in ordered_ids:
         order = by_id[order_id]
         machine_code = str(order.machine.code if order.machine else "").strip()
-        job_code = _job_code(order.job)
+        raw_job = str(order.job or "").strip()
+        job_code = _job_code(raw_job)
         pending_date = order.pending_data_date
         date_key = pending_date.isoformat() if pending_date else ""
-        key = (machine_code, job_code, date_key)
+        # Keep distinct stored Job values separate even when RFQ subject codes normalize to the same label.
+        # This prevents Job-specific CC recipients from leaking across different Job values.
+        key = (machine_code, job_code, date_key, raw_job.upper())
         if key not in groups:
             groups[key] = {
                 "key": "|".join(key),
@@ -218,8 +221,15 @@ def compose_order_rfq_data(request):
                 "job_code": job_code,
                 "pending_data_date": pending_date,
                 "orders": [],
-                "cc_emails": cc_emails,
+                "cc_emails": list(cc_emails),
             }
+        if raw_job:
+            for rule in RFQCCRule.objects.filter(
+                active=True, rule_type=RFQCCRule.TYPE_JOB, job__iexact=raw_job
+            ).order_by("email"):
+                email = str(rule.email or "").strip().lower()
+                if email and email != primary_email.lower() and email not in groups[key]["cc_emails"]:
+                    groups[key]["cc_emails"].append(email)
         groups[key]["orders"].append(order)
 
     return Response({

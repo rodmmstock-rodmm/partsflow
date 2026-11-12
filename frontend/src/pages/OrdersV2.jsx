@@ -8,6 +8,7 @@ import MultiMachineOrderInfoModal from "../components/MultiMachineOrderInfoModal
 import NormalPurchaseModal from "../components/NormalPurchaseModal";
 import BulkOrderQuotationModal from "../components/BulkOrderQuotationModal";
 import OrderRFQComposeModal from "../components/OrderRFQComposeModal";
+import OrderJobCCSettingsModal from "../components/OrderJobCCSettingsModal";
 import { useOptions } from "../optionsContext";
 import { openOrderDetailByNumber } from "../orderDetailEnhancer";
 
@@ -220,6 +221,7 @@ export default function OrdersV2(){
   const [purchase,setPurchase]=useState(null);
   const [bulkPurchaseMode,setBulkPurchaseMode]=useState(null);
   const [rfqModal,setRfqModal]=useState(false);
+  const [jobCCSettings,setJobCCSettings]=useState(false);
   const [importBusy,setImportBusy]=useState(false);
   const [exportBusy,setExportBusy]=useState(false);
   const fileRef=useRef(null);
@@ -415,6 +417,7 @@ export default function OrdersV2(){
       actions={tab==="normal"&&auth.can("can_add_order")?<>
         <button className="btn primary" onClick={()=>setEditor({order:null})}>+ เพิ่ม Order</button>
         {auth.can("can_delete_order")&&<button className="btn ghost" disabled={importBusy} onClick={()=>fileRef.current?.click()}>{importBusy?"กำลัง Import...":"⬆ Import Excel"}</button>}
+        {auth.can("can_edit_purchase_info")&&auth.can("can_view_po_balance")&&<button className="btn ghost" onClick={()=>setJobCCSettings(true)}>ตั้งค่า CC</button>}
         <input hidden ref={fileRef} type="file" accept=".xlsx,.xls" onChange={e=>importExcel(e.target.files?.[0])}/>
       </>:null}
     />
@@ -469,6 +472,7 @@ export default function OrdersV2(){
     {purchase&&<NormalPurchaseModal order={purchase} options={options} onClose={()=>setPurchase(null)} onChanged={r=>{setPurchase(r);load(true);}}/>}
     {bulkPurchaseMode&&selectedQuotationRows.length>0&&<BulkOrderQuotationModal mode={bulkPurchaseMode} orders={selectedQuotationRows} options={options} onClose={()=>setBulkPurchaseMode(null)} onSaved={()=>{setBulkPurchaseMode(null);setSelected(new Set());load(true);}}/>}
     {rfqModal&&<OrderRFQComposeModal orders={selectedRows} options={options} onClose={()=>setRfqModal(false)} onOpened={()=>{}}/>}
+    {jobCCSettings&&<OrderJobCCSettingsModal jobs={options.jobs||[]} onClose={()=>setJobCCSettings(false)}/>}
   </>;
 }
 
