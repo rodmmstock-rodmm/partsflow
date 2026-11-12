@@ -198,15 +198,6 @@ export default function MobileShell() {
             navDrag.current.moved = false;
           }
         }}
-        onWheel={(event) => {
-          const nav = event.currentTarget;
-          if (nav.scrollWidth <= nav.clientWidth) return;
-          const delta = Math.abs(event.deltaY) > Math.abs(event.deltaX) ? event.deltaY : event.deltaX;
-          if (delta) {
-            nav.scrollLeft += delta;
-            event.preventDefault();
-          }
-        }}
       >
         {visible.map(([to, label, icon]) => (
           <NavLink key={to} to={to} end={to === "/"} className={({ isActive }) => (isActive ? "active" : "")}>
