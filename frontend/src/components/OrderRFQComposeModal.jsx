@@ -58,9 +58,14 @@ export default function OrderRFQComposeModal({ orders, options, onClose, onOpene
     <Modal title={`สร้างอีเมลขอราคา RFQ · ${orderIds.length} Order`} onClose={onClose} wide>
       <form onSubmit={createDrafts}>
         <Alert>{error}</Alert>
-        {error.includes("Gmail Compose") && (
-          <div className="alert info">ต้องให้ ADMIN อนุญาตสิทธิ์สร้าง Gmail Draft ก่อน
-            <button type="button" className="mini primary" disabled={busy} onClick={reconnectGmail}>เชื่อมต่อ / อนุญาต Gmail</button>
+        {(error.includes("Gmail Compose") || error.includes("Google Workspace Gmail ยังไม่ได้เชื่อมต่อ")) && (
+          <div className="alert info">
+            {error.includes("Gmail Compose")
+              ? "บัญชี Gmail เชื่อมต่อแล้ว แต่ยังไม่ได้อนุญาตสิทธิ์สร้างฉบับร่าง ต้องให้ ADMIN อนุญาต Gmail Compose"
+              : "ยังไม่มีบัญชี Google Workspace Gmail เชื่อมต่อกับ PartsFlow ต้องให้ ADMIN เชื่อมบัญชีก่อน"}
+            <button type="button" className="mini primary" disabled={busy} onClick={reconnectGmail}>
+              เชื่อมต่อ / อนุญาต Gmail
+            </button>
           </div>
         )}
         {drafts.length > 0 ? (
