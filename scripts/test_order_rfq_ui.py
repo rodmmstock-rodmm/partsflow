@@ -1,4 +1,5 @@
 """Desktop and mobile browser smoke tests for the Order RFQ Gmail compose flow."""
+import json
 import re
 from urllib.parse import parse_qs, urlparse
 from playwright.sync_api import sync_playwright
@@ -6,7 +7,7 @@ from playwright.sync_api import sync_playwright
 BASE_URL = "http://127.0.0.1:4173"
 EMPLOYEE_CODE = "UI-TEST-001"
 ORDER_PART_NAMES = ["RFQ E2E Bearing", "RFQ E2E Seal"]
-ORDER_NUMBER_PATTERN = re.compile(r"\\bR-\\d{6}-\\d{6}(?:-\\d{2})?\\b")
+ORDER_NUMBER_PATTERN = re.compile(r"\bR-\d{6}-\d{6}(?:-\d{2})?\b")
 
 
 def login(page):
@@ -22,20 +23,31 @@ def login(page):
 
 def mock_rfq_compose_api(page):
     captured = {}
+    html = (
+        '<table border="1" cellpadding="0" cellspacing="0"><tbody><tr>'
+        '<td style="border:1px solid #333333;padding:6px 8px">SKU-1</td>'
+        '<td style="border:1px solid #333333;padding:6px 8px">RFQ E2E Bearing</td>'
+        '</tr></tbody></table>'
+    )
 
     def handler(route):
         captured["payload"] = route.request.post_data_json
         route.fulfill(
             status=200,
             content_type="application/json",
-            body=(
-                '{"vendor":"RFQ E2E Vendor","groups":[{'
-                '"group_key":"MC-RFQ-E2E|R|","subject":"RFQ E2E Vendor - MC-RFQ-E2E",'
-                '"to":"rfq-primary@example.com","cc":["rfq-cc@example.com"],'
-                '"order_numbers":["PO-E2E-001"],"message":"Please quote the following items.",'
-                '"table_html":"<table border=\\"1\\" cellpadding=\\"0\\" cellspacing=\\"0\\"><tbody><tr><td style=\\"border:1px solid #333333;padding:6px 8px\\">SKU-1</td><td style=\\"border:1px solid #333333;padding:6px 8px\\">RFQ E2E Bearing</td></tr></tbody></table>",'
-                '"table_text":"SKU-1 | RFQ E2E Bearing"}]}'
-            ),
+            body=json.dumps({
+                "vendor": "RFQ E2E Vendor",
+                "groups": [{
+                    "group_key": "MC-RFQ-E2E|R|",
+                    "subject": "RFQ E2E Vendor - MC-RFQ-E2E",
+                    "to": "rfq-primary@example.com",
+                    "cc": ["rfq-cc@example.com"],
+                    "order_numbers": ["PO-E2E-001"],
+                    "message": "Please quote the following items.",
+                    "table_html": html,
+                    "table_text": "SKU-1 | RFQ E2E Bearing",
+                }],
+            }),
         )
 
     page.route("**/api/orders/rfq-compose/", handler)
@@ -64,7 +76,7 @@ def assert_gmail_compose(page, captured):
     with page.expect_popup() as popup_info:
         copy_button.click()
     popup = popup_info.value
-    popup.wait_for_url(re.compile(r"https://(mail\\.google\\.com|accounts\\.google\\.com)/.*"), timeout=15000)
+    popup.wait_for_url(re.compile(r"https://(mail\.google\.com|accounts\.google\.com)/.*"), timeout=15000)
     parsed = urlparse(popup.url)
     if parsed.hostname == "accounts.google.com":
         continuation = parse_qs(parsed.query).get("continue", [None])[0]
@@ -84,12 +96,13 @@ def assert_gmail_compose(page, captured):
     assert "┌" not in body and "Order No." not in body
     assert not ORDER_NUMBER_PATTERN.search(body), "Order number unexpectedly appears in RFQ email body"
 
-    html = page.evaluate("window.__rfqClipboardHtml")
-    assert "<table" in html and "<td" in html
-    assert "border:1px solid" in html
-    assert "RFQ E2E Bearing" in html
-    assert "<th" not in html
-    assert "Order No." not in html
+    html_value = page.evaluate("window.__rfqClipboardHtml")
+    assert "<table" in html_value and "<td" in html_value
+    assert 'border="1"' in html_value
+    assert "border:1px solid" in html_value
+    assert "RFQ E2E Bearing" in html_value
+    assert "<th" not in html_value
+    assert "Order No." not in html_value
     assert "RFQ E2E Bearing" in page.evaluate("window.__rfqClipboardText")
     payload = captured.get("payload") or {}
     assert len(payload.get("order_ids") or []) == 2, payload
