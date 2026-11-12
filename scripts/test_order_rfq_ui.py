@@ -52,7 +52,7 @@ def assert_gmail_draft(page, captured):
     with page.expect_popup() as popup_info:
         page.get_by_role("button", name="เปิด Gmail Draft").click()
     popup = popup_info.value
-    popup.wait_for_url(re.compile(r"https://mail\\.google\\.com/mail/u/0/#drafts/draft-e2e-123"), timeout=10000)
+    popup.wait_for_url(re.compile(r"https://mail\.google\.com/mail/u/0/#drafts/draft-e2e-123"), timeout=10000)
     assert "draft-e2e-123" in popup.url
     popup.close()
 
