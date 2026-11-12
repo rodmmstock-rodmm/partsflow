@@ -445,3 +445,31 @@ tbody tr:hover .sticky-action { background:#f7fbff; }
   .m-main .role-employees-title { width:100%; }
   .m-main .role-add-employee { display:flex; width:100%; max-width:none; justify-content:center; align-self:stretch; white-space:normal; }
 }
+
+
+/* Allow desktop mouse wheels to scroll the horizontally overflowing mobile menu. */
+.m-bottom-nav {
+  overflow-x: auto;
+  overflow-y: hidden;
+  overscroll-behavior-x: contain;
+  scroll-behavior: smooth;
+  -webkit-overflow-scrolling: touch;
+}
+@media (max-width: 767px) and (hover: hover) and (pointer: fine) {
+  .m-bottom-nav {
+    scrollbar-width: thin;
+    scrollbar-color: #b8c9da transparent;
+    padding-bottom: 12px;
+  }
+  .m-bottom-nav::-webkit-scrollbar {
+    display: block;
+    height: 6px;
+  }
+  .m-bottom-nav::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  .m-bottom-nav::-webkit-scrollbar-thumb {
+    background: #b8c9da;
+    border-radius: 999px;
+  }
+}
