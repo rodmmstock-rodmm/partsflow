@@ -1,3 +1,4 @@
+import { useEffect, useRef } from "react";
 import { NavLink, Navigate, Route, Routes, useNavigate } from "react-router-dom";
 import { useAuth } from "../auth";
 import MobileDashboard from "./MobileDashboard";
@@ -97,6 +98,35 @@ export default function MobileShell() {
   const auth = useAuth();
   const navigate = useNavigate();
   const visible = NAV.filter(([, , , p]) => auth.can(p));
+  const navDrag = useRef({ active: false, moved: false, pointerId: null, startX: 0, startScrollLeft: 0 });
+
+  useEffect(() => {
+    function handlePointerMove(event) {
+      const drag = navDrag.current;
+      if (!drag.active || event.pointerId !== drag.pointerId) return;
+      const deltaX = event.clientX - drag.startX;
+      if (Math.abs(deltaX) > 4) drag.moved = true;
+      if (drag.moved) {
+        const nav = document.querySelector(".m-bottom-nav");
+        if (nav) nav.scrollLeft = drag.startScrollLeft - deltaX;
+        event.preventDefault();
+      }
+    }
+    function stopDragging(event) {
+      const drag = navDrag.current;
+      if (drag.pointerId !== null && event.pointerId !== drag.pointerId) return;
+      drag.active = false;
+      drag.pointerId = null;
+    }
+    window.addEventListener("pointermove", handlePointerMove, { passive: false });
+    window.addEventListener("pointerup", stopDragging);
+    window.addEventListener("pointercancel", stopDragging);
+    return () => {
+      window.removeEventListener("pointermove", handlePointerMove);
+      window.removeEventListener("pointerup", stopDragging);
+      window.removeEventListener("pointercancel", stopDragging);
+    };
+  }, []);
 
   async function logout() {
     await auth.logout();
@@ -151,6 +181,23 @@ export default function MobileShell() {
         className="m-bottom-nav"
         aria-label="เมนูหลัก"
         tabIndex={0}
+        onPointerDown={(event) => {
+          if (event.pointerType !== "mouse" || event.button !== 0) return;
+          navDrag.current = {
+            active: true,
+            moved: false,
+            pointerId: event.pointerId,
+            startX: event.clientX,
+            startScrollLeft: event.currentTarget.scrollLeft,
+          };
+        }}
+        onClickCapture={(event) => {
+          if (navDrag.current.moved) {
+            event.preventDefault();
+            event.stopPropagation();
+            navDrag.current.moved = false;
+          }
+        }}
         onWheel={(event) => {
           const nav = event.currentTarget;
           if (nav.scrollWidth <= nav.clientWidth) return;
