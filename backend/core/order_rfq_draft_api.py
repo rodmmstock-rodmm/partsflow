@@ -3,14 +3,14 @@ from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 
 from .gmail_service import GmailConfigError, create_gmail_draft
-from .order_rfq_compose_api import compose_order_rfq
+from .order_rfq_compose_api import compose_order_rfq_data
 
 
 @api_view(["POST"])
 @permission_classes([AllowAny])
 def create_order_rfq_drafts(request):
     """Create one unsent Gmail draft for each validated RFQ group."""
-    composed = compose_order_rfq(request)
+    composed = compose_order_rfq_data(request)
     if composed.status_code != 200:
         return composed
 
