@@ -153,7 +153,7 @@ export default function OrderRFQComposeModal({ orders, options, onClose, onOpene
             <div className="modal-actions">
               <button type="button" className="btn ghost" onClick={onClose}>ยกเลิก</button>
               <button className="btn primary" disabled={busy || !vendorId}>
-                {busy ? "กำลังเตรียมอีเมล..." : "สร้างอีเมลและเปิด Gmail"}
+                {busy ? "กำลังเตรียมอีเมล..." : "เตรียมอีเมล RFQ"}
               </button>
             </div>
           </>
