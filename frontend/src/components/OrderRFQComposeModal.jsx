@@ -15,10 +15,21 @@ function gmailComposeUrl(group) {
 }
 
 async function copyTableAndOpenGroup(group, onError, onCopied) {
-  const pendingTab = window.open("about:blank", "_blank");
-  try {
-    if (!group.table_html) throw new Error("ไม่พบตาราง HTML สำหรับคัดลอก");
+  if (!group.table_html) {
+    onError("ไม่พบตาราง HTML สำหรับคัดลอก");
+    return;
+  }
 
+  // Open Gmail directly during the click gesture. Do not create an about:blank
+  // tab and wait for asynchronous clipboard permission before navigating it:
+  // iOS browsers/webviews can leave that tab stranded on a blank page.
+  const gmailTab = window.open(gmailComposeUrl(group), "_blank");
+  if (!gmailTab) {
+    onError("เบราว์เซอร์บล็อกหน้าต่าง Gmail กรุณาอนุญาต Pop-up แล้วลองอีกครั้ง");
+    return;
+  }
+
+  try {
     let copied = false;
     if (navigator.clipboard?.write && window.ClipboardItem) {
       try {
@@ -26,10 +37,11 @@ async function copyTableAndOpenGroup(group, onError, onCopied) {
           "text/html": new Blob([group.table_html], { type: "text/html" }),
           "text/plain": new Blob([group.table_text || ""], { type: "text/plain" }),
         });
+        // Start the clipboard write within the original click gesture.
         await navigator.clipboard.write([item]);
         copied = true;
       } catch {
-        // Continue with the browser's rich-text copy fallback below.
+        // Continue with the synchronous rich-text copy fallback below.
       }
     }
 
@@ -51,13 +63,14 @@ async function copyTableAndOpenGroup(group, onError, onCopied) {
       holder.remove();
     }
 
-    if (!copied) throw new Error("เบราว์เซอร์ไม่อนุญาตให้คัดลอกตารางแบบมีเส้นขอบ");
-    if (!pendingTab) throw new Error("เบราว์เซอร์บล็อกหน้าต่าง Gmail กรุณาอนุญาต Pop-up");
-    pendingTab.location.href = gmailComposeUrl(group);
+    if (!copied) {
+      onError("เปิด Gmail แล้ว แต่คัดลอกตารางแบบมีเส้นขอบไม่สำเร็จ กรุณากลับมาลองคัดลอกอีกครั้ง");
+      return;
+    }
+
     onCopied?.(group.group_key || group.subject);
-  } catch (err) {
-    if (pendingTab) pendingTab.close();
-    onError(err.message || "คัดลอกตารางไม่สำเร็จ กรุณาลองอีกครั้ง");
+  } catch {
+    onError("เปิด Gmail แล้ว แต่คัดลอกตารางไม่สำเร็จ กรุณากลับมาลองอีกครั้ง");
   }
 }
 
