@@ -138,10 +138,7 @@ def _compose_group(group, vendor):
     }
 
 
-@csrf_exempt
-@api_view(["POST"])
-@permission_classes([AllowAny])
-def compose_order_rfq(request):
+def compose_order_rfq_data(request):
     actor, err = require_permission(request, "can_create_rfq")
     if err:
         return err
@@ -227,3 +224,10 @@ def compose_order_rfq(request):
         "vendor": vendor.name,
         "groups": [_compose_group(group, vendor) for group in groups.values()],
     })
+
+
+@csrf_exempt
+@api_view(["POST"])
+@permission_classes([AllowAny])
+def compose_order_rfq(request):
+    return compose_order_rfq_data(request)

@@ -1,12 +1,10 @@
-"""Desktop and mobile browser smoke tests for the Order RFQ Gmail compose flow."""
-from urllib.parse import parse_qs, urlparse
+"""Desktop and mobile browser smoke tests for creating Gmail RFQ drafts."""
 import re
 from playwright.sync_api import sync_playwright
 
 BASE_URL = "http://127.0.0.1:4173"
 EMPLOYEE_CODE = "UI-TEST-001"
 ORDER_PART_NAMES = ["RFQ E2E Bearing", "RFQ E2E Seal"]
-ORDER_NUMBER_PATTERN = re.compile(r"\bR-\d{6}-\d{6}(?:-\d{2})?\b")
 
 
 def login(page):
@@ -20,106 +18,85 @@ def login(page):
     )
 
 
-def assert_gmail_compose(page):
-    # Simulate the rich clipboard API and verify that PartsFlow writes HTML table data.
-    page.evaluate("""() => {
-        Object.defineProperty(navigator, "clipboard", {
-            configurable: true,
-            value: {
-                write: async (items) => {
-                    const html = await items[0].getType("text/html");
-                    window.__rfqClipboardHtml = await html.text();
-                    const plain = await items[0].getType("text/plain");
-                    window.__rfqClipboardText = await plain.text();
-                },
-            },
-        });
-    }""")
+def mock_gmail_draft_api(page):
+    captured = {}
 
-    page.get_by_role("button", name="เตรียมอีเมล RFQ").click()
-    copy_button = page.get_by_role("button", name="คัดลอกตารางและเปิด Gmail")
-    copy_button.wait_for(timeout=10000)
+    def handler(route):
+        captured["payload"] = route.request.post_data_json
+        route.fulfill(
+            status=200,
+            content_type="application/json",
+            body=(
+                '{"sender_email":"parts@example.com","drafts":[{'
+                '"group_key":"MC-RFQ-E2E|R|","subject":"RFQ E2E Vendor - MC-RFQ-E2E",'
+                '"to":"rfq-primary@example.com","cc":["rfq-cc@example.com"],'
+                '"order_numbers":["PO-E2E-001"],"draft_id":"draft-e2e-123",'
+                '"draft_url":"https://mail.google.com/mail/u/0/#drafts/draft-e2e-123",'
+                '"sender_email":"parts@example.com"}]}'
+            ),
+        )
 
+    page.route("**/api/orders/rfq-drafts/", handler)
+    return captured
+
+
+def assert_gmail_draft(page, captured):
     with page.expect_popup() as popup_info:
-        copy_button.click()
+        page.get_by_role("button", name="สร้าง Gmail Draft").click()
     popup = popup_info.value
-    popup.wait_for_url(re.compile(r"https://(mail\.google\.com|accounts\.google\.com)/.*"), timeout=15000)
-    parsed = urlparse(popup.url)
-    if parsed.hostname == "accounts.google.com":
-        continuation = parse_qs(parsed.query).get("continue", [None])[0]
-        assert continuation, f"Google sign-in URL has no Gmail continuation: {popup.url}"
-        parsed = urlparse(continuation)
-        assert parsed.hostname == "mail.google.com", f"Unexpected Google continuation: {continuation}"
-    else:
-        assert parsed.hostname == "mail.google.com"
-    params = parse_qs(parsed.query)
-    assert params.get("view") == ["cm"]
-    assert params.get("to") == ["rfq-primary@example.com"]
-    assert params.get("cc") == ["rfq-cc@example.com"]
-    assert "RFQ E2E Vendor" in params.get("su", [""])[0]
-    assert "MC-RFQ-E2E" in params.get("su", [""])[0]
-    body = params.get("body", [""])[0]
-    assert "Please quote the following items." in body
-    assert "┌" not in body and "Order No." not in body
-    assert not ORDER_NUMBER_PATTERN.search(body), "Order number unexpectedly appears in RFQ email body"
+    page.get_by_text("สร้าง Gmail Draft แล้ว", exact=False).wait_for(timeout=10000)
+    payload = captured.get("payload") or {}
+    assert len(payload.get("order_ids") or []) == 2, payload
+    assert payload.get("vendor_id"), payload
 
-    html = page.evaluate("window.__rfqClipboardHtml")
-    assert "<table" in html and "<td" in html
-    assert "border:1px solid" in html
-    assert "RFQ E2E Bearing" in html
-    assert "<th" not in html
-    assert "Order No." not in html
-    assert "RFQ E2E Bearing" in page.evaluate("window.__rfqClipboardText")
+    page.get_by_text("rfq-primary@example.com").wait_for()
+    page.get_by_text("PO-E2E-001").wait_for()
+    # CI has no authenticated Google session, so Gmail may redirect to accounts.google.com
+    # while preserving the target draft as the URL fragment. Verify the draft target,
+    # not the authentication state or hostname.
+    popup.wait_for_function("() => window.location.hash === '#drafts/draft-e2e-123'", timeout=10000)
+    assert popup.url.endswith("#drafts/draft-e2e-123"), popup.url
     popup.close()
 
 
-def test_desktop_order_rfq_gmail_compose(browser):
-    page = browser.new_page(viewport={"width": 1440, "height": 1000})
-    login(page)
-    page.on("response", lambda response: print(
-        f"RFQ E2E orders API {response.status}: {response.url} :: "
-        f"{response.text()[:1200]}"
-    ) if "/api/orders/?" in response.url else None)
+def select_orders_and_vendor(page, mobile=False):
     page.goto(f"{BASE_URL}/orders", wait_until="networkidle")
-
     for part_name in ORDER_PART_NAMES:
-        row = page.locator("tbody tr").filter(has_text=part_name)
-        try:
+        if mobile:
+            card = page.locator(".m-order-card").filter(has_text=part_name)
+            card.wait_for()
+            card.locator('input[type="checkbox"]').check()
+        else:
+            row = page.locator("tbody tr").filter(has_text=part_name)
             row.wait_for(timeout=10000)
-        except Exception:
-            print("Desktop Order page text:", page.locator("body").inner_text()[:5000])
-            raise
-        row.locator("input[type=checkbox]").first.check()
+            row.locator("input[type=checkbox]").first.check()
 
     page.get_by_role("button", name="ขอราคา (RFQ)").click()
     dialog = page.locator(".modal-card").filter(has_text="สร้างอีเมลขอราคา RFQ · 2 Order")
     vendor_input = dialog.get_by_placeholder("ค้นหาชื่อ Vendor")
     vendor_input.fill("RFQ E2E Vendor")
     dialog.get_by_role("option", name="RFQ E2E Vendor").click()
-    assert_gmail_compose(page)
+
+
+def test_desktop_order_rfq_gmail_draft(browser):
+    page = browser.new_page(viewport={"width": 1440, "height": 1000})
+    login(page)
+    captured = mock_gmail_draft_api(page)
+    select_orders_and_vendor(page)
+    assert_gmail_draft(page, captured)
     page.close()
 
 
-def test_mobile_order_rfq_gmail_compose(browser):
+def test_mobile_order_rfq_gmail_draft(browser):
     page = browser.new_page(
         viewport={"width": 390, "height": 844},
         is_mobile=True,
         has_touch=True,
     )
     login(page)
-    page.goto(f"{BASE_URL}/orders", wait_until="networkidle")
-
-    for part_name in ORDER_PART_NAMES:
-        card = page.locator(".m-order-card").filter(has_text=part_name)
-        card.wait_for()
-        card.locator('input[type="checkbox"]').check()
-
-    page.get_by_role("button", name="ขอราคา (RFQ)").click()
-    dialog = page.locator(".modal-card").filter(has_text="สร้างอีเมลขอราคา RFQ · 2 Order")
-    vendor_input = dialog.get_by_placeholder("ค้นหาชื่อ Vendor")
-    vendor_input.fill("RFQ E2E Vendor")
-    dialog.get_by_role("option", name="RFQ E2E Vendor").click()
-    assert_gmail_compose(page)
+    captured = mock_gmail_draft_api(page)
+    select_orders_and_vendor(page, mobile=True)
+    assert_gmail_draft(page, captured)
     page.close()
 
 
@@ -127,11 +104,11 @@ def main():
     with sync_playwright() as playwright:
         browser = playwright.chromium.launch()
         try:
-            test_desktop_order_rfq_gmail_compose(browser)
-            test_mobile_order_rfq_gmail_compose(browser)
+            test_desktop_order_rfq_gmail_draft(browser)
+            test_mobile_order_rfq_gmail_draft(browser)
         finally:
             browser.close()
-    print("PASS: Order RFQ Gmail compose desktop and mobile browser E2E")
+    print("PASS: Order RFQ Gmail draft desktop and mobile browser E2E")
 
 
 if __name__ == "__main__":
