@@ -25,6 +25,7 @@ from .models import IntegrationCredential
 
 GMAIL_SCOPES = [
     "https://www.googleapis.com/auth/gmail.send",
+    "https://www.googleapis.com/auth/gmail.compose",
     "https://www.googleapis.com/auth/gmail.readonly",
 ]
 
@@ -455,3 +456,38 @@ def download_gmail_attachment(message_id: str, attachment_id: str) -> bytes:
     )
     data = result.get("data") or ""
     return base64.urlsafe_b64decode(data + "===")
+
+
+def create_gmail_draft(*, subject: str, body_text: str, body_html: str, to_emails: list[str], cc_emails: list[str]):
+    """Create an unsent Gmail draft with a rich HTML body."""
+    profile = gmail_profile()
+    sender = profile.get("emailAddress") or ""
+    if not sender:
+        raise GmailConfigError("ไม่พบบัญชี Gmail ผู้ส่ง")
+
+    message = EmailMessage()
+    message["From"] = sender
+    message["To"] = ", ".join(to_emails)
+    if cc_emails:
+        message["Cc"] = ", ".join(cc_emails)
+    message["Subject"] = subject
+    message["Date"] = formatdate(localtime=True)
+    message.set_content(str(body_text or ""))
+    message.add_alternative(str(body_html or ""), subtype="html")
+
+    raw = base64.urlsafe_b64encode(message.as_bytes()).decode("ascii")
+    result = (
+        gmail_service()
+        .users()
+        .drafts()
+        .create(userId="me", body={"message": {"raw": raw}})
+        .execute()
+    )
+    draft_id = str(result.get("id") or "")
+    if not draft_id:
+        raise GmailConfigError("Gmail ไม่ส่ง Draft ID กลับมา")
+    return {
+        "draft_id": draft_id,
+        "draft_url": f"https://mail.google.com/mail/u/0/#drafts/{quote(draft_id, safe='')}",
+        "sender_email": sender,
+    }
