@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { apiPost } from "../api";
+import { apiGet, apiPost } from "../api";
 import { Alert, Modal, SearchableSelect } from "./Common";
 
 export default function OrderRFQComposeModal({ orders, options, onClose, onOpened }) {
@@ -34,14 +34,14 @@ export default function OrderRFQComposeModal({ orders, options, onClose, onOpene
     }
   }
 
-  function openDraft(draft) {
+  async function reconnectGmail() {\n    setBusy(true);\n    setError("");\n    try {\n      const result = await apiGet("/gmail/oauth/start/", { cache: false });\n      if (!result.authorization_url) throw new Error(result.detail || "ไม่สามารถเริ่มเชื่อม Gmail ได้");\n      window.location.assign(result.authorization_url);\n    } catch (err) {\n      setError(err.message || "เริ่มเชื่อม Gmail ไม่สำเร็จ");\n      setBusy(false);\n    }\n  }\n\n  function openDraft(draft) {
     if (draft?.draft_url) window.open(draft.draft_url, "_blank", "noopener,noreferrer");
   }
 
   return (
     <Modal title={`สร้างอีเมลขอราคา RFQ · ${orderIds.length} Order`} onClose={onClose} wide>
       <form onSubmit={createDrafts}>
-        <Alert>{error}</Alert>
+        <Alert>{error}</Alert>\n        {error.includes("Gmail Compose") && (\n          <div className="alert info">ต้องให้ ADMIN อนุญาตสิทธิ์สร้าง Gmail Draft ก่อน\n            <button type="button" className="mini primary" disabled={busy} onClick={reconnectGmail}>เชื่อมต่อ / อนุญาต Gmail</button>\n          </div>\n        )}
         {drafts.length > 0 ? (
           <>
             <div className="alert success">
