@@ -12,7 +12,7 @@ class OrderRFQDraftTests(SimpleTestCase):
         self.factory = APIRequestFactory()
 
     @patch("core.order_rfq_draft_api.create_gmail_draft")
-    @patch("core.order_rfq_draft_api.compose_order_rfq")
+    @patch("core.order_rfq_draft_api.compose_order_rfq_data")
     def test_creates_unsent_draft_with_html_table_and_no_header(self, compose, create_draft):
         compose.return_value = Response({
             "groups": [{
