@@ -43,7 +43,7 @@ def assert_gmail_compose(page):
     with page.expect_popup() as popup_info:
         copy_button.click()
     popup = popup_info.value
-    popup.wait_for_url(re.compile(r"https://(mail\.google\\.com|accounts\.google\\.com)/.*"), timeout=15000)
+    popup.wait_for_url(re.compile(r"https://(mail\.google\.com|accounts\.google\.com)/.*"), timeout=15000)
     parsed = urlparse(popup.url)
     if parsed.hostname == "accounts.google.com":
         continuation = parse_qs(parsed.query).get("continue", [None])[0]
