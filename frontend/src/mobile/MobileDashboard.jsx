@@ -13,6 +13,7 @@ import {
 import { useFeedback } from "../feedback";
 import PartDetailModal from "../components/PartDetailModal";
 import BackupDownloadButton from "../components/BackupDownloadButton";
+import DriveConnectionControl from "../components/DriveConnectionControl";
 import BarcodeScannerModal from "../components/BarcodeScannerModal";
 import QrCode01Icon from "../components/QrCode01Icon";
 import { useOptions } from "../optionsContext";
@@ -120,6 +121,7 @@ export default function MobileDashboard() {
       subtitle="ค้นหา · เบิก · รับเข้า · ปรับยอด แบบมือถือ"
       actions={
         <>
+          <DriveConnectionControl mobile />
           <BackupDownloadButton type="stock" mobile />
           {auth.can("can_edit_parts") && (
             <button
