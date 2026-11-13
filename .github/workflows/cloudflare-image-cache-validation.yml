@@ -29,10 +29,10 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: "20"
+          node-version: "22"
 
       - name: Run Worker unit tests
         run: npm test
 
       - name: Validate Wrangler configuration and Worker bundle without deploying
-        run: npx --yes wrangler@4.69.0 deploy --dry-run
+        run: npx --yes wrangler@4.161.0 deploy --dry-run
