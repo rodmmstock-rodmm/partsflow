@@ -131,7 +131,7 @@ export default {
         new Request(originUrl.toString(), {
           method: request.method,
           headers,
-          redirect: "error",
+          redirect: "manual",
         }),
       );
     } catch (error) {
