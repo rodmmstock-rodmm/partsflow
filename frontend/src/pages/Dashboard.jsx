@@ -595,7 +595,7 @@ export default function Dashboard() {
         title="Stock"
         actions={
           <>
-            <DriveConnectionControl />
+            <DriveConnectionControl canManage={auth.can("can_manage_roles")} />
             <BackupDownloadButton type="stock" />
             <button className="btn ghost" onClick={() => navigate("/spare-sets")}>⚙ ชุดอะไหล่เครื่องจักร</button>
             {auth.can("can_edit_parts") && (
