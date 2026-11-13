@@ -8,6 +8,23 @@
     "enabled": true,
   },
   "vars": {
+    "SUPABASE_URL": "https://cyacvmjkqgnbihivsrtf.supabase.co",
     "SUPABASE_STORAGE_BUCKET": "parts-images"
+  },
+  "observability": {
+    "logs": {
+      "enabled": true,
+      "head_sampling_rate": 1,
+      "invocation_logs": true,
+      "persist": true
+    },
+    "traces": {
+      "enabled": false,
+      "head_sampling_rate": 1,
+      "persist": true
+    },
+    "issue_detection": {
+      "enabled": false
+    }
   }
 }
