@@ -121,7 +121,7 @@ export default function MobileDashboard() {
       subtitle="ค้นหา · เบิก · รับเข้า · ปรับยอด แบบมือถือ"
       actions={
         <>
-          <DriveConnectionControl mobile />
+          <DriveConnectionControl mobile canManage={auth.can("can_manage_roles")} />
           <BackupDownloadButton type="stock" mobile />
           {auth.can("can_edit_parts") && (
             <button
