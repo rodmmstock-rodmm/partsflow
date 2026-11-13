@@ -57,15 +57,36 @@ SUPABASE_URL=https://YOUR_PROJECT_REF.supabase.co
 SUPABASE_STORAGE_BUCKET=parts-images
 ```
 
-## Deployment (manual, after account-plan verification)
+## Deploy the Worker (manual and gated)
 
-1. Confirm the Cloudflare account is on Workers Free, not Workers Paid.
-2. Add `SUPABASE_URL` as a Worker variable in the Cloudflare dashboard or with
-   Wrangler. The bucket name is already set to `parts-images`.
-3. From this directory, run `npx wrangler deploy`.
-4. Test the deployed `/image/...` endpoint twice. Confirm the first response
-   is a cache miss and the second is a cache hit using `CF-Cache-Status`.
-5. Do not change PartsFlow's Render environment until the endpoint is verified.
+The repository has a separate manual GitHub Actions workflow:
+`.github/workflows/deploy-cloudflare-image-cache.yml`. It is deliberately
+not triggered by normal pushes or merges, so merging code cannot deploy or
+change the live PartsFlow image path automatically.
+
+Before running it:
+
+1. Verify in Cloudflare that the account is on **Workers Free**, not Workers
+   Paid. Do not upgrade or enable a paid plan to proceed.
+2. In GitHub repository Settings → Secrets and variables → Actions, add:
+   - `CLOUDFLARE_API_TOKEN`: a Cloudflare API token scoped to this account with
+     permission to edit Workers Scripts and read account settings.
+   - `CLOUDFLARE_ACCOUNT_ID`: the Cloudflare account ID.
+   Secret values must never be committed or pasted into chat.
+3. Open Actions → **Deploy Cloudflare image cache Worker** → Run workflow.
+   The required confirmation checkbox explicitly confirms the Workers Free
+   plan and authorizes this optional Worker deployment.
+4. After the first deployment creates `partsflow-image-cache`, open that
+   Worker in Cloudflare and add `SUPABASE_URL` as a Worker variable using the
+   Supabase project origin URL. The bucket variable is already configured as
+   `parts-images` in `wrangler.jsonc`.
+5. Test one known image URL twice. Confirm that the response is an image and
+   inspect `CF-Cache-Status` for the miss/hit behavior.
+6. Do not change PartsFlow's Render environment until the endpoint is verified.
+
+The workflow only deploys the standalone image Worker. It does not modify the
+existing `partsflow` Static Assets deployment, Supabase, Render, database,
+Storage objects, billing, or the production image URL setting.
 
 ## Enable / rollback in PartsFlow
 
