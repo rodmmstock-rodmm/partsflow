@@ -77,6 +77,7 @@ async function copyTableAndOpenGroup(group, onError, onCopied) {
 export default function OrderRFQComposeModal({ orders, options, onClose, onOpened }) {
   const orderIds = useMemo(() => (orders || []).map((row) => row.id), [orders]);
   const [vendorId, setVendorId] = useState("");
+  const [remark, setRemark] = useState("");
   const [groups, setGroups] = useState([]);
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
@@ -94,6 +95,7 @@ export default function OrderRFQComposeModal({ orders, options, onClose, onOpene
       const result = await apiPost("/orders/rfq-compose/", {
         order_ids: orderIds,
         vendor_id: vendorId,
+        remark,
       });
       const nextGroups = result.groups || [];
       if (!nextGroups.length) throw new Error("ไม่พบกลุ่ม Order สำหรับสร้างอีเมล");
@@ -166,6 +168,15 @@ export default function OrderRFQComposeModal({ orders, options, onClose, onOpene
           </>
         ) : (
           <>
+            <label className="field">
+              <span>Remark (ต่อท้าย Subject)</span>
+              <input
+                type="text"
+                value={remark}
+                onChange={(event) => setRemark(event.target.value)}
+                placeholder="ระบุ Remark ที่ต้องการต่อท้ายชื่ออีเมล (ถ้ามี)"
+              />
+            </label>
             <label className="field">
               <span>เลือก Vendor *</span>
               <SearchableSelect
