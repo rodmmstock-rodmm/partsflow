@@ -102,7 +102,7 @@ def _format_rfq_table_html(orders):
     )
 
 
-def _compose_group(group, vendor):
+def _compose_group(group, vendor, remark=""):
     requesters = []
     for row in group["orders"]:
         name = str(row.ordered_by.name if row.ordered_by else "").strip()
@@ -118,6 +118,8 @@ def _compose_group(group, vendor):
         _date_label(group["pending_data_date"]),
     ]
     subject = " ".join(part for part in parts if part).strip()
+    if remark:
+        subject = f"{subject} - {remark}"
 
     table = _format_rfq_table(group["orders"])
     table_html = _format_rfq_table_html(group["orders"])
@@ -147,6 +149,7 @@ def compose_order_rfq_data(request):
 
     order_ids = request.data.get("order_ids")
     vendor_id = str(request.data.get("vendor_id") or "").strip()
+    remark = str(request.data.get("remark") or "").strip()
     if not isinstance(order_ids, list) or not order_ids:
         return Response({"detail": "กรุณาเลือก Order อย่างน้อย 1 รายการ"}, status=400)
     if len(order_ids) > 200:
@@ -234,7 +237,7 @@ def compose_order_rfq_data(request):
 
     return Response({
         "vendor": vendor.name,
-        "groups": [_compose_group(group, vendor) for group in groups.values()],
+        "groups": [_compose_group(group, vendor, remark) for group in groups.values()],
     })
 
 
