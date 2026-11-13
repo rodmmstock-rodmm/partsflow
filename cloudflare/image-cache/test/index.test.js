@@ -147,3 +147,37 @@ test("returns an empty body for HEAD requests", async (t) => {
   assert.equal(response.headers.get("Cache-Control"), "private, no-store");
   assert.equal(await response.text(), "");
 });
+
+
+test("logs bounded origin fetch diagnostics without changing the public error response", async (t) => {
+  const originalFetch = globalThis.fetch;
+  const originalConsoleError = console.error;
+  const logEntries = [];
+  globalThis.fetch = async () => {
+    throw new TypeError("simulated origin connection failure");
+  };
+  console.error = (...args) => logEntries.push(args);
+  t.after(() => {
+    globalThis.fetch = originalFetch;
+    console.error = originalConsoleError;
+  });
+
+  const response = await worker.fetch(
+    new Request("https://images.example.workers.dev" + PATH, {
+      headers: { "cf-ray": "test-ray-id" },
+    }),
+    ENV,
+  );
+
+  assert.equal(response.status, 502);
+  assert.equal(await response.text(), "Unable to retrieve image from origin");
+  assert.equal(logEntries.length, 1);
+  assert.equal(logEntries[0][0], "[image-cache] origin fetch failed");
+  assert.deepEqual(logEntries[0][1], {
+    name: "TypeError",
+    message: "simulated origin connection failure",
+    originHost: "example-project.supabase.co",
+    path: "/image/drive-source/" + HASH + "/part%20photo.jpg",
+    cfRay: "test-ray-id",
+  });
+});
