@@ -134,7 +134,16 @@ export default {
           redirect: "error",
         }),
       );
-    } catch {
+    } catch (error) {
+      // Keep the browser response generic, but preserve a bounded diagnostic in
+      // Workers Runtime Logs so origin connectivity failures can be identified.
+      console.error("[image-cache] origin fetch failed", {
+        name: error instanceof Error ? error.name : "UnknownError",
+        message: String(error?.message ?? error).slice(0, 300),
+        originHost: originUrl.hostname,
+        path: url.pathname,
+        cfRay: request.headers.get("cf-ray") || undefined,
+      });
       return errorResponse("Unable to retrieve image from origin", 502);
     }
 
