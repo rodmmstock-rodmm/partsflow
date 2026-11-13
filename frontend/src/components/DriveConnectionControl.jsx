@@ -3,7 +3,7 @@ import { apiGet, apiPost } from "../api";
 
 // OAuth preparation must use the authenticated API request. Opening the blank
 // tab synchronously also avoids Safari/Chrome popup blockers after the await.
-export default function DriveConnectionControl({ mobile = false }) {
+export default function DriveConnectionControl({ mobile = false, canManage = false }) {
   const [status, setStatus] = useState(null);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
@@ -24,8 +24,8 @@ export default function DriveConnectionControl({ mobile = false }) {
   }, []);
 
   useEffect(() => {
-    refreshStatus();
-  }, [refreshStatus]);
+    if (canManage) refreshStatus();
+  }, [canManage, refreshStatus]);
 
   async function connect() {
     const popup = window.open("about:blank", "_blank");
@@ -49,6 +49,8 @@ export default function DriveConnectionControl({ mobile = false }) {
       setBusy(false);
     }
   }
+
+  if (!canManage) return null;
 
   const buttonClass = mobile ? "m-icon-action" : "btn ghost";
   const buttonStyle = mobile ? { minHeight: 36, padding: "7px 10px", whiteSpace: "nowrap" } : undefined;
