@@ -59,10 +59,12 @@ test("fetches only the configured public Supabase bucket and returns cache heade
   const originalFetch = globalThis.fetch;
   let requestedUrl;
   let requestedHeaders;
+  let redirectMode;
 
   globalThis.fetch = async (request) => {
     requestedUrl = new URL(request.url);
     requestedHeaders = request.headers;
+    redirectMode = request.redirect;
     return new Response("image-bytes", {
       status: 200,
       headers: {
@@ -92,6 +94,7 @@ test("fetches only the configured public Supabase bucket and returns cache heade
   );
   assert.equal(requestedUrl.search, "");
   assert.equal(requestedHeaders.has("authorization"), false);
+  assert.equal(redirectMode, "manual");
 });
 
 test("does not cache missing images", async (t) => {
@@ -180,4 +183,27 @@ test("logs bounded origin fetch diagnostics without changing the public error re
     path: "/image/drive-source/" + HASH + "/part%20photo.jpg",
     cfRay: "test-ray-id",
   });
+});
+
+
+test("does not follow redirects returned by the image origin", async (t) => {
+  const originalFetch = globalThis.fetch;
+  let redirectMode;
+  globalThis.fetch = async (request) => {
+    redirectMode = request.redirect;
+    return new Response(null, {
+      status: 302,
+      headers: { Location: "https://redirect.example/image.jpg" },
+    });
+  };
+  t.after(() => { globalThis.fetch = originalFetch; });
+
+  const response = await worker.fetch(
+    new Request("https://images.example.workers.dev" + PATH),
+    ENV,
+  );
+
+  assert.equal(redirectMode, "manual");
+  assert.equal(response.status, 502);
+  assert.equal(await response.text(), "Image origin error");
 });
