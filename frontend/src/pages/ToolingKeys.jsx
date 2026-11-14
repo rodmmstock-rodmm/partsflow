@@ -66,6 +66,26 @@ export default function ToolingKeys() {
 
   useEffect(() => { load(); }, [query, outstandingOnly]);
 
+  // Re-fetch key/employee image URLs when switching back to this tab or
+  // returning to the app on mobile. A short guard avoids duplicate requests
+  // when focus and visibility events fire together.
+  useEffect(() => {
+    let lastRefreshAt = 0;
+    const refreshVisiblePage = () => {
+      if (document.visibilityState !== "visible") return;
+      const now = Date.now();
+      if (now - lastRefreshAt < 1500) return;
+      lastRefreshAt = now;
+      void load();
+    };
+    window.addEventListener("focus", refreshVisiblePage);
+    document.addEventListener("visibilitychange", refreshVisiblePage);
+    return () => {
+      window.removeEventListener("focus", refreshVisiblePage);
+      document.removeEventListener("visibilitychange", refreshVisiblePage);
+    };
+  }, [query, outstandingOnly, tab]);
+
   useEffect(() => {
     if (!success) return undefined;
     const timeoutId = window.setTimeout(() => setSuccess(""), 3000);
