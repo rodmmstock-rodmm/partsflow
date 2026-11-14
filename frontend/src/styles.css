@@ -915,9 +915,5 @@ html body input[type="radio"]:focus-visible{outline:2px solid var(--brand, #3978
   cursor: pointer;
 }
 @media (max-width: 767px) {
-  .employee-photo-crop-viewport {
-    width: min(280px, calc(100vw - 72px)) !important;
-    height: min(280px, calc(100vw - 72px)) !important;
-  }
   .employee-photo-zoom-control { width: min(100%, 280px); }
 }
