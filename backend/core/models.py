@@ -1043,6 +1043,9 @@ class ToolingVehicleKey(UUIDMixin):
     vehicle_number = models.PositiveSmallIntegerField(unique=True)
     label = models.CharField(max_length=160, blank=True)
     remark = models.TextField(blank=True)
+    managers = models.ManyToManyField(
+        "Employee", blank=True, related_name="managed_tooling_vehicle_keys"
+    )
     active = models.BooleanField(default=True)
 
     class Meta:

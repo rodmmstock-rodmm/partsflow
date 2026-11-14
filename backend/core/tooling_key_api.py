@@ -10,6 +10,26 @@ from rest_framework.response import Response
 from .audit_utils import audit
 from .auth_api import require_permission
 from .models import Employee, ToolingVehicleKey, ToolingVehicleKeyLoan
+from .supabase_storage import public_image_url
+
+
+def employee_json(employee):
+    return {
+        "id": str(employee.id),
+        "name": employee.name,
+        "image_url": public_image_url(employee.image_path) if employee.image_path else "",
+    }
+
+
+def _employees(employee_ids):
+    if not isinstance(employee_ids, list):
+        return None
+    ids = [str(value) for value in employee_ids if str(value).strip()]
+    try:
+        employees = list(Employee.objects.filter(id__in=ids, active=True).order_by("name"))
+    except (TypeError, ValueError):
+        return None
+    return employees if len(employees) == len(set(ids)) else None
 
 
 def loan_json(loan):
@@ -20,9 +40,11 @@ def loan_json(loan):
         "key_label": loan.key.label,
         "borrower_employee_id": str(loan.borrower_employee_id or ""),
         "borrower_name": loan.borrower_name,
+        "borrower_image_url": public_image_url(loan.borrower_employee.image_path) if loan.borrower_employee and loan.borrower_employee.image_path else "",
         "borrowed_at": loan.borrowed_at.isoformat() if loan.borrowed_at else "",
         "returned_by_employee_id": str(loan.returned_by_employee_id or ""),
         "returned_by_name": loan.returned_by_name,
+        "returned_by_image_url": public_image_url(loan.returned_by_employee.image_path) if loan.returned_by_employee and loan.returned_by_employee.image_path else "",
         "returned_at": loan.returned_at.isoformat() if loan.returned_at else "",
         "borrow_remark": loan.borrow_remark,
         "return_remark": loan.return_remark,
@@ -43,6 +65,8 @@ def key_json(key):
         "label": key.label or f"กุญแจรถเครื่องมือ {key.vehicle_number}",
         "remark": key.remark,
         "active": key.active,
+        "managers": [employee_json(employee) for employee in key.managers.all().order_by("name")],
+        "manager_employee_ids": [str(employee_id) for employee_id in key.managers.values_list("id", flat=True)],
         "status": "BORROWED" if current else "AVAILABLE",
         "current_loan": loan_json(current) if current else None,
     }
@@ -75,7 +99,7 @@ def keys_list(request):
                 search |= Q(vehicle_number=int(q))
             qs = qs.filter(search)
         employees = [
-            {"id": str(e.id), "name": e.name}
+            employee_json(e)
             for e in Employee.objects.filter(active=True).order_by("name")[:1000]
         ]
         return Response({"results": [key_json(k) for k in qs[:1000]], "employees": employees})
@@ -98,6 +122,12 @@ def keys_list(request):
         key.save()
     except IntegrityError:
         return Response({"detail": "มีรายการกุญแจของรถหมายเลขนี้แล้ว"}, status=409)
+    if "manager_employee_ids" in request.data:
+        managers = _employees(request.data.get("manager_employee_ids"))
+        if managers is None:
+            key.delete()
+            return Response({"detail": "รายชื่อผู้ดูแลไม่ถูกต้อง หรือมีพนักงานที่ไม่ได้ปฏิบัติงาน"}, status=400)
+        key.managers.set(managers)
     audit(actor, "CREATE", "ToolingVehicleKey", key.id, {"after": key_json(key)})
     return Response(key_json(key), status=201)
 
@@ -145,10 +175,17 @@ def key_detail(request, pk):
         key.remark = str(request.data.get("remark") or "").strip()
     if "active" in request.data:
         key.active = bool(request.data.get("active"))
+    managers = None
+    if "manager_employee_ids" in request.data:
+        managers = _employees(request.data.get("manager_employee_ids"))
+        if managers is None:
+            return Response({"detail": "รายชื่อผู้ดูแลไม่ถูกต้อง หรือมีพนักงานที่ไม่ได้ปฏิบัติงาน"}, status=400)
     try:
         key.save()
     except IntegrityError:
         return Response({"detail": "หมายเลขรถนี้มีรายการกุญแจแล้ว"}, status=409)
+    if managers is not None:
+        key.managers.set(managers)
     audit(actor, "UPDATE", "ToolingVehicleKey", key.id, {"before": before, "after": key_json(key)})
     return Response(key_json(key))
 
