@@ -113,7 +113,7 @@ export function EmployeeModal({ row, roles, onClose, onSaved }) {
   useEffect(()=>{if(!imagePreview)return undefined;return()=>URL.revokeObjectURL(imagePreview)},[imagePreview]);
   function chooseImage(event){
     const file=event.target.files?.[0];if(!file)return;
-    if(!/^image\\/(jpeg|png|webp|gif)$/.test(file.type)||(file.type==="image/gif"?file.size>5*1024*1024:file.size>10*1024*1024)){setError(file.type==="image/gif"?"GIF ต้องมีขนาดไม่เกิน 5 MB":"กรุณาเลือก JPG, PNG หรือ WEBP ขนาดไม่เกิน 10 MB");event.target.value="";return}
+    if(!/^image\/(jpeg|png|webp|gif)$/.test(file.type)||(file.type==="image/gif"?file.size>5*1024*1024:file.size>10*1024*1024)){setError(file.type==="image/gif"?"GIF ต้องมีขนาดไม่เกิน 5 MB":"กรุณาเลือก JPG, PNG หรือ WEBP ขนาดไม่เกิน 10 MB");event.target.value="";return}
     const url=URL.createObjectURL(file);
     if(file.type==="image/gif"){setImageSource(file);setCropUrl("");setCropSize(null);setZoom(1);setOffset({x:0,y:0});setImageFile(file);setImagePreview(url);setError("");event.target.value="";return}
     const probe=new Image();
