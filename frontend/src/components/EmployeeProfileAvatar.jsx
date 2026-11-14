@@ -189,7 +189,6 @@ export default function EmployeeProfileAvatar() {
       {open && (
         <Modal title="รูปโปรไฟล์พนักงาน" onClose={close} className="employee-photo-modal" portal>
           <div className="employee-photo-modal-content" style={{ display: "grid", justifyItems: "center", gap: 14 }}>
-            <button type="button" className="btn ghost employee-photo-mobile-close" onClick={close} aria-label="ปิดหน้าต่างรูปโปรไฟล์">ปิด ×</button>
             {sourceUrl && !croppedFile ? (
               <>
                 <div
