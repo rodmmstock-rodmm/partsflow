@@ -43,10 +43,10 @@ class OrderRFQComposeTests(TestCase):
             unit_text="EA",
         )
 
-    def post_compose(self, order_ids, vendor_id=None):
+    def post_compose(self, order_ids, vendor_id=None, remark=""):
         request = self.factory.post(
             "/api/orders/rfq-compose/",
-            {"order_ids": order_ids, "vendor_id": str(vendor_id or self.vendor.id)},
+            {"order_ids": order_ids, "vendor_id": str(vendor_id or self.vendor.id), "remark": remark},
             format="json",
         )
         with patch("core.order_rfq_compose_api.require_permission", return_value=(self.actor, None)):
@@ -90,6 +90,24 @@ class OrderRFQComposeTests(TestCase):
         self.assertIn("Requester One", first_group["subject"])
         self.assertIn("(R)", first_group["subject"])
         self.assertNotIn("Machine name", first_group["subject"])
+
+    def test_remark_is_appended_to_the_end_of_subject_only(self):
+        order = self.make_order("ORD-RFQ-REMARK")
+
+        response = self.post_compose([str(order.id)], remark="Urgent / Line stop")
+
+        self.assertEqual(response.status_code, 200)
+        group = response.data["groups"][0]
+        self.assertTrue(group["subject"].endswith(" - Urgent / Line stop"), group["subject"])
+        self.assertTrue(group["body"].startswith("Please quote the following items.\n\n"))
+
+    def test_empty_remark_keeps_existing_subject_format(self):
+        order = self.make_order("ORD-RFQ-NO-REMARK")
+
+        response = self.post_compose([str(order.id)])
+
+        self.assertEqual(response.status_code, 200)
+        self.assertFalse(response.data["groups"][0]["subject"].endswith(" - "))
 
     def test_vendor_without_primary_email_is_rejected(self):
         self.vendor.email = ""

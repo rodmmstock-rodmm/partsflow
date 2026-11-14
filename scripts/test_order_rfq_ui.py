@@ -39,7 +39,7 @@ def mock_rfq_compose_api(page):
                 "vendor": "RFQ E2E Vendor",
                 "groups": [{
                     "group_key": "MC-RFQ-E2E|R|",
-                    "subject": "RFQ E2E Vendor - MC-RFQ-E2E",
+                    "subject": "RFQ E2E Vendor - MC-RFQ-E2E" + (f" - {route.request.post_data_json.get('remark')}" if route.request.post_data_json.get("remark") else ""),
                     "to": "rfq-primary@example.com",
                     "cc": ["rfq-cc@example.com"],
                     "order_numbers": ["PO-E2E-001"],
@@ -69,6 +69,7 @@ def assert_gmail_compose(page, captured):
         });
     }""")
 
+    page.get_by_label("Remark (ต่อท้าย Subject)").fill("Urgent")
     page.get_by_role("button", name="เตรียมอีเมล RFQ").click()
     copy_button = page.get_by_role("button", name="คัดลอกตารางและเปิด Gmail")
     copy_button.wait_for(timeout=10000)
@@ -91,6 +92,7 @@ def assert_gmail_compose(page, captured):
     assert params.get("cc") == ["rfq-cc@example.com"]
     assert "RFQ E2E Vendor" in params.get("su", [""])[0]
     assert "MC-RFQ-E2E" in params.get("su", [""])[0]
+    assert params.get("su", [""])[0].endswith(" - Urgent")
     body = params.get("body", [""])[0]
     assert "Please quote the following items." in body
     assert "┌" not in body and "Order No." not in body
@@ -107,6 +109,7 @@ def assert_gmail_compose(page, captured):
     payload = captured.get("payload") or {}
     assert len(payload.get("order_ids") or []) == 2, payload
     assert payload.get("vendor_id"), payload
+    assert payload.get("remark") == "Urgent", payload
     popup.close()
 
 
