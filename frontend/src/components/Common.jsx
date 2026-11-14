@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { useNavigate } from "react-router-dom";
 import { apiGet } from "../api";
 
@@ -110,7 +111,7 @@ export function PageHeader({ title, subtitle, actions }) {
   );
 }
 
-export function Modal({ title, children, onClose, wide = false, className = "" }) {
+export function Modal({ title, children, onClose, wide = false, className = "", portal = false }) {
   const cardRef = useRef(null);
 
   useEffect(() => {
@@ -141,7 +142,7 @@ export function Modal({ title, children, onClose, wide = false, className = "" }
     return () => input.removeEventListener("input", validateInteger);
   }, [title, children]);
 
-  return (
+  const modal = (
     <div className={`modal-backdrop ${className ? `${className}-backdrop` : ""}`} onMouseDown={onClose}>
       <div ref={cardRef} className={`modal-card ${wide ? "wide" : ""} ${className}`} onMouseDown={(e) => e.stopPropagation()}>
         <div className="modal-head">
@@ -152,6 +153,10 @@ export function Modal({ title, children, onClose, wide = false, className = "" }
       </div>
     </div>
   );
+
+  // Portalled dialogs escape stacking contexts created by fixed headers,
+  // sidebars, and transformed page containers.
+  return portal ? createPortal(modal, document.body) : modal;
 }
 
 export function Alert({ type = "error", children }) {
