@@ -185,7 +185,7 @@ export default function EmployeeProfileAvatar() {
   return (
     <>
       <button type="button" className="modernize-profile-avatar-button" onClick={() => setOpen(true)} aria-label="ดูรูปโปรไฟล์">
-        {employee?.image_url ? <img className="modernize-profile-avatar-image" src={employee.image_url} alt={employee.name || "รูปพนักงาน"} /> : <span className="modernize-profile-avatar">{(employee?.name || "PF").trim().slice(0, 1).toUpperCase()}</span>}
+        {employee?.image_url ? <EmployeePhoto className="modernize-profile-avatar-image" src={employee.image_url} alt={employee.name || "รูปพนักงาน"} /> : <span className="modernize-profile-avatar">{(employee?.name || "PF").trim().slice(0, 1).toUpperCase()}</span>}
       </button>
       {open && (
         <Modal title="รูปโปรไฟล์พนักงาน" onClose={close} className="employee-photo-modal" portal>
