@@ -34,7 +34,8 @@ role, _ = RoleAccess.objects.update_or_create(
         "can_edit_tool": True,
         "can_delete_tool": True,
         "can_view_tooling_keys": True,
-        "can_edit_tooling_keys": True,
+        "can_edit_tooling_key_details": True,
+        "can_edit_tooling_key_history": True,
         "can_delete_tooling_keys": True,
     },
 )
