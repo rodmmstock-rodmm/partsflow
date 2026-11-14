@@ -355,7 +355,8 @@ class RoleAccess(UUIDMixin):
     can_delete_tool = models.BooleanField(default=False)
 
     can_view_tooling_keys = models.BooleanField(default=False)
-    can_edit_tooling_keys = models.BooleanField(default=False)
+    can_edit_tooling_key_details = models.BooleanField(default=False)
+    can_edit_tooling_key_history = models.BooleanField(default=False)
     can_delete_tooling_keys = models.BooleanField(default=False)
 
     can_view_qr_withdraw = models.BooleanField(default=False)

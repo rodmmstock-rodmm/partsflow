@@ -77,9 +77,9 @@ class ToolingVehicleKeyPermissionsTests(TestCase):
         )
         self.assertEqual(delete.status_code, 403)
 
-    def test_edit_permission_can_update_history_but_not_delete(self):
-        self.role.can_edit_tooling_keys = True
-        self.role.save(update_fields=["can_edit_tooling_keys"])
+    def test_history_edit_permission_can_update_history_but_not_delete(self):
+        self.role.can_edit_tooling_key_history = True
+        self.role.save(update_fields=["can_edit_tooling_key_history"])
         loan = ToolingVehicleKeyLoan.objects.create(
             key=self.key,
             borrower_employee=self.actor,
@@ -99,10 +99,34 @@ class ToolingVehicleKeyPermissionsTests(TestCase):
         )
         self.assertEqual(delete.status_code, 403)
 
+    def test_details_permission_cannot_edit_loan_history(self):
+        self.role.can_edit_tooling_key_details = True
+        self.role.save(update_fields=["can_edit_tooling_key_details"])
+        loan = ToolingVehicleKeyLoan.objects.create(
+            key=self.key,
+            borrower_employee=self.actor,
+            borrower_name=self.actor.name,
+        )
+        response = self.client.patch(
+            reverse("web-tooling-key-history-detail", kwargs={"pk": loan.id}),
+            {"borrow_remark": "Not allowed"},
+            format="json",
+        )
+        self.assertEqual(response.status_code, 403)
+
+    def test_history_permission_cannot_edit_key_details(self):
+        self.role.can_edit_tooling_key_history = True
+        self.role.save(update_fields=["can_edit_tooling_key_history"])
+        response = self.client.patch(
+            reverse("web-tooling-key-detail", kwargs={"pk": self.key.id}),
+            {"remark": "Not allowed"},
+            format="json",
+        )
+        self.assertEqual(response.status_code, 403)
+
     def test_delete_permission_can_archive_key_and_delete_closed_history(self):
-        self.role.can_edit_tooling_keys = True
         self.role.can_delete_tooling_keys = True
-        self.role.save(update_fields=["can_edit_tooling_keys", "can_delete_tooling_keys"])
+        self.role.save(update_fields=["can_delete_tooling_keys"])
         loan = ToolingVehicleKeyLoan.objects.create(
             key=self.key,
             borrower_employee=self.actor,
@@ -127,8 +151,8 @@ class ToolingVehicleKeyPermissionsTests(TestCase):
 
 class ToolingVehicleKeyManagerTests(ToolingVehicleKeyPermissionsTests):
     def test_update_key_with_multiple_managers(self):
-        self.role.can_edit_tooling_keys = True
-        self.role.save(update_fields=["can_edit_tooling_keys"])
+        self.role.can_edit_tooling_key_details = True
+        self.role.save(update_fields=["can_edit_tooling_key_details"])
         third = Employee.objects.create(employee_code="TEST-KEY-003", name="Key Manager 3")
         response = self.client.patch(
             reverse("web-tooling-key-detail", kwargs={"pk": self.key.id}),
@@ -143,8 +167,8 @@ class ToolingVehicleKeyManagerTests(ToolingVehicleKeyPermissionsTests):
         self.assertEqual(len(response.data["managers"]), 3)
 
     def test_manager_ids_must_reference_active_employees(self):
-        self.role.can_edit_tooling_keys = True
-        self.role.save(update_fields=["can_edit_tooling_keys"])
+        self.role.can_edit_tooling_key_details = True
+        self.role.save(update_fields=["can_edit_tooling_key_details"])
         response = self.client.patch(
             reverse("web-tooling-key-detail", kwargs={"pk": self.key.id}),
             {"manager_employee_ids": [str(self.actor.id), "00000000-0000-0000-0000-000000000000"]},
@@ -155,12 +179,16 @@ class ToolingVehicleKeyManagerTests(ToolingVehicleKeyPermissionsTests):
 
 
 class ToolingVehicleKeyHistoryIntegrityTests(ToolingVehicleKeyPermissionsTests):
-    def enable_edit(self):
-        self.role.can_edit_tooling_keys = True
-        self.role.save(update_fields=["can_edit_tooling_keys"])
+    def enable_details_edit(self):
+        self.role.can_edit_tooling_key_details = True
+        self.role.save(update_fields=["can_edit_tooling_key_details"])
+
+    def enable_history_edit(self):
+        self.role.can_edit_tooling_key_history = True
+        self.role.save(update_fields=["can_edit_tooling_key_history"])
 
     def test_vehicle_number_cannot_change_after_any_loan_history_exists(self):
-        self.enable_edit()
+        self.enable_details_edit()
         ToolingVehicleKeyLoan.objects.create(
             key=self.key,
             borrower_employee=self.actor,
@@ -179,7 +207,7 @@ class ToolingVehicleKeyHistoryIntegrityTests(ToolingVehicleKeyPermissionsTests):
         self.assertEqual(self.key.vehicle_number, 14)
 
     def test_vehicle_number_can_be_changed_before_first_loan(self):
-        self.enable_edit()
+        self.enable_details_edit()
         response = self.client.patch(
             reverse("web-tooling-key-detail", kwargs={"pk": self.key.id}),
             {"vehicle_number": 15},
@@ -190,7 +218,7 @@ class ToolingVehicleKeyHistoryIntegrityTests(ToolingVehicleKeyPermissionsTests):
         self.assertEqual(self.key.vehicle_number, 15)
 
     def test_editing_returner_updates_employee_relation_and_display_name_together(self):
-        self.enable_edit()
+        self.enable_history_edit()
         loan = ToolingVehicleKeyLoan.objects.create(
             key=self.key,
             borrower_employee=self.actor,
@@ -213,7 +241,7 @@ class ToolingVehicleKeyHistoryIntegrityTests(ToolingVehicleKeyPermissionsTests):
         self.assertEqual(response.data["returned_by_employee_id"], str(self.actor.id))
 
     def test_history_rejects_free_text_returner_that_does_not_match_employee(self):
-        self.enable_edit()
+        self.enable_history_edit()
         loan = ToolingVehicleKeyLoan.objects.create(
             key=self.key,
             borrower_employee=self.actor,

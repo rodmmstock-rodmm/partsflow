@@ -71,7 +71,8 @@ export const PERMISSIONS = [
   ["can_delete_tool", "Delete อุปกรณ์", "ยืม-คืนอุปกรณ์"],
 
   ["can_view_tooling_keys", "View / บันทึกยืม-คืนกุญแจ", "ยืม-คืนกุญแจไขรถเครื่องมือ"],
-  ["can_edit_tooling_keys", "Edit รายการกุญแจ / ประวัติยืม-คืน", "ยืม-คืนกุญแจไขรถเครื่องมือ"],
+  ["can_edit_tooling_key_details", "Edit ข้อมูลรถเครื่องมือ / ผู้ดูแล", "ยืม-คืนกุญแจไขรถเครื่องมือ"],
+  ["can_edit_tooling_key_history", "Edit ประวัติการยืม-คืน", "ยืม-คืนกุญแจไขรถเครื่องมือ"],
   ["can_delete_tooling_keys", "Delete รายการกุญแจ / ประวัติ", "ยืม-คืนกุญแจไขรถเครื่องมือ"],
 
   ["can_view_qr_withdraw", "View เบิก Screw", "เบิก Screw"],

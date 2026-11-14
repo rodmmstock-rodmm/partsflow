@@ -63,7 +63,8 @@ PERMISSION_FIELDS = [
     "can_edit_tool",
     "can_delete_tool",
     "can_view_tooling_keys",
-    "can_edit_tooling_keys",
+    "can_edit_tooling_key_details",
+    "can_edit_tooling_key_history",
     "can_delete_tooling_keys",
     "can_view_qr_withdraw",
     "can_view_cloth_rolls",
@@ -89,10 +90,7 @@ def permissions_for(employee):
     ).first()
     if role:
         permissions = {field: bool(getattr(role, field)) for field in PERMISSION_FIELDS}
-        if permissions.get("can_delete_tooling_keys"):
-            permissions["can_edit_tooling_keys"] = True
-            permissions["can_view_tooling_keys"] = True
-        elif permissions.get("can_edit_tooling_keys"):
+        if permissions.get("can_delete_tooling_keys") or permissions.get("can_edit_tooling_key_details") or permissions.get("can_edit_tooling_key_history"):
             permissions["can_view_tooling_keys"] = True
         return permissions
 

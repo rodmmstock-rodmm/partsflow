@@ -82,7 +82,7 @@ def _employee(employee_id):
 @api_view(["GET", "POST"])
 @permission_classes([AllowAny])
 def keys_list(request):
-    permission = "can_view_tooling_keys" if request.method == "GET" else "can_edit_tooling_keys"
+    permission = "can_view_tooling_keys" if request.method == "GET" else "can_edit_tooling_key_details"
     actor, err = require_permission(request, permission)
     if err:
         return err
@@ -136,7 +136,7 @@ def keys_list(request):
 @api_view(["PATCH", "DELETE"])
 @permission_classes([AllowAny])
 def key_detail(request, pk):
-    permission = "can_delete_tooling_keys" if request.method == "DELETE" else "can_edit_tooling_keys"
+    permission = "can_delete_tooling_keys" if request.method == "DELETE" else "can_edit_tooling_key_details"
     actor, err = require_permission(request, permission)
     if err:
         return err
@@ -284,7 +284,7 @@ def key_history(request):
 @api_view(["PATCH", "DELETE"])
 @permission_classes([AllowAny])
 def key_history_detail(request, pk):
-    permission = "can_delete_tooling_keys" if request.method == "DELETE" else "can_edit_tooling_keys"
+    permission = "can_delete_tooling_keys" if request.method == "DELETE" else "can_edit_tooling_key_history"
     actor, err = require_permission(request, permission)
     if err:
         return err
