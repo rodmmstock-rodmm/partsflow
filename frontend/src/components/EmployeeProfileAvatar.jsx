@@ -165,6 +165,8 @@ export default function EmployeeProfileAvatar() {
 
   function close() {
     setOpen(false);
+    setSourceUrl("");
+    setCroppedPreview("");
     setSourceFile(null);
     setSourceSize(null);
     setOffset({ x: 0, y: 0 });
