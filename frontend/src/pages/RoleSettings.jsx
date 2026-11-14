@@ -113,8 +113,10 @@ export function EmployeeModal({ row, roles, onClose, onSaved }) {
   useEffect(()=>{if(!imagePreview)return undefined;return()=>URL.revokeObjectURL(imagePreview)},[imagePreview]);
   function chooseImage(event){
     const file=event.target.files?.[0];if(!file)return;
-    if(!/^image\/(jpeg|png|webp|gif)$/.test(file.type)||file.size>10*1024*1024){setError("กรุณาเลือก JPG, PNG, WEBP หรือ GIF ขนาดไม่เกิน 10 MB");event.target.value="";return}
-    const url=URL.createObjectURL(file),probe=new Image();
+    if(!/^image\\/(jpeg|png|webp|gif)$/.test(file.type)||(file.type==="image/gif"?file.size>5*1024*1024:file.size>10*1024*1024)){setError(file.type==="image/gif"?"GIF ต้องมีขนาดไม่เกิน 5 MB":"กรุณาเลือก JPG, PNG หรือ WEBP ขนาดไม่เกิน 10 MB");event.target.value="";return}
+    const url=URL.createObjectURL(file);
+    if(file.type==="image/gif"){setImageSource(file);setCropUrl("");setCropSize(null);setZoom(1);setOffset({x:0,y:0});setImageFile(file);setImagePreview(url);setError("");event.target.value="";return}
+    const probe=new Image();
     probe.onload=()=>{setImageSource(file);setCropUrl(url);setCropSize({width:probe.naturalWidth,height:probe.naturalHeight});setZoom(1);setOffset({x:0,y:0});setImageFile(null);setImagePreview("");setError("")};
     probe.onerror=()=>{URL.revokeObjectURL(url);setError("ไม่สามารถเปิดไฟล์รูปภาพนี้ได้")};probe.src=url;event.target.value="";
   }
