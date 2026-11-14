@@ -121,7 +121,7 @@ class OrderRFQComposeTests(TestCase):
         self.assertEqual(response.status_code, 200)
         group = response.data["groups"][0]
         self.assertEqual(group["message"], "Personal buyer message.")
-        self.assertTrue(group["body"].startswith("Personal buyer message.\\n\\n"))
+        self.assertTrue(group["body"].startswith("Personal buyer message.\n\n"))
         self.assertNotIn("Please quote the following items.", group["body"])
 
     def test_vendor_without_primary_email_is_rejected(self):
