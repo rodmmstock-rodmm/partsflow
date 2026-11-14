@@ -20,6 +20,30 @@ class OptimizePartImageTests(unittest.TestCase):
         self.assertEqual(optimized, payload)
         self.assertEqual(content_type, "image/gif")
 
+    def test_animated_gif_keeps_every_frame_unchanged(self):
+        frames = [
+            Image.new("RGB", (24, 24), color=(80, 0, 0)),
+            Image.new("RGB", (24, 24), color=(160, 0, 0)),
+            Image.new("RGB", (24, 24), color=(240, 0, 0)),
+        ]
+        output = BytesIO()
+        frames[0].save(
+            output,
+            format="GIF",
+            save_all=True,
+            append_images=frames[1:],
+            duration=120,
+            loop=0,
+        )
+        payload = output.getvalue()
+
+        optimized, content_type = optimize_part_image(payload, "image/gif")
+
+        self.assertEqual(content_type, "image/gif")
+        self.assertEqual(optimized, payload)
+        with Image.open(BytesIO(optimized)) as result:
+            self.assertEqual(result.n_frames, 3)
+
     def test_invalid_gif_payload_is_rejected(self):
         with self.assertRaises(ValueError):
             optimize_part_image(b"not a gif", "image/gif")

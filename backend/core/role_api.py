@@ -258,8 +258,10 @@ def employee_image(request, pk):
     if content_type not in {"image/jpeg", "image/jpg", "image/png", "image/webp", "image/gif"}:
         return Response({"detail": "รองรับเฉพาะ JPG, PNG, WEBP และ GIF"}, status=400)
     original = upload.read()
-    if not original or len(original) > 10 * 1024 * 1024:
-        return Response({"detail": "รูปภาพต้องมีขนาดมากกว่า 0 และไม่เกิน 10 MB"}, status=400)
+    max_size = (5 if content_type == "image/gif" else 10) * 1024 * 1024
+    if not original or len(original) > max_size:
+        limit_label = "5 MB" if content_type == "image/gif" else "10 MB"
+        return Response({"detail": f"รูปภาพต้องมีขนาดมากกว่า 0 และไม่เกิน {limit_label}"}, status=400)
     try:
         optimized, optimized_type = optimize_part_image(original, content_type)
         digest = hashlib.sha256(optimized).hexdigest()
