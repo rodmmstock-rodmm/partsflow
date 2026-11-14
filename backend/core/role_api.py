@@ -11,7 +11,7 @@ from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 
 from .audit_utils import audit
-from .auth_api import PERMISSION_FIELDS, require_permission
+from .auth_api import PERMISSION_FIELDS, permissions_for, require_permission
 from .models import AuditLog, Employee, RoleAccess
 from .image_optimizer import optimize_part_image
 from .supabase_storage import SupabaseStorageConfigError, SupabaseStorageRequestError, public_image_url, storage_enabled, storage_object_path, upload_object
@@ -250,7 +250,7 @@ def employee_image(request, pk):
     employee = Employee.objects.filter(pk=pk).first()
     if not employee:
         return Response({"detail": "ไม่พบพนักงาน"}, status=404)
-    if str(actor.id) != str(employee.id) and not __import__("core.auth_api", fromlist=["permissions_for"]).permissions_for(actor).get("can_edit_employees"):
+    if str(actor.id) != str(employee.id) and not permissions_for(actor).get("can_edit_employees"):
         return Response({"detail": "คุณไม่มีสิทธิ์เปลี่ยนรูปพนักงานคนนี้"}, status=403)
     if not storage_enabled():
         return Response({"detail": "Supabase image storage ยังไม่ได้เปิดใช้งาน"}, status=503)
