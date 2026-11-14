@@ -65,9 +65,9 @@ export function AuthProvider({ children }) {
       try {
         const data = await apiAuthMe();
         if (!data?.employee) {
-          clearAuthToken();
-          setEmployee(null);
-          return false;
+          // A malformed/incomplete success response is not proof that the
+          // session is invalid. Retry it like any other transient failure.
+          throw new Error("Server returned an incomplete session response");
         }
         if (data.token) {
           setAuthToken(data.token, data.remember_mobile === true);
