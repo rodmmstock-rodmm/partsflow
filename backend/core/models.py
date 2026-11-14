@@ -58,6 +58,7 @@ class Employee(LegacyMixin):
     name = models.CharField(max_length=200)
     email = models.EmailField(blank=True, db_index=True)
     rfq_message = models.TextField(blank=True)
+    image_path = models.TextField(blank=True)
     role = models.CharField(max_length=120, blank=True)
     department = models.CharField(max_length=120, blank=True)
     active = models.BooleanField(default=True)
