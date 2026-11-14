@@ -110,7 +110,7 @@ export function PageHeader({ title, subtitle, actions }) {
   );
 }
 
-export function Modal({ title, children, onClose, wide = false }) {
+export function Modal({ title, children, onClose, wide = false, className = "" }) {
   const cardRef = useRef(null);
 
   useEffect(() => {
@@ -142,8 +142,8 @@ export function Modal({ title, children, onClose, wide = false }) {
   }, [title, children]);
 
   return (
-    <div className="modal-backdrop" onMouseDown={onClose}>
-      <div ref={cardRef} className={`modal-card ${wide ? "wide" : ""}`} onMouseDown={(e) => e.stopPropagation()}>
+    <div className={`modal-backdrop ${className ? `${className}-backdrop` : ""}`} onMouseDown={onClose}>
+      <div ref={cardRef} className={`modal-card ${wide ? "wide" : ""} ${className}`} onMouseDown={(e) => e.stopPropagation()}>
         <div className="modal-head">
           <h2>{title}</h2>
           <button type="button" className="icon-btn" onClick={onClose}>×</button>

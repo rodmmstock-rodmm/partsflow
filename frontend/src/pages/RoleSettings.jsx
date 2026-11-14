@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { apiDelete, apiGet, apiPatch, apiPost, apiUpload } from "../api";
 import { useAuth } from "../auth";
 import { Alert, Modal, PageHeader, formatDMY } from "../components/Common";
@@ -94,11 +94,52 @@ export const PERMISSIONS = [
 export function EmployeeModal({ row, roles, onClose, onSaved }) {
   const [form,setForm]=useState(row||{employee_code:"",name:"",email:"",department:"",role:"",active:true});
   const [imageFile,setImageFile]=useState(null);
+  const [imageSource,setImageSource]=useState(null);
+  const [cropUrl,setCropUrl]=useState("");
+  const [cropSize,setCropSize]=useState(null);
   const [imagePreview,setImagePreview]=useState("");
+  const [zoom,setZoom]=useState(1);
+  const [offset,setOffset]=useState({x:0,y:0});
+  const dragRef=useRef(null);
+  const fileInputRef=useRef(null);
   const [error,setError]=useState(""); const [busy,setBusy]=useState(false); const set=(k,v)=>setForm(x=>({...x,[k]:v}));
-  useEffect(()=>{if(!imageFile){setImagePreview("");return undefined}const url=URL.createObjectURL(imageFile);setImagePreview(url);return()=>URL.revokeObjectURL(url)},[imageFile]);
+  const cropBox=240;
+  const baseScale=cropSize?Math.max(cropBox/cropSize.width,cropBox/cropSize.height):1;
+  const renderWidth=cropSize?cropSize.width*baseScale*zoom:cropBox;
+  const renderHeight=cropSize?cropSize.height*baseScale*zoom:cropBox;
+  useEffect(()=>{if(!cropUrl)return undefined;return()=>URL.revokeObjectURL(cropUrl)},[cropUrl]);
+  useEffect(()=>{if(!imagePreview)return undefined;return()=>URL.revokeObjectURL(imagePreview)},[imagePreview]);
+  function chooseImage(event){
+    const file=event.target.files?.[0];if(!file)return;
+    if(!/^image\/(jpeg|png|webp|gif)$/.test(file.type)||file.size>10*1024*1024){setError("กรุณาเลือก JPG, PNG, WEBP หรือ GIF ขนาดไม่เกิน 10 MB");event.target.value="";return}
+    const url=URL.createObjectURL(file),probe=new Image();
+    probe.onload=()=>{setImageSource(file);setCropUrl(url);setCropSize({width:probe.naturalWidth,height:probe.naturalHeight});setZoom(1);setOffset({x:0,y:0});setImageFile(null);setImagePreview("");setError("")};
+    probe.onerror=()=>{URL.revokeObjectURL(url);setError("ไม่สามารถเปิดไฟล์รูปภาพนี้ได้")};probe.src=url;event.target.value="";
+  }
+  function clampOffset(next,nextZoom=zoom){
+    if(!cropSize)return next;
+    const w=cropSize.width*baseScale*nextZoom,h=cropSize.height*baseScale*nextZoom;
+    return {x:Math.max(-(w-cropBox)/2,Math.min((w-cropBox)/2,next.x)),y:Math.max(-(h-cropBox)/2,Math.min((h-cropBox)/2,next.y))};
+  }
+  function startCropDrag(e){e.preventDefault();e.currentTarget.setPointerCapture(e.pointerId);dragRef.current={x:e.clientX,y:e.clientY,offset}}
+  function moveCropDrag(e){if(!dragRef.current)return;setOffset(clampOffset({x:dragRef.current.offset.x+e.clientX-dragRef.current.x,y:dragRef.current.offset.y+e.clientY-dragRef.current.y}))}
+  async function applyEmployeeCrop(){
+    try{
+      const img=new Image();img.src=cropUrl;await img.decode();
+      const scale=baseScale*zoom;
+      const sx=(renderWidth/2-cropBox/2-offset.x)/scale,sy=(renderHeight/2-cropBox/2-offset.y)/scale,side=cropBox/scale;
+      const canvas=document.createElement("canvas");canvas.width=512;canvas.height=512;
+      const ctx=canvas.getContext("2d");if(!ctx)throw new Error("เบราว์เซอร์ไม่รองรับการครอปรูปภาพ");
+      ctx.imageSmoothingEnabled=true;ctx.imageSmoothingQuality="high";ctx.drawImage(img,sx,sy,side,side,0,0,512,512);
+      const blob=await new Promise(resolve=>canvas.toBlob(resolve,"image/jpeg",0.92));if(!blob)throw new Error("สร้างรูปภาพที่ครอปไม่สำเร็จ");
+      setImageFile(new File([blob],(imageSource?.name||"employee-photo").replace(/\.[^.]+$/,"")+".jpg",{type:"image/jpeg"}));
+      setImagePreview(URL.createObjectURL(blob));setError("");
+    }catch(err){setError(err.message||"ครอปรูปภาพไม่สำเร็จ")}
+  }
   async function save(e){e.preventDefault();setBusy(true);setError("");try{const saved=row?await apiPatch(`/employees/${row.id}/`,{...form,role:(form.role||"").trim().toUpperCase()}):await apiPost("/employees/",{...form,role:(form.role||"").trim().toUpperCase()});if(imageFile){const data=new FormData();data.append("image",imageFile);await apiUpload(`/employees/${saved.id}/image/`,data)}onSaved()}catch(err){setError(err.message)}finally{setBusy(false)}}
-  return <Modal title={row?"แก้ไขข้อมูลพนักงาน":"เพิ่มพนักงาน"} onClose={onClose}><form onSubmit={save}><div className="form-grid"><div className="field span2"><span>รูปพนักงาน</span><div style={{display:"flex",alignItems:"center",gap:12}}>{(imagePreview||row?.image_url)&&<img src={imagePreview||row.image_url} alt="รูปพนักงาน" style={{width:76,height:76,borderRadius:"50%",objectFit:"cover",border:"1px solid #dbe3ec"}}/>}<label className="btn ghost" style={{cursor:"pointer"}}>{row?.image_url||imageFile?"เปลี่ยนรูป":"เพิ่มรูป"}<input type="file" accept="image/jpeg,image/png,image/webp,image/gif" onChange={e=>setImageFile(e.target.files?.[0]||null)} style={{display:"none"}}/></label></div><small className="field-help">รองรับ JPG, PNG, WEBP และ GIF · ไม่เกิน 10 MB</small></div><label className="field"><span>Employee Code *</span><input required value={form.employee_code} onChange={e=>set("employee_code",e.target.value)}/></label><label className="field"><span>ชื่อพนักงาน *</span><input required value={form.name} onChange={e=>set("name",e.target.value)}/></label><label className="field span2"><span>อีเมลบริษัท</span><input type="email" value={form.email||""} onChange={e=>set("email",e.target.value)} placeholder="name@company.com"/><small className="field-help">ใช้เป็นข้อมูลติดต่อและอีเมลผู้บันทึกในประวัติ RFQ</small></label><label className="field"><span>Department</span><input value={form.department||""} onChange={e=>set("department",e.target.value)}/></label><label className="field"><span>Role</span><select value={form.role||""} onChange={e=>set("role",e.target.value)}><option value="">-</option>{roles.filter(r=>r.active).map(r=><option key={r.id} value={r.role_name}>{r.display_name||r.role_name}</option>)}</select></label><label className="check"><input type="checkbox" checked={!!form.active} onChange={e=>set("active",e.target.checked)}/> Active</label></div><Alert>{error}</Alert><div className="modal-actions"><button type="button" className="btn ghost" onClick={onClose}>ยกเลิก</button><button className="btn primary" disabled={busy}>บันทึก</button></div></form></Modal>
+  return <Modal title={row?"แก้ไขข้อมูลพนักงาน":"เพิ่มพนักงาน"} onClose={onClose}><form onSubmit={save}><div className="form-grid"><div className="field span2"><span>รูปพนักงาน</span><div style={{display:"flex",alignItems:"center",gap:12,flexWrap:"wrap"}}>{(imagePreview||row?.image_url)&&<img src={imagePreview||row.image_url} alt="รูปพนักงาน" style={{width:76,height:76,borderRadius:"50%",objectFit:"cover",border:"1px solid #dbe3ec"}}/>}<button type="button" className="btn ghost" onClick={()=>fileInputRef.current?.click()}>{row?.image_url||imageSource?"เลือก/เปลี่ยนรูป":"เพิ่มรูป"}</button><input ref={fileInputRef} type="file" accept="image/jpeg,image/png,image/webp,image/gif" onChange={chooseImage} style={{display:"none"}}/></div>
+  {cropUrl&&!imageFile&&<div className="employee-settings-crop"><div className="employee-photo-crop-viewport" style={{width:cropBox,height:cropBox}} onPointerDown={startCropDrag} onPointerMove={moveCropDrag} onPointerUp={()=>{dragRef.current=null}} onPointerCancel={()=>{dragRef.current=null}}><img src={cropUrl} alt="รูปสำหรับครอป" draggable="false" style={{position:"absolute",left:"50%",top:"50%",width:renderWidth,height:renderHeight,maxWidth:"none",maxHeight:"none",transform:`translate(-50%,-50%) translate(${offset.x}px,${offset.y}px)`,pointerEvents:"none",userSelect:"none"}}/><div className="employee-photo-crop-frame"/></div><div className="employee-photo-zoom-control"><span>−</span><input aria-label="ปรับขนาดรูปภาพ" type="range" min="1" max="3" step="0.01" value={zoom} onChange={e=>{const z=Number(e.target.value);setZoom(z);setOffset(v=>clampOffset(v,z))}}/><span>＋</span></div><small className="field-help">ลากรูปเพื่อจัดตำแหน่ง และเลื่อนแถบเพื่อซูม</small><button type="button" className="btn primary" onClick={applyEmployeeCrop}>ใช้รูปภาพนี้</button></div>}
+  <small className="field-help">รองรับ JPG, PNG, WEBP และ GIF · ไม่เกิน 10 MB · ครอปเป็นภาพสี่เหลี่ยมก่อนบันทึก</small></div><label className="field"><span>Employee Code *</span><input required value={form.employee_code} onChange={e=>set("employee_code",e.target.value)}/></label><label className="field"><span>ชื่อพนักงาน *</span><input required value={form.name} onChange={e=>set("name",e.target.value)}/></label><label className="field span2"><span>อีเมลบริษัท</span><input type="email" value={form.email||""} onChange={e=>set("email",e.target.value)} placeholder="name@company.com"/><small className="field-help">ใช้เป็นข้อมูลติดต่อและอีเมลผู้บันทึกในประวัติ RFQ</small></label><label className="field"><span>Department</span><input value={form.department||""} onChange={e=>set("department",e.target.value)}/></label><label className="field"><span>Role</span><select value={form.role||""} onChange={e=>set("role",e.target.value)}><option value="">-</option>{roles.filter(r=>r.active).map(r=><option key={r.id} value={r.role_name}>{r.display_name||r.role_name}</option>)}</select></label><label className="check"><input type="checkbox" checked={!!form.active} onChange={e=>set("active",e.target.checked)}/> Active</label></div><Alert>{error}</Alert><div className="modal-actions"><button type="button" className="btn ghost" onClick={onClose}>ยกเลิก</button><button className="btn primary" disabled={busy||!!(cropUrl&&!imageFile)}>บันทึก</button></div></form></Modal>
 }
 
 export function NewRoleModal({ onClose, onSaved }){const[name,setName]=useState("");const[display,setDisplay]=useState("");const[error,setError]=useState("");async function save(e){e.preventDefault();setError("");try{await apiPost("/roles/",{role_name:name.trim().toUpperCase(),display_name:display});onSaved()}catch(err){setError(err.message)}}return <Modal title="เพิ่ม Role" onClose={onClose}><form onSubmit={save}><label className="field"><span>Role Name *</span><input required value={name} onChange={e=>setName(e.target.value)} placeholder="PURCHASE"/></label><label className="field"><span>Display Name</span><input value={display} onChange={e=>setDisplay(e.target.value)}/></label><Alert>{error}</Alert><div className="modal-actions"><button type="button" className="btn ghost" onClick={onClose}>ยกเลิก</button><button className="btn primary">เพิ่ม Role</button></div></form></Modal>}

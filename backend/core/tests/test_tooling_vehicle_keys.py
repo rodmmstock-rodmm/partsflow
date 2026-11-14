@@ -125,6 +125,35 @@ class ToolingVehicleKeyPermissionsTests(TestCase):
         self.assertFalse(self.key.active)
 
 
+class ToolingVehicleKeyManagerTests(ToolingVehicleKeyPermissionsTests):
+    def test_update_key_with_multiple_managers(self):
+        self.role.can_edit_tooling_keys = True
+        self.role.save(update_fields=["can_edit_tooling_keys"])
+        third = Employee.objects.create(employee_code="TEST-KEY-003", name="Key Manager 3")
+        response = self.client.patch(
+            reverse("web-tooling-key-detail", kwargs={"pk": self.key.id}),
+            {"manager_employee_ids": [str(self.actor.id), str(self.other.id), str(third.id)]},
+            format="json",
+        )
+        self.assertEqual(response.status_code, 200, response.data)
+        self.assertEqual(
+            set(response.data["manager_employee_ids"]),
+            {str(self.actor.id), str(self.other.id), str(third.id)},
+        )
+        self.assertEqual(len(response.data["managers"]), 3)
+
+    def test_manager_ids_must_reference_active_employees(self):
+        self.role.can_edit_tooling_keys = True
+        self.role.save(update_fields=["can_edit_tooling_keys"])
+        response = self.client.patch(
+            reverse("web-tooling-key-detail", kwargs={"pk": self.key.id}),
+            {"manager_employee_ids": [str(self.actor.id), "00000000-0000-0000-0000-000000000000"]},
+            format="json",
+        )
+        self.assertEqual(response.status_code, 400, response.data)
+        self.assertEqual(self.key.managers.count(), 0)
+
+
 class ToolingVehicleKeyHistoryIntegrityTests(ToolingVehicleKeyPermissionsTests):
     def enable_edit(self):
         self.role.can_edit_tooling_keys = True
