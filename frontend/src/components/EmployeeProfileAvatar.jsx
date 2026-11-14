@@ -58,7 +58,7 @@ export default function EmployeeProfileAvatar() {
   function chooseFile(event) {
     const next = event.target.files?.[0] || null;
     if (!next) return;
-    if (!/^image\\/(jpeg|png|webp|gif)$/.test(next.type)) {
+    if (!/^image\/(jpeg|png|webp|gif)$/.test(next.type)) {
       setError("กรุณาเลือกไฟล์ JPG, PNG, WEBP หรือ GIF");
       event.target.value = "";
       return;
@@ -142,7 +142,7 @@ export default function EmployeeProfileAvatar() {
       context.drawImage(source, sx, sy, sourceCropSize, sourceCropSize, 0, 0, OUTPUT_SIZE, OUTPUT_SIZE);
       const blob = await new Promise((resolve) => canvas.toBlob(resolve, "image/jpeg", 0.92));
       if (!blob) throw new Error("สร้างรูปภาพที่ครอปไม่สำเร็จ");
-      const nextFile = new File([blob], (sourceFile.name.replace(/\\.[^.]+$/, "") || "profile-photo") + "-cropped.jpg", { type: "image/jpeg" });
+      const nextFile = new File([blob], (sourceFile.name.replace(/\.[^.]+$/, "") || "profile-photo") + "-cropped.jpg", { type: "image/jpeg" });
       setCroppedFile(nextFile);
       setCroppedPreview(URL.createObjectURL(blob));
       setError("");
