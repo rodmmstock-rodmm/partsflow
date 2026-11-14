@@ -182,9 +182,15 @@ export function AuthProvider({ children }) {
 
     window.addEventListener("pointerdown", recordActivity, true);
     window.addEventListener("keydown", recordActivity, true);
+    window.addEventListener("input", recordActivity, true);
+    window.addEventListener("change", recordActivity, true);
+    window.addEventListener("focusin", recordActivity, true);
     window.addEventListener("wheel", recordActivity, { passive: true, capture: true });
     window.addEventListener("scroll", recordActivity, { passive: true, capture: true });
+    // Keep both pointer and mouse events for browser/device compatibility.
+    // The shared throttle prevents duplicate events from extending the timer repeatedly.
     window.addEventListener("pointermove", handlePointerMove, { passive: true });
+    window.addEventListener("mousemove", handlePointerMove, { passive: true });
     window.addEventListener("touchstart", recordActivity, { passive: true, capture: true });
     window.addEventListener("touchmove", recordActivity, { passive: true, capture: true });
     document.addEventListener("visibilitychange", handleVisibilityChange);
@@ -195,9 +201,13 @@ export function AuthProvider({ children }) {
       clearTimer();
       window.removeEventListener("pointerdown", recordActivity, true);
       window.removeEventListener("keydown", recordActivity, true);
+      window.removeEventListener("input", recordActivity, true);
+      window.removeEventListener("change", recordActivity, true);
+      window.removeEventListener("focusin", recordActivity, true);
       window.removeEventListener("wheel", recordActivity, true);
       window.removeEventListener("scroll", recordActivity, true);
       window.removeEventListener("pointermove", handlePointerMove);
+      window.removeEventListener("mousemove", handlePointerMove);
       window.removeEventListener("touchstart", recordActivity, true);
       window.removeEventListener("touchmove", recordActivity, true);
       document.removeEventListener("visibilitychange", handleVisibilityChange);
