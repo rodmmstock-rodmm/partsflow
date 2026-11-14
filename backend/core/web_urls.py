@@ -31,6 +31,7 @@ urlpatterns = [
     path("safety-stock/", web_api.safety_stock, name="web-safety-stock"),
     path("spare-sets/", spare_set_api.spare_sets, name="web-spare-sets"),
     path("spare-sets/<uuid:pk>/", spare_set_api.spare_set_detail, name="web-spare-set-detail"),
+    path("spare-sets/bulk-issue/", spare_set_api.spare_set_bulk_issue, name="web-spare-set-bulk-issue"),
     path("options/", web_api.options, name="web-options"),
 
     path("stock/issue/", stock_api.issue_stock, name="web-stock-issue"),
