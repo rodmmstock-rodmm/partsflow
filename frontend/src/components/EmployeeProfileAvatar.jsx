@@ -129,8 +129,8 @@ export default function EmployeeProfileAvatar() {
       source.src = sourceUrl;
       await source.decode();
       const scale = baseScale * zoom;
-      const sx = (CROP_SIZE / 2 - (CROP_SIZE / 2 + offset.x - renderedWidth / 2)) / scale;
-      const sy = (CROP_SIZE / 2 - (CROP_SIZE / 2 + offset.y - renderedHeight / 2)) / scale;
+      const sx = (renderedWidth / 2 - CROP_SIZE / 2 - offset.x) / scale;
+      const sy = (renderedHeight / 2 - CROP_SIZE / 2 - offset.y) / scale;
       const sourceCropSize = CROP_SIZE / scale;
       const canvas = document.createElement("canvas");
       canvas.width = OUTPUT_SIZE;
