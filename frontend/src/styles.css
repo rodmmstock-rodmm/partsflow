@@ -861,6 +861,9 @@ html body input[type="radio"]:focus-visible{outline:2px solid var(--brand, #3978
 /* Employee profile photo dialog: keep the image form centered and provide
    an explicit close control on narrow mobile screens. */
 .employee-photo-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
   display: flex;
   align-items: center;
   justify-content: center;
