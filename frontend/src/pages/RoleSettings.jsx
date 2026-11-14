@@ -251,7 +251,7 @@ export default function RoleSettings(){
               {shownEmployees.map(e=>
                 <tr key={e.id}>
                   <td><b>{e.employee_code}</b></td>
-                  <td>{e.name}</td>
+                  <td><div style={{display:"flex",alignItems:"center",gap:9}}>{e.image_url?<img src={e.image_url} alt="" style={{width:34,height:34,borderRadius:"50%",objectFit:"cover"}}/>:<span className="modernize-profile-avatar" style={{width:34,height:34,flexBasis:34}}>{(e.name||"?").trim().slice(0,1).toUpperCase()}</span>}<span>{e.name}</span></div></td>
                   <td>{e.email||"-"}</td>
                   <td>{e.department||"-"}</td>
                   <td>{e.role||"-"}</td>
