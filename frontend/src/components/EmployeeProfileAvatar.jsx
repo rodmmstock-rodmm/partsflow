@@ -15,13 +15,16 @@ function isGifSource(value) {
 // browser can reuse its HTTP cache and starts the animation again.
 function VisibleProfileImage({ src, alt, className, style }) {
   const imageRef = useRef(null);
-  const [isVisible, setIsVisible] = useState(true);
+  const [isVisible, setIsVisible] = useState(false);
 
   useEffect(() => {
     const node = imageRef.current;
     if (!node || !src) return undefined;
-    setIsVisible(true);
-    if (typeof IntersectionObserver === "undefined") return undefined;
+    if (typeof IntersectionObserver === "undefined") {
+      setIsVisible(true);
+      return undefined;
+    }
+    setIsVisible(false);
     const observer = new IntersectionObserver(([entry]) => {
       setIsVisible(Boolean(entry?.isIntersecting));
     });
