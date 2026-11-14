@@ -107,7 +107,8 @@ export function EmployeeModal({ row, roles, onClose, onSaved }) {
   const baseScale=cropSize?Math.max(cropBox/cropSize.width,cropBox/cropSize.height):1;
   const renderWidth=cropSize?cropSize.width*baseScale*zoom:cropBox;
   const renderHeight=cropSize?cropSize.height*baseScale*zoom:cropBox;
-  useEffect(()=>()=>{if(cropUrl)URL.revokeObjectURL(cropUrl);if(imagePreview)URL.revokeObjectURL(imagePreview)},[cropUrl,imagePreview]);
+  useEffect(()=>{if(!cropUrl)return undefined;return()=>URL.revokeObjectURL(cropUrl)},[cropUrl]);
+  useEffect(()=>{if(!imagePreview)return undefined;return()=>URL.revokeObjectURL(imagePreview)},[imagePreview]);
   function chooseImage(event){
     const file=event.target.files?.[0];if(!file)return;
     if(!/^image\\/(jpeg|png|webp|gif)$/.test(file.type)||file.size>10*1024*1024){setError("กรุณาเลือก JPG, PNG, WEBP หรือ GIF ขนาดไม่เกิน 10 MB");event.target.value="";return}
