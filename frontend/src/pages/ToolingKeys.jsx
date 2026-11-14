@@ -40,7 +40,8 @@ export default function ToolingKeys() {
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
 
-  const canEdit = auth.can("can_edit_tooling_keys");
+  const canEditDetails = auth.can("can_edit_tooling_key_details");
+  const canEditHistory = auth.can("can_edit_tooling_key_history");
   const canDelete = auth.can("can_delete_tooling_keys");
 
   async function load() {
@@ -172,7 +173,7 @@ export default function ToolingKeys() {
         <button className={tab === "keys" ? "tab active" : "tab"} onClick={() => setTab("keys")}>รายการกุญแจ</button>
         <button className={tab === "history" ? "tab active" : "tab"} onClick={() => setTab("history")}>ประวัติการยืม-คืน</button>
         <div style={{ flex: 1 }} />
-        {tab === "keys" && canEdit && <button className="btn primary" onClick={() => setKeyForm({ ...blankKey })}>＋ เพิ่มกุญแจ</button>}
+        {tab === "keys" && canEditDetails && <button className="btn primary" onClick={() => setKeyForm({ ...blankKey })}>＋ เพิ่มกุญแจ</button>}
       </div>
 
       <div className="panel" style={{ marginBottom: 14 }}>
@@ -191,11 +192,6 @@ export default function ToolingKeys() {
                 <div><small>รถเครื่องมือ</small><h2 style={{ margin: "4px 0" }}>หมายเลข {key.vehicle_number}</h2><div>{key.label}</div></div>
                 <span className={`status ${key.status === "BORROWED" ? "warning" : "success"}`}>{key.status === "BORROWED" ? "กำลังถูกยืม" : "ว่าง"}</span>
               </div>
-              {key.current_loan ? <div style={{ background: "var(--surface-muted,#f8fafc)", borderRadius: 10, padding: 12 }}>
-                <small>ผู้ถือกุญแจปัจจุบัน</small><div style={{ display: "flex", alignItems: "center", gap: 9, marginTop: 6 }}><EmployeeAvatar employee={{ name: key.current_loan.borrower_name, image_url: key.current_loan.borrower_image_url }} size={42} /><strong>{key.current_loan.borrower_name}</strong></div>
-                <small>ยืมเมื่อ {formatDMY(key.current_loan.borrowed_at, true)}</small>
-                {key.current_loan.borrow_remark && <p style={{ margin: "6px 0 0" }}>{key.current_loan.borrow_remark}</p>}
-              </div> : <div style={{ color: "var(--muted,#64748b)", fontSize: 13 }}>ยังไม่มีผู้ยืม</div>}
               <div>
                 <small style={{ display: "block", marginBottom: 7 }}>ผู้ดูแลรถเครื่องมือ</small>
                 {key.managers?.length ? <div style={{ display: "flex", flexWrap: "wrap", gap: 10 }}>
@@ -204,11 +200,16 @@ export default function ToolingKeys() {
                   </div>)}
                 </div> : <small style={{ color: "var(--muted,#64748b)" }}>ยังไม่ได้กำหนดผู้ดูแล</small>}
               </div>
+              {key.current_loan ? <div style={{ background: "var(--surface-muted,#f8fafc)", borderRadius: 10, padding: 12 }}>
+                <small>ผู้ถือกุญแจปัจจุบัน</small><div style={{ display: "flex", alignItems: "center", gap: 9, marginTop: 6 }}><EmployeeAvatar employee={{ name: key.current_loan.borrower_name, image_url: key.current_loan.borrower_image_url }} size={42} /><strong>{key.current_loan.borrower_name}</strong></div>
+                <small>ยืมเมื่อ {formatDMY(key.current_loan.borrowed_at, true)}</small>
+                {key.current_loan.borrow_remark && <p style={{ margin: "6px 0 0" }}>{key.current_loan.borrow_remark}</p>}
+              </div> : <div style={{ color: "var(--muted,#64748b)", fontSize: 13 }}>ยังไม่มีผู้ยืม</div>}
               {key.remark && <small>{key.remark}</small>}
               <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginTop: "auto" }}>
                 {key.active && key.status === "AVAILABLE" && <button className="btn primary" onClick={() => { setBorrowTarget(key); setBorrowForm({ borrower_employee_id: auth.employee?.id || "", remark: "" }); }}>ยืมกุญแจ</button>}
                 {key.active && key.status === "BORROWED" && <button className="btn primary" onClick={() => { setReturnTarget(key); setReturnRemark(""); }}>คืนกุญแจ</button>}
-                {canEdit && <button className="btn ghost" onClick={() => setKeyForm({ id: key.id, vehicle_number: key.vehicle_number, label: key.label, remark: key.remark, manager_employee_ids: (key.managers || []).map((person) => person.id) })}>แก้ไข</button>}
+                {canEditDetails && <button className="btn ghost" onClick={() => setKeyForm({ id: key.id, vehicle_number: key.vehicle_number, label: key.label, remark: key.remark, manager_employee_ids: (key.managers || []).map((person) => person.id) })}>แก้ไข</button>}
                 {canDelete && key.active && <button className="btn danger" onClick={() => setConfirmTarget({ type: "key", row: key })}>ลบรายการ</button>}
               </div>
             </article>
@@ -245,9 +246,9 @@ export default function ToolingKeys() {
                     </td>
                     <td style={{ padding: "9px 12px", whiteSpace: "nowrap", borderBottom: "1px solid var(--border,#e2e8f0)" }}>
                       <div style={{ display: "flex", gap: 6 }}>
-                        {canEdit && <button className="btn ghost" onClick={() => setEditLoan({ ...loan, borrowed_at: dateTimeLocal(loan.borrowed_at), returned_at: dateTimeLocal(loan.returned_at) })}>แก้ไข</button>}
+                        {canEditHistory && <button className="btn ghost" onClick={() => setEditLoan({ ...loan, borrowed_at: dateTimeLocal(loan.borrowed_at), returned_at: dateTimeLocal(loan.returned_at) })}>แก้ไข</button>}
                         {canDelete && !loan.is_outstanding && <button className="btn danger" onClick={() => setConfirmTarget({ type: "history", row: loan })}>ลบ</button>}
-                        {!canEdit && !(canDelete && !loan.is_outstanding) && <span style={{ color: "var(--muted,#64748b)" }}>-</span>}
+                        {!canEditHistory && !(canDelete && !loan.is_outstanding) && <span style={{ color: "var(--muted,#64748b)" }}>-</span>}
                       </div>
                     </td>
                   </tr>
