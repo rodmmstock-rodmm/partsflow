@@ -917,3 +917,22 @@ html body input[type="radio"]:focus-visible{outline:2px solid var(--brand, #3978
 @media (max-width: 767px) {
   .employee-photo-zoom-control { width: min(100%, 280px); }
 }
+
+
+/* Employee settings form cropper layout. */
+.employee-settings-crop {
+  display: grid;
+  justify-items: start;
+  gap: 10px;
+  margin-top: 12px;
+  padding: 12px;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  background: #f8fafc;
+}
+.employee-settings-crop .employee-photo-crop-viewport { width: 240px; height: 240px; }
+.employee-settings-crop .employee-photo-zoom-control { width: 240px; }
+@media (max-width: 767px) {
+  .employee-settings-crop { width: 100%; box-sizing: border-box; }
+  .employee-settings-crop .employee-photo-crop-viewport { width: min(240px, calc(100vw - 100px)) !important; height: min(240px, calc(100vw - 100px)) !important; }
+}
