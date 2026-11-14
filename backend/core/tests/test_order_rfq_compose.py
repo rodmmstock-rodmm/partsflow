@@ -111,6 +111,19 @@ class OrderRFQComposeTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertFalse(response.data["groups"][0]["subject"].endswith(" - "))
 
+    def test_employee_message_overrides_vendor_message_for_that_employee_only(self):
+        self.actor.rfq_message = "Personal buyer message."
+        self.actor.save(update_fields=["rfq_message"])
+        order = self.make_order("ORD-RFQ-PERSONAL-MESSAGE")
+
+        response = self.post_compose([str(order.id)])
+
+        self.assertEqual(response.status_code, 200)
+        group = response.data["groups"][0]
+        self.assertEqual(group["message"], "Personal buyer message.")
+        self.assertTrue(group["body"].startswith("Personal buyer message.\n\n"))
+        self.assertNotIn("Please quote the following items.", group["body"])
+
     def test_vendor_without_primary_email_is_rejected(self):
         self.vendor.email = ""
         self.vendor.save(update_fields=["email"])

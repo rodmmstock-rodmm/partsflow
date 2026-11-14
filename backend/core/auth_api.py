@@ -250,6 +250,25 @@ def me_view(request):
     return Response(data)
 
 @csrf_exempt
+@api_view(["GET", "PATCH"])
+@permission_classes([AllowAny])
+def rfq_message_view(request):
+    employee = current_employee(request)
+    if not employee:
+        return Response({"detail": "กรุณาเข้าสู่ระบบ"}, status=401)
+
+    if request.method == "GET":
+        return Response({"rfq_message": employee.rfq_message or ""})
+
+    message = request.data.get("rfq_message", "")
+    if not isinstance(message, str):
+        return Response({"detail": "รูปแบบ RFQ Message ไม่ถูกต้อง"}, status=400)
+    employee.rfq_message = message
+    employee.save(update_fields=["rfq_message", "updated_at"])
+    return Response({"rfq_message": employee.rfq_message})
+
+
+@csrf_exempt
 @api_view(["POST"])
 @permission_classes([AllowAny])
 def logout_view(request):

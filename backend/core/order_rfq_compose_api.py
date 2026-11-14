@@ -102,7 +102,7 @@ def _format_rfq_table_html(orders):
     )
 
 
-def _compose_group(group, vendor):
+def _compose_group(group, vendor, message):
     requesters = []
     for row in group["orders"]:
         name = str(row.ordered_by.name if row.ordered_by else "").strip()
@@ -128,7 +128,6 @@ def _compose_group(group, vendor):
 
     table = _format_rfq_table(group["orders"])
     table_html = _format_rfq_table_html(group["orders"])
-    message = vendor.rfq_message or ""
     body = f"{message}\n\n{table}" if message else table
 
     return {
@@ -210,6 +209,9 @@ def compose_order_rfq_data(request):
             continue
         cc_emails.append(email)
 
+    personal_message = str(actor.rfq_message or "").strip()
+    message = personal_message if personal_message else (vendor.rfq_message or "")
+
     groups = OrderedDict()
     for order_id in ordered_ids:
         order = by_id[order_id]
@@ -241,7 +243,7 @@ def compose_order_rfq_data(request):
 
     return Response({
         "vendor": vendor.name,
-        "groups": [_compose_group(group, vendor) for group in groups.values()],
+        "groups": [_compose_group(group, vendor, message) for group in groups.values()],
     })
 
 

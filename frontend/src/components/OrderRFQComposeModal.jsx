@@ -1,5 +1,5 @@
-import { useMemo, useState } from "react";
-import { apiPost } from "../api";
+import { useEffect, useMemo, useState } from "react";
+import { apiGet, apiPatch, apiPost } from "../api";
 import { Alert, Modal, SearchableSelect } from "./Common";
 
 function gmailComposeUrl(group) {
@@ -77,10 +77,46 @@ async function copyTableAndOpenGroup(group, onError, onCopied) {
 export default function OrderRFQComposeModal({ orders, options, onClose, onOpened }) {
   const orderIds = useMemo(() => (orders || []).map((row) => row.id), [orders]);
   const [vendorId, setVendorId] = useState("");
+  const [rfqMessage, setRfqMessage] = useState("");
+  const [savedRfqMessage, setSavedRfqMessage] = useState("");
+  const [messageLoading, setMessageLoading] = useState(true);
+  const [messageSaving, setMessageSaving] = useState(false);
   const [groups, setGroups] = useState([]);
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
   const [copiedGroup, setCopiedGroup] = useState("");
+
+  useEffect(() => {
+    let active = true;
+    apiGet("/auth/rfq-message/", { forceRefresh: true, cache: false })
+      .then((result) => {
+        if (!active) return;
+        const message = result.rfq_message || "";
+        setRfqMessage(message);
+        setSavedRfqMessage(message);
+      })
+      .catch((err) => {
+        if (active) setError(err.message || "โหลด RFQ Message ของคุณไม่สำเร็จ");
+      })
+      .finally(() => { if (active) setMessageLoading(false); });
+    return () => { active = false; };
+  }, []);
+
+  async function savePersonalMessage() {
+    setMessageSaving(true);
+    try {
+      const result = await apiPatch("/auth/rfq-message/", { rfq_message: rfqMessage });
+      const message = result.rfq_message || "";
+      setRfqMessage(message);
+      setSavedRfqMessage(message);
+      return true;
+    } catch (err) {
+      setError(err.message || "บันทึก RFQ Message ไม่สำเร็จ");
+      return false;
+    } finally {
+      setMessageSaving(false);
+    }
+  }
 
   async function createEmails(event) {
     event.preventDefault();
@@ -91,6 +127,10 @@ export default function OrderRFQComposeModal({ orders, options, onClose, onOpene
     }
     setBusy(true);
     try {
+      if (rfqMessage !== savedRfqMessage) {
+        const saved = await savePersonalMessage();
+        if (!saved) return;
+      }
       const result = await apiPost("/orders/rfq-compose/", {
         order_ids: orderIds,
         vendor_id: vendorId,
@@ -167,6 +207,24 @@ export default function OrderRFQComposeModal({ orders, options, onClose, onOpene
         ) : (
           <>
             <label className="field">
+              <span>RFQ Message ส่วนตัวของฉัน</span>
+              <textarea
+                rows={4}
+                value={rfqMessage}
+                onChange={(event) => setRfqMessage(event.target.value)}
+                placeholder="พิมพ์ข้อความ RFQ ที่ต้องการใช้เป็นประจำ (เว้นว่างเพื่อใช้ข้อความของ Vendor)"
+                disabled={messageLoading}
+              />
+              <small className="field-help">
+                ข้อความนี้บันทึกแยกตามบัญชีผู้ใช้งาน และจะใช้แทนข้อความ RFQ ของ Vendor ทุกครั้งที่คุณสร้าง RFQ หากเว้นว่าง ระบบจะใช้ข้อความของ Vendor ตามเดิม
+              </small>
+            </label>
+            <div className="modal-actions">
+              <button type="button" className="btn ghost" onClick={savePersonalMessage} disabled={messageLoading || messageSaving || rfqMessage === savedRfqMessage}>
+                {messageSaving ? "กำลังบันทึก..." : "บันทึกข้อความของฉัน"}
+              </button>
+            </div>
+            <label className="field">
               <span>เลือก Vendor *</span>
               <SearchableSelect
                 required
@@ -183,7 +241,7 @@ export default function OrderRFQComposeModal({ orders, options, onClose, onOpene
             </small>
             <div className="modal-actions">
               <button type="button" className="btn ghost" onClick={onClose}>ยกเลิก</button>
-              <button className="btn primary" disabled={busy || !vendorId}>
+              <button className="btn primary" disabled={busy || !vendorId || messageLoading || messageSaving}>
                 {busy ? "กำลังเตรียมอีเมล..." : "เตรียมอีเมล RFQ"}
               </button>
             </div>
