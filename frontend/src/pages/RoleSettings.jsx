@@ -111,7 +111,7 @@ export function EmployeeModal({ row, roles, onClose, onSaved }) {
   useEffect(()=>{if(!imagePreview)return undefined;return()=>URL.revokeObjectURL(imagePreview)},[imagePreview]);
   function chooseImage(event){
     const file=event.target.files?.[0];if(!file)return;
-    if(!/^image\\/(jpeg|png|webp|gif)$/.test(file.type)||file.size>10*1024*1024){setError("กรุณาเลือก JPG, PNG, WEBP หรือ GIF ขนาดไม่เกิน 10 MB");event.target.value="";return}
+    if(!/^image\/(jpeg|png|webp|gif)$/.test(file.type)||file.size>10*1024*1024){setError("กรุณาเลือก JPG, PNG, WEBP หรือ GIF ขนาดไม่เกิน 10 MB");event.target.value="";return}
     const url=URL.createObjectURL(file),probe=new Image();
     probe.onload=()=>{setImageSource(file);setCropUrl(url);setCropSize({width:probe.naturalWidth,height:probe.naturalHeight});setZoom(1);setOffset({x:0,y:0});setImageFile(null);setImagePreview("");setError("")};
     probe.onerror=()=>{URL.revokeObjectURL(url);setError("ไม่สามารถเปิดไฟล์รูปภาพนี้ได้")};probe.src=url;event.target.value="";
@@ -132,7 +132,7 @@ export function EmployeeModal({ row, roles, onClose, onSaved }) {
       const ctx=canvas.getContext("2d");if(!ctx)throw new Error("เบราว์เซอร์ไม่รองรับการครอปรูปภาพ");
       ctx.imageSmoothingEnabled=true;ctx.imageSmoothingQuality="high";ctx.drawImage(img,sx,sy,side,side,0,0,512,512);
       const blob=await new Promise(resolve=>canvas.toBlob(resolve,"image/jpeg",0.92));if(!blob)throw new Error("สร้างรูปภาพที่ครอปไม่สำเร็จ");
-      setImageFile(new File([blob],(imageSource?.name||"employee-photo").replace(/\\.[^.]+$/,"")+".jpg",{type:"image/jpeg"}));
+      setImageFile(new File([blob],(imageSource?.name||"employee-photo").replace(/\.[^.]+$/,"")+".jpg",{type:"image/jpeg"}));
       setImagePreview(URL.createObjectURL(blob));setError("");
     }catch(err){setError(err.message||"ครอปรูปภาพไม่สำเร็จ")}
   }
