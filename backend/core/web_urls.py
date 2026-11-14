@@ -144,5 +144,6 @@ urlpatterns = [
     path("roles/<uuid:pk>/", role_api.update_role, name="web-role-update"),
     path("employees/", role_api.employees, name="web-employees"),
     path("employees/<uuid:pk>/", role_api.update_employee, name="web-employee-update"),
+    path("employees/<uuid:pk>/image/", role_api.employee_image, name="web-employee-image"),
     path("audit-logs/", role_api.audit_logs, name="web-audit-logs"),
 ]
