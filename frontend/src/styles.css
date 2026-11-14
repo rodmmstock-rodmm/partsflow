@@ -877,3 +877,47 @@ html body input[type="radio"]:focus-visible{outline:2px solid var(--brand, #3978
   .employee-photo-modal-content { width: 100%; }
   .employee-photo-mobile-close { display: inline-flex; justify-self: end; min-height: 36px; }
 }
+
+
+/* Instagram-style employee profile photo cropper: square preview, drag and zoom. */
+.employee-photo-crop-viewport {
+  position: relative;
+  flex: 0 0 auto;
+  overflow: hidden;
+  border-radius: 12px;
+  background: #172334;
+  cursor: grab;
+  touch-action: none;
+  user-select: none;
+}
+.employee-photo-crop-viewport:active { cursor: grabbing; }
+.employee-photo-crop-frame {
+  position: absolute;
+  inset: 0;
+  border: 2px solid rgba(255,255,255,.96);
+  border-radius: 12px;
+  box-shadow: 0 0 0 999px rgba(0,0,0,.28);
+  pointer-events: none;
+}
+.employee-photo-zoom-control {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  width: min(100%, 280px);
+  color: #64748b;
+  font-size: 18px;
+}
+.employee-photo-zoom-control input {
+  flex: 1;
+  min-width: 0;
+  accent-color: #3978b8;
+  cursor: pointer;
+}
+@media (max-width: 767px) {
+  .employee-photo-crop-viewport {
+    width: min(280px, calc(100vw - 72px)) !important;
+    height: min(280px, calc(100vw - 72px)) !important;
+  }
+  .employee-photo-zoom-control { width: min(100%, 280px); }
+}
