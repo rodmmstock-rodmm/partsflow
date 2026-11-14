@@ -183,7 +183,9 @@ async function parseJsonResponse(response) {
     data = null;
   }
   if (!response.ok) {
-    throw new Error(data?.detail || data?.error || `HTTP ${response.status}`);
+    const error = new Error(data?.detail || data?.error || `HTTP ${response.status}`);
+    error.status = response.status;
+    throw error;
   }
   return data;
 }

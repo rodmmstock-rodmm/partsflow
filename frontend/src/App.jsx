@@ -104,10 +104,21 @@ const ACCESS_FALLBACKS = [
   ["/settings/roles", "can_manage_roles"],
 ];
 
+function AuthConnectionError({ auth }) {
+  return (
+    <div className="auth-loading">
+      <strong>ยังเชื่อมต่อเพื่อตรวจสอบการเข้าสู่ระบบไม่ได้</strong>
+      <p>PartsFlow จะเก็บสถานะการเข้าสู่ระบบไว้ และจะไม่ออกจากระบบเพียงเพราะ Server หรืออินเทอร์เน็ตขัดข้องชั่วคราว</p>
+      <button type="button" onClick={auth.retryAuth}>ลองเชื่อมต่ออีกครั้ง</button>
+    </div>
+  );
+}
+
 function Protected({ permission, children }) {
   const auth = useAuth();
   const location = useLocation();
   if (auth.loading) return <div className="auth-loading">กำลังตรวจสอบสิทธิ์...</div>;
+  if (auth.authCheckFailed) return <AuthConnectionError auth={auth} />;
   if (!auth.authenticated) return <Navigate to="/login" state={{ from: location.pathname + location.search }} replace />;
   if (permission && !auth.can(permission)) {
     const fallback = ACCESS_FALLBACKS.find(([, required]) => auth.can(required));
@@ -120,6 +131,7 @@ function AuthenticatedOnly({ children }) {
   const auth = useAuth();
   const location = useLocation();
   if (auth.loading) return <div className="auth-loading">กำลังตรวจสอบการเข้าสู่ระบบ...</div>;
+  if (auth.authCheckFailed) return <AuthConnectionError auth={auth} />;
   if (!auth.authenticated) return <Navigate to="/login" state={{ from: location.pathname + location.search }} replace />;
   return children;
 }
