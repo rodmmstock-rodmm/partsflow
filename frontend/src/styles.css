@@ -858,8 +858,7 @@ html body input[type="radio"]:focus-visible{outline:2px solid var(--brand, #3978
 .safety-tooling-order-qty{width:112px;min-width:96px;padding:7px 8px;border:1px solid #cbd5e1;border-radius:8px;background:#fff;color:#334155;font:inherit}.safety-tooling-order-qty:focus,.m-tooling-order-input input:focus{outline:2px solid #93c5fd;outline-offset:1px}.m-tooling-order-input input{box-sizing:border-box;width:100%;min-width:0;margin-top:4px;padding:6px 4px;border:1px solid #cbd5e1;border-radius:7px;background:#fff;color:#334155;font-size:12px;text-align:center}.m-tooling-order-input span{font-size:7px!important}
 
 
-/* Employee profile photo dialog: keep the image form centered and provide
-   an explicit close control on narrow mobile screens. */
+/* Employee profile photo dialog: centered and scrollable on mobile. */
 .employee-photo-modal-backdrop {
   position: fixed;
   inset: 0;
@@ -873,12 +872,10 @@ html body input[type="radio"]:focus-visible{outline:2px solid var(--brand, #3978
   margin: auto;
   max-height: min(88vh, 760px);
 }
-.employee-photo-mobile-close { display: none; }
 @media (max-width: 767px) {
   .employee-photo-modal-backdrop { padding: 12px; }
   .employee-photo-modal { width: 100%; max-width: 440px; max-height: calc(100dvh - 24px); overflow-y: auto; }
   .employee-photo-modal-content { width: 100%; }
-  .employee-photo-mobile-close { display: inline-flex; justify-self: end; min-height: 36px; }
 }
 
 
