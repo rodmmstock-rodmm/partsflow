@@ -29,13 +29,14 @@ class OrderRFQComposeTests(TestCase):
             email="cc@example.com",
         )
 
-    def make_order(self, number, *, pending_date=None, job="REPAIR", requester=None):
+    def make_order(self, number, *, pending_date=None, job="REPAIR", requester=None, remark=""):
         return OrderRecord.objects.create(
             order_number=number,
             order_date=date(2026, 11, 11),
             machine=self.machine,
             job=job,
             pending_data_date=pending_date,
+            remark=remark,
             ordered_by=requester or self.actor,
             part_name=f"Description {number}",
             maker_text="Maker A",
@@ -43,10 +44,10 @@ class OrderRFQComposeTests(TestCase):
             unit_text="EA",
         )
 
-    def post_compose(self, order_ids, vendor_id=None, remark=""):
+    def post_compose(self, order_ids, vendor_id=None):
         request = self.factory.post(
             "/api/orders/rfq-compose/",
-            {"order_ids": order_ids, "vendor_id": str(vendor_id or self.vendor.id), "remark": remark},
+            {"order_ids": order_ids, "vendor_id": str(vendor_id or self.vendor.id)},
             format="json",
         )
         with patch("core.order_rfq_compose_api.require_permission", return_value=(self.actor, None)):
@@ -91,17 +92,19 @@ class OrderRFQComposeTests(TestCase):
         self.assertIn("(R)", first_group["subject"])
         self.assertNotIn("Machine name", first_group["subject"])
 
-    def test_remark_is_appended_to_the_end_of_subject_only(self):
-        order = self.make_order("ORD-RFQ-REMARK")
+    def test_order_remarks_are_appended_to_subject_in_order_without_duplicates(self):
+        first = self.make_order("ORD-RFQ-REMARK-1", remark="Urgent")
+        second = self.make_order("ORD-RFQ-REMARK-2", remark="Line stop")
+        third = self.make_order("ORD-RFQ-REMARK-3", remark="Urgent")
 
-        response = self.post_compose([str(order.id)], remark="Urgent / Line stop")
+        response = self.post_compose([str(first.id), str(second.id), str(third.id)])
 
         self.assertEqual(response.status_code, 200)
         group = response.data["groups"][0]
         self.assertTrue(group["subject"].endswith(" - Urgent / Line stop"), group["subject"])
-        self.assertTrue(group["body"].startswith("Please quote the following items.\n\n"))
+        self.assertTrue(group["body"].startswith("Please quote the following items.\\n\\n"))
 
-    def test_empty_remark_keeps_existing_subject_format(self):
+    def test_orders_without_remarks_keep_existing_subject_format(self):
         order = self.make_order("ORD-RFQ-NO-REMARK")
 
         response = self.post_compose([str(order.id)])
