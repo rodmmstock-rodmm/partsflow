@@ -16,6 +16,7 @@ export default function EmployeeProfileAvatar() {
 
   function chooseFile(event) {
     const next = event.target.files?.[0] || null;
+    if (preview) URL.revokeObjectURL(preview);
     setFile(next);
     setPreview(next ? URL.createObjectURL(next) : "");
     setError("");
@@ -30,8 +31,10 @@ export default function EmployeeProfileAvatar() {
       body.append("image", file);
       await apiUpload(`/employees/${employee.id}/image/`, body);
       await auth.refresh();
+      if (preview) URL.revokeObjectURL(preview);
       setFile(null);
       setPreview("");
+      if (inputRef.current) inputRef.current.value = "";
     } catch (err) {
       setError(err.message);
     } finally {
@@ -44,6 +47,7 @@ export default function EmployeeProfileAvatar() {
     setOpen(false);
     setFile(null);
     setPreview("");
+    if (inputRef.current) inputRef.current.value = "";
     setError("");
   }
 
