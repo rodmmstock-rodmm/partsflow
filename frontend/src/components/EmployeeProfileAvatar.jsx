@@ -187,7 +187,7 @@ export default function EmployeeProfileAvatar() {
         {employee?.image_url ? <img className="modernize-profile-avatar-image" src={employee.image_url} alt={employee.name || "รูปพนักงาน"} /> : <span className="modernize-profile-avatar">{(employee?.name || "PF").trim().slice(0, 1).toUpperCase()}</span>}
       </button>
       {open && (
-        <Modal title="รูปโปรไฟล์พนักงาน" onClose={close} className="employee-photo-modal">
+        <Modal title="รูปโปรไฟล์พนักงาน" onClose={close} className="employee-photo-modal" portal>
           <div className="employee-photo-modal-content" style={{ display: "grid", justifyItems: "center", gap: 14 }}>
             <button type="button" className="btn ghost employee-photo-mobile-close" onClick={close} aria-label="ปิดหน้าต่างรูปโปรไฟล์">ปิด ×</button>
             {sourceUrl && !croppedFile ? (
