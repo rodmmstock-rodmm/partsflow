@@ -934,5 +934,4 @@ html body input[type="radio"]:focus-visible{outline:2px solid var(--brand, #3978
 .employee-settings-crop .employee-photo-zoom-control { width: 240px; }
 @media (max-width: 767px) {
   .employee-settings-crop { width: 100%; box-sizing: border-box; }
-  .employee-settings-crop .employee-photo-crop-viewport { width: min(240px, calc(100vw - 100px)) !important; height: min(240px, calc(100vw - 100px)) !important; }
 }
