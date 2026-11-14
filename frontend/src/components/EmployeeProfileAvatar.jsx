@@ -57,8 +57,9 @@ export default function EmployeeProfileAvatar() {
         {employee?.image_url ? <img className="modernize-profile-avatar-image" src={employee.image_url} alt={employee.name || "รูปพนักงาน"} /> : <span className="modernize-profile-avatar">{(employee?.name || "PF").trim().slice(0, 1).toUpperCase()}</span>}
       </button>
       {open && (
-        <Modal title="รูปโปรไฟล์พนักงาน" onClose={close}>
-          <div style={{display:"grid",justifyItems:"center",gap:14}}>
+        <Modal title="รูปโปรไฟล์พนักงาน" onClose={close} className="employee-photo-modal">
+          <div className="employee-photo-modal-content" style={{display:"grid",justifyItems:"center",gap:14}}>
+            <button type="button" className="btn ghost employee-photo-mobile-close" onClick={close} aria-label="ปิดหน้าต่างรูปโปรไฟล์">ปิด ×</button>
             {image ? <img src={image} alt="รูปโปรไฟล์" style={{width:"min(100%,320px)",aspectRatio:"1",objectFit:"cover",borderRadius:16,border:"1px solid #dbe3ec"}}/> : <div className="modernize-profile-avatar" style={{width:120,height:120,fontSize:42}}>{(employee?.name||"PF").trim().slice(0,1).toUpperCase()}</div>}
             <div style={{display:"flex",gap:8,flexWrap:"wrap",justifyContent:"center"}}>
               <button type="button" className="btn ghost" onClick={() => inputRef.current?.click()}>{employee?.image_url ? "เปลี่ยนรูปภาพ" : "เพิ่มรูปภาพ"}</button>
