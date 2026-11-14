@@ -897,9 +897,9 @@ html body input[type="radio"]:focus-visible{outline:2px solid var(--brand, #3978
 .employee-photo-crop-frame {
   position: absolute;
   inset: 0;
-  border: 2px solid rgba(255,255,255,.96);
-  border-radius: 12px;
-  box-shadow: 0 0 0 999px rgba(0,0,0,.28);
+  border: 2px solid rgba(255,255,255,.98);
+  border-radius: 50%;
+  box-shadow: 0 0 0 999px rgba(0,0,0,.42);
   pointer-events: none;
 }
 .employee-photo-zoom-control {

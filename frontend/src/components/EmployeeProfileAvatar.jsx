@@ -6,6 +6,42 @@ import { Alert, Modal } from "./Common";
 const CROP_SIZE = 280;
 const OUTPUT_SIZE = 512;
 
+function isGifSource(value) {
+  return /\.gif(?:$|[?#])/i.test(String(value || ""));
+}
+
+// Native GIF playback is enabled only while the avatar is in view. Removing
+// the source while off-screen stops decoding; when it re-enters view the
+// browser can reuse its HTTP cache and starts the animation again.
+function VisibleProfileImage({ src, alt, className, style }) {
+  const imageRef = useRef(null);
+  const [isVisible, setIsVisible] = useState(true);
+
+  useEffect(() => {
+    const node = imageRef.current;
+    if (!node || !src) return undefined;
+    setIsVisible(true);
+    if (typeof IntersectionObserver === "undefined") return undefined;
+    const observer = new IntersectionObserver(([entry]) => {
+      setIsVisible(Boolean(entry?.isIntersecting));
+    });
+    observer.observe(node);
+    return () => observer.disconnect();
+  }, [src]);
+
+  return (
+    <img
+      ref={imageRef}
+      className={className}
+      src={isVisible ? src : undefined}
+      alt={alt}
+      style={style}
+      loading="lazy"
+      decoding="async"
+    />
+  );
+}
+
 export default function EmployeeProfileAvatar() {
   const auth = useAuth();
   const inputRef = useRef(null);
@@ -63,12 +99,34 @@ export default function EmployeeProfileAvatar() {
       event.target.value = "";
       return;
     }
-    if (next.size > 10 * 1024 * 1024) {
-      setError("ขนาดรูปภาพต้องไม่เกิน 10 MB");
+    const isGif = next.type === "image/gif" || /\.gif$/i.test(next.name || "");
+    const maxSize = (isGif ? 5 : 10) * 1024 * 1024;
+    if (next.size > maxSize) {
+      setError(isGif ? "ขนาดไฟล์ GIF ต้องไม่เกิน 5 MB" : "ขนาดรูปภาพต้องไม่เกิน 10 MB");
       event.target.value = "";
       return;
     }
     const url = URL.createObjectURL(next);
+    if (isGif) {
+      const probe = new Image();
+      probe.onload = () => {
+        setSourceFile(next);
+        setSourceUrl("");
+        setSourceSize(null);
+        setOffset({ x: 0, y: 0 });
+        setZoom(1);
+        setCroppedFile(next);
+        setCroppedPreview(url);
+        setError("");
+      };
+      probe.onerror = () => {
+        URL.revokeObjectURL(url);
+        setError("ไม่สามารถเปิดไฟล์ GIF นี้ได้");
+      };
+      probe.src = url;
+      event.target.value = "";
+      return;
+    }
     const probe = new Image();
     probe.onload = () => {
       setSourceFile(next);
@@ -184,7 +242,7 @@ export default function EmployeeProfileAvatar() {
   return (
     <>
       <button type="button" className="modernize-profile-avatar-button" onClick={() => setOpen(true)} aria-label="ดูรูปโปรไฟล์">
-        {employee?.image_url ? <img className="modernize-profile-avatar-image" src={employee.image_url} alt={employee.name || "รูปพนักงาน"} /> : <span className="modernize-profile-avatar">{(employee?.name || "PF").trim().slice(0, 1).toUpperCase()}</span>}
+        {employee?.image_url ? <VisibleProfileImage className="modernize-profile-avatar-image" src={employee.image_url} alt={employee.name || "รูปพนักงาน"} style={{ objectFit: isGifSource(employee.image_url) ? "contain" : "cover" }} /> : <span className="modernize-profile-avatar">{(employee?.name || "PF").trim().slice(0, 1).toUpperCase()}</span>}
       </button>
       {open && (
         <Modal title="รูปโปรไฟล์พนักงาน" onClose={close} className="employee-photo-modal" portal>
@@ -201,7 +259,7 @@ export default function EmployeeProfileAvatar() {
                   onPointerCancel={endDrag}
                   onLostPointerCapture={endDrag}
                   role="img"
-                  aria-label="ลากรูปเพื่อจัดตำแหน่งภายในกรอบสี่เหลี่ยม"
+                  aria-label="ลากรูปเพื่อจัดตำแหน่งภายในกรอบวงกลม"
                 >
                   <img
                     src={sourceUrl}
@@ -232,7 +290,7 @@ export default function EmployeeProfileAvatar() {
                 <button type="button" className="btn primary" onClick={applyCrop}>ใช้รูปภาพนี้</button>
               </>
             ) : image ? (
-              <img src={image} alt="ตัวอย่างรูปโปรไฟล์" style={{ width: "min(100%,320px)", aspectRatio: "1", objectFit: "cover", borderRadius: 16, border: "1px solid #dbe3ec" }} />
+              <img src={image} alt="ตัวอย่างรูปโปรไฟล์" style={{ width: "min(100%,320px)", aspectRatio: "1", objectFit: (croppedFile?.type === "image/gif" || isGifSource(image)) ? "contain" : "cover", borderRadius: "50%", border: "1px solid #dbe3ec" }} />
             ) : (
               <div className="modernize-profile-avatar" style={{ width: 120, height: 120, fontSize: 42 }}>{(employee?.name || "PF").trim().slice(0, 1).toUpperCase()}</div>
             )}
@@ -241,7 +299,7 @@ export default function EmployeeProfileAvatar() {
               {croppedFile && <button type="button" className="btn primary" disabled={busy} onClick={upload}>{busy ? "กำลังอัปโหลด..." : "บันทึกรูปภาพ"}</button>}
             </div>
             <input ref={inputRef} type="file" accept="image/jpeg,image/png,image/webp,image/gif" onChange={chooseFile} style={{ display: "none" }} />
-            <small style={{ color: "#718096" }}>รองรับ JPG, PNG, WEBP และ GIF · ไม่เกิน 10 MB · บันทึกเป็นภาพสี่เหลี่ยมจัตุรัส</small>
+            <small style={{ color: "#718096", textAlign: "center" }}>JPG / PNG / WEBP ไม่เกิน 10 MB · ปรับครอบในกรอบวงกลม · GIF ไม่เกิน 5 MB และไม่ต้องครอบภาพ</small>
             <Alert>{error}</Alert>
           </div>
         </Modal>
