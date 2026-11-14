@@ -45,10 +45,15 @@ export default function EmployeeProfileAvatar() {
     };
   }, [employee?.id]);
 
-  useEffect(() => () => {
-    if (sourceUrl) URL.revokeObjectURL(sourceUrl);
-    if (croppedPreview) URL.revokeObjectURL(croppedPreview);
-  }, [sourceUrl, croppedPreview]);
+  useEffect(() => {
+    if (!sourceUrl) return undefined;
+    return () => URL.revokeObjectURL(sourceUrl);
+  }, [sourceUrl]);
+
+  useEffect(() => {
+    if (!croppedPreview) return undefined;
+    return () => URL.revokeObjectURL(croppedPreview);
+  }, [croppedPreview]);
 
   function chooseFile(event) {
     const next = event.target.files?.[0] || null;
