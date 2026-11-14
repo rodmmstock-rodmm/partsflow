@@ -1,3 +1,6 @@
+import hashlib
+import re
+
 from django.db import IntegrityError
 from django.db.models import Q
 from django.core.exceptions import ValidationError
@@ -10,6 +13,8 @@ from rest_framework.response import Response
 from .audit_utils import audit
 from .auth_api import PERMISSION_FIELDS, require_permission
 from .models import AuditLog, Employee, RoleAccess
+from .image_optimizer import optimize_part_image
+from .supabase_storage import SupabaseStorageConfigError, SupabaseStorageRequestError, public_image_url, storage_enabled, storage_object_path, upload_object
 
 
 def role_json(role):
@@ -29,6 +34,7 @@ def employee_json(employee):
         "id": str(employee.id),
         "employee_code": employee.employee_code,
         "name": employee.name,
+        "image_url": public_image_url(employee.image_path) if employee.image_path else "",
         "email": employee.email or "",
         "department": employee.department or "",
         "role": employee.role or "",
@@ -231,3 +237,44 @@ def audit_logs(request):
             }
         )
     return Response({"results": rows})
+
+
+
+@csrf_exempt
+@api_view(["POST"])
+@permission_classes([AllowAny])
+def employee_image(request, pk):
+    actor, err = require_permission(request)
+    if err:
+        return err
+    employee = Employee.objects.filter(pk=pk).first()
+    if not employee:
+        return Response({"detail": "ไม่พบพนักงาน"}, status=404)
+    if str(actor.id) != str(employee.id) and not __import__("core.auth_api", fromlist=["permissions_for"]).permissions_for(actor).get("can_edit_employees"):
+        return Response({"detail": "คุณไม่มีสิทธิ์เปลี่ยนรูปพนักงานคนนี้"}, status=403)
+    if not storage_enabled():
+        return Response({"detail": "Supabase image storage ยังไม่ได้เปิดใช้งาน"}, status=503)
+    upload = request.FILES.get("image")
+    if not upload:
+        return Response({"detail": "กรุณาเลือกรูปภาพ"}, status=400)
+    content_type = str(getattr(upload, "content_type", "") or "").lower().split(";", 1)[0].strip()
+    if content_type not in {"image/jpeg", "image/jpg", "image/png", "image/webp", "image/gif"}:
+        return Response({"detail": "รองรับเฉพาะ JPG, PNG, WEBP และ GIF"}, status=400)
+    original = upload.read()
+    if not original or len(original) > 10 * 1024 * 1024:
+        return Response({"detail": "รูปภาพต้องมีขนาดมากกว่า 0 และไม่เกิน 10 MB"}, status=400)
+    try:
+        optimized, optimized_type = optimize_part_image(original, content_type)
+        digest = hashlib.sha256(optimized).hexdigest()
+        extension = {"image/jpeg": ".jpg", "image/jpg": ".jpg", "image/png": ".png", "image/webp": ".webp", "image/gif": ".gif"}.get(optimized_type, ".jpg")
+        safe_code = re.sub(r"[^A-Za-z0-9._-]+", "_", employee.employee_code)[:80] or str(employee.id)
+        logical_path = f"DATA1_Images/Employees/{safe_code}/{digest[:24]}{extension}"
+        upload_object(storage_object_path(logical_path), optimized, content_type=optimized_type, upsert=False)
+    except (ValueError, SupabaseStorageConfigError) as exc:
+        return Response({"detail": str(exc)}, status=400)
+    except SupabaseStorageRequestError as exc:
+        return Response({"detail": str(exc)}, status=502)
+    employee.image_path = logical_path
+    employee.save(update_fields=["image_path", "updated_at"])
+    audit(actor, "UPDATE", "Employee", employee.id, {"image_upload": {"size": len(optimized), "sha256": digest}})
+    return Response(employee_json(employee))
