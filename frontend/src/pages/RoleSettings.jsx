@@ -10,6 +10,38 @@ import { useFeedback } from "../feedback";
 // Employee / Audit Log / Role & Permissions itself are not separate sidebar
 // links (Employee and Audit Log are tabs on this very page) but are kept as
 // their own groups at the end since they are still real permission areas.
+function EmployeePhotoThumb({ src }) {
+  const imageRef = useRef(null);
+  const [isVisible, setIsVisible] = useState(false);
+
+  useEffect(() => {
+    const node = imageRef.current;
+    if (!node || !src) return undefined;
+    if (typeof IntersectionObserver === "undefined") {
+      setIsVisible(true);
+      return undefined;
+    }
+    setIsVisible(false);
+    const observer = new IntersectionObserver(([entry]) => {
+      setIsVisible(Boolean(entry?.isIntersecting));
+    });
+    observer.observe(node);
+    return () => observer.disconnect();
+  }, [src]);
+
+  const isGif = /\.gif(?:$|[?#])/i.test(String(src || ""));
+  return (
+    <img
+      ref={imageRef}
+      src={isVisible ? src : undefined}
+      alt=""
+      loading="lazy"
+      decoding="async"
+      style={{ width: 34, height: 34, borderRadius: "50%", objectFit: isGif ? "contain" : "cover" }}
+    />
+  );
+}
+
 export const PERMISSIONS = [
   ["can_view_dashboard", "View Dashboard", "Dashboard"],
   ["can_view_parts", "View Stock / Part List", "Stock"],
@@ -302,7 +334,7 @@ export default function RoleSettings(){
               {shownEmployees.map(e=>
                 <tr key={e.id}>
                   <td><b>{e.employee_code}</b></td>
-                  <td><div style={{display:"flex",alignItems:"center",gap:9}}>{e.image_url?<img src={e.image_url} alt="" style={{width:34,height:34,borderRadius:"50%",objectFit:"cover"}}/>:<span className="modernize-profile-avatar" style={{width:34,height:34,flexBasis:34}}>{(e.name||"?").trim().slice(0,1).toUpperCase()}</span>}<span>{e.name}</span></div></td>
+                  <td><div style={{display:"flex",alignItems:"center",gap:9}}>{e.image_url?<EmployeePhotoThumb src={e.image_url}/>:<span className="modernize-profile-avatar" style={{width:34,height:34,flexBasis:34}}>{(e.name||"?").trim().slice(0,1).toUpperCase()}</span>}<span>{e.name}</span></div></td>
                   <td>{e.email||"-"}</td>
                   <td>{e.department||"-"}</td>
                   <td>{e.role||"-"}</td>
