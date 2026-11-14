@@ -5,6 +5,7 @@ from . import backup_api, tooling_api, auth_api, cloth_roll_api, dashboard_api, 
 urlpatterns = [
     path("auth/login/", auth_api.login_view),
     path("auth/me/", auth_api.me_view),
+    path("auth/rfq-message/", auth_api.rfq_message_view),
     path("auth/logout/", auth_api.logout_view),
 
     path("health/", web_api.health_check, name="web-health-check"),
