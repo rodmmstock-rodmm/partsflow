@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { apiUpload } from "../api";
 import { useAuth } from "../auth";
 import { Alert, Modal } from "./Common";
+import EmployeePhoto from "./EmployeePhoto";
 
 const CROP_SIZE = 280;
 const OUTPUT_SIZE = 512;
@@ -21,7 +22,7 @@ export default function EmployeeProfileAvatar() {
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
   const employee = auth.employee;
-  const image = croppedPreview || employee?.image_url || "";
+  const image = croppedPreview || (sourceFile?.type === "image/gif" ? sourceUrl : employee?.image_url || "");
   const baseScale = sourceSize
     ? Math.max(CROP_SIZE / sourceSize.width, CROP_SIZE / sourceSize.height)
     : 1;
@@ -63,8 +64,8 @@ export default function EmployeeProfileAvatar() {
       event.target.value = "";
       return;
     }
-    if (next.size > 10 * 1024 * 1024) {
-      setError("ขนาดรูปภาพต้องไม่เกิน 10 MB");
+    if (next.size > (next.type === "image/gif" ? 5 : 10) * 1024 * 1024) {
+      setError(next.type === "image/gif" ? "GIF ต้องมีขนาดไม่เกิน 5 MB" : "ขนาดรูปภาพต้องไม่เกิน 10 MB");
       event.target.value = "";
       return;
     }
@@ -76,7 +77,7 @@ export default function EmployeeProfileAvatar() {
       setSourceSize({ width: probe.naturalWidth, height: probe.naturalHeight });
       setOffset({ x: 0, y: 0 });
       setZoom(1);
-      setCroppedFile(null);
+      setCroppedFile(next.type === "image/gif" ? next : null);
       setCroppedPreview("");
       setError("");
     };
@@ -184,7 +185,7 @@ export default function EmployeeProfileAvatar() {
   return (
     <>
       <button type="button" className="modernize-profile-avatar-button" onClick={() => setOpen(true)} aria-label="ดูรูปโปรไฟล์">
-        {employee?.image_url ? <img className="modernize-profile-avatar-image" src={employee.image_url} alt={employee.name || "รูปพนักงาน"} /> : <span className="modernize-profile-avatar">{(employee?.name || "PF").trim().slice(0, 1).toUpperCase()}</span>}
+        {employee?.image_url ? <EmployeePhoto className="modernize-profile-avatar-image" src={employee.image_url} alt={employee.name || "รูปพนักงาน"} /> : <span className="modernize-profile-avatar">{(employee?.name || "PF").trim().slice(0, 1).toUpperCase()}</span>}
       </button>
       {open && (
         <Modal title="รูปโปรไฟล์พนักงาน" onClose={close} className="employee-photo-modal" portal>
@@ -201,7 +202,7 @@ export default function EmployeeProfileAvatar() {
                   onPointerCancel={endDrag}
                   onLostPointerCapture={endDrag}
                   role="img"
-                  aria-label="ลากรูปเพื่อจัดตำแหน่งภายในกรอบสี่เหลี่ยม"
+                  aria-label="ลากรูปเพื่อจัดตำแหน่งภายในกรอบวงกลม"
                 >
                   <img
                     src={sourceUrl}
@@ -232,7 +233,7 @@ export default function EmployeeProfileAvatar() {
                 <button type="button" className="btn primary" onClick={applyCrop}>ใช้รูปภาพนี้</button>
               </>
             ) : image ? (
-              <img src={image} alt="ตัวอย่างรูปโปรไฟล์" style={{ width: "min(100%,320px)", aspectRatio: "1", objectFit: "cover", borderRadius: 16, border: "1px solid #dbe3ec" }} />
+              <EmployeePhoto src={image} alt="ตัวอย่างรูปโปรไฟล์" className="employee-photo-modal-preview" />
             ) : (
               <div className="modernize-profile-avatar" style={{ width: 120, height: 120, fontSize: 42 }}>{(employee?.name || "PF").trim().slice(0, 1).toUpperCase()}</div>
             )}
@@ -241,7 +242,7 @@ export default function EmployeeProfileAvatar() {
               {croppedFile && <button type="button" className="btn primary" disabled={busy} onClick={upload}>{busy ? "กำลังอัปโหลด..." : "บันทึกรูปภาพ"}</button>}
             </div>
             <input ref={inputRef} type="file" accept="image/jpeg,image/png,image/webp,image/gif" onChange={chooseFile} style={{ display: "none" }} />
-            <small style={{ color: "#718096" }}>รองรับ JPG, PNG, WEBP และ GIF · ไม่เกิน 10 MB · บันทึกเป็นภาพสี่เหลี่ยมจัตุรัส</small>
+            <small style={{ color: "#718096" }}>JPG / PNG / WEBP ไม่เกิน 10 MB · GIF ไม่เกิน 5 MB และไม่ Crop</small>
             <Alert>{error}</Alert>
           </div>
         </Modal>
