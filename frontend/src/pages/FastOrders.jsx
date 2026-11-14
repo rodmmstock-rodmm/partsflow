@@ -3,6 +3,8 @@ import { apiDelete, apiGet, apiPatch, apiPost } from "../api";
 import { useAuth } from "../auth";
 import { Alert, Modal, PageHeader, SearchableSelect, fmt } from "../components/Common";
 import { useFeedback } from "../feedback";
+import BarcodeScannerModal from "../components/BarcodeScannerModal";
+import QrCode01Icon from "../components/QrCode01Icon";
 
 const blank = {
   factory: "MM-4",
@@ -383,6 +385,7 @@ export default function FastOrders() {
   const [loading, setLoading] = useState(true);
   const [selected, setSelected] = useState(() => new Set());
   const [bulkOrder, setBulkOrder] = useState(false);
+  const [scannerOpen, setScannerOpen] = useState(false);
 
   async function load() {
     setLoading(true);
@@ -437,6 +440,8 @@ export default function FastOrders() {
     [rows, selected]
   );
 
+  function handleDetected(value) { setScannerOpen(false); if (value) setQ(String(value).trim()); }
+
   async function remove(row) {
     const ok = await confirm(`ยืนยันลบ Fast Order ${row.item_id} ?`, {
       title: "ยืนยันการลบ",
@@ -477,6 +482,9 @@ export default function FastOrders() {
             onChange={(e) => setQ(e.target.value)}
             placeholder="ค้นหา Part ID / Part / Machine..."
           />
+          <button type="button" className="btn ghost" title="สแกน Barcode / QR Code" onClick={() => setScannerOpen(true)}>
+            <QrCode01Icon size={18} aria-hidden="true" /> สแกน Barcode / QR
+          </button>
           {auth.can("can_add_order") && selected.size > 0 && (
             <button className="btn primary" onClick={() => setBulkOrder(true)}>
               สั่งที่เลือก ({selected.size})
@@ -557,6 +565,8 @@ export default function FastOrders() {
           </div>
         )}
       </section>
+
+      {scannerOpen && <BarcodeScannerModal onClose={() => setScannerOpen(false)} onDetected={handleDetected} />}
 
       {editor !== undefined && (
         <FastOrderModal

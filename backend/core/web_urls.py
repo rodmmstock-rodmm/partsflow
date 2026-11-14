@@ -31,6 +31,7 @@ urlpatterns = [
     path("safety-stock/", web_api.safety_stock, name="web-safety-stock"),
     path("spare-sets/", spare_set_api.spare_sets, name="web-spare-sets"),
     path("spare-sets/<uuid:pk>/", spare_set_api.spare_set_detail, name="web-spare-set-detail"),
+    path("spare-sets/bulk-issue/", spare_set_api.spare_set_bulk_issue, name="web-spare-set-bulk-issue"),
     path("options/", web_api.options, name="web-options"),
 
     path("stock/issue/", stock_api.issue_stock, name="web-stock-issue"),
@@ -143,5 +144,6 @@ urlpatterns = [
     path("roles/<uuid:pk>/", role_api.update_role, name="web-role-update"),
     path("employees/", role_api.employees, name="web-employees"),
     path("employees/<uuid:pk>/", role_api.update_employee, name="web-employee-update"),
+    path("employees/<uuid:pk>/image/", role_api.employee_image, name="web-employee-image"),
     path("audit-logs/", role_api.audit_logs, name="web-audit-logs"),
 ]

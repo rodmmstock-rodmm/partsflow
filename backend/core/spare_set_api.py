@@ -4,13 +4,16 @@ from django.db import IntegrityError, transaction
 from django.db.models import DecimalField, Q, Sum, Value
 from django.db.models.functions import Coalesce
 from django.views.decorators.csrf import csrf_exempt
+from django.utils import timezone
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 
 from .audit_utils import audit
 from .auth_api import require_permission
-from .models import Machine, MachineSpareSet, MachineSpareSetItem, Part
+from .models import Employee, Machine, MachineSpareSet, MachineSpareSetItem, Part, StockTransaction
+from .auth_api import permissions_for
+from .stock_api import add_stock_to_first_row, get_employee, is_no_count_part, locked_inventory, stock_total, tx_no, tx_reference_id
 
 QTY_FIELD = DecimalField(max_digits=18, decimal_places=2)
 ZERO = Decimal("0")
@@ -246,3 +249,93 @@ def spare_set_detail(request, pk):
         return Response(result)
     except (ValueError, IntegrityError) as exc:
         return Response({"detail": "เครื่องจักรนี้มีชื่อ Set นี้อยู่แล้ว" if isinstance(exc, IntegrityError) else str(exc)}, status=400)
+
+
+
+@csrf_exempt
+@api_view(["POST"])
+@permission_classes([AllowAny])
+def spare_set_bulk_issue(request):
+    recorder, err = require_permission(request, "can_issue_stock")
+    if err:
+        return err
+
+    rows_data = request.data.get("items")
+    if not isinstance(rows_data, list) or not rows_data:
+        return Response({"detail": "กรุณาเลือกรายการอะไหล่ที่ต้องการเบิก"}, status=400)
+
+    can_select_requester = permissions_for(recorder).get("can_select_issue_requester", False)
+    requested_requester_id = str(request.data.get("requester_id") or "").strip()
+    if can_select_requester:
+        try:
+            requester = get_employee(requested_requester_id)
+        except ValueError as exc:
+            return Response({"detail": str(exc)}, status=400)
+    else:
+        if requested_requester_id and requested_requester_id != str(recorder.id):
+            return Response({"detail": "คุณไม่มีสิทธิ์เลือกชื่อผู้เบิกแทนผู้อื่น"}, status=403)
+        requester = recorder
+
+    parsed = []
+    seen = set()
+    try:
+        for index, raw in enumerate(rows_data, start=1):
+            raw = raw or {}
+            item_id = str(raw.get("set_item_id") or "").strip()
+            if not item_id or item_id in seen:
+                raise ValueError(f"รายการที่ {index}: ข้อมูลรายการไม่ถูกต้องหรือซ้ำกัน")
+            qty = as_positive_decimal(raw.get("quantity"), f"จำนวนเบิกรายการที่ {index}")
+            item = MachineSpareSetItem.objects.select_related(
+                "part", "spare_set", "spare_set__machine"
+            ).filter(pk=item_id, spare_set__active=True).first()
+            if not item:
+                raise ValueError(f"รายการที่ {index}: ไม่พบรายการอะไหล่ใน Machine Spare Set")
+            parsed.append((item, qty))
+            seen.add(item_id)
+
+        with transaction.atomic():
+            results = []
+            for item, qty in parsed:
+                inventory_rows = locked_inventory(item.part)
+                if is_no_count_part(item.part):
+                    before = after = stock_total(inventory_rows)
+                else:
+                    before, after = add_stock_to_first_row(inventory_rows, -qty)
+                ref_id = tx_reference_id()
+                tx = StockTransaction.objects.create(
+                    legacy_source="WEB",
+                    legacy_id=ref_id,
+                    transaction_no=tx_no("ISS"),
+                    part=item.part,
+                    location=item.part.location,
+                    transaction_type="ISSUE",
+                    quantity=qty,
+                    machine=item.spare_set.machine,
+                    employee=requester,
+                    recorded_by_employee=recorder,
+                    reference_type="WEB",
+                    reference_id=ref_id,
+                    transaction_date=timezone.now(),
+                    remark=str(request.data.get("note") or "").strip(),
+                    created_by=None,
+                )
+                audit(recorder, "ISSUE_STOCK", "StockTransaction", tx.id, {
+                    "source": "MachineSpareSet",
+                    "spare_set": item.spare_set.name,
+                    "part": item.part.sku,
+                    "quantity": str(qty),
+                    "stock_before": str(before),
+                    "stock_after": str(after),
+                    "requester": requester.employee_code,
+                    "machine": item.spare_set.machine.code,
+                })
+                results.append({
+                    "transaction_id": str(tx.id),
+                    "part_id": item.part.sku,
+                    "quantity": float(qty),
+                    "stock_before": float(before),
+                    "stock_after": float(after),
+                })
+        return Response({"success": True, "count": len(results), "results": results})
+    except ValueError as exc:
+        return Response({"detail": str(exc)}, status=400)

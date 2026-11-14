@@ -5,6 +5,7 @@ from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 
 from .models import Employee, RoleAccess
+from .supabase_storage import public_image_url
 
 PERMISSION_FIELDS = [
     "can_view_dashboard",
@@ -186,6 +187,7 @@ def payload(employee):
         "id": str(employee.id),
         "employee_code": employee.employee_code,
         "name": employee.name,
+        "image_url": public_image_url(employee.image_path) if employee.image_path else "",
         "email": employee.email or "",
         "role": employee.role or "",
         "department": employee.department or "",

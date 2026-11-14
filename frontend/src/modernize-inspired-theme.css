@@ -465,3 +465,11 @@ tbody tr:hover .sticky-action { background:#f7fbff; }
   .m-bottom-nav:active { cursor: grabbing; }
   .m-bottom-nav a { user-select: none; -webkit-user-drag: none; }
 }
+
+
+/* Employee profile photo */
+.modernize-profile-avatar-button{display:grid;place-items:center;flex:0 0 38px;width:38px;height:38px;padding:0;border:0;border-radius:50%;background:transparent;cursor:pointer;overflow:hidden}
+.modernize-profile-avatar-image{display:block;width:38px;height:38px;border-radius:50%;object-fit:cover;border:1px solid #dbe5ef}
+.modernize-profile-avatar-button .modernize-profile-avatar{width:38px;height:38px}
+.m-topbar-actions .modernize-profile-avatar-button{width:34px;height:34px;flex-basis:34px}
+.m-topbar-actions .modernize-profile-avatar-image{width:34px;height:34px}
