@@ -96,8 +96,8 @@ export default function MobileFastOrders() {
     >
       <Alert>{error}</Alert>
       {msg && <Alert type="success">{msg}</Alert>}
-      <div className="m-fast-search-row">
-        <div style={{ flex: 1, minWidth: 0 }}><MobileSearch value={q} onChange={setQ} placeholder="Part ID / Part Name..." /></div>
+      <div className="m-search-scan-row">
+        <MobileSearch value={q} onChange={setQ} placeholder="Part ID / Part Name..." />
         <button type="button" className="m-icon-action m-scan-btn" title="สแกน Barcode / QR Code" aria-label="สแกน Barcode หรือ QR Code" onClick={() => setScannerOpen(true)}>
           <QrCode01Icon size={18} aria-hidden="true" />
         </button>
