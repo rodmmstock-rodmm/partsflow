@@ -22,9 +22,9 @@ class OptimizePartImageTests(unittest.TestCase):
 
     def test_animated_gif_keeps_every_frame_unchanged(self):
         frames = [
-            Image.new("P", (24, 24), color=1),
-            Image.new("P", (24, 24), color=2),
-            Image.new("P", (24, 24), color=3),
+            Image.new("RGB", (24, 24), color=(80, 0, 0)),
+            Image.new("RGB", (24, 24), color=(160, 0, 0)),
+            Image.new("RGB", (24, 24), color=(240, 0, 0)),
         ]
         output = BytesIO()
         frames[0].save(
