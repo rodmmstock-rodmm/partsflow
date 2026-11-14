@@ -127,7 +127,7 @@ export function EmployeeModal({ row, roles, onClose, onSaved }) {
     try{
       const img=new Image();img.src=cropUrl;await img.decode();
       const scale=baseScale*zoom;
-      const sx=(renderWidth/2-offset.x)/scale,sy=(renderHeight/2-offset.y)/scale,side=cropBox/scale;
+      const sx=(renderWidth/2-cropBox/2-offset.x)/scale,sy=(renderHeight/2-cropBox/2-offset.y)/scale,side=cropBox/scale;
       const canvas=document.createElement("canvas");canvas.width=512;canvas.height=512;
       const ctx=canvas.getContext("2d");if(!ctx)throw new Error("เบราว์เซอร์ไม่รองรับการครอปรูปภาพ");
       ctx.imageSmoothingEnabled=true;ctx.imageSmoothingQuality="high";ctx.drawImage(img,sx,sy,side,side,0,0,512,512);
