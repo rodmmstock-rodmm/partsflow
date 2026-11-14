@@ -3,6 +3,8 @@ import { useFeedback } from "../feedback";
 import { apiDelete, apiGet } from "../api";
 import { useAuth } from "../auth";
 import { Alert } from "../components/Common";
+import BarcodeScannerModal from "../components/BarcodeScannerModal";
+import QrCode01Icon from "../components/QrCode01Icon";
 import { BulkOrderModal, FastOrderModal, QuickOrderModal } from "../pages/FastOrders";
 import { MobileEmpty, MobileLoading, MobilePage, MobileSearch } from "./MobileCommon";
 
@@ -18,6 +20,7 @@ export default function MobileFastOrders() {
   const [editor, setEditor] = useState(undefined);
   const [selected, setSelected] = useState(() => new Set());
   const [bulkOrder, setBulkOrder] = useState(false);
+  const [scannerOpen, setScannerOpen] = useState(false);
 
   async function load(force = false) {
     setLoading(true);
@@ -93,7 +96,12 @@ export default function MobileFastOrders() {
     >
       <Alert>{error}</Alert>
       {msg && <Alert type="success">{msg}</Alert>}
-      <MobileSearch value={q} onChange={setQ} placeholder="Part ID / Part Name..." />
+      <div className="m-fast-search-row">
+        <div style={{ flex: 1, minWidth: 0 }}><MobileSearch value={q} onChange={setQ} placeholder="Part ID / Part Name..." /></div>
+        <button type="button" className="m-icon-action m-scan-btn" title="สแกน Barcode / QR Code" aria-label="สแกน Barcode หรือ QR Code" onClick={() => setScannerOpen(true)}>
+          <QrCode01Icon size={18} aria-hidden="true" />
+        </button>
+      </div>
 
       {auth.can("can_add_order") && selected.size > 0 && (
         <button className="m-fast-button" style={{ width: "100%", marginBottom: 10 }} onClick={() => setBulkOrder(true)}>
@@ -166,6 +174,8 @@ export default function MobileFastOrders() {
           }}
         />
       )}
+
+      {scannerOpen && <BarcodeScannerModal onClose={() => setScannerOpen(false)} onDetected={(value) => { setScannerOpen(false); if (value) setQ(String(value).trim()); }} />}
 
       {editor !== undefined && (
         <FastOrderModal
