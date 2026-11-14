@@ -17,6 +17,7 @@ import {
 
 const AuthContext = createContext(null);
 const DESKTOP_IDLE_TIMEOUT_MS = 10 * 60 * 1000;
+const AUTH_CHECK_RETRY_DELAYS_MS = [0, 1200, 2500];
 
 function isMobileDevice() {
   if (typeof navigator === "undefined") return false;
@@ -28,9 +29,14 @@ function isMobileDevice() {
   );
 }
 
+function wait(ms) {
+  return new Promise((resolve) => window.setTimeout(resolve, ms));
+}
+
 export function AuthProvider({ children }) {
   const [employee, setEmployee] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [authCheckFailed, setAuthCheckFailed] = useState(false);
 
   async function refresh() {
     const data = await apiAuthMe();
@@ -38,25 +44,73 @@ export function AuthProvider({ children }) {
       setAuthToken(data.token, data.remember_mobile === true);
     }
     setEmployee(data.employee);
+    setAuthCheckFailed(false);
     return data.employee;
+  }
+
+  // A temporary network/Render error must not destroy a still-valid local
+  // token. Only an explicit 401 is treated as an expired/invalid session.
+  async function verifySession() {
+    setAuthCheckFailed(false);
+
+    if (!getAuthToken()) {
+      setEmployee(null);
+      return false;
+    }
+
+    for (let attempt = 0; attempt < AUTH_CHECK_RETRY_DELAYS_MS.length; attempt += 1) {
+      const delay = AUTH_CHECK_RETRY_DELAYS_MS[attempt];
+      if (delay) await wait(delay);
+
+      try {
+        const data = await apiAuthMe();
+        if (!data?.employee) {
+          clearAuthToken();
+          setEmployee(null);
+          return false;
+        }
+        if (data.token) {
+          setAuthToken(data.token, data.remember_mobile === true);
+        }
+        setEmployee(data.employee);
+        setAuthCheckFailed(false);
+        return true;
+      } catch (error) {
+        if (error?.status === 401) {
+          clearAuthToken();
+          setEmployee(null);
+          return false;
+        }
+        // Retry transient failures. Keep the token if the backend is still
+        // unavailable so a later retry/reload can restore the same session.
+      }
+    }
+
+    setAuthCheckFailed(true);
+    return false;
   }
 
   useEffect(() => {
     if (!getAuthToken()) {
       setEmployee(null);
       setLoading(false);
-      return;
+      return undefined;
     }
 
-    refresh()
-      .catch(() => {
-        clearAuthToken();
-        setEmployee(null);
-      })
-      .finally(() => {
-        setLoading(false);
-      });
+    verifySession().finally(() => {
+      setLoading(false);
+    });
+    return undefined;
   }, []);
+
+  async function retryAuth() {
+    setLoading(true);
+    try {
+      return await verifySession();
+    } finally {
+      setLoading(false);
+    }
+  }
 
   async function login(code) {
     const data = await apiLogin(code);
@@ -69,6 +123,7 @@ export function AuthProvider({ children }) {
 
     setAuthToken(data.token, data.remember_mobile === true);
     setEmployee(data.employee);
+    setAuthCheckFailed(false);
 
     return data.employee;
   }
@@ -78,6 +133,7 @@ export function AuthProvider({ children }) {
     const request = apiPost("/auth/logout/").catch(() => {});
     clearAuthToken();
     setEmployee(null);
+    setAuthCheckFailed(false);
     await request;
   }
 
@@ -114,7 +170,7 @@ export function AuthProvider({ children }) {
 
     const handlePointerMove = () => {
       const now = Date.now();
-      // Avoid resetting the timer for every mouse-move event.
+      // Avoid resetting the timer for every pointer-move event.
       if (now - lastPointerMoveAt < 1000) return;
       lastPointerMoveAt = now;
       recordActivity();
@@ -128,7 +184,9 @@ export function AuthProvider({ children }) {
     window.addEventListener("keydown", recordActivity, true);
     window.addEventListener("wheel", recordActivity, { passive: true, capture: true });
     window.addEventListener("scroll", recordActivity, { passive: true, capture: true });
-    window.addEventListener("mousemove", handlePointerMove, { passive: true });
+    window.addEventListener("pointermove", handlePointerMove, { passive: true });
+    window.addEventListener("touchstart", recordActivity, { passive: true, capture: true });
+    window.addEventListener("touchmove", recordActivity, { passive: true, capture: true });
     document.addEventListener("visibilitychange", handleVisibilityChange);
 
     timeoutId = window.setTimeout(expireIfIdle, DESKTOP_IDLE_TIMEOUT_MS);
@@ -139,7 +197,9 @@ export function AuthProvider({ children }) {
       window.removeEventListener("keydown", recordActivity, true);
       window.removeEventListener("wheel", recordActivity, true);
       window.removeEventListener("scroll", recordActivity, true);
-      window.removeEventListener("mousemove", handlePointerMove);
+      window.removeEventListener("pointermove", handlePointerMove);
+      window.removeEventListener("touchstart", recordActivity, true);
+      window.removeEventListener("touchmove", recordActivity, true);
       document.removeEventListener("visibilitychange", handleVisibilityChange);
     };
   }, [employee]);
@@ -149,13 +209,14 @@ export function AuthProvider({ children }) {
       employee,
       loading,
       authenticated: !!employee,
+      authCheckFailed,
+      retryAuth,
       login,
       logout,
       refresh,
-      can: (key) =>
-        !!employee?.permissions?.[key],
+      can: (key) => !!employee?.permissions?.[key],
     }),
-    [employee, loading]
+    [employee, loading, authCheckFailed]
   );
 
   return (
