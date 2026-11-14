@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { apiUpload } from "../api";
 import { useAuth } from "../auth";
 import { Alert, Modal } from "./Common";
@@ -13,6 +13,26 @@ export default function EmployeeProfileAvatar() {
   const [busy, setBusy] = useState(false);
   const employee = auth.employee;
   const image = preview || employee?.image_url || "";
+
+  // Employee photos are stored centrally. Refresh the signed-in employee
+  // metadata periodically and when this device/tab becomes active again so
+  // another device's photo change is reflected without logging in again.
+  useEffect(() => {
+    if (!employee?.id) return undefined;
+    const refreshProfile = () => {
+      if (document.visibilityState === "visible") {
+        void auth.refresh().catch(() => {});
+      }
+    };
+    const intervalId = window.setInterval(refreshProfile, 60000);
+    window.addEventListener("focus", refreshProfile);
+    document.addEventListener("visibilitychange", refreshProfile);
+    return () => {
+      window.clearInterval(intervalId);
+      window.removeEventListener("focus", refreshProfile);
+      document.removeEventListener("visibilitychange", refreshProfile);
+    };
+  }, [employee?.id]);
 
   function chooseFile(event) {
     const next = event.target.files?.[0] || null;
