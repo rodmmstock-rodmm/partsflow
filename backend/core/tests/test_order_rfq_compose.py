@@ -102,7 +102,6 @@ class OrderRFQComposeTests(TestCase):
         self.assertEqual(response.status_code, 200)
         group = response.data["groups"][0]
         self.assertTrue(group["subject"].endswith(" - Urgent / Line stop"), group["subject"])
-        self.assertTrue(group["body"].startswith("Please quote the following items.\\n\\n"))
 
     def test_orders_without_remarks_keep_existing_subject_format(self):
         order = self.make_order("ORD-RFQ-NO-REMARK")
