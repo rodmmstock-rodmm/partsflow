@@ -887,7 +887,7 @@ html body input[type="radio"]:focus-visible{outline:2px solid var(--brand, #3978
   position: relative;
   flex: 0 0 auto;
   overflow: hidden;
-  border-radius: 12px;
+  border-radius: 50%;
   background: #172334;
   cursor: grab;
   touch-action: none;
@@ -898,7 +898,7 @@ html body input[type="radio"]:focus-visible{outline:2px solid var(--brand, #3978
   position: absolute;
   inset: 0;
   border: 2px solid rgba(255,255,255,.96);
-  border-radius: 12px;
+  border-radius: 50%;
   box-shadow: 0 0 0 999px rgba(0,0,0,.28);
   pointer-events: none;
 }
@@ -937,4 +937,17 @@ html body input[type="radio"]:focus-visible{outline:2px solid var(--brand, #3978
 .employee-settings-crop .employee-photo-zoom-control { width: 240px; }
 @media (max-width: 767px) {
   .employee-settings-crop { width: 100%; box-sizing: border-box; }
+}
+
+
+/* Circular crop preview matches the final round employee avatar. */
+.employee-photo-crop-viewport-circle { border-radius: 50%; }
+.employee-photo-crop-viewport-circle .employee-photo-crop-frame { border-radius: 50%; }
+.employee-photo-modal-preview {
+  display: block;
+  width: min(100%, 280px);
+  aspect-ratio: 1;
+  object-fit: cover;
+  border-radius: 50%;
+  border: 1px solid #dbe3ec;
 }
