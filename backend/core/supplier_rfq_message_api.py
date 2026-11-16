@@ -21,11 +21,12 @@ def supplier_rfq_message(request, pk):
         return Response({"detail": "ไม่พบ Vendor"}, status=404)
 
     if request.method == "GET":
-        saved = SupplierRFQMessage.objects.filter(
+        saved, _ = SupplierRFQMessage.objects.get_or_create(
             supplier=supplier,
             employee=employee,
-        ).first()
-        return Response({"rfq_message": saved.message if saved else ""})
+            defaults={"message": supplier.rfq_message or ""},
+        )
+        return Response({"rfq_message": saved.message})
 
     message = request.data.get("rfq_message", "")
     if not isinstance(message, str):
