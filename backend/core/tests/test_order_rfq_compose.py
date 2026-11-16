@@ -136,7 +136,7 @@ class OrderRFQComposeTests(TestCase):
         self.assertEqual(response.status_code, 200)
         group = response.data["groups"][0]
         self.assertEqual(group["message"], "Message for this vendor and buyer.")
-        self.assertTrue(group["body"].startswith("Message for this vendor and buyer.\\n\\n"))
+        self.assertTrue(group["body"].startswith("Message for this vendor and buyer.\n\n"))
         self.assertNotIn("Other buyer message must stay private.", group["body"])
 
     def test_missing_vendor_user_message_blocks_rfq_compose(self):
