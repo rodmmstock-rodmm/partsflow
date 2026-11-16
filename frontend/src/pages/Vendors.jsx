@@ -72,6 +72,7 @@ export function VendorModal({ row, onClose, onSaved }) {
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
   const [rfqMessage, setRfqMessage] = useState("");
+  const [savedRfqMessage, setSavedRfqMessage] = useState("");
   const [messageLoading, setMessageLoading] = useState(Boolean(row));
   const set = (k, v) => setForm((x) => ({ ...x, [k]: v }));
   const canEdit = auth.can("can_edit_supplier");
@@ -85,7 +86,11 @@ export function VendorModal({ row, onClose, onSaved }) {
     setMessageLoading(true);
     apiGet(`/suppliers/${row.id}/rfq-message/`, { forceRefresh: true, cache: false })
       .then((result) => {
-        if (active) setRfqMessage(result.rfq_message || "");
+        if (active) {
+          const message = result.rfq_message || "";
+          setRfqMessage(message);
+          setSavedRfqMessage(message);
+        }
       })
       .catch((err) => {
         if (active) setError(err.message || "โหลด RFQ Message ไม่สำเร็จ");
@@ -104,8 +109,9 @@ export function VendorModal({ row, onClose, onSaved }) {
       const savedVendor = row
         ? await apiPatch(`/suppliers/${row.id}/`, form)
         : await apiPost("/suppliers/", { ...form, code: `SYS-${crypto.randomUUID().replaceAll("-", "").slice(0, 20).toUpperCase()}` });
-      if (canEdit) {
+      if (canEdit && rfqMessage !== savedRfqMessage) {
         await apiPatch(`/suppliers/${savedVendor.id}/rfq-message/`, { rfq_message: rfqMessage });
+        setSavedRfqMessage(rfqMessage);
       }
       onSaved();
     } catch (err) {
