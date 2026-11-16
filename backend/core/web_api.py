@@ -857,7 +857,6 @@ def supplier_json(item):
         "contact": item.contact or "",
         "phone": item.phone or "",
         "email": item.email or "",
-        "rfq_message": item.rfq_message or "",
         "lead_time_days": item.lead_time_days or 0,
         "active": item.active,
         "remark": item.remark or "",
