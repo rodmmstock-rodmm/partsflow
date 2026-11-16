@@ -73,7 +73,6 @@ export function VendorModal({ row, onClose, onSaved }) {
   const [busy, setBusy] = useState(false);
   const [rfqMessage, setRfqMessage] = useState("");
   const [messageLoading, setMessageLoading] = useState(Boolean(row));
-  const [messageSaving, setMessageSaving] = useState(false);
   const set = (k, v) => setForm((x) => ({ ...x, [k]: v }));
   const canEdit = auth.can("can_edit_supplier");
 
@@ -105,7 +104,9 @@ export function VendorModal({ row, onClose, onSaved }) {
       const savedVendor = row
         ? await apiPatch(`/suppliers/${row.id}/`, form)
         : await apiPost("/suppliers/", { ...form, code: `SYS-${crypto.randomUUID().replaceAll("-", "").slice(0, 20).toUpperCase()}` });
-      await apiPatch(`/suppliers/${savedVendor.id}/rfq-message/`, { rfq_message: rfqMessage });
+      if (canEdit) {
+        await apiPatch(`/suppliers/${savedVendor.id}/rfq-message/`, { rfq_message: rfqMessage });
+      }
       onSaved();
     } catch (err) {
       setError(err.message);
@@ -185,7 +186,7 @@ export function VendorModal({ row, onClose, onSaved }) {
               value={rfqMessage}
               onChange={(event) => setRfqMessage(event.target.value)}
               placeholder="ตั้งค่าข้อความ RFQ สำหรับ Vendor รายนี้ (ภาษาไทย / English)"
-              disabled={!canEdit || messageLoading || messageSaving}
+              disabled={!canEdit || messageLoading}
             />
             <small className="field-help">
               ข้อความนี้แยกตามบัญชีผู้ใช้และ Vendor ใช้ซ้ำทุกครั้งที่สร้าง RFQ และจะไม่ถูกลบหลังเตรียมอีเมล
@@ -231,7 +232,7 @@ export function VendorModal({ row, onClose, onSaved }) {
           <button type="button" className="btn ghost" onClick={onClose}>
             ยกเลิก
           </button>
-          <button className="btn primary" disabled={busy || messageLoading || messageSaving}>
+          <button className="btn primary" disabled={busy || messageLoading}>
             บันทึก
           </button>
         </div>
