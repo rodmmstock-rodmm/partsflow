@@ -66,23 +66,52 @@ export function VendorModal({ row, onClose, onSaved }) {
   const auth = useAuth();
   const { confirm } = useFeedback();
   const [form, setForm] = useState(
-    row || { name: "", contact: "", phone: "", email: "", rfq_message: "", remark: "", active: true }
+    row || { name: "", contact: "", phone: "", email: "", remark: "", active: true }
   );
   const [contacts, setContacts] = useState(row?.contacts || []);
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
+  const [rfqMessage, setRfqMessage] = useState("");
+  const [savedRfqMessage, setSavedRfqMessage] = useState("");
+  const [messageLoading, setMessageLoading] = useState(Boolean(row));
   const set = (k, v) => setForm((x) => ({ ...x, [k]: v }));
   const canEdit = auth.can("can_edit_supplier");
+
+  useEffect(() => {
+    let active = true;
+    if (!row) {
+      setMessageLoading(false);
+      return () => { active = false; };
+    }
+    setMessageLoading(true);
+    apiGet(`/suppliers/${row.id}/rfq-message/`, { forceRefresh: true, cache: false })
+      .then((result) => {
+        if (active) {
+          const message = result.rfq_message || "";
+          setRfqMessage(message);
+          setSavedRfqMessage(message);
+        }
+      })
+      .catch((err) => {
+        if (active) setError(err.message || "โหลด RFQ Message ไม่สำเร็จ");
+      })
+      .finally(() => {
+        if (active) setMessageLoading(false);
+      });
+    return () => { active = false; };
+  }, [row?.id]);
 
   async function save(e) {
     e.preventDefault();
     setBusy(true);
     setError("");
     try {
-      if (row) {
-        await apiPatch(`/suppliers/${row.id}/`, form);
-      } else {
-        await apiPost("/suppliers/", { ...form, code: `SYS-${crypto.randomUUID().replaceAll("-", "").slice(0, 20).toUpperCase()}` });
+      const savedVendor = row
+        ? await apiPatch(`/suppliers/${row.id}/`, form)
+        : await apiPost("/suppliers/", { ...form, code: `SYS-${crypto.randomUUID().replaceAll("-", "").slice(0, 20).toUpperCase()}` });
+      if (canEdit && rfqMessage !== savedRfqMessage) {
+        await apiPatch(`/suppliers/${savedVendor.id}/rfq-message/`, { rfq_message: rfqMessage });
+        setSavedRfqMessage(rfqMessage);
       }
       onSaved();
     } catch (err) {
@@ -157,9 +186,17 @@ export function VendorModal({ row, onClose, onSaved }) {
             <input value={form.email || ""} onChange={(e) => set("email", e.target.value)} />
           </label>
           <label className="field span2">
-            <span>RFQ Message</span>
-            <textarea rows="4" value={form.rfq_message || ""} onChange={(e) => set("rfq_message", e.target.value)} placeholder="ข้อความขอราคาสำหรับ Vendor รายนี้ (ภาษาไทย / English)"/>
-            <small className="field-help">ระบบจะนำข้อความนี้ไปวางไว้ก่อนตารางรายการสินค้า โดยคงข้อความตามที่บันทึกไว้</small>
+            <span>RFQ Message ของบัญชีนี้</span>
+            <textarea
+              rows="4"
+              value={rfqMessage}
+              onChange={(event) => setRfqMessage(event.target.value)}
+              placeholder="ตั้งค่าข้อความ RFQ สำหรับ Vendor รายนี้ (ภาษาไทย / English)"
+              disabled={!canEdit || messageLoading}
+            />
+            <small className="field-help">
+              ข้อความนี้แยกตามบัญชีผู้ใช้และ Vendor ใช้ซ้ำทุกครั้งที่สร้าง RFQ และจะไม่ถูกลบหลังเตรียมอีเมล
+            </small>
           </label>
           <label className="field span2">
             <span>Remark</span>
@@ -201,7 +238,7 @@ export function VendorModal({ row, onClose, onSaved }) {
           <button type="button" className="btn ghost" onClick={onClose}>
             ยกเลิก
           </button>
-          <button className="btn primary" disabled={busy}>
+          <button className="btn primary" disabled={busy || messageLoading}>
             บันทึก
           </button>
         </div>
@@ -329,7 +366,7 @@ export default function Vendors() {
         </div>
       </section>
       {modal !== undefined && (
-        <VendorModal row={modal} onClose={() => setModal(undefined)} onSaved={() => { setModal(undefined); load(); }} />
+        <VendorModal key={modal?.id || "new-vendor"} row={modal} onClose={() => setModal(undefined)} onSaved={() => { setModal(undefined); load(); }} />
       )}
     </>
   );

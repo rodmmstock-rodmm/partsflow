@@ -10,7 +10,7 @@ from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 
 from .auth_api import require_permission
-from .models import OrderRecord, RFQCCRule, Supplier
+from .models import OrderRecord, RFQCCRule, Supplier, SupplierRFQMessage
 
 
 JOB_CODES = {
@@ -209,8 +209,16 @@ def compose_order_rfq_data(request):
             continue
         cc_emails.append(email)
 
-    personal_message = str(actor.rfq_message or "").strip()
-    message = personal_message if personal_message else (vendor.rfq_message or "")
+    saved_message = SupplierRFQMessage.objects.filter(
+        supplier=vendor,
+        employee=actor,
+    ).values_list("message", flat=True).first()
+    message = str(saved_message or "")
+    if not message.strip():
+        return Response(
+            {"detail": "กรุณาตั้งค่า RFQ Message สำหรับ Vendor รายนี้ในหน้า Vendor ก่อนสร้าง RFQ"},
+            status=400,
+        )
 
     groups = OrderedDict()
     for order_id in ordered_ids:

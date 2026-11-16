@@ -50,6 +50,7 @@ jobs:
           python manage.py test core.tests.test_api_pagination_cache --verbosity 2
           python manage.py test core.tests.test_spare_set_bulk_issue --verbosity 2
           python manage.py test core.tests.test_order_rfq_compose --verbosity 2
+          python manage.py test core.tests.test_supplier_rfq_message --verbosity 2
           python manage.py test core.tests.test_employee_rfq_message --verbosity 2
           python manage.py test core.tests.test_order_rfq_draft --verbosity 2
           python manage.py test core.tests.test_tooling_inventory --verbosity 2

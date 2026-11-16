@@ -12,7 +12,7 @@ os.environ.setdefault("DJANGO_SETTINGS_MODULE", "config.settings")
 import django  # noqa: E402
 django.setup()
 
-from core.models import Employee, Machine, OrderRecord, RoleAccess, Supplier, SupplierContact  # noqa: E402
+from core.models import Employee, Machine, OrderRecord, RoleAccess, Supplier, SupplierContact, SupplierRFQMessage  # noqa: E402
 
 role, _ = RoleAccess.objects.update_or_create(
     role_name="TOOLING_UI_TEST",
@@ -24,6 +24,8 @@ role, _ = RoleAccess.objects.update_or_create(
         "can_view_safety_stock": True,
         "can_view_orders": True,
         "can_create_rfq": True,
+        "can_view_suppliers": True,
+        "can_edit_supplier": True,
         "can_view_tooling": True,
         "can_withdraw_tooling": True,
         "can_add_tooling": True,
@@ -65,6 +67,11 @@ SupplierContact.objects.update_or_create(
     supplier=vendor,
     email="rfq-cc@example.com",
     defaults={"name": "RFQ E2E Contact", "role": "Sales"},
+)
+SupplierRFQMessage.objects.update_or_create(
+    supplier=vendor,
+    employee=employee,
+    defaults={"message": "Please quote the following items.\nThank you."},
 )
 
 for number, part_name, sku in [

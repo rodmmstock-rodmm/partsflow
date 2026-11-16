@@ -4,7 +4,7 @@ from django.test import TestCase
 from rest_framework.test import APIRequestFactory
 from unittest.mock import patch
 
-from core.models import Employee, Machine, OrderRecord, Supplier, SupplierContact
+from core.models import Employee, Machine, OrderRecord, Supplier, SupplierContact, SupplierRFQMessage
 from core.order_rfq_compose_api import compose_order_rfq
 
 
@@ -27,6 +27,11 @@ class OrderRFQComposeTests(TestCase):
             supplier=self.vendor,
             name="Contact Two",
             email="cc@example.com",
+        )
+        self.vendor_message = SupplierRFQMessage.objects.create(
+            supplier=self.vendor,
+            employee=self.actor,
+            message="Please quote the following items.",
         )
 
     def make_order(self, number, *, pending_date=None, job="REPAIR", requester=None, remark=""):
@@ -111,18 +116,37 @@ class OrderRFQComposeTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertFalse(response.data["groups"][0]["subject"].endswith(" - "))
 
-    def test_employee_message_overrides_vendor_message_for_that_employee_only(self):
-        self.actor.rfq_message = "Personal buyer message."
-        self.actor.save(update_fields=["rfq_message"])
-        order = self.make_order("ORD-RFQ-PERSONAL-MESSAGE")
+    def test_uses_message_for_selected_vendor_and_current_employee_only(self):
+        self.vendor_message.message = "Message for this vendor and buyer."
+        self.vendor_message.save(update_fields=["message"])
+        other_employee = Employee.objects.create(
+            employee_code="RFQ-TEST-02",
+            name="Requester Two",
+            role="PURCHASE",
+        )
+        SupplierRFQMessage.objects.create(
+            supplier=self.vendor,
+            employee=other_employee,
+            message="Other buyer message must stay private.",
+        )
+        order = self.make_order("ORD-RFQ-USER-VENDOR-MESSAGE")
 
         response = self.post_compose([str(order.id)])
 
         self.assertEqual(response.status_code, 200)
         group = response.data["groups"][0]
-        self.assertEqual(group["message"], "Personal buyer message.")
-        self.assertTrue(group["body"].startswith("Personal buyer message.\n\n"))
-        self.assertNotIn("Please quote the following items.", group["body"])
+        self.assertEqual(group["message"], "Message for this vendor and buyer.")
+        self.assertTrue(group["body"].startswith("Message for this vendor and buyer.\n\n"))
+        self.assertNotIn("Other buyer message must stay private.", group["body"])
+
+    def test_missing_vendor_user_message_blocks_rfq_compose(self):
+        self.vendor_message.delete()
+        order = self.make_order("ORD-RFQ-MISSING-USER-MESSAGE")
+
+        response = self.post_compose([str(order.id)])
+
+        self.assertEqual(response.status_code, 400)
+        self.assertIn("ตั้งค่า RFQ Message", response.data["detail"])
 
     def test_vendor_without_primary_email_is_rejected(self):
         self.vendor.email = ""

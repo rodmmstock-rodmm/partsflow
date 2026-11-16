@@ -131,9 +131,49 @@ def select_orders_and_vendor(page, mobile=False):
     dialog.get_by_role("option", name="RFQ E2E Vendor").click()
 
 
+def test_vendor_rfq_message_settings(page):
+    page.goto(f"{BASE_URL}/vendors", wait_until="networkidle")
+    row = page.locator("tbody tr").filter(has_text="RFQ E2E Vendor")
+    row.wait_for(timeout=10000)
+    row.get_by_role("button", name="แก้ไข").click()
+
+    dialog = page.locator(".modal-card")
+    message = dialog.get_by_label("RFQ Message ของบัญชีนี้")
+    message.wait_for(timeout=10000)
+    message.fill("Reusable message saved from the Vendor page.")
+    with page.expect_response(
+        lambda response: "/rfq-message/" in response.url and response.request.method == "PATCH",
+        timeout=10000,
+    ) as save_response:
+        dialog.get_by_role("button", name="บันทึก").click()
+    saved_response = save_response.value
+    assert saved_response.status == 200, (
+        f"Vendor RFQ message save failed: {saved_response.status} {saved_response.text()}"
+    )
+    assert saved_response.json()["rfq_message"] == "Reusable message saved from the Vendor page."
+    dialog.wait_for(state="hidden", timeout=10000)
+
+    row = page.locator("tbody tr").filter(has_text="RFQ E2E Vendor")
+    with page.expect_response(
+        lambda response: "/rfq-message/" in response.url and response.request.method == "GET",
+        timeout=10000,
+    ) as load_response:
+        row.get_by_role("button", name="แก้ไข").click()
+    loaded_response = load_response.value
+    assert loaded_response.status == 200
+    assert loaded_response.json()["rfq_message"] == "Reusable message saved from the Vendor page."
+    dialog = page.locator(".modal-card")
+    message = dialog.get_by_label("RFQ Message ของบัญชีนี้")
+    message.wait_for(timeout=10000)
+    assert message.input_value() == "Reusable message saved from the Vendor page."
+    dialog.get_by_role("button", name="ยกเลิก").click()
+    dialog.wait_for(state="hidden", timeout=10000)
+
+
 def test_desktop_order_rfq_gmail_compose(browser):
     page = browser.new_page(viewport={"width": 1440, "height": 1000})
     login(page)
+    test_vendor_rfq_message_settings(page)
     captured = mock_rfq_compose_api(page)
     select_orders_and_vendor(page)
     assert_gmail_compose(page, captured)
