@@ -131,9 +131,33 @@ def select_orders_and_vendor(page, mobile=False):
     dialog.get_by_role("option", name="RFQ E2E Vendor").click()
 
 
+def test_vendor_rfq_message_settings(page):
+    page.goto(f"{BASE_URL}/vendors", wait_until="networkidle")
+    row = page.locator("tbody tr").filter(has_text="RFQ E2E Vendor")
+    row.wait_for(timeout=10000)
+    row.get_by_role("button", name="แก้ไข").click()
+
+    dialog = page.locator(".modal-card")
+    message = dialog.get_by_label("RFQ Message ของบัญชีนี้")
+    message.wait_for(timeout=10000)
+    message.fill("Reusable message saved from the Vendor page.")
+    dialog.get_by_role("button", name="บันทึก").click()
+    dialog.wait_for(state="hidden", timeout=10000)
+
+    row = page.locator("tbody tr").filter(has_text="RFQ E2E Vendor")
+    row.get_by_role("button", name="แก้ไข").click()
+    dialog = page.locator(".modal-card")
+    message = dialog.get_by_label("RFQ Message ของบัญชีนี้")
+    message.wait_for(timeout=10000)
+    assert message.input_value() == "Reusable message saved from the Vendor page."
+    dialog.get_by_role("button", name="ยกเลิก").click()
+    dialog.wait_for(state="hidden", timeout=10000)
+
+
 def test_desktop_order_rfq_gmail_compose(browser):
     page = browser.new_page(viewport={"width": 1440, "height": 1000})
     login(page)
+    test_vendor_rfq_message_settings(page)
     captured = mock_rfq_compose_api(page)
     select_orders_and_vendor(page)
     assert_gmail_compose(page, captured)
@@ -147,6 +171,7 @@ def test_mobile_order_rfq_gmail_compose(browser):
         has_touch=True,
     )
     login(page)
+    test_vendor_rfq_message_settings(page)
     captured = mock_rfq_compose_api(page)
     select_orders_and_vendor(page, mobile=True)
     assert_gmail_compose(page, captured)
