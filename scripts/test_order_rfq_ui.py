@@ -187,7 +187,6 @@ def test_mobile_order_rfq_gmail_compose(browser):
         has_touch=True,
     )
     login(page)
-    test_vendor_rfq_message_settings(page)
     captured = mock_rfq_compose_api(page)
     select_orders_and_vendor(page, mobile=True)
     assert_gmail_compose(page, captured)
