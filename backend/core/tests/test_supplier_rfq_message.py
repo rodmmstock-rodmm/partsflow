@@ -51,6 +51,32 @@ class SupplierRFQMessageTests(TestCase):
         self.assertEqual(response.data["rfq_message"], "My private vendor message.")
         self.assertNotIn("Another buyer's private message.", str(response.data))
 
+    def test_first_get_copies_legacy_vendor_message_into_current_users_template(self):
+        request = self.factory.get("/api/suppliers/test/rfq-message/")
+
+        response = self.call_api(request)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(
+            response.data["rfq_message"],
+            "Legacy shared message must not be used.",
+        )
+        saved = SupplierRFQMessage.objects.get(
+            supplier=self.supplier,
+            employee=self.employee,
+        )
+        self.assertEqual(saved.message, self.supplier.rfq_message)
+        self.assertEqual(
+            self.supplier.rfq_message,
+            "Legacy shared message must not be used.",
+        )
+        self.assertFalse(
+            SupplierRFQMessage.objects.filter(
+                supplier=self.supplier,
+                employee=self.other_employee,
+            ).exists()
+        )
+
     def test_patch_persists_message_for_current_employee_only(self):
         request = self.factory.patch(
             "/api/suppliers/test/rfq-message/",
