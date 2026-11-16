@@ -71,7 +71,7 @@ SupplierContact.objects.update_or_create(
 SupplierRFQMessage.objects.update_or_create(
     supplier=vendor,
     employee=employee,
-    defaults={"message": "Please quote the following items.\\nThank you."},
+    defaults={"message": "Please quote the following items.\nThank you."},
 )
 
 for number, part_name, sku in [
