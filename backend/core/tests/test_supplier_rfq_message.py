@@ -25,12 +25,15 @@ class SupplierRFQMessageTests(TestCase):
             rfq_message="Legacy shared message must not be used.",
         )
 
-    def call_api(self, request):
+    def call_api_as(self, request, employee):
         with patch(
             "core.supplier_rfq_message_api.require_permission",
-            return_value=(self.employee, None),
+            return_value=(employee, None),
         ):
             return supplier_rfq_message(request, self.supplier.id)
+
+    def call_api(self, request):
+        return self.call_api_as(request, self.employee)
 
     def test_get_returns_only_current_employees_message(self):
         SupplierRFQMessage.objects.create(
@@ -75,6 +78,36 @@ class SupplierRFQMessageTests(TestCase):
                 supplier=self.supplier,
                 employee=self.other_employee,
             ).exists()
+        )
+
+    def test_each_employee_gets_independent_copy_of_legacy_vendor_message(self):
+        first_get = self.factory.get("/api/suppliers/test/rfq-message/")
+        self.call_api_as(first_get, self.employee)
+        SupplierRFQMessage.objects.filter(
+            supplier=self.supplier,
+            employee=self.employee,
+        ).update(message="Buyer One's customized message.")
+
+        second_get = self.factory.get("/api/suppliers/test/rfq-message/")
+        response = self.call_api_as(second_get, self.other_employee)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(
+            response.data["rfq_message"],
+            "Legacy shared message must not be used.",
+        )
+        first_message = SupplierRFQMessage.objects.get(
+            supplier=self.supplier,
+            employee=self.employee,
+        )
+        second_message = SupplierRFQMessage.objects.get(
+            supplier=self.supplier,
+            employee=self.other_employee,
+        )
+        self.assertEqual(first_message.message, "Buyer One's customized message.")
+        self.assertEqual(
+            second_message.message,
+            "Legacy shared message must not be used.",
         )
 
     def test_patch_persists_message_for_current_employee_only(self):
