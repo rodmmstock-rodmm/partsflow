@@ -128,6 +128,31 @@ class SupplierContact(UUIDMixin):
         return f"{self.supplier.code} - {self.name or self.email or self.phone}"
 
 
+class SupplierRFQMessage(UUIDMixin):
+    supplier = models.ForeignKey(
+        Supplier,
+        on_delete=models.CASCADE,
+        related_name="user_rfq_messages",
+    )
+    employee = models.ForeignKey(
+        Employee,
+        on_delete=models.CASCADE,
+        related_name="supplier_rfq_messages",
+    )
+    message = models.TextField(blank=True)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=["supplier", "employee"],
+                name="uniq_supplier_employee_rfq_msg",
+            )
+        ]
+
+    def __str__(self):
+        return f"{self.supplier.code} / {self.employee.employee_code}"
+
+
 class Part(LegacyMixin):
     sku = models.CharField(max_length=100, unique=True)
     name = models.CharField(max_length=300)
