@@ -165,6 +165,14 @@ class ApiPaginationAndCacheTests(TestCase):
         self.assertEqual(response.data["results"][0]["maker_name"], "Maker")
         self.assertNotIn("maker", response.data["results"][0])
         self.assertLessEqual(len(queries), 2)
+        count_sql = next(
+            query["sql"] for query in queries if "COUNT(" in query["sql"].upper()
+        )
+        # Counting Parts must not execute the correlated active-order lookup
+        # or aggregate inventory join; those annotations are only needed for
+        # the page rows returned to the client.
+        self.assertNotIn("core_orderrecord", count_sql.lower())
+        self.assertNotIn("core_inventory", count_sql.lower())
 
     def test_options_is_cached_and_invalidated_after_option_change(self):
         cache.clear()
