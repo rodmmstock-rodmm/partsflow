@@ -24,6 +24,7 @@ role, _ = RoleAccess.objects.update_or_create(
         "can_view_safety_stock": True,
         "can_view_orders": True,
         "can_create_rfq": True,
+        "can_view_po_balance": True,
         "can_view_suppliers": True,
         "can_edit_supplier": True,
         "can_view_tooling": True,

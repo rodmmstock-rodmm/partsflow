@@ -4,7 +4,7 @@ from django.test import TestCase
 from rest_framework.test import APIRequestFactory
 from unittest.mock import patch
 
-from core.models import Employee, Machine, OrderRecord, Supplier, SupplierContact, SupplierRFQMessage
+from core.models import Employee, EmployeeRFQSubjectSetting, Machine, OrderRecord, Supplier, SupplierContact, SupplierRFQMessage
 from core.order_rfq_compose_api import compose_order_rfq
 
 
@@ -49,10 +49,10 @@ class OrderRFQComposeTests(TestCase):
             unit_text="EA",
         )
 
-    def post_compose(self, order_ids, vendor_id=None):
+    def post_compose(self, order_ids, vendor_id=None, subject_topic="RFQ"):
         request = self.factory.post(
             "/api/orders/rfq-compose/",
-            {"order_ids": order_ids, "vendor_id": str(vendor_id or self.vendor.id)},
+            {"order_ids": order_ids, "vendor_id": str(vendor_id or self.vendor.id), "subject_topic": subject_topic},
             format="json",
         )
         with patch("core.order_rfq_compose_api.require_permission", return_value=(self.actor, None)):
@@ -96,6 +96,83 @@ class OrderRFQComposeTests(TestCase):
         self.assertIn("Requester One", first_group["subject"])
         self.assertIn("(R)", first_group["subject"])
         self.assertNotIn("Machine name", first_group["subject"])
+
+    def test_uses_saved_user_topic_phrase_and_formats_job_without_job_label(self):
+        EmployeeRFQSubjectSetting.objects.create(
+            employee=self.actor,
+            topic_code="RFQ",
+            phrase="ขอใบเสนอราคาสินค้าตามรายการ",
+        )
+        other_employee = Employee.objects.create(
+            employee_code="RFQ-TEST-SUBJECT-OTHER",
+            name="Other Buyer",
+            role="PURCHASE",
+        )
+        SupplierRFQMessage.objects.create(
+            supplier=self.vendor,
+            employee=other_employee,
+            message="Other buyer message",
+        )
+        EmployeeRFQSubjectSetting.objects.create(
+            employee=other_employee,
+            topic_code="RFQ",
+            phrase="Private phrase for another buyer",
+        )
+        order = self.make_order(
+            "ORD-RFQ-CUSTOM-SUBJECT",
+            pending_date=date(2026, 11, 10),
+        )
+
+        response = self.post_compose([str(order.id)])
+
+        self.assertEqual(response.status_code, 200)
+        subject = response.data["groups"][0]["subject"]
+        self.assertEqual(
+            subject,
+            "Vendor Example - ขอใบเสนอราคาสินค้าตามรายการ - MC-RFQ-01 - (R) - Requester One - 10/11/2026",
+        )
+        self.assertNotIn("JOB", subject)
+        self.assertNotIn("Private phrase for another buyer", subject)
+
+    def test_empty_user_subject_phrase_keeps_default_phrase(self):
+        order = self.make_order("ORD-RFQ-DEFAULT-SUBJECT")
+
+        response = self.post_compose([str(order.id)])
+
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(
+            response.data["groups"][0]["subject"].startswith(
+                "Vendor Example - รบกวนขอราคา - MC-RFQ-01 - (R)"
+            )
+        )
+
+    def test_compose_uses_selected_subject_topic_for_current_user(self):
+        EmployeeRFQSubjectSetting.objects.create(
+            employee=self.actor,
+            topic_code="DELIVERY_DATE",
+            phrase="ขอแจ้งกำหนดส่ง",
+        )
+        order = self.make_order("ORD-RFQ-DELIVERY-TOPIC")
+
+        response = self.post_compose(
+            [str(order.id)],
+            subject_topic="DELIVERY_DATE",
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertIn("ขอแจ้งกำหนดส่ง", response.data["groups"][0]["subject"])
+        self.assertNotIn("รบกวนขอราคา", response.data["groups"][0]["subject"])
+
+    def test_subject_omits_job_parentheses_when_job_is_blank(self):
+        order = self.make_order("ORD-RFQ-NO-JOB", job="")
+
+        response = self.post_compose([str(order.id)])
+
+        self.assertEqual(response.status_code, 200)
+        subject = response.data["groups"][0]["subject"]
+        self.assertNotIn("()", subject)
+        self.assertNotIn("(G)", subject)
+        self.assertNotIn("JOB", subject)
 
     def test_order_remarks_are_appended_to_subject_in_order_without_duplicates(self):
         first = self.make_order("ORD-RFQ-REMARK-1", remark="Urgent")

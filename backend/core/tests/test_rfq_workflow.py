@@ -25,6 +25,7 @@ class RFQWorkflowTests(TestCase):
         RoleAccess.objects.create(
             role_name="PURCHASE",
             can_view_orders=True,
+            can_view_po_balance=True,
             can_edit_purchase_info=True,
             can_manage_roles=True,
         )
@@ -92,6 +93,36 @@ class RFQWorkflowTests(TestCase):
         self.assertEqual(
             set(group["cc_emails"]),
             {"fixed@example.com", "repair@example.com"},
+        )
+
+    def test_cc_settings_and_preview_preserve_recipient_add_order(self):
+        first = RFQCCRule.objects.create(
+            rule_type=RFQCCRule.TYPE_JOB, job="REPAIR", email="z-first@example.com"
+        )
+        second = RFQCCRule.objects.create(
+            rule_type=RFQCCRule.TYPE_JOB, job="REPAIR", email="a-second@example.com"
+        )
+        third = RFQCCRule.objects.create(
+            rule_type=RFQCCRule.TYPE_DEFAULT, email="m-third@example.com"
+        )
+
+        settings_response = self.client.get("/api/rfq-cc-rules/")
+        self.assertEqual(settings_response.status_code, 200)
+        self.assertEqual(
+            [row["email"] for row in settings_response.data["results"]],
+            [first.email, second.email, third.email],
+        )
+
+        order = self.order("ORD-CC-ORDER")
+        preview_response = self.client.post(
+            "/api/rfqs/preview/",
+            {"order_ids": [str(order.id)]},
+            format="json",
+        )
+        self.assertEqual(preview_response.status_code, 200)
+        self.assertEqual(
+            preview_response.data["groups"][0]["cc_emails"],
+            [first.email, second.email, third.email],
         )
 
     def test_preview_rejects_group_order_with_more_than_one_job(self):

@@ -294,6 +294,72 @@ function CCRules({ onError }) {
   return <details className="panel cc-settings"><summary>ตั้งค่ารายชื่อ CC เริ่มต้น / ตาม JOB</summary><form className="po-inline-form" onSubmit={add}><select value={form.rule_type} onChange={(event) => setForm((current) => ({ ...current, rule_type: event.target.value }))}><option value="DEFAULT">ทุกคำขอราคา</option><option value="JOB">ตาม JOB</option></select>{form.rule_type === "JOB" && <input value={form.job} onChange={(event) => setForm((current) => ({ ...current, job: event.target.value.toUpperCase() }))} placeholder="JOB" required />}<input type="email" value={form.email} onChange={(event) => setForm((current) => ({ ...current, email: event.target.value }))} placeholder="อีเมล CC" required /><input value={form.display_name} onChange={(event) => setForm((current) => ({ ...current, display_name: event.target.value }))} placeholder="ชื่อ (ไม่บังคับ)" /><button className="btn primary">เพิ่ม CC</button></form><div className="cc-rule-list">{rows.map((row) => <span key={row.id}><b>{row.rule_type === "DEFAULT" ? "ทุกครั้ง" : row.job}</b>{row.display_name ? `${row.display_name} · ` : ""}{row.email}<button type="button" onClick={() => remove(row)}>×</button></span>)}</div></details>;
 }
 
+function RFQSubjectSettings({ onError }) {
+  const [phrase, setPhrase] = useState("");
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [loaded, setLoaded] = useState(false);
+
+  useEffect(() => {
+    let active = true;
+    apiGet("/rfq-subject-settings/", { forceRefresh: true, cache: false })
+      .then((result) => {
+        if (active) {
+          const current = (result.results || []).find((row) => row.topic_code === "RFQ");
+          setPhrase(current?.phrase || "");
+          setLoaded(true);
+        }
+      })
+      .catch((err) => { if (active) onError(err.message); })
+      .finally(() => { if (active) setLoading(false); });
+    return () => { active = false; };
+  }, []);
+
+  async function save(event) {
+    event.preventDefault();
+    setSaving(true);
+    try {
+      const result = await apiPatch("/rfq-subject-settings/", {
+        topic_code: "RFQ",
+        phrase,
+      });
+      setPhrase(result.phrase || "");
+      setLoaded(true);
+    } catch (err) {
+      onError(err.message);
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <details className="panel cc-settings">
+      <summary>ตั้งค่าข้อความ Subject สำหรับ RFQ</summary>
+      <form className="po-inline-form" onSubmit={save}>
+        <input
+          aria-label="ประโยค Subject RFQ"
+          value={phrase}
+          onChange={(event) => setPhrase(event.target.value)}
+          placeholder="เช่น รบกวนเสนอราคาสินค้าตามรายการ"
+          maxLength={250}
+          disabled={loading || !loaded}
+        />
+        <button className="btn primary" disabled={loading || saving || !loaded}>
+          {saving ? "กำลังบันทึก..." : "บันทึก Subject"}
+        </button>
+      </form>
+      <small className="field-help">
+        ข้อความนี้บันทึกแยกตามบัญชีผู้ใช้ ไม่ผูกกับ Vendor และจะใช้กับ RFQ ทุก Vendor
+        หากเว้นว่าง ระบบจะใช้ข้อความเริ่มต้นเดิม
+      </small>
+      <small className="field-help">
+        ระบบจะเติมชื่อ Vendor, Machine Code, ชื่อ Job ในวงเล็บ เช่น (R), ชื่อผู้สั่ง,
+        วันที่ (ถ้ามี) และ Remark ต่อท้ายให้อัตโนมัติ
+      </small>
+    </details>
+  );
+}
+
 export default function POBalance() {
   const auth = useAuth();
   const [rows, setRows] = useState([]);
@@ -316,5 +382,5 @@ export default function POBalance() {
   }
   useEffect(() => { load(); }, []);
   const pendingQuote = useMemo(() => rows.filter((row) => !row.po_balance?.quotation_received_at).length, [rows]);
-  return <><PageHeader title="PO Balance" subtitle="ติดตามคำขอราคา ใบเสนอราคา และวันที่จัดส่ง" actions={<button className="btn ghost" onClick={() => load(true)}>Refresh</button>} /><Alert>{error}</Alert>{auth.can("can_edit_purchase_info") && <CCRules onError={setError} />}<div className="kpi-grid three"><div className="kpi-card"><span>RFQ ที่บันทึก</span><strong>{fmt(rows.length)}</strong></div><div className="kpi-card warning"><span>รอใบเสนอราคา</span><strong>{fmt(pendingQuote)}</strong></div><div className="kpi-card success"><span>ได้รับใบเสนอราคา</span><strong>{fmt(rows.length - pendingQuote)}</strong></div></div><section className="panel"><div className="toolbar wrap"><input className="search-input" value={q} onChange={(event) => setQ(event.target.value)} onKeyDown={(event) => event.key === "Enter" && load(true)} placeholder="ค้นหา RFQ / Group Order / Order / Part / Vendor / Email..." /><button className="btn ghost" onClick={() => load(true)}>ค้นหา</button></div>{loading ? <div className="empty">กำลังโหลด...</div> : rows.length === 0 ? <div className="empty">ยังไม่มีรายการขอราคาที่บันทึก</div> : <div className="table-wrap"><table className="po-balance-table"><thead><tr><th>RFQ No.</th><th>Group / JOB</th><th>Order</th><th>Vendor / Email</th><th>วันที่ส่ง / ผู้ส่ง</th><th>ราคา / Lead time</th><th>วันที่จัดส่ง</th><th>Action</th></tr></thead><tbody>{rows.map((row) => <tr key={row.id}><td className="mono-cell"><b>{row.rfq_number}</b></td><td>{row.group_order}<small>{row.job}</small></td><td>{(row.items || []).map((item) => item.order_number).join(", ")}</td><td>{row.vendor || <span className="status warning">รอระบุ Vendor</span>}<small>{row.recipient_email}</small></td><td className="mono-cell">{localDate(row.sent_at)}<small>{row.sent_by || "-"}</small></td><td className="mono-cell">{row.po_balance?.price ? `${money(row.po_balance.price)} ${row.po_balance.currency}` : "-"}<small>{row.po_balance?.lead_time_days == null ? "" : `${row.po_balance.lead_time_days} วัน`}</small></td><td className="mono-cell">{row.po_balance?.vendor_delivery_date || "-"}<small>จริง: {row.po_balance?.actual_delivery_date || "-"}</small></td><td><div className="row-actions"><button className="mini primary" onClick={() => setSelected(row)}>รายละเอียด</button>{(row.email_link || row.gmail_link) && <a className="mini link" href={row.email_link || row.gmail_link} target="_blank" rel="noreferrer">อีเมล</a>}</div></td></tr>)}</tbody></table></div>}</section>{selected && <POBalanceDetail initial={selected} options={options} auth={auth} onClose={() => setSelected(null)} onChanged={(fresh) => { setSelected(fresh); setRows((current) => current.map((row) => row.id === fresh.id ? fresh : row)); }} />}</>;
+  return <><PageHeader title="PO Balance" subtitle="ติดตามคำขอราคา ใบเสนอราคา และวันที่จัดส่ง" actions={<button className="btn ghost" onClick={() => load(true)}>Refresh</button>} /><Alert>{error}</Alert>{auth.can("can_edit_purchase_info") && <CCRules onError={setError} />}{auth.can("can_create_rfq") && <RFQSubjectSettings onError={setError} />}<div className="kpi-grid three"><div className="kpi-card"><span>RFQ ที่บันทึก</span><strong>{fmt(rows.length)}</strong></div><div className="kpi-card warning"><span>รอใบเสนอราคา</span><strong>{fmt(pendingQuote)}</strong></div><div className="kpi-card success"><span>ได้รับใบเสนอราคา</span><strong>{fmt(rows.length - pendingQuote)}</strong></div></div><section className="panel"><div className="toolbar wrap"><input className="search-input" value={q} onChange={(event) => setQ(event.target.value)} onKeyDown={(event) => event.key === "Enter" && load(true)} placeholder="ค้นหา RFQ / Group Order / Order / Part / Vendor / Email..." /><button className="btn ghost" onClick={() => load(true)}>ค้นหา</button></div>{loading ? <div className="empty">กำลังโหลด...</div> : rows.length === 0 ? <div className="empty">ยังไม่มีรายการขอราคาที่บันทึก</div> : <div className="table-wrap"><table className="po-balance-table"><thead><tr><th>RFQ No.</th><th>Group / JOB</th><th>Order</th><th>Vendor / Email</th><th>วันที่ส่ง / ผู้ส่ง</th><th>ราคา / Lead time</th><th>วันที่จัดส่ง</th><th>Action</th></tr></thead><tbody>{rows.map((row) => <tr key={row.id}><td className="mono-cell"><b>{row.rfq_number}</b></td><td>{row.group_order}<small>{row.job}</small></td><td>{(row.items || []).map((item) => item.order_number).join(", ")}</td><td>{row.vendor || <span className="status warning">รอระบุ Vendor</span>}<small>{row.recipient_email}</small></td><td className="mono-cell">{localDate(row.sent_at)}<small>{row.sent_by || "-"}</small></td><td className="mono-cell">{row.po_balance?.price ? `${money(row.po_balance.price)} ${row.po_balance.currency}` : "-"}<small>{row.po_balance?.lead_time_days == null ? "" : `${row.po_balance.lead_time_days} วัน`}</small></td><td className="mono-cell">{row.po_balance?.vendor_delivery_date || "-"}<small>จริง: {row.po_balance?.actual_delivery_date || "-"}</small></td><td><div className="row-actions"><button className="mini primary" onClick={() => setSelected(row)}>รายละเอียด</button>{(row.email_link || row.gmail_link) && <a className="mini link" href={row.email_link || row.gmail_link} target="_blank" rel="noreferrer">อีเมล</a>}</div></td></tr>)}</tbody></table></div>}</section>{selected && <POBalanceDetail initial={selected} options={options} auth={auth} onClose={() => setSelected(null)} onChanged={(fresh) => { setSelected(fresh); setRows((current) => current.map((row) => row.id === fresh.id ? fresh : row)); }} />}</>;
 }

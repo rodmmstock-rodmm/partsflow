@@ -140,7 +140,6 @@ class SupplierRFQMessage(UUIDMixin):
         related_name="supplier_rfq_messages",
     )
     message = models.TextField(blank=True)
-
     class Meta:
         constraints = [
             models.UniqueConstraint(
@@ -151,6 +150,28 @@ class SupplierRFQMessage(UUIDMixin):
 
     def __str__(self):
         return f"{self.supplier.code} / {self.employee.employee_code}"
+
+
+class EmployeeRFQSubjectSetting(UUIDMixin):
+    employee = models.ForeignKey(
+        Employee,
+        on_delete=models.CASCADE,
+        related_name="rfq_subject_settings",
+    )
+    topic_code = models.CharField(max_length=60, default="RFQ")
+    phrase = models.CharField(max_length=250, blank=True, default="")
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=["employee", "topic_code"],
+                name="uniq_employee_rfq_subject_topic",
+            )
+        ]
+        ordering = ["topic_code"]
+
+    def __str__(self):
+        return f"{self.employee.employee_code} / {self.topic_code}"
 
 
 class Part(LegacyMixin):

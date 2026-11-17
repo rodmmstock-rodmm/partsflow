@@ -10,7 +10,7 @@ from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 
 from .auth_api import require_permission
-from .models import OrderRecord, RFQCCRule, Supplier, SupplierRFQMessage
+from .models import EmployeeRFQSubjectSetting, OrderRecord, RFQCCRule, Supplier, SupplierRFQMessage
 
 
 JOB_CODES = {
@@ -30,7 +30,7 @@ def _date_label(value):
 
 def _job_code(value):
     normalized = str(value or "").strip().upper()
-    return JOB_CODES.get(normalized, normalized or "G")
+    return JOB_CODES.get(normalized, normalized)
 
 
 def _display_width(value):
@@ -102,7 +102,7 @@ def _format_rfq_table_html(orders):
     )
 
 
-def _compose_group(group, vendor, message):
+def _compose_group(group, vendor, message, subject_phrase):
     requesters = []
     for row in group["orders"]:
         name = str(row.ordered_by.name if row.ordered_by else "").strip()
@@ -111,13 +111,13 @@ def _compose_group(group, vendor, message):
 
     parts = [
         vendor.name,
-        "รบกวนขอราคา",
+        subject_phrase or "รบกวนขอราคา",
         group["machine_code"],
-        f'({group["job_code"]})',
+        f'({group["job_code"]})' if group["job_code"] else "",
         ", ".join(requesters),
         _date_label(group["pending_data_date"]),
     ]
-    subject = " ".join(part for part in parts if part).strip()
+    subject = " - ".join(part for part in parts if part).strip()
     remarks = list(dict.fromkeys(
         str(row.remark or "").strip()
         for row in group["orders"]
@@ -209,11 +209,19 @@ def compose_order_rfq_data(request):
             continue
         cc_emails.append(email)
 
-    saved_message = SupplierRFQMessage.objects.filter(
+    user_rfq_message = SupplierRFQMessage.objects.filter(
         supplier=vendor,
         employee=actor,
-    ).values_list("message", flat=True).first()
-    message = str(saved_message or "")
+    ).only("message").first()
+    message = str(user_rfq_message.message if user_rfq_message else "")
+    topic_code = str(request.data.get("subject_topic") or "RFQ").strip().upper()
+    if not topic_code or len(topic_code) > 60:
+        return Response({"detail": "หัวข้อ Subject ไม่ถูกต้อง"}, status=400)
+    subject_phrase = EmployeeRFQSubjectSetting.objects.filter(
+        employee=actor,
+        topic_code=topic_code,
+    ).values_list("phrase", flat=True).first() or ""
+    subject_phrase = str(subject_phrase).strip()
     if not message.strip():
         return Response(
             {"detail": "กรุณาตั้งค่า RFQ Message สำหรับ Vendor รายนี้ในหน้า Vendor ก่อนสร้าง RFQ"},
@@ -243,7 +251,7 @@ def compose_order_rfq_data(request):
         if raw_job:
             for rule in RFQCCRule.objects.filter(
                 active=True, rule_type=RFQCCRule.TYPE_JOB, job__iexact=raw_job
-            ).order_by("email"):
+            ).order_by("created_at", "id"):
                 email = str(rule.email or "").strip().lower()
                 if email and email != primary_email.lower() and email not in groups[key]["cc_emails"]:
                     groups[key]["cc_emails"].append(email)
@@ -251,7 +259,10 @@ def compose_order_rfq_data(request):
 
     return Response({
         "vendor": vendor.name,
-        "groups": [_compose_group(group, vendor, message) for group in groups.values()],
+        "groups": [
+            _compose_group(group, vendor, message, subject_phrase)
+            for group in groups.values()
+        ],
     })
 
 
