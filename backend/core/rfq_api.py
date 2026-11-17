@@ -179,7 +179,7 @@ def _cc_for_job(job):
     rows = RFQCCRule.objects.filter(active=True).filter(
         Q(rule_type=RFQCCRule.TYPE_DEFAULT)
         | Q(rule_type=RFQCCRule.TYPE_JOB, job__iexact=job)
-    )
+    ).order_by("created_at", "id")
     result = []
     for row in rows:
         email = row.email.strip().lower()
@@ -803,7 +803,8 @@ def cc_rules(request):
     if err:
         return err
     if request.method == "GET":
-        return Response({"results": [_cc_rule_json(row) for row in RFQCCRule.objects.all()]})
+        rows = RFQCCRule.objects.order_by("created_at", "id")
+        return Response({"results": [_cc_rule_json(row) for row in rows]})
     rule_type = str(request.data.get("rule_type") or "").strip().upper()
     job = str(request.data.get("job") or "").strip().upper()
     email = str(request.data.get("email") or "").strip().lower()
