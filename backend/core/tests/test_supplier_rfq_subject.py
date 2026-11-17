@@ -69,6 +69,7 @@ class RFQSubjectSettingsTests(TestCase):
     def test_same_user_can_save_multiple_topics(self):
         for topic, phrase in (
             ("RFQ", "ขอราคา"),
+            ("PRICE_UPDATE", "ขออัปเดตราคา"),
             ("DELIVERY_DATE", "ขอแจ้งกำหนดส่ง"),
         ):
             response = self.call_api(self.factory.patch(
@@ -79,12 +80,13 @@ class RFQSubjectSettingsTests(TestCase):
             self.assertEqual(response.status_code, 200)
         self.assertEqual(
             EmployeeRFQSubjectSetting.objects.filter(employee=self.employee).count(),
-            2,
+            3,
         )
 
     def test_patch_rejects_invalid_topic_or_phrase(self):
         invalid_payloads = (
             {"topic_code": "", "phrase": "text"},
+            {"topic_code": "PO_BALANCE", "phrase": "not supported"},
             {"topic_code": "RFQ", "phrase": ["not", "text"]},
             {"topic_code": "RFQ", "phrase": "x" * 251},
         )
