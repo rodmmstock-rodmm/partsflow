@@ -174,10 +174,8 @@ def test_vendor_rfq_message_settings(page):
 
 def test_po_balance_subject_settings(page):
     page.goto(f"{BASE_URL}/po-balance", wait_until="networkidle")
-    settings = page.locator("details.cc-settings").filter(
-        has_text="ตั้งค่าข้อความ Subject สำหรับ Email"
-    )
-    settings.locator("summary").click()
+    page.get_by_role("button", name="ตั้งค่า Subject").click()
+    settings = page.locator(".modal-card.subject-settings-modal")
     phrase_input = settings.get_by_label("ประโยค Subject ขอราคา")
     page.wait_for_function(
         "(selector) => !document.querySelector(selector).disabled",
@@ -190,12 +188,12 @@ def test_po_balance_subject_settings(page):
     ) as save_response:
         settings.get_by_role("button", name="บันทึก Subject").first.click()
     assert save_response.value.status == 200, save_response.value.text()
+    settings.get_by_role("button", name="ปิด").click()
+    settings.wait_for(state="hidden", timeout=10000)
 
     page.reload(wait_until="networkidle")
-    settings = page.locator("details.cc-settings").filter(
-        has_text="ตั้งค่าข้อความ Subject สำหรับ Email"
-    )
-    settings.locator("summary").click()
+    page.get_by_role("button", name="ตั้งค่า Subject").click()
+    settings = page.locator(".modal-card.subject-settings-modal")
     phrase_input = settings.get_by_label("ประโยค Subject ขอราคา")
     page.wait_for_function(
         "(selector) => !document.querySelector(selector).disabled",
