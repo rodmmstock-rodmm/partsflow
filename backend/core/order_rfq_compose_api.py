@@ -30,7 +30,7 @@ def _date_label(value):
 
 def _job_code(value):
     normalized = str(value or "").strip().upper()
-    return JOB_CODES.get(normalized, normalized or "G")
+    return JOB_CODES.get(normalized, normalized)
 
 
 def _display_width(value):
@@ -113,7 +113,7 @@ def _compose_group(group, vendor, message, subject_phrase):
         vendor.name,
         subject_phrase or "รบกวนขอราคา",
         group["machine_code"],
-        f'({group["job_code"]})',
+        f'({group["job_code"]})' if group["job_code"] else "",
         ", ".join(requesters),
         _date_label(group["pending_data_date"]),
     ]
