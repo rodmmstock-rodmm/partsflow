@@ -36,7 +36,10 @@ class PartListPagination(StandardPageNumberPagination):
     """Count filtered Parts without evaluating unused stock/order annotations."""
 
     def get_count(self, queryset):
-        # The page rows still use the fully annotated queryset. Only the
-        # paginator's count query drops stock and active-order annotations,
-        # which are not needed to count the filtered Part primary keys.
-        return queryset.order_by().values("pk").count()
+        # Parts supplies a parallel queryset with the exact same filters but
+        # without stock/order annotations. This avoids Django retaining the
+        # aggregate joins when values("pk") is applied to an annotated query.
+        count_queryset = getattr(self, "count_queryset", None)
+        if count_queryset is not None:
+            return count_queryset.order_by().count()
+        return queryset.count()
