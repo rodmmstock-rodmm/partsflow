@@ -176,17 +176,14 @@ def test_po_balance_subject_settings(page):
         has_text="ตั้งค่าข้อความ Subject สำหรับ RFQ"
     )
     settings.locator("summary").click()
-    vendor_select = settings.get_by_label("เลือก Vendor สำหรับตั้งค่า Subject")
-    vendor_select.select_option(label="RFQ E2E Vendor")
     phrase_input = settings.get_by_label("ประโยค Subject RFQ")
-    phrase_input.wait_for(timeout=10000)
     page.wait_for_function(
         "(selector) => !document.querySelector(selector).disabled",
         arg="[aria-label='ประโยค Subject RFQ']",
     )
     phrase_input.fill("E2E saved RFQ subject phrase")
     with page.expect_response(
-        lambda response: "/rfq-subject/" in response.url and response.request.method == "PATCH",
+        lambda response: "/rfq-subject-settings/" in response.url and response.request.method == "PATCH",
         timeout=10000,
     ) as save_response:
         settings.get_by_role("button", name="บันทึก Subject").click()
@@ -197,9 +194,6 @@ def test_po_balance_subject_settings(page):
         has_text="ตั้งค่าข้อความ Subject สำหรับ RFQ"
     )
     settings.locator("summary").click()
-    settings.get_by_label("เลือก Vendor สำหรับตั้งค่า Subject").select_option(
-        label="RFQ E2E Vendor"
-    )
     phrase_input = settings.get_by_label("ประโยค Subject RFQ")
     page.wait_for_function(
         "(selector) => !document.querySelector(selector).disabled",
