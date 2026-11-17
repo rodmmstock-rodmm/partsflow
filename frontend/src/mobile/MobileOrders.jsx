@@ -69,6 +69,7 @@ export default function MobileOrders() {
   const [selected, setSelected] = useState(() => new Set());
   const [quotationMode, setQuotationMode] = useState(null);
   const [rfqModal, setRfqModal] = useState(false);
+  const [emailType, setEmailType] = useState("RFQ");
   const range = useMemo(() => monthRange(year, month), [year, month]);
   const admin = isAdmin(auth.employee);
 
@@ -339,9 +340,25 @@ export default function MobileOrders() {
         <div className="m-rfq-selection">
           <b>เลือกแล้ว {selectedRows.length} รายการ</b>
           {auth.can("can_create_rfq") && (
-            <button onClick={() => setRfqModal(true)} disabled={!!busy || !selectedRows.every((row) => ["ACTIVE", "WAIT_CONFIRM"].includes(row.lifecycle_status) && !row.cancel_status && !row.received_at)}>
-              ขอราคา (RFQ)
-            </button>
+            <select
+              className="m-send-email-select"
+              aria-label="ส่ง Email"
+              defaultValue=""
+              disabled={!!busy || !selectedRows.every((row) => ["ACTIVE", "WAIT_CONFIRM"].includes(row.lifecycle_status) && !row.cancel_status && !row.received_at)}
+              onChange={(event) => {
+                const type = event.target.value;
+                event.target.value = "";
+                if (type) {
+                  setEmailType(type);
+                  setRfqModal(true);
+                }
+              }}
+            >
+              <option value="">ส่ง Email</option>
+              <option value="RFQ">ขอราคา</option>
+              <option value="PRICE_UPDATE">อัปเดตราคา</option>
+              <option value="DELIVERY_DATE">ตามวันที่จัดส่ง</option>
+            </select>
           )}
           {auth.can("can_edit_purchase_info") && (
             <>
@@ -478,6 +495,7 @@ export default function MobileOrders() {
         <OrderRFQComposeModal
           orders={selectedRows}
           options={options}
+          emailType={emailType}
           onClose={() => setRfqModal(false)}
         />
       )}
