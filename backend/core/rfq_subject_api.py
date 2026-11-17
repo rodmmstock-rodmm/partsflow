@@ -4,40 +4,37 @@ from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 
 from .auth_api import require_permission
-from .models import Supplier, SupplierRFQMessage
+from .models import EmployeeRFQSubjectSetting
 
 
 @csrf_exempt
 @api_view(["GET", "PATCH"])
 @permission_classes([AllowAny])
-def supplier_rfq_subject(request, pk):
+def rfq_subject_settings(request):
     employee, error = require_permission(request, "can_create_rfq")
     if error:
         return error
 
-    supplier = Supplier.objects.filter(pk=pk, active=True).first()
-    if not supplier:
-        return Response({"detail": "ไม่พบ Vendor หรือ Vendor ถูกปิดใช้งาน"}, status=404)
-
     if request.method == "GET":
-        saved = SupplierRFQMessage.objects.filter(
-            supplier=supplier,
+        rows = EmployeeRFQSubjectSetting.objects.filter(
             employee=employee,
-        ).values_list("subject_phrase", flat=True).first()
-        return Response({"subject_phrase": saved or ""})
+        ).values("topic_code", "phrase")
+        return Response({"results": list(rows)})
 
-    phrase = request.data.get("subject_phrase", "")
-    if not isinstance(phrase, str):
-        return Response({"detail": "RFQ Subject ต้องเป็นข้อความ"}, status=400)
+    topic_code = request.data.get("topic_code", "RFQ")
+    phrase = request.data.get("phrase", "")
+    if not isinstance(topic_code, str) or not isinstance(phrase, str):
+        return Response({"detail": "หัวข้อและข้อความ Subject ต้องเป็นข้อความ"}, status=400)
+    topic_code = topic_code.strip().upper()
     phrase = phrase.strip()
+    if not topic_code or len(topic_code) > 60:
+        return Response({"detail": "รหัสหัวข้อไม่ถูกต้อง"}, status=400)
     if len(phrase) > 250:
-        return Response({"detail": "RFQ Subject ต้องไม่เกิน 250 ตัวอักษร"}, status=400)
+        return Response({"detail": "ข้อความ Subject ต้องไม่เกิน 250 ตัวอักษร"}, status=400)
 
-    saved, _ = SupplierRFQMessage.objects.get_or_create(
-        supplier=supplier,
+    saved, _ = EmployeeRFQSubjectSetting.objects.update_or_create(
         employee=employee,
-        defaults={"message": supplier.rfq_message or ""},
+        topic_code=topic_code,
+        defaults={"phrase": phrase},
     )
-    saved.subject_phrase = phrase
-    saved.save(update_fields=["subject_phrase", "updated_at"])
-    return Response({"subject_phrase": saved.subject_phrase})
+    return Response({"topic_code": saved.topic_code, "phrase": saved.phrase})
