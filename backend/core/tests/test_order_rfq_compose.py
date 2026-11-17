@@ -97,6 +97,36 @@ class OrderRFQComposeTests(TestCase):
         self.assertIn("(R)", first_group["subject"])
         self.assertNotIn("Machine name", first_group["subject"])
 
+    def test_uses_saved_vendor_subject_phrase_and_formats_job_without_job_label(self):
+        self.vendor_message.subject_phrase = "ขอใบเสนอราคาสินค้าตามรายการ"
+        self.vendor_message.save(update_fields=["subject_phrase"])
+        order = self.make_order(
+            "ORD-RFQ-CUSTOM-SUBJECT",
+            pending_date=date(2026, 11, 10),
+        )
+
+        response = self.post_compose([str(order.id)])
+
+        self.assertEqual(response.status_code, 200)
+        subject = response.data["groups"][0]["subject"]
+        self.assertEqual(
+            subject,
+            "Vendor Example - ขอใบเสนอราคาสินค้าตามรายการ - MC-RFQ-01 - (R) - Requester One - 10/11/2026",
+        )
+        self.assertNotIn("JOB", subject)
+
+    def test_empty_vendor_subject_phrase_keeps_default_phrase(self):
+        order = self.make_order("ORD-RFQ-DEFAULT-SUBJECT")
+
+        response = self.post_compose([str(order.id)])
+
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(
+            response.data["groups"][0]["subject"].startswith(
+                "Vendor Example - รบกวนขอราคา - MC-RFQ-01 - (R)"
+            )
+        )
+
     def test_order_remarks_are_appended_to_subject_in_order_without_duplicates(self):
         first = self.make_order("ORD-RFQ-REMARK-1", remark="Urgent")
         second = self.make_order("ORD-RFQ-REMARK-2", remark="Line stop")
