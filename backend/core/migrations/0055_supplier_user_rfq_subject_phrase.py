@@ -1,4 +1,5 @@
 from django.db import migrations, models
+import uuid
 import django.db.models.deletion
 
 
@@ -11,7 +12,7 @@ class Migration(migrations.Migration):
         migrations.CreateModel(
             name="EmployeeRFQSubjectSetting",
             fields=[
-                ("id", models.UUIDField(primary_key=True, serialize=False, editable=False)),
+                ("id", models.UUIDField(default=uuid.uuid4, primary_key=True, serialize=False, editable=False)),
                 ("created_at", models.DateTimeField(auto_now_add=True)),
                 ("updated_at", models.DateTimeField(auto_now=True)),
                 ("topic_code", models.CharField(default="RFQ", max_length=60)),
