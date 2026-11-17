@@ -181,7 +181,8 @@ def test_po_balance_subject_settings(page):
     phrase_input = settings.get_by_label("ประโยค Subject RFQ")
     phrase_input.wait_for(timeout=10000)
     page.wait_for_function(
-        "() => document.querySelector('[aria-label="ประโยค Subject RFQ"]')?.disabled === false"
+        "(selector) => !document.querySelector(selector).disabled",
+        "[aria-label='ประโยค Subject RFQ']",
     )
     phrase_input.fill("E2E saved RFQ subject phrase")
     with page.expect_response(
@@ -201,7 +202,8 @@ def test_po_balance_subject_settings(page):
     )
     phrase_input = settings.get_by_label("ประโยค Subject RFQ")
     page.wait_for_function(
-        "() => document.querySelector('[aria-label="ประโยค Subject RFQ"]')?.disabled === false"
+        "(selector) => !document.querySelector(selector).disabled",
+        "[aria-label='ประโยค Subject RFQ']",
     )
     assert phrase_input.input_value() == "E2E saved RFQ subject phrase"
 
