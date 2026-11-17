@@ -50,7 +50,7 @@ from .models import (
     SupplierContact,
     Unit,
 )
-from .pagination import StandardPageNumberPagination
+from .pagination import PartListPagination, StandardPageNumberPagination
 from .serializers import (
     PART_LIST_ONLY_FIELDS,
     PartDetailSerializer,
@@ -438,7 +438,7 @@ def parts_list(request):
             qs = qs.exclude(phase11)
 
         qs = qs.order_by("sku")
-        paginator = StandardPageNumberPagination()
+        paginator = PartListPagination()
         page_rows = paginator.paginate_queryset(qs, request)
         rows = PartListSerializer(page_rows, many=True).data
         return paginator.get_paginated_response(rows)
