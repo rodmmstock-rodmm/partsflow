@@ -170,10 +170,47 @@ def test_vendor_rfq_message_settings(page):
     dialog.wait_for(state="hidden", timeout=10000)
 
 
+def test_po_balance_subject_settings(page):
+    page.goto(f"{BASE_URL}/po-balance", wait_until="networkidle")
+    settings = page.locator("details.cc-settings").filter(
+        has_text="ตั้งค่าข้อความ Subject สำหรับ RFQ"
+    )
+    settings.locator("summary").click()
+    vendor_select = settings.get_by_label("เลือก Vendor สำหรับตั้งค่า Subject")
+    vendor_select.select_option(label="RFQ E2E Vendor")
+    phrase_input = settings.get_by_label("ประโยค Subject RFQ")
+    phrase_input.wait_for(timeout=10000)
+    page.wait_for_function(
+        "() => document.querySelector('[aria-label="ประโยค Subject RFQ"]')?.disabled === false"
+    )
+    phrase_input.fill("E2E saved RFQ subject phrase")
+    with page.expect_response(
+        lambda response: "/rfq-subject/" in response.url and response.request.method == "PATCH",
+        timeout=10000,
+    ) as save_response:
+        settings.get_by_role("button", name="บันทึก Subject").click()
+    assert save_response.value.status == 200, save_response.value.text()
+
+    page.reload(wait_until="networkidle")
+    settings = page.locator("details.cc-settings").filter(
+        has_text="ตั้งค่าข้อความ Subject สำหรับ RFQ"
+    )
+    settings.locator("summary").click()
+    settings.get_by_label("เลือก Vendor สำหรับตั้งค่า Subject").select_option(
+        label="RFQ E2E Vendor"
+    )
+    phrase_input = settings.get_by_label("ประโยค Subject RFQ")
+    page.wait_for_function(
+        "() => document.querySelector('[aria-label="ประโยค Subject RFQ"]')?.disabled === false"
+    )
+    assert phrase_input.input_value() == "E2E saved RFQ subject phrase"
+
+
 def test_desktop_order_rfq_gmail_compose(browser):
     page = browser.new_page(viewport={"width": 1440, "height": 1000})
     login(page)
     test_vendor_rfq_message_settings(page)
+    test_po_balance_subject_settings(page)
     captured = mock_rfq_compose_api(page)
     select_orders_and_vendor(page)
     assert_gmail_compose(page, captured)
