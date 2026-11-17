@@ -1,3 +1,5 @@
+from django.core.paginator import Paginator
+from django.utils.functional import cached_property
 from rest_framework.pagination import PageNumberPagination
 from rest_framework.response import Response
 
@@ -32,14 +34,20 @@ class StockTransactionPagination(StandardPageNumberPagination):
     max_page_size = 100
 
 
+class PartListDjangoPaginator(Paginator):
+    """Use a lightweight filtered count queryset when one is attached."""
+
+    @cached_property
+    def count(self):
+        count_queryset = getattr(
+            self.object_list, "partsflow_count_queryset", None
+        )
+        if count_queryset is not None:
+            return count_queryset.order_by().count()
+        return super().count
+
+
 class PartListPagination(StandardPageNumberPagination):
     """Count filtered Parts without evaluating unused stock/order annotations."""
 
-    def get_count(self, queryset):
-        # Parts supplies a parallel queryset with the exact same filters but
-        # without stock/order annotations. This avoids Django retaining the
-        # aggregate joins when values("pk") is applied to an annotated query.
-        count_queryset = getattr(self, "count_queryset", None)
-        if count_queryset is not None:
-            return count_queryset.order_by().count()
-        return queryset.count()
+    django_paginator_class = PartListDjangoPaginator
