@@ -951,3 +951,23 @@ html body input[type="radio"]:focus-visible{outline:2px solid var(--brand, #3978
   border-radius: 50%;
   border: 1px solid #dbe3ec;
 }
+
+/* Email action dropdowns in desktop and mobile Order selection bars */
+.bulk-v9 select.btn.primary {
+  appearance: auto;
+  min-height: 36px;
+  cursor: pointer;
+}
+.m-rfq-selection select.m-send-email-select {
+  border: 0;
+  border-radius: 8px;
+  padding: 7px 9px;
+  min-height: 32px;
+  max-width: 145px;
+  background: #2e6398;
+  color: #fff;
+  font-size: 11px;
+}
+.m-rfq-selection select.m-send-email-select:disabled {
+  opacity: .55;
+}
