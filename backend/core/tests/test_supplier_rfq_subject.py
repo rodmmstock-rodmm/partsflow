@@ -24,6 +24,7 @@ class SupplierRFQSubjectTests(TestCase):
             code="RFQ-SUBJECT-VENDOR-01",
             name="RFQ Subject Vendor",
             email="subject@example.com",
+            rfq_message="Legacy default RFQ message",
         )
 
     def call_api(self, request, employee=None):
@@ -51,6 +52,11 @@ class SupplierRFQSubjectTests(TestCase):
             ).subject_phrase,
             "ขอใบเสนอราคาสินค้า",
         )
+        saved = SupplierRFQMessage.objects.get(
+            supplier=self.supplier,
+            employee=self.employee,
+        )
+        self.assertEqual(saved.message, "Legacy default RFQ message")
         self.assertFalse(
             SupplierRFQMessage.objects.filter(
                 supplier=self.supplier,
