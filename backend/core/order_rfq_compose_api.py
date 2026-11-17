@@ -251,7 +251,7 @@ def compose_order_rfq_data(request):
         if raw_job:
             for rule in RFQCCRule.objects.filter(
                 active=True, rule_type=RFQCCRule.TYPE_JOB, job__iexact=raw_job
-            ).order_by("email"):
+            ).order_by("created_at", "id"):
                 email = str(rule.email or "").strip().lower()
                 if email and email != primary_email.lower() and email not in groups[key]["cc_emails"]:
                     groups[key]["cc_emails"].append(email)
