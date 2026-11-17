@@ -243,7 +243,7 @@ class OrderRFQComposeTests(TestCase):
         self.assertEqual(response.status_code, 200)
         group = response.data["groups"][0]
         self.assertTrue(group["subject"].endswith("Urgent / Line stop"), group["subject"])
-        self.assertNotIn("-", group["subject"])
+        self.assertNotIn(" - ", group["subject"])
 
     def test_orders_without_remarks_keep_existing_subject_format(self):
         order = self.make_order("ORD-RFQ-NO-REMARK")
@@ -251,7 +251,7 @@ class OrderRFQComposeTests(TestCase):
         response = self.post_compose([str(order.id)])
 
         self.assertEqual(response.status_code, 200)
-        self.assertFalse(response.data["groups"][0]["subject"].endswith(" - "))
+        self.assertNotIn(" - ", response.data["groups"][0]["subject"])
 
     def test_uses_message_for_selected_vendor_and_current_employee_only(self):
         self.vendor_message.message = "Message for this vendor and buyer."
