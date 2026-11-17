@@ -188,7 +188,7 @@ def test_po_balance_subject_settings(page):
         lambda response: "/rfq-subject-settings/" in response.url and response.request.method == "PATCH",
         timeout=10000,
     ) as save_response:
-        settings.get_by_role("button", name="บันทึก Subject").click()
+        settings.get_by_role("button", name="บันทึก Subject").first.click()
     assert save_response.value.status == 200, save_response.value.text()
 
     page.reload(wait_until="networkidle")
