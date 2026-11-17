@@ -68,6 +68,11 @@ TEMPLATES = [{
 }]
 WSGI_APPLICATION = "config.wsgi.application"
 
+# Reuse Django database connections briefly on the long-running Render API.
+# Supabase is connected through the Session-mode pooler; setting this to 0
+# remains available for serverless deployments or connection troubleshooting.
+DB_CONN_MAX_AGE = max(0, env_int("DB_CONN_MAX_AGE", 60))
+
 LOCAL_DB_PATH = os.getenv("PARTSFLOW_LOCAL_DB", "").strip()
 if LOCAL_DB_PATH:
     DATABASES = {
@@ -80,7 +85,7 @@ else:
     DATABASES = {
         "default": dj_database_url.config(
             default=os.getenv("DATABASE_URL", "sqlite:///db.sqlite3"),
-            conn_max_age=0,
+            conn_max_age=DB_CONN_MAX_AGE,
             conn_health_checks=True,
         )
     }
