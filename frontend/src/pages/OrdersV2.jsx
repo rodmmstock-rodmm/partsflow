@@ -171,6 +171,7 @@ function CompactOrderTable({
 }
 
 function BulkBar({ rows, auth, busy, onRun, onClear, onOrderQuotation, onVendorOrder, onEmail }){
+  const [emailType, setEmailType] = useState("");
   if(!rows.length) return null;
   const canPurchase=rows.some(x=>["ACTIVE","WAIT_CONFIRM"].includes(x.lifecycle_status));
   const canWait=rows.some(x=>x.lifecycle_status==="ACTIVE");
@@ -178,7 +179,6 @@ function BulkBar({ rows, auth, busy, onRun, onClear, onOrderQuotation, onVendorO
   const canAct=rows.some(x=>["ACTIVE","WAIT_CONFIRM"].includes(x.lifecycle_status));
   const canRestore=rows.some(x=>x.lifecycle_status==="CANCELLED");
   const canRfq=rows.every(x=>["ACTIVE","WAIT_CONFIRM"].includes(x.lifecycle_status) && !x.cancel_status && !x.received_at);
-  const [emailType, setEmailType] = useState("");
   return <div className="bulk-v9"><b>เลือกแล้ว {rows.length} รายการ</b>
     {auth.can("can_create_rfq")&&<select className="btn primary" aria-label="ส่ง Email" value={emailType} disabled={busy||!canRfq} onChange={event=>{const value=event.target.value;setEmailType("");if(value)onEmail(value);}}>
       <option value="">ส่ง Email</option>
