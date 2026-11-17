@@ -753,7 +753,8 @@ class RFQCCRule(UUIDMixin):
     )
 
     class Meta:
-        ordering = ["rule_type", "job", "email"]
+        # Preserve the order in which recipients were added in the Order CC settings.
+        ordering = ["created_at", "id"]
         constraints = [
             models.UniqueConstraint(
                 fields=["rule_type", "job", "email"],
