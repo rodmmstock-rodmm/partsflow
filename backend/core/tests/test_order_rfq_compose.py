@@ -139,6 +139,17 @@ class OrderRFQComposeTests(TestCase):
             )
         )
 
+    def test_subject_omits_job_parentheses_when_job_is_blank(self):
+        order = self.make_order("ORD-RFQ-NO-JOB", job="")
+
+        response = self.post_compose([str(order.id)])
+
+        self.assertEqual(response.status_code, 200)
+        subject = response.data["groups"][0]["subject"]
+        self.assertNotIn("()", subject)
+        self.assertNotIn("(G)", subject)
+        self.assertNotIn("JOB", subject)
+
     def test_order_remarks_are_appended_to_subject_in_order_without_duplicates(self):
         first = self.make_order("ORD-RFQ-REMARK-1", remark="Urgent")
         second = self.make_order("ORD-RFQ-REMARK-2", remark="Line stop")
