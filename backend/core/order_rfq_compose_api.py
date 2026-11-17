@@ -102,7 +102,7 @@ def _format_rfq_table_html(orders):
     )
 
 
-def _compose_group(group, vendor, message):
+def _compose_group(group, vendor, message, subject_phrase):
     requesters = []
     for row in group["orders"]:
         name = str(row.ordered_by.name if row.ordered_by else "").strip()
@@ -111,13 +111,13 @@ def _compose_group(group, vendor, message):
 
     parts = [
         vendor.name,
-        "รบกวนขอราคา",
+        subject_phrase or "รบกวนขอราคา",
         group["machine_code"],
         f'({group["job_code"]})',
         ", ".join(requesters),
         _date_label(group["pending_data_date"]),
     ]
-    subject = " ".join(part for part in parts if part).strip()
+    subject = " - ".join(part for part in parts if part).strip()
     remarks = list(dict.fromkeys(
         str(row.remark or "").strip()
         for row in group["orders"]
@@ -214,6 +214,11 @@ def compose_order_rfq_data(request):
         employee=actor,
     ).values_list("message", flat=True).first()
     message = str(saved_message or "")
+    saved_subject_phrase = SupplierRFQMessage.objects.filter(
+        supplier=vendor,
+        employee=actor,
+    ).values_list("subject_phrase", flat=True).first()
+    subject_phrase = str(saved_subject_phrase or "").strip()
     if not message.strip():
         return Response(
             {"detail": "กรุณาตั้งค่า RFQ Message สำหรับ Vendor รายนี้ในหน้า Vendor ก่อนสร้าง RFQ"},
@@ -251,7 +256,10 @@ def compose_order_rfq_data(request):
 
     return Response({
         "vendor": vendor.name,
-        "groups": [_compose_group(group, vendor, message) for group in groups.values()],
+        "groups": [
+            _compose_group(group, vendor, message, subject_phrase)
+            for group in groups.values()
+        ],
     })
 
 
