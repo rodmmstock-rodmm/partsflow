@@ -102,33 +102,45 @@ def _format_rfq_table_html(orders):
     )
 
 
-def _compose_group(group, vendor, message, subject_phrase):
+def _compose_group(group, vendor, message, subject_phrase, topic_code):
     requesters = []
     for row in group["orders"]:
         name = str(row.ordered_by.name if row.ordered_by else "").strip()
         if name and name not in requesters:
             requesters.append(name)
 
-    parts = [
-        vendor.name,
-        subject_phrase or "รบกวนขอราคา",
-        group["machine_code"],
-        f'({group["job_code"]})' if group["job_code"] else "",
-        ", ".join(requesters),
-        _date_label(group["pending_data_date"]),
-    ]
-    subject = " - ".join(part for part in parts if part).strip()
+    part_ids = list(dict.fromkeys(
+        str(row.part.sku).strip()
+        for row in group["orders"]
+        if row.part and str(row.part.sku or "").strip()
+    ))
+    if part_ids:
+        item_label = ", ".join(part_ids)
+    else:
+        item_label = " ".join(
+            value for value in (
+                group.get("machine_name", ""),
+                f'({group["job_code"]})' if group["job_code"] else "",
+            ) if value
+        )
+
     remarks = list(dict.fromkeys(
         str(row.remark or "").strip()
         for row in group["orders"]
         if str(row.remark or "").strip()
     ))
-    if remarks:
-        subject = f"{subject} - {' / '.join(remarks)}"
+    parts = [
+        vendor.name,
+        subject_phrase,
+        item_label,
+        ", ".join(requesters),
+        " / ".join(remarks),
+    ]
+    subject = " ".join(str(part).strip() for part in parts if str(part or "").strip())
 
     table = _format_rfq_table(group["orders"])
     table_html = _format_rfq_table_html(group["orders"])
-    body = f"{message}\n\n{table}" if message else table
+    body = f"{message}\\n\\n{table}" if message else table
 
     return {
         "group_key": group["key"],
@@ -144,7 +156,6 @@ def _compose_group(group, vendor, message, subject_phrase):
         "table_html": table_html,
         "table_text": table,
     }
-
 
 def compose_order_rfq_data(request):
     actor, err = require_permission(request, "can_create_rfq")
@@ -209,24 +220,36 @@ def compose_order_rfq_data(request):
             continue
         cc_emails.append(email)
 
-    user_rfq_message = SupplierRFQMessage.objects.filter(
-        supplier=vendor,
-        employee=actor,
-    ).only("message").first()
-    message = str(user_rfq_message.message if user_rfq_message else "")
     topic_code = str(request.data.get("subject_topic") or "RFQ").strip().upper()
-    if not topic_code or len(topic_code) > 60:
-        return Response({"detail": "หัวข้อ Subject ไม่ถูกต้อง"}, status=400)
+    if topic_code not in {"RFQ", "PRICE_UPDATE", "DELIVERY_DATE"}:
+        return Response({"detail": "ประเภทอีเมลไม่ถูกต้อง"}, status=400)
+
+    defaults = {
+        "RFQ": "รบกวนขอราคา",
+        "PRICE_UPDATE": "รบกวนอัปเดตราคา",
+        "DELIVERY_DATE": "รบกวนแจ้งกำหนดการจัดส่ง",
+    }
     subject_phrase = EmployeeRFQSubjectSetting.objects.filter(
         employee=actor,
         topic_code=topic_code,
-    ).values_list("phrase", flat=True).first() or ""
-    subject_phrase = str(subject_phrase).strip()
-    if not message.strip():
-        return Response(
-            {"detail": "กรุณาตั้งค่า RFQ Message สำหรับ Vendor รายนี้ในหน้า Vendor ก่อนสร้าง RFQ"},
-            status=400,
-        )
+    ).values_list("phrase", flat=True).first() or defaults[topic_code]
+    subject_phrase = str(subject_phrase).strip() or defaults[topic_code]
+
+    if topic_code == "RFQ":
+        user_rfq_message = SupplierRFQMessage.objects.filter(
+            supplier=vendor,
+            employee=actor,
+        ).only("message").first()
+        message = str(user_rfq_message.message if user_rfq_message else "")
+        if not message.strip():
+            return Response(
+                {"detail": "กรุณาตั้งค่า RFQ Message สำหรับ Vendor รายนี้ในหน้า Vendor ก่อนสร้าง RFQ"},
+                status=400,
+            )
+    elif topic_code == "PRICE_UPDATE":
+        message = "เรียน ผู้ขาย\\n\\nรบกวนอัปเดตราคาสินค้าตามรายการด้านล่าง พร้อมแจ้งราคาและเงื่อนไขล่าสุดกลับด้วยครับ/ค่ะ"
+    else:
+        message = "เรียน ผู้ขาย\\n\\nรบกวนยืนยันกำหนดการจัดส่งล่าสุดของรายการด้านล่าง พร้อมแจ้งวันที่คาดว่าจะจัดส่งครับ/ค่ะ"
 
     groups = OrderedDict()
     for order_id in ordered_ids:
@@ -243,6 +266,7 @@ def compose_order_rfq_data(request):
             groups[key] = {
                 "key": "|".join(key),
                 "machine_code": machine_code,
+                "machine_name": str(order.machine.name if order.machine else "").strip(),
                 "job_code": job_code,
                 "pending_data_date": pending_date,
                 "orders": [],
@@ -260,7 +284,7 @@ def compose_order_rfq_data(request):
     return Response({
         "vendor": vendor.name,
         "groups": [
-            _compose_group(group, vendor, message, subject_phrase)
+            _compose_group(group, vendor, message, subject_phrase, topic_code)
             for group in groups.values()
         ],
     })
