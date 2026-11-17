@@ -140,6 +140,7 @@ class SupplierRFQMessage(UUIDMixin):
         related_name="supplier_rfq_messages",
     )
     message = models.TextField(blank=True)
+    subject_phrase = models.CharField(max_length=250, blank=True, default="")
 
     class Meta:
         constraints = [
