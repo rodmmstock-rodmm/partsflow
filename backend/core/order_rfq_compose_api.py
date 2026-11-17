@@ -10,7 +10,7 @@ from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 
 from .auth_api import require_permission
-from .models import OrderRecord, RFQCCRule, Supplier, SupplierRFQMessage
+from .models import EmployeeRFQSubjectSetting, OrderRecord, RFQCCRule, Supplier, SupplierRFQMessage
 
 
 JOB_CODES = {
@@ -209,14 +209,19 @@ def compose_order_rfq_data(request):
             continue
         cc_emails.append(email)
 
-    user_rfq_settings = SupplierRFQMessage.objects.filter(
+    user_rfq_message = SupplierRFQMessage.objects.filter(
         supplier=vendor,
         employee=actor,
-    ).only("message", "subject_phrase").first()
-    message = str(user_rfq_settings.message if user_rfq_settings else "")
-    subject_phrase = str(
-        user_rfq_settings.subject_phrase if user_rfq_settings else ""
-    ).strip()
+    ).only("message").first()
+    message = str(user_rfq_message.message if user_rfq_message else "")
+    topic_code = str(request.data.get("subject_topic") or "RFQ").strip().upper()
+    if not topic_code or len(topic_code) > 60:
+        return Response({"detail": "หัวข้อ Subject ไม่ถูกต้อง"}, status=400)
+    subject_phrase = EmployeeRFQSubjectSetting.objects.filter(
+        employee=actor,
+        topic_code=topic_code,
+    ).values_list("phrase", flat=True).first() or ""
+    subject_phrase = str(subject_phrase).strip()
     if not message.strip():
         return Response(
             {"detail": "กรุณาตั้งค่า RFQ Message สำหรับ Vendor รายนี้ในหน้า Vendor ก่อนสร้าง RFQ"},
