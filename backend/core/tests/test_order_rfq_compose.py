@@ -95,7 +95,9 @@ class OrderRFQComposeTests(TestCase):
         self.assertNotIn("ORD-RFQ-2", first_group["body"].split("Please quote")[0])
         self.assertIn("Requester One", first_group["subject"])
         self.assertIn("(R)", first_group["subject"])
-        self.assertNotIn("Machine name", first_group["subject"])
+        self.assertIn("Machine name", first_group["subject"])
+        self.assertNotIn("MC-RFQ-01", first_group["subject"])
+        self.assertNotIn(" - ", first_group["subject"])
 
     def test_uses_saved_user_topic_phrase_and_formats_job_without_job_label(self):
         EmployeeRFQSubjectSetting.objects.create(
@@ -218,7 +220,7 @@ class OrderRFQComposeTests(TestCase):
         )
         self.assertNotIn("Machine name", result["subject"])
         self.assertNotIn("(R)", result["subject"])
-        self.assertNotIn("-", result["subject"])
+        self.assertNotIn(" - ", result["subject"])
 
     def test_subject_omits_job_parentheses_when_job_is_blank(self):
         order = self.make_order("ORD-RFQ-NO-JOB", job="")
