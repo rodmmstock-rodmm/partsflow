@@ -30,3 +30,13 @@ class StockTransactionPagination(StandardPageNumberPagination):
 
     page_size = 100
     max_page_size = 100
+
+
+class PartListPagination(StandardPageNumberPagination):
+    """Count filtered Parts without evaluating unused stock/order annotations."""
+
+    def get_count(self, queryset):
+        # The page rows still use the fully annotated queryset. Only the
+        # paginator's count query drops stock and active-order annotations,
+        # which are not needed to count the filtered Part primary keys.
+        return queryset.order_by().values("pk").count()
