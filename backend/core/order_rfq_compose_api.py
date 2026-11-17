@@ -209,16 +209,14 @@ def compose_order_rfq_data(request):
             continue
         cc_emails.append(email)
 
-    saved_message = SupplierRFQMessage.objects.filter(
+    user_rfq_settings = SupplierRFQMessage.objects.filter(
         supplier=vendor,
         employee=actor,
-    ).values_list("message", flat=True).first()
-    message = str(saved_message or "")
-    saved_subject_phrase = SupplierRFQMessage.objects.filter(
-        supplier=vendor,
-        employee=actor,
-    ).values_list("subject_phrase", flat=True).first()
-    subject_phrase = str(saved_subject_phrase or "").strip()
+    ).only("message", "subject_phrase").first()
+    message = str(user_rfq_settings.message if user_rfq_settings else "")
+    subject_phrase = str(
+        user_rfq_settings.subject_phrase if user_rfq_settings else ""
+    ).strip()
     if not message.strip():
         return Response(
             {"detail": "กรุณาตั้งค่า RFQ Message สำหรับ Vendor รายนี้ในหน้า Vendor ก่อนสร้าง RFQ"},
