@@ -443,8 +443,10 @@ def parts_list(request):
             count_qs = count_qs.exclude(phase11)
 
         qs = qs.order_by("sku")
+        # Django's Paginator reads count from the queryset. Attach a separate
+        # filter-equivalent queryset so the count avoids the stock/order joins.
+        qs.partsflow_count_queryset = count_qs
         paginator = PartListPagination()
-        paginator.count_queryset = count_qs
         page_rows = paginator.paginate_queryset(qs, request)
         rows = PartListSerializer(page_rows, many=True).data
         return paginator.get_paginated_response(rows)
