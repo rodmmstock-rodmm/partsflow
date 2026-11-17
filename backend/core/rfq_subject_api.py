@@ -69,7 +69,7 @@ def supplier_rfq_subject(request, pk):
     saved, _ = SupplierRFQMessage.objects.get_or_create(
         supplier=supplier,
         employee=employee,
-        defaults={"message": ""},
+        defaults={"message": supplier.rfq_message or ""},
     )
     saved.subject_phrase = phrase
     saved.save(update_fields=["subject_phrase", "updated_at"])
