@@ -129,7 +129,7 @@ class OrderRFQComposeTests(TestCase):
         subject = response.data["groups"][0]["subject"]
         self.assertEqual(
             subject,
-            "Vendor Example - ขอใบเสนอราคาสินค้าตามรายการ - MC-RFQ-01 - (R) - Requester One - 10/11/2026",
+            "Vendor Example ขอใบเสนอราคาสินค้าตามรายการ Machine name (R) Requester One",
         )
         self.assertNotIn("JOB", subject)
         self.assertNotIn("Private phrase for another buyer", subject)
@@ -142,7 +142,7 @@ class OrderRFQComposeTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertTrue(
             response.data["groups"][0]["subject"].startswith(
-                "Vendor Example - รบกวนขอราคา - MC-RFQ-01 - (R)"
+                "Vendor Example รบกวนขอราคา Machine name (R)"
             )
         )
 
@@ -162,6 +162,29 @@ class OrderRFQComposeTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertIn("ขอแจ้งกำหนดส่ง", response.data["groups"][0]["subject"])
         self.assertNotIn("รบกวนขอราคา", response.data["groups"][0]["subject"])
+
+    def test_price_update_and_delivery_date_use_their_own_user_phrases(self):
+        order = self.make_order("ORD-RFQ-EMAIL-TYPES")
+        EmployeeRFQSubjectSetting.objects.create(
+            employee=self.actor,
+            topic_code="PRICE_UPDATE",
+            phrase="ขออัปเดตราคาล่าสุด",
+        )
+        EmployeeRFQSubjectSetting.objects.create(
+            employee=self.actor,
+            topic_code="DELIVERY_DATE",
+            phrase="ขอยืนยันวันจัดส่ง",
+        )
+
+        price_response = self.post_compose([str(order.id)], subject_topic="PRICE_UPDATE")
+        delivery_response = self.post_compose([str(order.id)], subject_topic="DELIVERY_DATE")
+
+        self.assertEqual(price_response.status_code, 200)
+        self.assertEqual(delivery_response.status_code, 200)
+        self.assertIn("ขออัปเดตราคาล่าสุด", price_response.data["groups"][0]["subject"])
+        self.assertIn("ขอยืนยันวันจัดส่ง", delivery_response.data["groups"][0]["subject"])
+        self.assertIn("อัปเดตราคาสินค้า", price_response.data["groups"][0]["message"])
+        self.assertIn("กำหนดการจัดส่ง", delivery_response.data["groups"][0]["message"])
 
     def test_subject_omits_job_parentheses_when_job_is_blank(self):
         order = self.make_order("ORD-RFQ-NO-JOB", job="")
@@ -183,7 +206,8 @@ class OrderRFQComposeTests(TestCase):
 
         self.assertEqual(response.status_code, 200)
         group = response.data["groups"][0]
-        self.assertTrue(group["subject"].endswith(" - Urgent / Line stop"), group["subject"])
+        self.assertTrue(group["subject"].endswith("Urgent / Line stop"), group["subject"])
+        self.assertNotIn("-", group["subject"])
 
     def test_orders_without_remarks_keep_existing_subject_format(self):
         order = self.make_order("ORD-RFQ-NO-REMARK")
