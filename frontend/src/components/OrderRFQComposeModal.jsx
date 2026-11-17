@@ -74,8 +74,10 @@ async function copyTableAndOpenGroup(group, onError, onCopied) {
   }
 }
 
-export default function OrderRFQComposeModal({ orders, options, onClose, onOpened }) {
+export default function OrderRFQComposeModal({ orders, options, onClose, onOpened, emailType = "RFQ" }) {
   const orderIds = useMemo(() => (orders || []).map((row) => row.id), [orders]);
+  const emailLabels = { RFQ: "ขอราคา", PRICE_UPDATE: "อัปเดตราคา", DELIVERY_DATE: "ตามวันที่จัดส่ง" };
+  const emailLabel = emailLabels[emailType] || emailLabels.RFQ;
   const [vendorId, setVendorId] = useState("");
   const [groups, setGroups] = useState([]);
   const [error, setError] = useState("");
@@ -94,13 +96,14 @@ export default function OrderRFQComposeModal({ orders, options, onClose, onOpene
       const result = await apiPost("/orders/rfq-compose/", {
         order_ids: orderIds,
         vendor_id: vendorId,
+        subject_topic: emailType,
       });
       const nextGroups = result.groups || [];
       if (!nextGroups.length) throw new Error("ไม่พบกลุ่ม Order สำหรับสร้างอีเมล");
       setGroups(nextGroups);
       onOpened?.();
     } catch (err) {
-      setError(err.message || "เตรียมอีเมล RFQ ไม่สำเร็จ");
+      setError(err.message || "เตรียมอีเมลไม่สำเร็จ");
     } finally {
       setBusy(false);
     }
@@ -114,13 +117,13 @@ export default function OrderRFQComposeModal({ orders, options, onClose, onOpene
   }
 
   return (
-    <Modal title={`สร้างอีเมลขอราคา RFQ · ${orderIds.length} Order`} onClose={onClose} wide>
+    <Modal title={`สร้างอีเมล${emailLabel} · ${orderIds.length} Order`} onClose={onClose} wide>
       <form onSubmit={createEmails}>
         <Alert>{error}</Alert>
         {groups.length === 1 ? (
           <>
             <div className="alert success">
-              เตรียมอีเมล RFQ แล้ว กดปุ่มด้านล่างเพื่อคัดลอกตารางแบบ Excel และเปิด Gmail จากนั้นวางตารางในเนื้อหาอีเมล
+              เตรียมอีเมลแล้ว กดปุ่มด้านล่างเพื่อคัดลอกตารางแบบ Excel และเปิด Gmail จากนั้นวางตารางในเนื้อหาอีเมล
             </div>
             <section className="rfq-result">
               <div>
@@ -144,7 +147,7 @@ export default function OrderRFQComposeModal({ orders, options, onClose, onOpene
           </>
         ) : groups.length > 1 ? (
           <>
-            <div className="alert success">เตรียมอีเมล RFQ แล้ว แยกตามกลุ่มข้อมูล กรุณาคัดลอกและเปิด Gmail ทีละฉบับ</div>
+            <div className="alert success">เตรียมอีเมลแล้ว แยกตามกลุ่มข้อมูล กรุณาคัดลอกและเปิด Gmail ทีละฉบับ</div>
             <div className="rfq-result-list">
               {groups.map((group, index) => (
                 <section className="rfq-result" key={group.group_key || index}>
@@ -184,7 +187,7 @@ export default function OrderRFQComposeModal({ orders, options, onClose, onOpene
             <div className="modal-actions">
               <button type="button" className="btn ghost" onClick={onClose}>ยกเลิก</button>
               <button className="btn primary" disabled={busy || !vendorId}>
-                {busy ? "กำลังเตรียมอีเมล..." : "เตรียมอีเมล RFQ"}
+                {busy ? "กำลังเตรียมอีเมล..." : `เตรียมอีเมล${emailLabel}`}
               </button>
             </div>
           </>
