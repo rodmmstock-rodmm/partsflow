@@ -193,13 +193,13 @@ def test_po_balance_subject_settings(page):
 
     page.reload(wait_until="networkidle")
     settings = page.locator("details.cc-settings").filter(
-        has_text="ตั้งค่าข้อความ Subject สำหรับ RFQ"
+        has_text="ตั้งค่าข้อความ Subject สำหรับ Email"
     )
     settings.locator("summary").click()
-    phrase_input = settings.get_by_label("ประโยค Subject RFQ")
+    phrase_input = settings.get_by_label("ประโยค Subject ขอราคา")
     page.wait_for_function(
         "(selector) => !document.querySelector(selector).disabled",
-        arg="[aria-label='ประโยค Subject RFQ']",
+        arg="[aria-label='ประโยค Subject ขอราคา']",
     )
     assert phrase_input.input_value() == "E2E saved RFQ subject phrase"
 
