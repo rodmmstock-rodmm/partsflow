@@ -85,10 +85,10 @@ def _is_truthy(value):
 
 def permissions_for(employee):
     role_name = (employee.role or "").strip()
-    role = RoleAccess.objects.filter(
-        role_name__iexact=role_name, active=True
-    ).first()
-    if role:
+    # Fetch the role once. The previous active-role lookup followed by a
+    # separate exists() check doubled role-table reads for disabled roles.
+    role = RoleAccess.objects.filter(role_name__iexact=role_name).first()
+    if role and role.active:
         permissions = {field: bool(getattr(role, field)) for field in PERMISSION_FIELDS}
         if permissions.get("can_delete_tooling_keys") or permissions.get("can_edit_tooling_key_details") or permissions.get("can_edit_tooling_key_history"):
             permissions["can_view_tooling_keys"] = True
@@ -96,7 +96,7 @@ def permissions_for(employee):
 
     # A role that exists but has been disabled must not silently inherit the
     # legacy default permissions (or the ADMIN fallback). Fail closed instead.
-    if role_name and RoleAccess.objects.filter(role_name__iexact=role_name).exists():
+    if role:
         return {field: False for field in PERMISSION_FIELDS}
 
     if role_name.lower() in {"admin", "administrator"}:

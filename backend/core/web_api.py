@@ -50,7 +50,7 @@ from .models import (
     SupplierContact,
     Unit,
 )
-from .pagination import StandardPageNumberPagination
+from .pagination import PartListPagination, StandardPageNumberPagination
 from .serializers import (
     PART_LIST_ONLY_FIELDS,
     PartDetailSerializer,
@@ -414,15 +414,18 @@ def parts_list(request):
         is_active = active_raw not in {"0", "false", "inactive", "no"}
 
         qs = base_parts().only(*PART_LIST_ONLY_FIELDS).filter(active=is_active)
+        count_qs = Part.objects.filter(active=is_active)
 
         if q:
-            qs = qs.filter(
+            search_filter = (
                 Q(sku__icontains=q)
                 | Q(name__icontains=q)
                 | Q(description__icontains=q)
                 | Q(maker__name__icontains=q)
                 | Q(location__code__icontains=q)
             )
+            qs = qs.filter(search_filter)
+            count_qs = count_qs.filter(search_filter)
 
         # warehouse_code() maps MM-11 explicitly and treats every other
         # warehouse value as MM-4. Apply the same rule in SQL so filtering
@@ -434,11 +437,16 @@ def parts_list(request):
         )
         if warehouse == "MM-11":
             qs = qs.filter(phase11)
+            count_qs = count_qs.filter(phase11)
         elif warehouse == "MM-4":
             qs = qs.exclude(phase11)
+            count_qs = count_qs.exclude(phase11)
 
         qs = qs.order_by("sku")
-        paginator = StandardPageNumberPagination()
+        # Django's Paginator reads count from the queryset. Attach a separate
+        # filter-equivalent queryset so the count avoids the stock/order joins.
+        qs.partsflow_count_queryset = count_qs
+        paginator = PartListPagination()
         page_rows = paginator.paginate_queryset(qs, request)
         rows = PartListSerializer(page_rows, many=True).data
         return paginator.get_paginated_response(rows)
