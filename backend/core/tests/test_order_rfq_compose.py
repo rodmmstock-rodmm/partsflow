@@ -100,6 +100,17 @@ class OrderRFQComposeTests(TestCase):
     def test_uses_saved_vendor_subject_phrase_and_formats_job_without_job_label(self):
         self.vendor_message.subject_phrase = "ขอใบเสนอราคาสินค้าตามรายการ"
         self.vendor_message.save(update_fields=["subject_phrase"])
+        other_employee = Employee.objects.create(
+            employee_code="RFQ-TEST-SUBJECT-OTHER",
+            name="Other Buyer",
+            role="PURCHASE",
+        )
+        SupplierRFQMessage.objects.create(
+            supplier=self.vendor,
+            employee=other_employee,
+            message="Other buyer message",
+            subject_phrase="Private phrase for another buyer",
+        )
         order = self.make_order(
             "ORD-RFQ-CUSTOM-SUBJECT",
             pending_date=date(2026, 11, 10),
@@ -114,6 +125,7 @@ class OrderRFQComposeTests(TestCase):
             "Vendor Example - ขอใบเสนอราคาสินค้าตามรายการ - MC-RFQ-01 - (R) - Requester One - 10/11/2026",
         )
         self.assertNotIn("JOB", subject)
+        self.assertNotIn("Private phrase for another buyer", subject)
 
     def test_empty_vendor_subject_phrase_keeps_default_phrase(self):
         order = self.make_order("ORD-RFQ-DEFAULT-SUBJECT")
