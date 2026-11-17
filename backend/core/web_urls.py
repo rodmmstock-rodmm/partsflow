@@ -1,6 +1,6 @@
 from django.urls import path
 
-from . import backup_api, tooling_api, auth_api, cloth_roll_api, dashboard_api, drive_oauth, fast_order_api, order_api, order_audit_api, order_delete_api, order_rfq_compose_api, order_rfq_draft_api, gmail_oauth, order_step_api, order_vendor_api, qr_withdraw_api, rfq_api, rfq_step_guard, role_api, spare_set_api, stock_api, supplier_rfq_message_api, tool_api, tooling_key_api, web_api
+from . import backup_api, tooling_api, auth_api, cloth_roll_api, dashboard_api, drive_oauth, fast_order_api, order_api, order_audit_api, order_delete_api, order_rfq_compose_api, order_rfq_draft_api, gmail_oauth, order_step_api, order_vendor_api, qr_withdraw_api, rfq_api, rfq_step_guard, rfq_subject_api, role_api, spare_set_api, stock_api, supplier_rfq_message_api, tool_api, tooling_key_api, web_api
 
 urlpatterns = [
     path("auth/login/", auth_api.login_view),
@@ -45,6 +45,7 @@ urlpatterns = [
     path("suppliers/", web_api.suppliers_list, name="web-suppliers-list"),
     path("suppliers/<uuid:pk>/", web_api.supplier_detail, name="web-suppliers-detail"),
     path("suppliers/<uuid:pk>/rfq-message/", supplier_rfq_message_api.supplier_rfq_message, name="web-supplier-rfq-message"),
+    path("suppliers/<uuid:pk>/rfq-subject/", rfq_subject_api.supplier_rfq_subject, name="web-supplier-rfq-subject"),
     path("suppliers/<uuid:pk>/contacts/", web_api.supplier_contacts_list, name="web-supplier-contacts-list"),
     path("suppliers/<uuid:pk>/contacts/<uuid:contact_pk>/", web_api.supplier_contact_detail, name="web-supplier-contact-detail"),
     path("machines/", web_api.machines_list, name="web-machines-list"),
