@@ -140,7 +140,7 @@ def _compose_group(group, vendor, message, subject_phrase, topic_code):
 
     table = _format_rfq_table(group["orders"])
     table_html = _format_rfq_table_html(group["orders"])
-    body = f"{message}\\n\\n{table}" if message else table
+    body = f"{message}\n\n{table}" if message else table
 
     return {
         "group_key": group["key"],
@@ -247,9 +247,9 @@ def compose_order_rfq_data(request):
                 status=400,
             )
     elif topic_code == "PRICE_UPDATE":
-        message = "เรียน ผู้ขาย\\n\\nรบกวนอัปเดตราคาสินค้าตามรายการด้านล่าง พร้อมแจ้งราคาและเงื่อนไขล่าสุดกลับด้วยครับ/ค่ะ"
+        message = "เรียน ผู้ขาย\n\nรบกวนอัปเดตราคาสินค้าตามรายการด้านล่าง พร้อมแจ้งราคาและเงื่อนไขล่าสุดกลับด้วยครับ/ค่ะ"
     else:
-        message = "เรียน ผู้ขาย\\n\\nรบกวนยืนยันกำหนดการจัดส่งล่าสุดของรายการด้านล่าง พร้อมแจ้งวันที่คาดว่าจะจัดส่งครับ/ค่ะ"
+        message = "เรียน ผู้ขาย\n\nรบกวนยืนยันกำหนดการจัดส่งล่าสุดของรายการด้านล่าง พร้อมแจ้งวันที่คาดว่าจะจัดส่งครับ/ค่ะ"
 
     groups = OrderedDict()
     for order_id in ordered_ids:
