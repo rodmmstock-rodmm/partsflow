@@ -5,7 +5,7 @@ from rest_framework.test import APIRequestFactory
 from unittest.mock import patch
 
 from core.models import Employee, EmployeeRFQSubjectSetting, Machine, OrderRecord, Supplier, SupplierContact, SupplierRFQMessage
-from core.order_rfq_compose_api import compose_order_rfq
+from core.order_rfq_compose_api import _compose_group, compose_order_rfq
 
 
 class OrderRFQComposeTests(TestCase):
@@ -185,6 +185,40 @@ class OrderRFQComposeTests(TestCase):
         self.assertIn("ขอยืนยันวันจัดส่ง", delivery_response.data["groups"][0]["subject"])
         self.assertIn("อัปเดตราคาสินค้า", price_response.data["groups"][0]["message"])
         self.assertIn("กำหนดการจัดส่ง", delivery_response.data["groups"][0]["message"])
+
+    def test_subject_uses_part_id_instead_of_machine_and_job_when_available(self):
+        from types import SimpleNamespace
+
+        order = SimpleNamespace(
+            part=SimpleNamespace(sku="PART-001"),
+            ordered_by=SimpleNamespace(name="Requester One"),
+            remark="",
+            order_number="ORD-PART-SUBJECT",
+            part_name="Bearing",
+            maker_text="Maker A",
+            amount=1,
+            unit_text="EA",
+        )
+        group = {
+            "key": "MC|R|",
+            "machine_code": "MC",
+            "machine_name": "Machine name",
+            "job_code": "R",
+            "pending_data_date": None,
+            "orders": [order],
+            "cc_emails": [],
+        }
+        vendor = SimpleNamespace(name="Vendor Example", email="vendor@example.com")
+
+        result = _compose_group(group, vendor, "", "ขออัปเดตราคา", "PRICE_UPDATE")
+
+        self.assertEqual(
+            result["subject"],
+            "Vendor Example ขออัปเดตราคา PART-001 Requester One",
+        )
+        self.assertNotIn("Machine name", result["subject"])
+        self.assertNotIn("(R)", result["subject"])
+        self.assertNotIn("-", result["subject"])
 
     def test_subject_omits_job_parentheses_when_job_is_blank(self):
         order = self.make_order("ORD-RFQ-NO-JOB", job="")
