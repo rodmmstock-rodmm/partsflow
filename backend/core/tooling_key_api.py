@@ -63,6 +63,7 @@ def key_json(key):
         "id": str(key.id),
         "vehicle_number": key.vehicle_number,
         "label": key.label or f"กุญแจรถเครื่องมือ {key.vehicle_number}",
+        "phase": key.phase or "",
         "remark": key.remark,
         "active": key.active,
         "managers": [employee_json(employee) for employee in key.managers.all().order_by("name")],
@@ -112,8 +113,13 @@ def keys_list(request):
         return Response({"detail": "หมายเลขรถต้องเป็นตัวเลขตั้งแต่ 1 ถึง 999"}, status=400)
 
     label = str(request.data.get("label") or "").strip() or f"กุญแจรถเครื่องมือ {vehicle_number}"
+    phase = str(request.data.get("phase") or "").strip()
+    if phase and phase not in {"4", "11"}:
+        return Response({"detail": "Phase ต้องเป็น 4 หรือ 11 เท่านั้น"}, status=400)
+
     key = ToolingVehicleKey(
         vehicle_number=vehicle_number,
+        phase=phase or None,
         label=label,
         remark=str(request.data.get("remark") or "").strip(),
         active=True,
@@ -171,6 +177,11 @@ def key_detail(request, pk):
         key.vehicle_number = number
     if "label" in request.data:
         key.label = str(request.data.get("label") or "").strip()
+    if "phase" in request.data:
+        phase = str(request.data.get("phase") or "").strip()
+        if phase and phase not in {"4", "11"}:
+            return Response({"detail": "Phase ต้องเป็น 4 หรือ 11 เท่านั้น"}, status=400)
+        key.phase = phase or None
     if "remark" in request.data:
         key.remark = str(request.data.get("remark") or "").strip()
     if "active" in request.data:
