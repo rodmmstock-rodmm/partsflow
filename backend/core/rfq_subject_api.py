@@ -7,6 +7,9 @@ from .auth_api import require_permission
 from .models import EmployeeRFQSubjectSetting
 
 
+ALLOWED_TOPIC_CODES = {"RFQ", "PRICE_UPDATE", "DELIVERY_DATE"}
+
+
 @csrf_exempt
 @api_view(["GET", "PATCH"])
 @permission_classes([AllowAny])
@@ -27,7 +30,7 @@ def rfq_subject_settings(request):
         return Response({"detail": "หัวข้อและข้อความ Subject ต้องเป็นข้อความ"}, status=400)
     topic_code = topic_code.strip().upper()
     phrase = phrase.strip()
-    if not topic_code or len(topic_code) > 60:
+    if topic_code not in ALLOWED_TOPIC_CODES:
         return Response({"detail": "รหัสหัวข้อไม่ถูกต้อง"}, status=400)
     if len(phrase) > 250:
         return Response({"detail": "ข้อความ Subject ต้องไม่เกิน 250 ตัวอักษร"}, status=400)

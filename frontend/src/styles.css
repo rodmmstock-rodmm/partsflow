@@ -951,3 +951,45 @@ html body input[type="radio"]:focus-visible{outline:2px solid var(--brand, #3978
   border-radius: 50%;
   border: 1px solid #dbe3ec;
 }
+
+/* Email action dropdowns in desktop and mobile Order selection bars */
+.bulk-v9 select.btn.primary {
+  appearance: auto;
+  min-height: 36px;
+  cursor: pointer;
+}
+.m-rfq-selection select.m-send-email-select {
+  border: 0;
+  border-radius: 8px;
+  padding: 7px 9px;
+  min-height: 32px;
+  max-width: 145px;
+  background: #2e6398;
+  color: #fff;
+  font-size: 11px;
+}
+.m-rfq-selection select.m-send-email-select:disabled {
+  opacity: .55;
+}
+
+
+/* Per-user email Subject settings on PO Balance */
+.subject-settings-trigger{display:flex;align-items:center;justify-content:space-between;gap:16px}
+.subject-settings-trigger strong{display:block;font-size:12.5px;color:#285783}
+.subject-settings-trigger p{margin:4px 0 0;color:var(--muted);font-size:10.5px}
+.subject-settings-modal{max-width:760px}
+.subject-settings-intro{margin:0 0 14px;color:var(--sub);font-size:11.5px;line-height:1.6}
+.subject-settings-list{display:grid;gap:10px}
+.subject-settings-item{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:end;gap:12px;padding:13px;border:1px solid var(--border-soft);border-radius:12px;background:#fbfdff}
+.subject-settings-item .field{min-width:0}
+.subject-settings-item .field span{font-size:11px;font-weight:600;color:var(--text)}
+.subject-settings-item .field input{width:100%;min-width:0}
+.subject-settings-save{min-width:124px}
+.subject-settings-note{margin-top:14px;line-height:1.6}
+@media(max-width:640px){
+  .subject-settings-trigger{align-items:flex-start;flex-direction:column}
+  .subject-settings-trigger .btn{width:100%}
+  .subject-settings-item{grid-template-columns:minmax(0,1fr);gap:9px}
+  .subject-settings-save{width:100%}
+  .subject-settings-modal{max-height:calc(100dvh - 24px)}
+}

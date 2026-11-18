@@ -294,19 +294,36 @@ function CCRules({ onError }) {
   return <details className="panel cc-settings"><summary>ตั้งค่ารายชื่อ CC เริ่มต้น / ตาม JOB</summary><form className="po-inline-form" onSubmit={add}><select value={form.rule_type} onChange={(event) => setForm((current) => ({ ...current, rule_type: event.target.value }))}><option value="DEFAULT">ทุกคำขอราคา</option><option value="JOB">ตาม JOB</option></select>{form.rule_type === "JOB" && <input value={form.job} onChange={(event) => setForm((current) => ({ ...current, job: event.target.value.toUpperCase() }))} placeholder="JOB" required />}<input type="email" value={form.email} onChange={(event) => setForm((current) => ({ ...current, email: event.target.value }))} placeholder="อีเมล CC" required /><input value={form.display_name} onChange={(event) => setForm((current) => ({ ...current, display_name: event.target.value }))} placeholder="ชื่อ (ไม่บังคับ)" /><button className="btn primary">เพิ่ม CC</button></form><div className="cc-rule-list">{rows.map((row) => <span key={row.id}><b>{row.rule_type === "DEFAULT" ? "ทุกครั้ง" : row.job}</b>{row.display_name ? `${row.display_name} · ` : ""}{row.email}<button type="button" onClick={() => remove(row)}>×</button></span>)}</div></details>;
 }
 
+const SUBJECT_TOPICS = [
+  { code: "RFQ", label: "ขอราคา", placeholder: "เช่น รบกวนเสนอราคาสินค้าตามรายการ" },
+  { code: "PRICE_UPDATE", label: "อัปเดตราคา", placeholder: "เช่น รบกวนอัปเดตราคาสินค้าตามรายการ" },
+  { code: "DELIVERY_DATE", label: "ตามวันที่จัดส่ง", placeholder: "เช่น รบกวนยืนยันกำหนดการจัดส่ง" },
+];
+
 function RFQSubjectSettings({ onError }) {
-  const [phrase, setPhrase] = useState("");
+  const [phrases, setPhrases] = useState({
+    RFQ: "",
+    PRICE_UPDATE: "",
+    DELIVERY_DATE: "",
+  });
   const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
+  const [savingTopic, setSavingTopic] = useState("");
+  const [savedTopic, setSavedTopic] = useState("");
   const [loaded, setLoaded] = useState(false);
+  const [open, setOpen] = useState(false);
 
   useEffect(() => {
     let active = true;
     apiGet("/rfq-subject-settings/", { forceRefresh: true, cache: false })
       .then((result) => {
         if (active) {
-          const current = (result.results || []).find((row) => row.topic_code === "RFQ");
-          setPhrase(current?.phrase || "");
+          const next = { RFQ: "", PRICE_UPDATE: "", DELIVERY_DATE: "" };
+          (result.results || []).forEach((row) => {
+            if (Object.prototype.hasOwnProperty.call(next, row.topic_code)) {
+              next[row.topic_code] = row.phrase || "";
+            }
+          });
+          setPhrases(next);
           setLoaded(true);
         }
       })
@@ -315,51 +332,93 @@ function RFQSubjectSettings({ onError }) {
     return () => { active = false; };
   }, []);
 
-  async function save(event) {
+  async function save(topicCode, event) {
     event.preventDefault();
-    setSaving(true);
+    setSavingTopic(topicCode);
+    setSavedTopic("");
     try {
       const result = await apiPatch("/rfq-subject-settings/", {
-        topic_code: "RFQ",
-        phrase,
+        topic_code: topicCode,
+        phrase: phrases[topicCode] || "",
       });
-      setPhrase(result.phrase || "");
+      setPhrases((current) => ({ ...current, [topicCode]: result.phrase || "" }));
       setLoaded(true);
+      setSavedTopic(topicCode);
     } catch (err) {
       onError(err.message);
     } finally {
-      setSaving(false);
+      setSavingTopic("");
     }
   }
 
   return (
-    <details className="panel cc-settings">
-      <summary>ตั้งค่าข้อความ Subject สำหรับ RFQ</summary>
-      <form className="po-inline-form" onSubmit={save}>
-        <input
-          aria-label="ประโยค Subject RFQ"
-          value={phrase}
-          onChange={(event) => setPhrase(event.target.value)}
-          placeholder="เช่น รบกวนเสนอราคาสินค้าตามรายการ"
-          maxLength={250}
+    <>
+      <section className="panel subject-settings-trigger">
+        <div>
+          <strong>ตั้งค่าข้อความ Subject สำหรับ Email</strong>
+          <p>กำหนดประโยค Subject แยกตามประเภทอีเมล และบันทึกแยกตามบัญชีผู้ใช้</p>
+        </div>
+        <button
+          type="button"
+          className="btn ghost"
+          onClick={() => setOpen(true)}
           disabled={loading || !loaded}
-        />
-        <button className="btn primary" disabled={loading || saving || !loaded}>
-          {saving ? "กำลังบันทึก..." : "บันทึก Subject"}
+        >
+          ตั้งค่า Subject
         </button>
-      </form>
-      <small className="field-help">
-        ข้อความนี้บันทึกแยกตามบัญชีผู้ใช้ ไม่ผูกกับ Vendor และจะใช้กับ RFQ ทุก Vendor
-        หากเว้นว่าง ระบบจะใช้ข้อความเริ่มต้นเดิม
-      </small>
-      <small className="field-help">
-        ระบบจะเติมชื่อ Vendor, Machine Code, ชื่อ Job ในวงเล็บ เช่น (R), ชื่อผู้สั่ง,
-        วันที่ (ถ้ามี) และ Remark ต่อท้ายให้อัตโนมัติ
-      </small>
-    </details>
+      </section>
+      {open && (
+        <Modal
+          title="ตั้งค่าข้อความ Subject สำหรับ Email"
+          onClose={() => setOpen(false)}
+          className="subject-settings-modal"
+          portal
+        >
+          <p className="subject-settings-intro">
+            ข้อความที่ตั้งไว้จะถูกนำไปใช้กับอีเมลประเภทนั้นโดยอัตโนมัติ และจะไม่เปลี่ยนตาม Vendor
+          </p>
+          <div className="subject-settings-list">
+            {SUBJECT_TOPICS.map((topic) => (
+              <form className="subject-settings-item" key={topic.code} onSubmit={(event) => save(topic.code, event)}>
+                <label className="field">
+                  <span>{topic.label}</span>
+                  <input
+                    aria-label={`ประโยค Subject ${topic.label}`}
+                    value={phrases[topic.code]}
+                    onChange={(event) => {
+                      setPhrases((current) => ({ ...current, [topic.code]: event.target.value }));
+                      if (savedTopic === topic.code) setSavedTopic("");
+                    }}
+                    placeholder={topic.placeholder}
+                    maxLength={250}
+                    disabled={loading || !loaded || Boolean(savingTopic)}
+                  />
+                </label>
+                <button
+                  className="btn primary subject-settings-save"
+                  disabled={loading || !loaded || Boolean(savingTopic)}
+                >
+                  {savingTopic === topic.code
+                    ? "กำลังบันทึก..."
+                    : savedTopic === topic.code
+                      ? "บันทึกแล้ว"
+                      : "บันทึก Subject"}
+                </button>
+              </form>
+            ))}
+          </div>
+          <div className="alert info subject-settings-note">
+            ระบบจะเติมชื่อ Vendor, Part ID (ถ้ามี) หรือชื่อเครื่องจักรและ JOB แบบย่อในวงเล็บ,
+            ชื่อผู้สั่ง และ Remark ต่อท้ายให้อัตโนมัติ โดยไม่ใส่เครื่องหมายขีดคั่น
+          </div>
+          <div className="modal-actions">
+            <button type="button" className="btn ghost" onClick={() => setOpen(false)}>ปิด</button>
+          </div>
+        </Modal>
+      )}
+    </>
   );
 }
-
 export default function POBalance() {
   const auth = useAuth();
   const [rows, setRows] = useState([]);

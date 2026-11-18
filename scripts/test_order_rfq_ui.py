@@ -39,7 +39,7 @@ def mock_rfq_compose_api(page):
                 "vendor": "RFQ E2E Vendor",
                 "groups": [{
                     "group_key": "MC-RFQ-E2E|R|",
-                    "subject": "RFQ E2E Vendor - MC-RFQ-E2E - Existing Order Remark",
+                    "subject": "RFQ E2E Vendor E2E saved RFQ subject phrase Machine E2E (R) Requester E2E Existing Order Remark",
                     "to": "rfq-primary@example.com",
                     "cc": ["rfq-cc@example.com"],
                     "order_numbers": ["PO-E2E-001"],
@@ -69,7 +69,7 @@ def assert_gmail_compose(page, captured):
         });
     }""")
 
-    page.get_by_role("button", name="เตรียมอีเมล RFQ").click()
+    page.get_by_role("button", name="เตรียมอีเมลขอราคา").click()
     copy_button = page.get_by_role("button", name="คัดลอกตารางและเปิด Gmail")
     copy_button.wait_for(timeout=10000)
 
@@ -90,8 +90,9 @@ def assert_gmail_compose(page, captured):
     assert params.get("to") == ["rfq-primary@example.com"]
     assert params.get("cc") == ["rfq-cc@example.com"]
     assert "RFQ E2E Vendor" in params.get("su", [""])[0]
-    assert "MC-RFQ-E2E" in params.get("su", [""])[0]
-    assert params.get("su", [""])[0].endswith(" - Existing Order Remark")
+    assert "Machine E2E" in params.get("su", [""])[0]
+    assert params.get("su", [""])[0].endswith("Existing Order Remark")
+    assert "-" not in params.get("su", [""])[0]
     body = params.get("body", [""])[0]
     assert "Please quote the following items." in body
     assert "┌" not in body and "Order No." not in body
@@ -108,6 +109,7 @@ def assert_gmail_compose(page, captured):
     payload = captured.get("payload") or {}
     assert len(payload.get("order_ids") or []) == 2, payload
     assert payload.get("vendor_id"), payload
+    assert payload.get("subject_topic") == "RFQ", payload
     assert "remark" not in payload, payload
     popup.close()
 
@@ -124,8 +126,8 @@ def select_orders_and_vendor(page, mobile=False):
             row.wait_for(timeout=10000)
             row.locator("input[type=checkbox]").first.check()
 
-    page.get_by_role("button", name="ขอราคา (RFQ)").click()
-    dialog = page.locator(".modal-card").filter(has_text="สร้างอีเมลขอราคา RFQ · 2 Order")
+    page.get_by_label("ส่ง Email").select_option("RFQ")
+    dialog = page.locator(".modal-card").filter(has_text="สร้างอีเมลขอราคา · 2 Order")
     vendor_input = dialog.get_by_placeholder("ค้นหาชื่อ Vendor")
     vendor_input.fill("RFQ E2E Vendor")
     dialog.get_by_role("option", name="RFQ E2E Vendor").click()
@@ -172,32 +174,30 @@ def test_vendor_rfq_message_settings(page):
 
 def test_po_balance_subject_settings(page):
     page.goto(f"{BASE_URL}/po-balance", wait_until="networkidle")
-    settings = page.locator("details.cc-settings").filter(
-        has_text="ตั้งค่าข้อความ Subject สำหรับ RFQ"
-    )
-    settings.locator("summary").click()
-    phrase_input = settings.get_by_label("ประโยค Subject RFQ")
+    page.get_by_role("button", name="ตั้งค่า Subject").click()
+    settings = page.locator(".modal-card.subject-settings-modal")
+    phrase_input = settings.get_by_label("ประโยค Subject ขอราคา")
     page.wait_for_function(
         "(selector) => !document.querySelector(selector).disabled",
-        arg="[aria-label='ประโยค Subject RFQ']",
+        arg="[aria-label='ประโยค Subject ขอราคา']",
     )
     phrase_input.fill("E2E saved RFQ subject phrase")
     with page.expect_response(
         lambda response: "/rfq-subject-settings/" in response.url and response.request.method == "PATCH",
         timeout=10000,
     ) as save_response:
-        settings.get_by_role("button", name="บันทึก Subject").click()
+        settings.get_by_role("button", name="บันทึก Subject").first.click()
     assert save_response.value.status == 200, save_response.value.text()
+    settings.get_by_role("button", name="ปิด").click()
+    settings.wait_for(state="hidden", timeout=10000)
 
     page.reload(wait_until="networkidle")
-    settings = page.locator("details.cc-settings").filter(
-        has_text="ตั้งค่าข้อความ Subject สำหรับ RFQ"
-    )
-    settings.locator("summary").click()
-    phrase_input = settings.get_by_label("ประโยค Subject RFQ")
+    page.get_by_role("button", name="ตั้งค่า Subject").click()
+    settings = page.locator(".modal-card.subject-settings-modal")
+    phrase_input = settings.get_by_label("ประโยค Subject ขอราคา")
     page.wait_for_function(
         "(selector) => !document.querySelector(selector).disabled",
-        arg="[aria-label='ประโยค Subject RFQ']",
+        arg="[aria-label='ประโยค Subject ขอราคา']",
     )
     assert phrase_input.input_value() == "E2E saved RFQ subject phrase"
 

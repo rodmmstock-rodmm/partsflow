@@ -170,7 +170,8 @@ function CompactOrderTable({
   </table></div>;
 }
 
-function BulkBar({ rows, auth, busy, onRun, onClear, onOrderQuotation, onVendorOrder, onRfq }){
+function BulkBar({ rows, auth, busy, onRun, onClear, onOrderQuotation, onVendorOrder, onEmail }){
+  const [emailType, setEmailType] = useState("");
   if(!rows.length) return null;
   const canPurchase=rows.some(x=>["ACTIVE","WAIT_CONFIRM"].includes(x.lifecycle_status));
   const canWait=rows.some(x=>x.lifecycle_status==="ACTIVE");
@@ -179,7 +180,12 @@ function BulkBar({ rows, auth, busy, onRun, onClear, onOrderQuotation, onVendorO
   const canRestore=rows.some(x=>x.lifecycle_status==="CANCELLED");
   const canRfq=rows.every(x=>["ACTIVE","WAIT_CONFIRM"].includes(x.lifecycle_status) && !x.cancel_status && !x.received_at);
   return <div className="bulk-v9"><b>เลือกแล้ว {rows.length} รายการ</b>
-    {auth.can("can_create_rfq")&&<button className="btn primary" disabled={busy||!canRfq} onClick={onRfq}>ขอราคา (RFQ)</button>}
+    {auth.can("can_create_rfq")&&<select className="btn primary" aria-label="ส่ง Email" value={emailType} disabled={busy||!canRfq} onChange={event=>{const value=event.target.value;setEmailType("");if(value)onEmail(value);}}>
+      <option value="">ส่ง Email</option>
+      <option value="RFQ">ขอราคา</option>
+      <option value="PRICE_UPDATE">อัปเดตราคา</option>
+      <option value="DELIVERY_DATE">ตามวันที่จัดส่ง</option>
+    </select>}
     {auth.can("can_edit_purchase_info")&&<>
       <button className="btn primary" disabled={busy||!canPurchase} onClick={onOrderQuotation}>Order Quotation</button>
       <button className="btn ghost" disabled={busy||!canPurchase} onClick={onVendorOrder}>Vendor Order</button>
@@ -221,6 +227,7 @@ export default function OrdersV2(){
   const [purchase,setPurchase]=useState(null);
   const [bulkPurchaseMode,setBulkPurchaseMode]=useState(null);
   const [rfqModal,setRfqModal]=useState(false);
+  const [emailType,setEmailType]=useState("RFQ");
   const [jobCCSettings,setJobCCSettings]=useState(false);
   const [importBusy,setImportBusy]=useState(false);
   const [exportBusy,setExportBusy]=useState(false);
@@ -451,7 +458,7 @@ export default function OrdersV2(){
         {lastLoadedAt&&<span>อัปเดต {lastLoadedAt.toLocaleTimeString("th-TH",{hour:"2-digit",minute:"2-digit"})}</span>}
       </div>
 
-      {tab!=="deleted"&&<BulkBar rows={selectedRows} auth={auth} busy={bulkBusy} onRun={runBulk} onOrderQuotation={()=>setBulkPurchaseMode("quotation")} onVendorOrder={()=>setBulkPurchaseMode("vendor")} onRfq={()=>setRfqModal(true)} onClear={()=>setSelected(new Set())}/>}      
+      {tab!=="deleted"&&<BulkBar rows={selectedRows} auth={auth} busy={bulkBusy} onRun={runBulk} onOrderQuotation={()=>setBulkPurchaseMode("quotation")} onVendorOrder={()=>setBulkPurchaseMode("vendor")} onEmail={type=>{setEmailType(type);setRfqModal(true);}} onClear={()=>setSelected(new Set())}/>}      
       {loading?<div className="empty">กำลังโหลด {MONTHS_TH[month]} {year}...</div>:<CompactOrderTable
         rows={rows}
         selected={selected}
@@ -471,7 +478,7 @@ export default function OrdersV2(){
     {editor&&<MultiMachineOrderInfoModal order={editor.order} options={options} employee={auth.employee} canEditOrderDate={auth.can("can_edit_order_date")} onClose={()=>setEditor(null)} onSaved={()=>{setEditor(null);load(true);}}/>}
     {purchase&&<NormalPurchaseModal order={purchase} options={options} onClose={()=>setPurchase(null)} onChanged={r=>{setPurchase(r);load(true);}}/>}
     {bulkPurchaseMode&&selectedQuotationRows.length>0&&<BulkOrderQuotationModal mode={bulkPurchaseMode} orders={selectedQuotationRows} options={options} onClose={()=>setBulkPurchaseMode(null)} onSaved={()=>{setBulkPurchaseMode(null);setSelected(new Set());load(true);}}/>}
-    {rfqModal&&<OrderRFQComposeModal orders={selectedRows} options={options} onClose={()=>setRfqModal(false)} onOpened={()=>{}}/>}
+    {rfqModal&&<OrderRFQComposeModal orders={selectedRows} options={options} emailType={emailType} onClose={()=>setRfqModal(false)} onOpened={()=>{}}/>}
     {jobCCSettings&&<OrderJobCCSettingsModal jobs={options.jobs||[]} onClose={()=>setJobCCSettings(false)}/>}
   </>;
 }
