@@ -264,7 +264,7 @@ export default function ToolingKeys() {
         <form onSubmit={saveKey}>
           <label className="field"><span>หมายเลขรถเครื่องมือ *</span><input required type="number" min="1" max="999" value={keyForm.vehicle_number} onChange={(e) => setKeyForm({ ...keyForm, vehicle_number: e.target.value })} /></label>
           <label className="field"><span>ชื่อรายการกุญแจ</span><input value={keyForm.label} onChange={(e) => setKeyForm({ ...keyForm, label: e.target.value })} placeholder="กุญแจรถเครื่องมือ 1" /></label>
-          <label className="field"><span>Phase *</span><select required value={keyForm.phase || ""} onChange={(e) => setKeyForm({ ...keyForm, phase: e.target.value })}><option value="">เลือก Phase</option><option value="4">Phase 4</option><option value="11">Phase 11</option></select></label>
+          <label className="field"><span>Phase{!keyForm.id ? " *" : ""}</span><select required={!keyForm.id} value={keyForm.phase || ""} onChange={(e) => setKeyForm({ ...keyForm, phase: e.target.value })}><option value="">เลือก Phase</option><option value="4">Phase 4</option><option value="11">Phase 11</option></select></label>
           <div className="field">
             <span>ผู้ดูแลรถเครื่องมือ (เลือกได้มากกว่า 1 คน)</span>
             <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(190px,1fr))", gap: 8, maxHeight: 220, overflowY: "auto", padding: 10, border: "1px solid var(--border,#e2e8f0)", borderRadius: 10 }}>
