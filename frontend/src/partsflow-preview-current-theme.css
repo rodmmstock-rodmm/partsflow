@@ -400,16 +400,24 @@ tbody tr:hover { background: #f5faff; }
 }
 
 
-/* Per-order duration chart: keep legend colors consistent with each status family. */
-.order-status-lookup-panel .order-status-legend-item:nth-child(2) .order-status-legend-dot,
-.order-status-lookup-panel .order-status-legend-item:nth-child(3) .order-status-legend-dot,
-.order-status-lookup-panel .order-status-legend-item:nth-child(4) .order-status-legend-dot,
+/* Per-order duration chart: distinct status colors, matched to the chart's stage palette. */
+.order-status-lookup-panel .order-status-legend-item:nth-child(2) .order-status-legend-dot {
+  background: #7C3AED !important;
+  box-shadow: 0 0 0 3px #ede9fe !important;
+}
+.order-status-lookup-panel .order-status-legend-item:nth-child(3) .order-status-legend-dot {
+  background: #0284C7 !important;
+  box-shadow: 0 0 0 3px #e0f2fe !important;
+}
+.order-status-lookup-panel .order-status-legend-item:nth-child(4) .order-status-legend-dot {
+  background: #16A34A !important;
+  box-shadow: 0 0 0 3px #dcfce7 !important;
+}
 .order-status-lookup-panel .order-status-legend-item:nth-child(5) .order-status-legend-dot {
-  box-shadow: 0 0 0 3px #edf6ff;
+  background: #DB2777 !important;
+  box-shadow: 0 0 0 3px #fce7f3 !important;
 }
 .order-status-lookup-panel .order-status-legend-item:nth-child(6) .order-status-legend-dot {
-  box-shadow: 0 0 0 3px #fff5e8;
-}
-.order-status-lookup-panel .order-status-legend-item:nth-child(6) .order-status-legend-text {
-  color: #b7791f;
+  background: #EA580C !important;
+  box-shadow: 0 0 0 3px #ffedd5 !important;
 }
