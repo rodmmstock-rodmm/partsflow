@@ -258,3 +258,26 @@ class ToolingVehicleKeyHistoryIntegrityTests(ToolingVehicleKeyPermissionsTests):
         self.assertEqual(response.status_code, 400, response.data)
         loan.refresh_from_db()
         self.assertNotEqual(loan.returned_by_name, "Someone not in employee records")
+
+
+    def test_phase_can_be_saved_and_is_returned_for_each_key(self):
+        self.role.can_edit_tooling_key_details = True
+        self.role.save(update_fields=["can_edit_tooling_key_details"])
+        create = self.client.post(self.url, {"vehicle_number": 15, "label": "กุญแจทดสอบ", "phase": "11"}, format="json")
+        self.assertEqual(create.status_code, 201, create.data)
+        self.assertEqual(create.data["phase"], "11")
+        edit = self.client.patch(
+            reverse("web-tooling-key-detail", kwargs={"pk": self.key.id}),
+            {"phase": "4"}, format="json",
+        )
+        self.assertEqual(edit.status_code, 200, edit.data)
+        self.assertEqual(edit.data["phase"], "4")
+
+    def test_phase_rejects_values_other_than_4_or_11(self):
+        self.role.can_edit_tooling_key_details = True
+        self.role.save(update_fields=["can_edit_tooling_key_details"])
+        response = self.client.patch(
+            reverse("web-tooling-key-detail", kwargs={"pk": self.key.id}),
+            {"phase": "9"}, format="json",
+        )
+        self.assertEqual(response.status_code, 400, response.data)

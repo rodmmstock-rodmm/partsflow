@@ -3,7 +3,7 @@ import { apiDelete, apiGet, apiPatch, apiPost } from "../api";
 import { useAuth } from "../auth";
 import { Alert, Modal, PageHeader, formatDMY } from "../components/Common";
 
-const blankKey = { vehicle_number: "", label: "", remark: "", manager_employee_ids: [] };
+const blankKey = { vehicle_number: "", label: "", phase: "", remark: "", manager_employee_ids: [] };
 
 function EmployeeAvatar({ employee, size = 38 }) {
   const initials = String(employee?.name || "?").trim().slice(0, 1);
@@ -189,7 +189,7 @@ export default function ToolingKeys() {
           {keys.filter((key) => !query || `${key.vehicle_number} ${key.label} ${key.current_loan?.borrower_name || ""} ${(key.managers || []).map((person) => person.name).join(" ")}`.toLowerCase().includes(query.toLowerCase())).map((key) => (
             <article className="panel" key={key.id} style={{ display: "flex", flexDirection: "column", gap: 12, opacity: key.active ? 1 : .65 }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 8 }}>
-                <div><small>รถเครื่องมือ</small><h2 style={{ margin: "4px 0" }}>หมายเลข {key.vehicle_number}</h2><div>{key.label}</div></div>
+                <div><small>รถเครื่องมือ</small><h2 style={{ margin: "4px 0" }}>หมายเลข {key.vehicle_number}</h2><div>{key.label}</div><small style={{ display: "block", marginTop: 4, color: "var(--muted,#64748b)" }}>{key.phase ? `Phase ${key.phase}` : "ยังไม่ได้ระบุ Phase"}</small></div>
                 <span className={`status ${key.status === "BORROWED" ? "warning" : "success"}`}>{key.status === "BORROWED" ? "กำลังถูกยืม" : "ว่าง"}</span>
               </div>
               <div>
@@ -209,7 +209,7 @@ export default function ToolingKeys() {
               <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginTop: "auto" }}>
                 {key.active && key.status === "AVAILABLE" && <button className="btn primary" onClick={() => { setBorrowTarget(key); setBorrowForm({ borrower_employee_id: auth.employee?.id || "", remark: "" }); }}>ยืมกุญแจ</button>}
                 {key.active && key.status === "BORROWED" && <button className="btn primary" onClick={() => { setReturnTarget(key); setReturnRemark(""); }}>คืนกุญแจ</button>}
-                {canEditDetails && <button className="btn ghost" onClick={() => setKeyForm({ id: key.id, vehicle_number: key.vehicle_number, label: key.label, remark: key.remark, manager_employee_ids: (key.managers || []).map((person) => person.id) })}>แก้ไข</button>}
+                {canEditDetails && <button className="btn ghost" onClick={() => setKeyForm({ id: key.id, vehicle_number: key.vehicle_number, label: key.label, phase: key.phase || "", remark: key.remark, manager_employee_ids: (key.managers || []).map((person) => person.id) })}>แก้ไข</button>}
                 {canDelete && key.active && <button className="btn danger" onClick={() => setConfirmTarget({ type: "key", row: key })}>ลบรายการ</button>}
               </div>
             </article>
@@ -264,6 +264,7 @@ export default function ToolingKeys() {
         <form onSubmit={saveKey}>
           <label className="field"><span>หมายเลขรถเครื่องมือ *</span><input required type="number" min="1" max="999" value={keyForm.vehicle_number} onChange={(e) => setKeyForm({ ...keyForm, vehicle_number: e.target.value })} /></label>
           <label className="field"><span>ชื่อรายการกุญแจ</span><input value={keyForm.label} onChange={(e) => setKeyForm({ ...keyForm, label: e.target.value })} placeholder="กุญแจรถเครื่องมือ 1" /></label>
+          <label className="field"><span>Phase{!keyForm.id ? " *" : ""}</span><select required={!keyForm.id} value={keyForm.phase || ""} onChange={(e) => setKeyForm({ ...keyForm, phase: e.target.value })}><option value="">เลือก Phase</option><option value="4">Phase 4</option><option value="11">Phase 11</option></select></label>
           <div className="field">
             <span>ผู้ดูแลรถเครื่องมือ (เลือกได้มากกว่า 1 คน)</span>
             <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(190px,1fr))", gap: 8, maxHeight: 220, overflowY: "auto", padding: 10, border: "1px solid var(--border,#e2e8f0)", borderRadius: 10 }}>

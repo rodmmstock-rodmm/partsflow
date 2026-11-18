@@ -1089,6 +1089,7 @@ class ToolingVehicleKey(UUIDMixin):
     """One managed key assigned to one tooling vehicle."""
     vehicle_number = models.PositiveSmallIntegerField(unique=True)
     label = models.CharField(max_length=160, blank=True)
+    phase = models.CharField(max_length=2, choices=[("4", "Phase 4"), ("11", "Phase 11")], blank=True, null=True)
     remark = models.TextField(blank=True)
     managers = models.ManyToManyField(
         "Employee", blank=True, related_name="managed_tooling_vehicle_keys"
