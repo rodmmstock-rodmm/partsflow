@@ -19,6 +19,7 @@ class OrderRFQDraftTests(SimpleTestCase):
                 "group_key": "MC|R|",
                 "subject": "Vendor RFQ",
                 "message": "Please quote.",
+                "email_intro": "Please quote.\\n\\nDelivery subject phrase",
                 "table_html": (
                     '<table style="border-collapse:collapse"><tbody><tr>'
                     '<td style="border:1px solid #333333;padding:6px 8px">SKU-1</td>'
@@ -48,6 +49,8 @@ class OrderRFQDraftTests(SimpleTestCase):
         self.assertEqual(response.data["drafts"][0]["draft_id"], "draft-123")
         kwargs = create_draft.call_args.kwargs
         self.assertIn("Please quote.", kwargs["body_html"])
+        self.assertIn("Delivery subject phrase", kwargs["body_html"])
+        self.assertIn("Please quote.\\n\\nDelivery subject phrase", kwargs["body_text"])
         self.assertIn("SKU-1", kwargs["body_html"])
         self.assertIn("border:1px solid #333333", kwargs["body_html"])
         self.assertNotIn("<th", kwargs["body_html"])
