@@ -203,6 +203,10 @@ class OrderRFQComposeTests(TestCase):
                 "",
             ],
         )
+        self.assertEqual(
+            delivery_group["email_intro"],
+            "ข้อความติดตามกำหนดส่งเฉพาะ Vendor และผู้ใช้นี้\\n\\nขอยืนยันวันจัดส่ง",
+        )
 
     def test_subject_uses_part_id_instead_of_machine_and_job_when_available(self):
         from types import SimpleNamespace
