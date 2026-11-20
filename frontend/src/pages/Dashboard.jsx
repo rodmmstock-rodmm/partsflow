@@ -595,6 +595,7 @@ export default function Dashboard() {
         actions={
           <>
             <BackupDownloadButton type="stock" />
+            {auth.can("can_view_parts") && auth.can("can_view_tooling") && auth.can("can_view_tools") && <BackupDownloadButton type="images" />}
             <button className="btn ghost" onClick={() => navigate("/spare-sets")}>⚙ ชุดอะไหล่เครื่องจักร</button>
             {auth.can("can_edit_parts") && (
               <button className="btn primary" onClick={openAddPart} disabled={optionsLoading}>
