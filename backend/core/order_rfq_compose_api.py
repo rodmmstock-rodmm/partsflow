@@ -143,11 +143,11 @@ def _compose_group(group, vendor, message, subject_phrase, topic_code):
     # Keep every email type consistent: its message, a blank line, then
     # the logged-in user's saved Subject Phrase before the order table.
     email_intro = (
-        f"{message.rstrip()}\n\n{subject_phrase}"
+        f"{message.rstrip()}\\n\\n{subject_phrase}"
         if message.strip()
         else subject_phrase
     )
-    body = f"{email_intro}\n\n{table}" if email_intro else table
+    body = f"{email_intro}\\n\\n{table}" if email_intro else table
 
     return {
         "group_key": group["key"],

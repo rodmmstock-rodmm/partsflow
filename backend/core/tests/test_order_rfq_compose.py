@@ -201,13 +201,15 @@ class OrderRFQComposeTests(TestCase):
         self.assertIn("ขออัปเดตราคาล่าสุด", price_response.data["groups"][0]["body"])
         self.assertIn("ขอยืนยันวันจัดส่ง", delivery_response.data["groups"][0]["subject"])
         self.assertIn("อัปเดตราคาสินค้า", price_response.data["groups"][0]["message"])
-        self.assertEqual(
-            price_response.data["groups"][0]["email_intro"].splitlines()[:3],
-            [
-                "เรียน ผู้ขาย",
-                "",
-                "ขออัปเดตราคาล่าสุด",
-            ],
+        self.assertTrue(
+            price_response.data["groups"][0]["email_intro"].startswith(
+                "เรียน ผู้ขาย\\n\\nรบกวนอัปเดตราคาสินค้าตามรายการด้านล่าง"
+            )
+        )
+        self.assertTrue(
+            price_response.data["groups"][0]["email_intro"].endswith(
+                "\\n\\nขออัปเดตราคาล่าสุด"
+            )
         )
         self.assertEqual(
             rfq_response.data["groups"][0]["email_intro"].splitlines()[:3],
