@@ -26,11 +26,11 @@ function escapeHtml(value) {
 function emailClipboardContent(group) {
   const intro = String(group.email_intro || group.message || "");
   const introHtml = intro
-    ? intro.split("\\n").map((line) => line
+    ? intro.split("\n").map((line) => line
       ? `<p style="margin:0 0 12px">${escapeHtml(line)}</p>`
       : "<br>").join("")
     : "";
-  const introText = intro ? `${intro.replace(/\\s+$/, "")}\\n\\n` : "";
+  const introText = intro ? `${intro.replace(/\s+$/, "")}\n\n` : "";
   return {
     html: `${introHtml}${group.table_html || ""}`,
     text: `${introText}${group.table_text || ""}`,
@@ -88,7 +88,7 @@ async function copyTableAndOpenGroup(group, onError, onCopied) {
       holder.remove();
     }
 
-    if (!copied) throw new Error("เบราว์เซอร์ไม่อนุญาตให้คัดลอกตารางแบบมีเส้นขอบ");
+    if (!copied) throw new Error("เบราว์เซอร์ไม่อนุญาตให้คัดลอกข้อความและตาราง");
     if (!pendingTab) throw new Error("เบราว์เซอร์บล็อกหน้าต่าง Gmail กรุณาอนุญาต Pop-up");
     pendingTab.location.href = gmailComposeUrl(group);
     onCopied?.(group.group_key || group.subject);
@@ -182,7 +182,7 @@ export default function OrderRFQComposeModal({ orders, options, onClose, onOpene
                     {(group.cc || []).length > 0 && <span>CC: {group.cc.join(", ")}</span>}
                   </div>
                   <button type="button" className="mini primary" onClick={() => openGroup(group)}>
-                    คัดลอกตารางและเปิด Gmail
+                    คัดลอกข้อความและตาราง เปิด Gmail
                   </button>
                 </section>
               ))}
