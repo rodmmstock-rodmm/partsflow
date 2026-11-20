@@ -9,7 +9,7 @@ function gmailComposeUrl(group) {
     to: group.to || "",
     cc: (group.cc || []).join(","),
     su: group.subject || "",
-    body: group.message || "",
+    body: group.email_intro || group.message || "",
   });
   return `https://mail.google.com/mail/?${params.toString()}`;
 }
