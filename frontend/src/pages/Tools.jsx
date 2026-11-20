@@ -452,7 +452,7 @@ export default function Tools() {
       <PageHeader
         title="ยืม-คืนอุปกรณ์เครื่องมือ"
         subtitle="จัดการอุปกรณ์ สร้าง QR Code สำหรับสแกนเบิก/คืน และดูประวัติการเบิก-คืน"
-        actions={<BackupDownloadButton type="gauge" />}
+        actions={<><BackupDownloadButton type="gauge" />{auth.can("can_view_parts") && auth.can("can_view_tooling") && auth.can("can_view_tools") && <BackupDownloadButton type="images" />}</>}
       />
       <div className="tab-row page-tabs">
         <button className={`tab ${tab === "equipment" ? "active" : ""}`} onClick={() => setTab("equipment")}>
