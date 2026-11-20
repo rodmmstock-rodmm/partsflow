@@ -178,6 +178,9 @@ class OrderRFQComposeTests(TestCase):
             phrase="ขอยืนยันวันจัดส่ง",
         )
 
+        self.vendor_message.message = "ข้อความติดตามกำหนดส่งเฉพาะ Vendor และผู้ใช้นี้"
+        self.vendor_message.save(update_fields=["message"])
+
         price_response = self.post_compose([str(order.id)], subject_topic="PRICE_UPDATE")
         delivery_response = self.post_compose([str(order.id)], subject_topic="DELIVERY_DATE")
 
@@ -186,7 +189,20 @@ class OrderRFQComposeTests(TestCase):
         self.assertIn("ขออัปเดตราคาล่าสุด", price_response.data["groups"][0]["subject"])
         self.assertIn("ขอยืนยันวันจัดส่ง", delivery_response.data["groups"][0]["subject"])
         self.assertIn("อัปเดตราคาสินค้า", price_response.data["groups"][0]["message"])
-        self.assertIn("กำหนดการจัดส่ง", delivery_response.data["groups"][0]["message"])
+        self.assertEqual(
+            delivery_response.data["groups"][0]["message"],
+            "ข้อความติดตามกำหนดส่งเฉพาะ Vendor และผู้ใช้นี้",
+        )
+        delivery_group = delivery_response.data["groups"][0]
+        self.assertEqual(
+            delivery_group["body"].splitlines()[:4],
+            [
+                "ข้อความติดตามกำหนดส่งเฉพาะ Vendor และผู้ใช้นี้",
+                "",
+                "ขอยืนยันวันจัดส่ง",
+                "",
+            ],
+        )
 
     def test_subject_uses_part_id_instead_of_machine_and_job_when_available(self):
         from types import SimpleNamespace
@@ -281,6 +297,46 @@ class OrderRFQComposeTests(TestCase):
         order = self.make_order("ORD-RFQ-MISSING-USER-MESSAGE")
 
         response = self.post_compose([str(order.id)])
+
+        self.assertEqual(response.status_code, 400)
+        self.assertIn("ตั้งค่า RFQ Message", response.data["detail"])
+
+
+    def test_delivery_date_uses_only_current_employee_vendor_message(self):
+        self.vendor_message.message = "ข้อความของผู้ใช้ปัจจุบัน"
+        self.vendor_message.save(update_fields=["message"])
+        other_employee = Employee.objects.create(
+            employee_code="RFQ-DELIVERY-OTHER",
+            name="Other Buyer",
+            role="PURCHASE",
+        )
+        SupplierRFQMessage.objects.create(
+            supplier=self.vendor,
+            employee=other_employee,
+            message="ข้อความของผู้ใช้อื่นต้องไม่ถูกนำมาใช้",
+        )
+        EmployeeRFQSubjectSetting.objects.create(
+            employee=self.actor,
+            topic_code="DELIVERY_DATE",
+            phrase="ขอยืนยันวันจัดส่ง",
+        )
+        order = self.make_order("ORD-RFQ-DELIVERY-USER-SCOPE")
+
+        response = self.post_compose([str(order.id)], subject_topic="DELIVERY_DATE")
+
+        self.assertEqual(response.status_code, 200)
+        body = response.data["groups"][0]["body"]
+        self.assertEqual(
+            body.splitlines()[:4],
+            ["ข้อความของผู้ใช้ปัจจุบัน", "", "ขอยืนยันวันจัดส่ง", ""],
+        )
+        self.assertNotIn("ข้อความของผู้ใช้อื่นต้องไม่ถูกนำมาใช้", body)
+
+    def test_missing_vendor_user_message_blocks_delivery_date_compose(self):
+        self.vendor_message.delete()
+        order = self.make_order("ORD-RFQ-DELIVERY-MISSING-MESSAGE")
+
+        response = self.post_compose([str(order.id)], subject_topic="DELIVERY_DATE")
 
         self.assertEqual(response.status_code, 400)
         self.assertIn("ตั้งค่า RFQ Message", response.data["detail"])
