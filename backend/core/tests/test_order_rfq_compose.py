@@ -194,12 +194,6 @@ class OrderRFQComposeTests(TestCase):
             "ข้อความติดตามกำหนดส่งเฉพาะ Vendor และผู้ใช้นี้",
         )
         delivery_group = delivery_response.data["groups"][0]
-        self.assertTrue(
-            delivery_group["body"].startswith(
-                "ข้อความติดตามกำหนดส่งเฉพาะ Vendor และผู้ใช้นี้"
-                "\\n\\nขอยืนยันวันจัดส่ง\\n\\n"
-            )
-        )
         self.assertEqual(
             delivery_group["body"].splitlines()[:4],
             [
@@ -321,13 +315,21 @@ class OrderRFQComposeTests(TestCase):
             employee=other_employee,
             message="ข้อความของผู้ใช้อื่นต้องไม่ถูกนำมาใช้",
         )
+        EmployeeRFQSubjectSetting.objects.create(
+            employee=self.actor,
+            topic_code="DELIVERY_DATE",
+            phrase="ขอยืนยันวันจัดส่ง",
+        )
         order = self.make_order("ORD-RFQ-DELIVERY-USER-SCOPE")
 
         response = self.post_compose([str(order.id)], subject_topic="DELIVERY_DATE")
 
         self.assertEqual(response.status_code, 200)
         body = response.data["groups"][0]["body"]
-        self.assertTrue(body.startswith("ข้อความของผู้ใช้ปัจจุบัน\\n\\nรบกวนแจ้งกำหนดการจัดส่ง\\n\\n"))
+        self.assertEqual(
+            body.splitlines()[:4],
+            ["ข้อความของผู้ใช้ปัจจุบัน", "", "ขอยืนยันวันจัดส่ง", ""],
+        )
         self.assertNotIn("ข้อความของผู้ใช้อื่นต้องไม่ถูกนำมาใช้", body)
 
     def test_missing_vendor_user_message_blocks_delivery_date_compose(self):
