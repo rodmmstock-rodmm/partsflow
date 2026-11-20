@@ -140,8 +140,9 @@ def _compose_group(group, vendor, message, subject_phrase, topic_code):
 
     table = _format_rfq_table(group["orders"])
     table_html = _format_rfq_table_html(group["orders"])
+    email_intro = f"{message.rstrip()}\n\n{subject_phrase}" if topic_code == "DELIVERY_DATE" and message else message
     if topic_code == "DELIVERY_DATE":
-        body = f"{message}\n\n{subject_phrase}\n\n{table}" if message else f"{subject_phrase}\n\n{table}"
+        body = f"{email_intro}\n\n{table}" if email_intro else table
     else:
         body = f"{message}\n\n{table}" if message else table
 
@@ -156,6 +157,7 @@ def _compose_group(group, vendor, message, subject_phrase, topic_code):
         "cc": group["cc_emails"],
         "body": body,
         "message": message,
+        "email_intro": email_intro,
         "table_html": table_html,
         "table_text": table,
     }
