@@ -19,7 +19,7 @@ class OrderRFQDraftTests(SimpleTestCase):
                 "group_key": "MC|R|",
                 "subject": "Vendor RFQ",
                 "message": "Please quote.",
-                "email_intro": "Please quote.\\n\\nDelivery subject phrase",
+                "email_intro": "Please quote.\n\nDelivery subject phrase",
                 "table_html": (
                     '<table style="border-collapse:collapse"><tbody><tr>'
                     '<td style="border:1px solid #333333;padding:6px 8px">SKU-1</td>'
