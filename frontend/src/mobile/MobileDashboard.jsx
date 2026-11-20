@@ -121,6 +121,7 @@ export default function MobileDashboard() {
       actions={
         <>
           <BackupDownloadButton type="stock" mobile />
+          {auth.can("can_view_parts") && auth.can("can_view_tooling") && auth.can("can_view_tools") && <BackupDownloadButton type="images" mobile />}
           {auth.can("can_edit_parts") && (
             <button
               type="button"
