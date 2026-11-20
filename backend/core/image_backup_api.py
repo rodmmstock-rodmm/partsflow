@@ -148,14 +148,14 @@ def _stream_zip(rows):
                     "backup_manifest.csv", csv_buffer.getvalue().encode("utf-8-sig")
                 )
                 summary = (
-                    "PartsFlow Image Backup\\n"
-                    f"Created: {timezone.localtime(timezone.now()).isoformat()}\\n"
-                    f"Referenced images: {len(rows)}\\n"
-                    f"Downloaded: {downloaded}\\n"
-                    f"Partial: {partial}\\n"
-                    f"Skipped: {len(rows) - downloaded - partial}\\n"
+                    "PartsFlow Image Backup\n"
+                    f"Created: {timezone.localtime(timezone.now()).isoformat()}\n"
+                    f"Referenced images: {len(rows)}\n"
+                    f"Downloaded: {downloaded}\n"
+                    f"Partial: {partial}\n"
+                    f"Skipped: {len(rows) - downloaded - partial}\n"
                     "Review backup_manifest.csv for per-image results. "
-                    "This archive does not modify or delete source images.\\n"
+                    "This archive does not modify or delete source images.\n"
                 )
                 archive.writestr("README.txt", summary.encode("utf-8"))
         except (BrokenPipeError, GeneratorExit):
