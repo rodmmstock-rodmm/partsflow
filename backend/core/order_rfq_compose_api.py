@@ -235,7 +235,7 @@ def compose_order_rfq_data(request):
     ).values_list("phrase", flat=True).first() or defaults[topic_code]
     subject_phrase = str(subject_phrase).strip() or defaults[topic_code]
 
-    if topic_code == "RFQ":
+    if topic_code in {"RFQ", "DELIVERY_DATE"}:
         user_rfq_message = SupplierRFQMessage.objects.filter(
             supplier=vendor,
             employee=actor,
@@ -243,13 +243,11 @@ def compose_order_rfq_data(request):
         message = str(user_rfq_message.message if user_rfq_message else "")
         if not message.strip():
             return Response(
-                {"detail": "กรุณาตั้งค่า RFQ Message สำหรับ Vendor รายนี้ในหน้า Vendor ก่อนสร้าง RFQ"},
+                {"detail": "กรุณาตั้งค่า RFQ Message สำหรับ Vendor รายนี้ในหน้า Vendor ก่อนสร้างอีเมล"},
                 status=400,
             )
-    elif topic_code == "PRICE_UPDATE":
-        message = "เรียน ผู้ขาย\n\nรบกวนอัปเดตราคาสินค้าตามรายการด้านล่าง พร้อมแจ้งราคาและเงื่อนไขล่าสุดกลับด้วยครับ/ค่ะ"
     else:
-        message = "เรียน ผู้ขาย\n\nรบกวนยืนยันกำหนดการจัดส่งล่าสุดของรายการด้านล่าง พร้อมแจ้งวันที่คาดว่าจะจัดส่งครับ/ค่ะ"
+        message = "เรียน ผู้ขาย\n\nรบกวนอัปเดตราคาสินค้าตามรายการด้านล่าง พร้อมแจ้งราคาและเงื่อนไขล่าสุดกลับด้วยครับ/ค่ะ"
 
     groups = OrderedDict()
     for order_id in ordered_ids:
