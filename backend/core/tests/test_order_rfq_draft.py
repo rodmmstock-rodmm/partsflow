@@ -50,7 +50,7 @@ class OrderRFQDraftTests(SimpleTestCase):
         kwargs = create_draft.call_args.kwargs
         self.assertIn("Please quote.", kwargs["body_html"])
         self.assertIn("Delivery subject phrase", kwargs["body_html"])
-        self.assertIn("Please quote.\\n\\nDelivery subject phrase", kwargs["body_text"])
+        self.assertIn("Please quote.\n\nDelivery subject phrase", kwargs["body_text"])
         self.assertIn("SKU-1", kwargs["body_html"])
         self.assertIn("border:1px solid #333333", kwargs["body_html"])
         self.assertNotIn("<th", kwargs["body_html"])
