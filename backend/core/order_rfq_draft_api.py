@@ -17,7 +17,7 @@ def create_order_rfq_drafts(request):
     created = []
     try:
         for group in composed.data.get("groups") or []:
-            message = str(group.get("message") or "")
+            message = str(group.get("email_intro") or group.get("message") or "")
             table_html = str(group.get("table_html") or "")
             table_text = str(group.get("table_text") or "")
             import html
