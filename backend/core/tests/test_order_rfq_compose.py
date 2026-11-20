@@ -169,6 +169,11 @@ class OrderRFQComposeTests(TestCase):
         order = self.make_order("ORD-RFQ-EMAIL-TYPES")
         EmployeeRFQSubjectSetting.objects.create(
             employee=self.actor,
+            topic_code="RFQ",
+            phrase="ขอใบเสนอราคาตามรายการ",
+        )
+        EmployeeRFQSubjectSetting.objects.create(
+            employee=self.actor,
             topic_code="PRICE_UPDATE",
             phrase="ขออัปเดตราคาล่าสุด",
         )
@@ -181,14 +186,39 @@ class OrderRFQComposeTests(TestCase):
         self.vendor_message.message = "ข้อความติดตามกำหนดส่งเฉพาะ Vendor และผู้ใช้นี้"
         self.vendor_message.save(update_fields=["message"])
 
+        rfq_response = self.post_compose([str(order.id)], subject_topic="RFQ")
         price_response = self.post_compose([str(order.id)], subject_topic="PRICE_UPDATE")
         delivery_response = self.post_compose([str(order.id)], subject_topic="DELIVERY_DATE")
 
+        self.assertEqual(rfq_response.status_code, 200)
         self.assertEqual(price_response.status_code, 200)
         self.assertEqual(delivery_response.status_code, 200)
+        self.assertIn("ขอใบเสนอราคาตามรายการ", rfq_response.data["groups"][0]["subject"])
+        self.assertIn("ขอใบเสนอราคาตามรายการ", rfq_response.data["groups"][0]["email_intro"])
+        self.assertIn("ขอใบเสนอราคาตามรายการ", rfq_response.data["groups"][0]["body"])
         self.assertIn("ขออัปเดตราคาล่าสุด", price_response.data["groups"][0]["subject"])
+        self.assertIn("ขออัปเดตราคาล่าสุด", price_response.data["groups"][0]["email_intro"])
+        self.assertIn("ขออัปเดตราคาล่าสุด", price_response.data["groups"][0]["body"])
         self.assertIn("ขอยืนยันวันจัดส่ง", delivery_response.data["groups"][0]["subject"])
         self.assertIn("อัปเดตราคาสินค้า", price_response.data["groups"][0]["message"])
+        self.assertTrue(
+            price_response.data["groups"][0]["email_intro"].startswith(
+                "เรียน ผู้ขาย\n\nรบกวนอัปเดตราคาสินค้าตามรายการด้านล่าง"
+            )
+        )
+        self.assertTrue(
+            price_response.data["groups"][0]["email_intro"].endswith(
+                "\n\nขออัปเดตราคาล่าสุด"
+            )
+        )
+        self.assertEqual(
+            rfq_response.data["groups"][0]["email_intro"].splitlines()[:3],
+            [
+                "ข้อความติดตามกำหนดส่งเฉพาะ Vendor และผู้ใช้นี้",
+                "",
+                "ขอใบเสนอราคาตามรายการ",
+            ],
+        )
         self.assertEqual(
             delivery_response.data["groups"][0]["message"],
             "ข้อความติดตามกำหนดส่งเฉพาะ Vendor และผู้ใช้นี้",
