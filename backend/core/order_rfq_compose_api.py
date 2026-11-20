@@ -140,7 +140,10 @@ def _compose_group(group, vendor, message, subject_phrase, topic_code):
 
     table = _format_rfq_table(group["orders"])
     table_html = _format_rfq_table_html(group["orders"])
-    body = f"{message}\n\n{table}" if message else table
+    if topic_code == "DELIVERY_DATE":
+        body = f"{message}\n\n{subject_phrase}\n\n{table}" if message else f"{subject_phrase}\n\n{table}"
+    else:
+        body = f"{message}\n\n{table}" if message else table
 
     return {
         "group_key": group["key"],
