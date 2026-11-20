@@ -141,7 +141,7 @@ export default function Tooling() {
     return numberA.localeCompare(numberB, undefined, { numeric: true, sensitivity: "base" });
   }).filter(x => !itemQuery || `${x.name} ${x.equipment_number || ""} ${x.detail} ${x.location || ""} ${x.maker}`.toLowerCase().includes(itemQuery.toLowerCase()));
   return <div className="tooling-page">
-    <PageHeader title="Tooling" subtitle="รายการอุปกรณ์ที่มีสต็อกและสามารถเบิกตัดจำนวนได้" actions={<><BackupDownloadButton type="tooling" />{auth.can("can_add_tooling") && <button className="btn primary" onClick={() => {setEditing(null);setForm(empty);setImageFile(null);setFormOpen(true);setTab("items");}}>+ เพิ่มอุปกรณ์</button>}</>} />
+    <PageHeader title="Tooling" subtitle="รายการอุปกรณ์ที่มีสต็อกและสามารถเบิกตัดจำนวนได้" actions={<><BackupDownloadButton type="tooling" />{auth.can("can_view_parts") && auth.can("can_view_tooling") && auth.can("can_view_tools") && <BackupDownloadButton type="images" />}{auth.can("can_add_tooling") && <button className="btn primary" onClick={() => {setEditing(null);setForm(empty);setImageFile(null);setFormOpen(true);setTab("items");}}>+ เพิ่มอุปกรณ์</button>}</>} />
     <Alert>{error}</Alert><Alert type="success">{success}</Alert>
     <div className="toolbar" style={{marginBottom:16}}>
       <button className={tab==="items"?"btn primary":"btn ghost"} onClick={()=>setTab("items")}>รายการอุปกรณ์ ({items.length})</button>
