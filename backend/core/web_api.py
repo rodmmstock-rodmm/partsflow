@@ -716,9 +716,12 @@ def part_image(request, pk):
         digest = hashlib.sha256(payload).hexdigest()
 
         sku_folder = _safe_part_image_folder(part.sku)
+        # Keep the filename recognizable as the Part ID while retaining
+        # a digest-versioned folder so every upload has a distinct Storage
+        # object and CDN URL. Previous images remain untouched.
         logical_path = (
             f"DATA1_Images/WebUploads/"
-            f"{sku_folder}/{digest[:24]}{extension}"
+            f"{sku_folder}/{digest[:24]}/{sku_folder}{extension}"
         )
         object_path = storage_object_path(logical_path)
 
@@ -745,7 +748,7 @@ def part_image(request, pk):
         try:
             backup_result = backup_web_upload(
                 sku_folder=sku_folder,
-                filename=f"{digest[:24]}{extension}",
+                filename=f"{sku_folder}{extension}",
                 payload=payload,
                 content_type=content_type,
             )
