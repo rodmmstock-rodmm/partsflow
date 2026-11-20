@@ -214,7 +214,7 @@ class OrderRFQComposeTests(TestCase):
         self.assertEqual(
             rfq_response.data["groups"][0]["email_intro"].splitlines()[:3],
             [
-                "Please quote the following items.",
+                "ข้อความติดตามกำหนดส่งเฉพาะ Vendor และผู้ใช้นี้",
                 "",
                 "ขอใบเสนอราคาตามรายการ",
             ],

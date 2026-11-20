@@ -30,12 +30,7 @@ class ImageBackupTests(TestCase):
     ):
         class ImageResponse:
             status_code = 200
-
-            def iter_content(self, chunk_size=65536):
-                yield b"image-bytes"
-
-            def close(self):
-                return None
+            content = b"image-bytes"
 
         get.return_value = ImageResponse()
         response = image_backup(self.factory.get("/api/backup/images.zip/"))
