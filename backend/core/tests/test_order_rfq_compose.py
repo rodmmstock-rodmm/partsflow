@@ -193,10 +193,21 @@ class OrderRFQComposeTests(TestCase):
             delivery_response.data["groups"][0]["message"],
             "ข้อความติดตามกำหนดส่งเฉพาะ Vendor และผู้ใช้นี้",
         )
+        delivery_group = delivery_response.data["groups"][0]
         self.assertTrue(
-            delivery_response.data["groups"][0]["body"].startswith(
-                "ข้อความติดตามกำหนดส่งเฉพาะ Vendor และผู้ใช้นี้\\n\\n"
+            delivery_group["body"].startswith(
+                "ข้อความติดตามกำหนดส่งเฉพาะ Vendor และผู้ใช้นี้"
+                "\\n\\nขอยืนยันวันจัดส่ง\\n\\n"
             )
+        )
+        self.assertEqual(
+            delivery_group["body"].splitlines()[:4],
+            [
+                "ข้อความติดตามกำหนดส่งเฉพาะ Vendor และผู้ใช้นี้",
+                "",
+                "ขอยืนยันวันจัดส่ง",
+                "",
+            ],
         )
 
     def test_subject_uses_part_id_instead_of_machine_and_job_when_available(self):
@@ -316,7 +327,7 @@ class OrderRFQComposeTests(TestCase):
 
         self.assertEqual(response.status_code, 200)
         body = response.data["groups"][0]["body"]
-        self.assertTrue(body.startswith("ข้อความของผู้ใช้ปัจจุบัน\\n\\n"))
+        self.assertTrue(body.startswith("ข้อความของผู้ใช้ปัจจุบัน\\n\\nรบกวนแจ้งกำหนดการจัดส่ง\\n\\n"))
         self.assertNotIn("ข้อความของผู้ใช้อื่นต้องไม่ถูกนำมาใช้", body)
 
     def test_missing_vendor_user_message_blocks_delivery_date_compose(self):
