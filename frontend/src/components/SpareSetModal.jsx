@@ -129,7 +129,7 @@ export default function SpareSetModal({ spareSet, options, onClose, onSaved }) {
         <div className="section-head spare-set-items-head">
           <div>
             <h2>รายการอะไหล่ใน Set</h2>
-            <p>เลือกอะไหล่และกำหนดจำนวนที่ใช้ต่อ 1 Set</p>
+            <p>เลือกอะไหล่จากรายการ Stock โดยค้นหาด้วย Part ID / SKU หรือชื่ออะไหล่ แล้วกำหนดจำนวนที่ใช้ต่อ 1 Set</p>
           </div>
           <button type="button" className="btn ghost" onClick={addItem}>
             + เพิ่มอะไหล่
@@ -144,15 +144,16 @@ export default function SpareSetModal({ spareSet, options, onClose, onSaved }) {
             >
               <div className="spare-set-editor-no">{index + 1}</div>
               <label className="field spare-set-part-field">
-                <span>อะไหล่ *</span>
+                <span>เลือกอะไหล่จาก Stock *</span>
                 <SearchableSelect
+                  className="spare-set-part-select"
                   value={row.part_id}
                   initialLabel={row.partText}
                   onSearch={searchParts}
                   onChange={(_, part) => choosePart(index, part)}
                   getLabel={partLabel}
                   getSearchText={(p) => `${p.sku || ""} ${p.name || ""}`}
-                  placeholder="พิมพ์ Part ID หรือชื่อ Part"
+                  placeholder="ค้นหา Part ID / SKU หรือชื่ออะไหล่"
                 />
               </label>
               <label className="field">
