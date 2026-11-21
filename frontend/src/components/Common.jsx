@@ -449,7 +449,7 @@ export function SearchableSelect({
             <button type="button" role="option" aria-selected={String(option.id) === String(value)} className={index === activeIndex ? "active" : ""} key={option.id} onMouseDown={(event) => event.preventDefault()} onMouseEnter={() => setActiveIndex(index)} onClick={() => choose(option)}>{getLabel(option)}</button>
           )) : <span className="searchable-empty">{remote && !needle ? "พิมพ์เพื่อค้นหา..." : emptyText}</span>}
         </div>
-      ))}}
+      ))}
     </div>
   );
 }
