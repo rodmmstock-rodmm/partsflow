@@ -9,22 +9,46 @@ function gmailComposeUrl(group) {
     to: group.to || "",
     cc: (group.cc || []).join(","),
     su: group.subject || "",
-    body: group.email_intro || group.message || "",
   });
   return `https://mail.google.com/mail/?${params.toString()}`;
+}
+
+function escapeHtml(value) {
+  return String(value || "").replace(/[&<>"']/g, (character) => ({
+    "&": "&amp;",
+    "<": "&lt;",
+    ">": "&gt;",
+    '"': "&quot;",
+    "'": "&#39;",
+  })[character]);
+}
+
+function emailClipboardContent(group) {
+  const intro = String(group.email_intro || group.message || "");
+  const introHtml = intro
+    ? intro.split("\n").map((line) => line
+      ? `<p style="margin:0 0 12px">${escapeHtml(line)}</p>`
+      : "<br>").join("")
+    : "";
+  const introText = intro ? `${intro.replace(/\s+$/, "")}\n\n` : "";
+  return {
+    html: `${introHtml}${group.table_html || ""}`,
+    text: `${introText}${group.table_text || ""}`,
+  };
 }
 
 async function copyTableAndOpenGroup(group, onError, onCopied) {
   const pendingTab = window.open("about:blank", "_blank");
   try {
     if (!group.table_html) throw new Error("ไม่พบตาราง HTML สำหรับคัดลอก");
+    const clipboardContent = emailClipboardContent(group);
 
     let copied = false;
     if (navigator.clipboard?.write && window.ClipboardItem) {
       try {
         const item = new window.ClipboardItem({
-          "text/html": new Blob([group.table_html], { type: "text/html" }),
-          "text/plain": new Blob([group.table_text || ""], { type: "text/plain" }),
+          "text/html": new Blob([clipboardContent.html], { type: "text/html" }),
+          "text/plain": new Blob([clipboardContent.text], { type: "text/plain" }),
         });
         await navigator.clipboard.write([item]);
         copied = true;
@@ -45,7 +69,7 @@ async function copyTableAndOpenGroup(group, onError, onCopied) {
       holder.style.opacity = "0.01";
       holder.style.overflow = "hidden";
       holder.style.pointerEvents = "none";
-      holder.innerHTML = group.table_html;
+      holder.innerHTML = clipboardContent.html;
       document.body.appendChild(holder);
 
       const selection = window.getSelection();
@@ -64,7 +88,7 @@ async function copyTableAndOpenGroup(group, onError, onCopied) {
       holder.remove();
     }
 
-    if (!copied) throw new Error("เบราว์เซอร์ไม่อนุญาตให้คัดลอกตารางแบบมีเส้นขอบ");
+    if (!copied) throw new Error("เบราว์เซอร์ไม่อนุญาตให้คัดลอกข้อความและตาราง");
     if (!pendingTab) throw new Error("เบราว์เซอร์บล็อกหน้าต่าง Gmail กรุณาอนุญาต Pop-up");
     pendingTab.location.href = gmailComposeUrl(group);
     onCopied?.(group.group_key || group.subject);
@@ -123,7 +147,7 @@ export default function OrderRFQComposeModal({ orders, options, onClose, onOpene
         {groups.length === 1 ? (
           <>
             <div className="alert success">
-              เตรียมอีเมลแล้ว กดปุ่มด้านล่างเพื่อคัดลอกตารางแบบ Excel และเปิด Gmail จากนั้นวางตารางในเนื้อหาอีเมล
+              เตรียมข้อความและตารางแล้ว กดปุ่มด้านล่างเพื่อเปิด Gmail จากนั้นวางเนื้อหาในอีเมล โดย Signature จะถูกแทรกจากการตั้งค่า Gmail
             </div>
             <section className="rfq-result">
               <div>
@@ -133,12 +157,12 @@ export default function OrderRFQComposeModal({ orders, options, onClose, onOpene
                 {(groups[0].cc || []).length > 0 && <span>CC: {groups[0].cc.join(", ")}</span>}
               </div>
               <button type="button" className="mini primary" onClick={() => openGroup(groups[0])}>
-                คัดลอกตารางและเปิด Gmail
+                คัดลอกข้อความและตาราง เปิด Gmail
               </button>
             </section>
             {copiedGroup && (
               <div className="alert success">
-                คัดลอกตารางแล้ว ให้วางใน Gmail ด้วย Paste (Ctrl+V หรือ Command+V)
+                คัดลอกข้อความและตารางแล้ว ให้วางใน Gmail ด้วย Paste (Ctrl+V หรือ Command+V) โดย Signature จะอยู่ด้านล่าง
               </div>
             )}
             <div className="modal-actions">
@@ -147,7 +171,7 @@ export default function OrderRFQComposeModal({ orders, options, onClose, onOpene
           </>
         ) : groups.length > 1 ? (
           <>
-            <div className="alert success">เตรียมอีเมลแล้ว แยกตามกลุ่มข้อมูล กรุณาคัดลอกและเปิด Gmail ทีละฉบับ</div>
+            <div className="alert success">เตรียมอีเมลแล้ว แยกตามกลุ่มข้อมูล กรุณาคัดลอกข้อความและตาราง แล้วเปิด Gmail ทีละฉบับ</div>
             <div className="rfq-result-list">
               {groups.map((group, index) => (
                 <section className="rfq-result" key={group.group_key || index}>
@@ -158,7 +182,7 @@ export default function OrderRFQComposeModal({ orders, options, onClose, onOpene
                     {(group.cc || []).length > 0 && <span>CC: {group.cc.join(", ")}</span>}
                   </div>
                   <button type="button" className="mini primary" onClick={() => openGroup(group)}>
-                    คัดลอกตารางและเปิด Gmail
+                    คัดลอกข้อความและตาราง เปิด Gmail
                   </button>
                 </section>
               ))}

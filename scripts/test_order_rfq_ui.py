@@ -70,7 +70,7 @@ def assert_gmail_compose(page, captured):
     }""")
 
     page.get_by_role("button", name="เตรียมอีเมลขอราคา").click()
-    copy_button = page.get_by_role("button", name="คัดลอกตารางและเปิด Gmail")
+    copy_button = page.get_by_role("button", name="คัดลอกข้อความและตาราง เปิด Gmail")
     copy_button.wait_for(timeout=10000)
 
     with page.expect_popup() as popup_info:
@@ -93,10 +93,7 @@ def assert_gmail_compose(page, captured):
     assert "Machine E2E" in params.get("su", [""])[0]
     assert params.get("su", [""])[0].endswith("Existing Order Remark")
     assert "-" not in params.get("su", [""])[0]
-    body = params.get("body", [""])[0]
-    assert "Please quote the following items." in body
-    assert "┌" not in body and "Order No." not in body
-    assert not ORDER_NUMBER_PATTERN.search(body), "Order number unexpectedly appears in RFQ email body"
+    assert "body" not in params, "Gmail compose body must remain empty so Gmail can insert its configured signature"
 
     html_value = page.evaluate("window.__rfqClipboardHtml")
     assert "<table" in html_value and "<td" in html_value
@@ -105,7 +102,11 @@ def assert_gmail_compose(page, captured):
     assert "RFQ E2E Bearing" in html_value
     assert "<th" not in html_value
     assert "Order No." not in html_value
-    assert "RFQ E2E Bearing" in page.evaluate("window.__rfqClipboardText")
+    clipboard_text = page.evaluate("window.__rfqClipboardText")
+    assert "Please quote the following items." in clipboard_text
+    assert "RFQ E2E Bearing" in clipboard_text
+    assert "Order No." not in clipboard_text
+    assert not ORDER_NUMBER_PATTERN.search(clipboard_text), "Order number unexpectedly appears in RFQ email body"
     payload = captured.get("payload") or {}
     assert len(payload.get("order_ids") or []) == 2, payload
     assert payload.get("vendor_id"), payload
