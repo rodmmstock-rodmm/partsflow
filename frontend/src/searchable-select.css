@@ -71,3 +71,7 @@
   color: #64748b;
   text-align: center;
 }
+
+
+/* Search suggestions rendered in document.body to escape scrollable dialogs. */
+.searchable-menu-portal{overflow-y:auto;overscroll-behavior:contain}
