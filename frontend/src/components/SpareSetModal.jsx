@@ -146,7 +146,7 @@ export default function SpareSetModal({ spareSet, options, onClose, onSaved }) {
               <label className="field spare-set-part-field">
                 <span>เลือกอะไหล่จาก Stock *</span>
                 <SearchableSelect
-                  className="spare-set-part-select"
+                  portalMenu
                   value={row.part_id}
                   initialLabel={row.partText}
                   onSearch={searchParts}
