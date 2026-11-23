@@ -25,7 +25,8 @@ def optimize_part_image(payload: bytes, content_type: str) -> tuple[bytes, str]:
     normalized_type = str(content_type or "").lower().split(";", 1)[0].strip()
     if normalized_type == "image/jpg":
         normalized_type = "image/jpeg"
-    if normalized_type in {"image/heic", "image/heif", "image/heic-sequence", "image/heif-sequence"}:
+    is_heif = normalized_type in {"image/heic", "image/heif", "image/heic-sequence", "image/heif-sequence"}
+    if is_heif:
         normalized_type = "image/jpeg"
     if normalized_type == "image/gif":
         try:
@@ -73,6 +74,8 @@ def optimize_part_image(payload: bytes, content_type: str) -> tuple[bytes, str]:
                 image.save(output, format="PNG", optimize=True)
 
             optimized = output.getvalue()
-            return (optimized, normalized_type) if len(optimized) < len(payload) else (payload, normalized_type)
+            # HEIF must always be emitted as real JPEG bytes after the MIME type
+            # changes; the size guard only applies to same-format optimization.
+            return (optimized, normalized_type) if is_heif or len(optimized) < len(payload) else (payload, normalized_type)
     except (UnidentifiedImageError, OSError) as exc:
         raise ValueError("ไฟล์รูปภาพไม่ถูกต้องหรืออ่านไม่ได้") from exc
