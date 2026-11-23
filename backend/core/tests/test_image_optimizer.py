@@ -2,6 +2,7 @@ from io import BytesIO
 import unittest
 
 from PIL import Image
+import pillow_heif
 
 from core.image_optimizer import MAX_IMAGE_EDGE, optimize_part_image
 
@@ -62,6 +63,19 @@ class OptimizePartImageTests(unittest.TestCase):
         with Image.open(BytesIO(optimized)) as result:
             self.assertLessEqual(max(result.size), MAX_IMAGE_EDGE)
             self.assertEqual(result.size, (MAX_IMAGE_EDGE, 800))
+
+    def test_heic_upload_is_converted_to_jpeg(self):
+        source = Image.new("RGB", (32, 24), (20, 80, 140))
+        heif = pillow_heif.from_pillow(source)
+        payload = BytesIO()
+        heif.save(payload)
+
+        optimized, content_type = optimize_part_image(payload.getvalue(), "image/heic")
+
+        self.assertEqual(content_type, "image/jpeg")
+        with Image.open(BytesIO(optimized)) as result:
+            self.assertEqual(result.format, "JPEG")
+            self.assertEqual(result.size, (32, 24))
 
     def test_invalid_payload_is_rejected(self):
         with self.assertRaises(ValueError):
