@@ -8,6 +8,11 @@ from __future__ import annotations
 from io import BytesIO
 
 from PIL import Image, ImageOps, UnidentifiedImageError
+from pillow_heif import register_heif_opener
+
+# iPhone photos are commonly HEIC/HEIF. Register the decoder once so the
+# existing Pillow optimization pipeline can safely convert them to JPEG.
+register_heif_opener()
 
 
 MAX_IMAGE_EDGE = 1600
@@ -19,6 +24,9 @@ def optimize_part_image(payload: bytes, content_type: str) -> tuple[bytes, str]:
     """Return optimized bytes and type; valid animated GIFs remain untouched."""
     normalized_type = str(content_type or "").lower().split(";", 1)[0].strip()
     if normalized_type == "image/jpg":
+        normalized_type = "image/jpeg"
+    is_heif = normalized_type in {"image/heic", "image/heif", "image/heic-sequence", "image/heif-sequence"}
+    if is_heif:
         normalized_type = "image/jpeg"
     if normalized_type == "image/gif":
         try:
@@ -66,6 +74,8 @@ def optimize_part_image(payload: bytes, content_type: str) -> tuple[bytes, str]:
                 image.save(output, format="PNG", optimize=True)
 
             optimized = output.getvalue()
-            return (optimized, normalized_type) if len(optimized) < len(payload) else (payload, normalized_type)
+            # HEIF must always be emitted as real JPEG bytes after the MIME type
+            # changes; the size guard only applies to same-format optimization.
+            return (optimized, normalized_type) if is_heif or len(optimized) < len(payload) else (payload, normalized_type)
     except (UnidentifiedImageError, OSError) as exc:
         raise ValueError("ไฟล์รูปภาพไม่ถูกต้องหรืออ่านไม่ได้") from exc

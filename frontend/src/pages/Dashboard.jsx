@@ -61,7 +61,7 @@ export function PartModal({ part, options, onClose, onSaved }) {
       setImageFile(null);
       return;
     }
-    const allowed = ["image/jpeg", "image/jpg", "image/png", "image/webp", "image/gif"];
+    const allowed = ["image/jpeg", "image/jpg", "image/png", "image/webp", "image/gif", "image/heic", "image/heif", "image/heic-sequence", "image/heif-sequence"];
     if (!allowed.includes(file.type)) {
       event.target.value = "";
       setImageFile(null);
@@ -226,9 +226,9 @@ export function PartModal({ part, options, onClose, onSaved }) {
           </label>
           <label className="field span3">
             <span>เลือกรูปจากเครื่อง / โทรศัพท์</span>
-            <input type="file" accept="image/jpeg,image/png,image/webp,image/gif" onChange={chooseImage} />
+            <input type="file" accept="image/jpeg,image/png,image/webp,image/gif,image/heic,image/heif" onChange={chooseImage} />
             <small className="field-help">
-              JPG / PNG / WEBP / GIF ไม่เกิน 10 MB · เมื่อเลือกรูปใหม่ รูปปัจจุบันจะถูกแทนที่หลังบันทึก
+              JPG / PNG / WEBP / GIF / HEIC ไม่เกิน 10 MB · เมื่อเลือกรูปใหม่ รูปปัจจุบันจะถูกแทนที่หลังบันทึก
             </small>
           </label>
           <div className="field span3">

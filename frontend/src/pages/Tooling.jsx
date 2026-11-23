@@ -157,8 +157,8 @@ export default function Tooling() {
         <label className="field span2"><span>Model</span><input value={form.detail} onChange={e=>setForm({...form,detail:e.target.value})}/></label>
         <div className="field span2"><span>รูปภาพอุปกรณ์</span>
           {editing?.image_url && !imageFile && <img src={editing.image_url} alt={editing.name} style={{width:112,height:84,objectFit:"contain",border:"1px solid var(--border,#e2e8f0)",borderRadius:8,background:"#fff",marginBottom:8}} />}
-          <input type="file" accept="image/jpeg,image/png,image/webp,image/gif" onChange={e=>setImageFile(e.target.files?.[0] || null)} />
-          <small>รองรับ JPG, PNG, WEBP, GIF ขนาดไม่เกิน 10 MB รูปจะถูกปรับขนาดก่อนจัดเก็บ</small>
+          <input type="file" accept="image/jpeg,image/png,image/webp,image/gif,image/heic,image/heif" onChange={e=>setImageFile(e.target.files?.[0] || null)} />
+          <small>รองรับ JPG, PNG, WEBP, GIF, HEIC ขนาดไม่เกิน 10 MB รูปจะถูกปรับขนาดก่อนจัดเก็บ</small>
           {imageFile && <small>ไฟล์ที่เลือก: {imageFile.name}</small>}
         </div>
         <label className="field"><span>จำนวนคงเหลือ</span><input type="number" min="0" required value={form.quantity} onChange={e=>setForm({...form,quantity:e.target.value})}/></label>

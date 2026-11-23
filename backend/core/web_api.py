@@ -641,6 +641,10 @@ PART_IMAGE_EXTENSIONS = {
     "image/png": ".png",
     "image/webp": ".webp",
     "image/gif": ".gif",
+    "image/heic": ".jpg",
+    "image/heif": ".jpg",
+    "image/heic-sequence": ".jpg",
+    "image/heif-sequence": ".jpg",
 }
 
 
