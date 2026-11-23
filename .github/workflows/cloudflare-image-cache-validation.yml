@@ -36,3 +36,42 @@ jobs:
 
       - name: Validate Wrangler configuration and Worker bundle without deploying
         run: npx --yes wrangler@4.161.0 deploy --dry-run
+
+      - name: Verify live image delivery and edge cache HIT
+        env:
+          IMAGE_URL: "https://partsflow-image-cache.rodmmstock.workers.dev/image/drive-source/016db725bd9d52884480/GLA00041.PIC.071807.jpg?v=imgopt1-016db725bd9d52884480"
+        run: |
+          set -euo pipefail
+          headers="$(mktemp)"
+          body="$(mktemp)"
+          trap 'rm -f "$headers" "$body"' EXIT
+
+          hit=0
+          for attempt in 1 2 3 4 5 6; do
+            : > "$headers"
+            status="$(curl --silent --show-error --location --max-time 45 \
+              --dump-header "$headers" --output "$body" --write-out '%{http_code}' \
+              "$IMAGE_URL")"
+            content_type="$(awk 'tolower($1) == "content-type:" { gsub("\\r", "", $2); value=$2 } END { print tolower(value) }' "$headers")"
+            cache_status="$(awk 'tolower($1) == "cf-cache-status:" { gsub("\\r", "", $2); value=toupper($2) } END { print value }' "$headers")"
+            age="$(awk 'tolower($1) == "age:" { gsub("\\r", "", $2); value=$2 } END { print value }' "$headers")"
+
+            test "$status" = "200" || { echo "::error::Live image request returned HTTP $status"; exit 1; }
+            case "$content_type" in
+              image/*) ;;
+              *) echo "::error::Live Worker returned non-image content type: $content_type"; exit 1 ;;
+            esac
+            test -s "$body" || { echo "::error::Live Worker returned an empty image"; exit 1; }
+
+            if [ "$cache_status" = "HIT" ] && [ -n "$age" ]; then
+              echo "Live image OK; Cloudflare edge cache confirmed HIT (Age: ${age}s)."
+              hit=1
+              break
+            fi
+            sleep 2
+          done
+
+          test "$hit" = "1" || {
+            echo "::error::Live image was reachable, but a confirmed CF-Cache-Status: HIT with Age header was not observed after 6 requests."
+            exit 1
+          }
