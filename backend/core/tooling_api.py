@@ -209,6 +209,8 @@ def item_image(request, pk):
     extensions = {
         "image/jpeg": ".jpg", "image/jpg": ".jpg",
         "image/png": ".png", "image/webp": ".webp", "image/gif": ".gif",
+        "image/heic": ".jpg", "image/heif": ".jpg",
+        "image/heic-sequence": ".jpg", "image/heif-sequence": ".jpg",
     }
     extension = extensions.get(content_type)
     if not extension:
