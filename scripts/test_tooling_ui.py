@@ -45,8 +45,8 @@ def test_desktop_tooling_qr_withdrawal_and_history(browser):
     page.goto(f"{BASE_URL}/tooling", wait_until="networkidle")
 
     page.get_by_role("heading", name="Tooling").wait_for()
-    page.get_by_text(ITEM_NAME).wait_for()
     tooling_row = page.locator("tbody tr").filter(has_text=ITEM_NAME)
+    tooling_row.wait_for()
     assert page.locator("thead th").nth(0).inner_text() == "รูปภาพ"
     assert page.locator("thead th").nth(1).inner_text() == "หมายเลขอุปกรณ์"
     assert page.locator("tbody tr").nth(0).locator("td").nth(1).inner_text() == "GTOOL00001"
@@ -150,7 +150,7 @@ def test_mobile_tooling_withdrawal_vehicle_number_dropdown(browser):
     )
     login(page)
     page.goto(f"{BASE_URL}/tooling", wait_until="networkidle")
-    target_card = page.locator("tbody tr").filter(has_text="E2E Test Sealant")
+    target_card = page.locator(".tooling-mobile-card").filter(has_text="E2E Test Sealant")
     target_card.get_by_role("button", name="เบิก", exact=True).click()
     vehicle_select = page.get_by_label("เบอร์รถเครื่องมือ *")
     assert vehicle_select.locator("option").count() == 14

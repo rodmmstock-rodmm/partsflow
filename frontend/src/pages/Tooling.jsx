@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import QRCode from "qrcode";
 import { apiDelete, apiGet, apiPatch, apiPost, apiUpload } from "../api";
 import { useAuth } from "../auth";
-import { Alert, PageHeader } from "../components/Common";
+import { Alert, PageHeader, Pagination } from "../components/Common";
 import BackupDownloadButton from "../components/BackupDownloadButton";
 import "./ToolingMobile.css";
 
@@ -15,6 +15,8 @@ export default function Tooling() {
   const [history, setHistory] = useState([]);
   const [tab, setTab] = useState("items");
   const [itemQuery, setItemQuery] = useState("");
+  const [page, setPage] = useState(1);
+  const pageSize = 50;
   const [historyFilter, setHistoryFilter] = useState("");
   const [editing, setEditing] = useState(null);
   const [formOpen, setFormOpen] = useState(false);
@@ -141,15 +143,24 @@ export default function Tooling() {
     if (!numberB) return -1;
     return numberA.localeCompare(numberB, undefined, { numeric: true, sensitivity: "base" });
   }).filter(x => !itemQuery || `${x.name} ${x.equipment_number || ""} ${x.detail} ${x.location || ""} ${x.maker}`.toLowerCase().includes(itemQuery.toLowerCase()));
+  const totalPages = Math.max(1, Math.ceil(shown.length / pageSize));
+  const pageShown = shown.slice((page - 1) * pageSize, page * pageSize);
+  const firstRow = shown.length ? (page - 1) * pageSize + 1 : 0;
+  const lastRow = Math.min(page * pageSize, shown.length);
+  useEffect(() => { if (page > totalPages) setPage(totalPages); }, [page, totalPages]);
   return <div className="tooling-page">
     <PageHeader title="Tooling" subtitle="รายการอุปกรณ์ที่มีสต็อกและสามารถเบิกตัดจำนวนได้" actions={<><BackupDownloadButton type="tooling" />{auth.can("can_view_parts") && auth.can("can_view_tooling") && auth.can("can_view_tools") && <BackupDownloadButton type="images" />}{auth.can("can_add_tooling") && <button className="btn primary" onClick={() => {setEditing(null);setForm(empty);setImageFile(null);setFormOpen(true);setTab("items");}}>+ เพิ่มอุปกรณ์</button>}</>} />
     <Alert>{error}</Alert><Alert type="success">{success}</Alert>
     <div className="toolbar" style={{marginBottom:16}}>
       <button className={tab==="items"?"btn primary":"btn ghost"} onClick={()=>setTab("items")}>รายการอุปกรณ์ ({items.length})</button>
       <button className={tab==="history"?"btn primary":"btn ghost"} onClick={()=>setTab("history")}>ประวัติการเบิก ({history.length})</button>
-      {tab==="items" && <input className="search-input" placeholder="ค้นหาอุปกรณ์..." value={itemQuery} onChange={e=>setItemQuery(e.target.value)} />}
+      {tab==="items" && <input className="search-input" placeholder="ค้นหาอุปกรณ์..." value={itemQuery} onChange={e=>{setItemQuery(e.target.value);setPage(1);}} />}
     </div>
     {tab==="items" ? <>
+      <div className="tooling-pagination-bar" style={{display:"flex",justifyContent:"space-between",alignItems:"center",gap:12,flexWrap:"wrap",margin:"4px 0 12px"}}>
+        <small>{shown.length ? `แสดง ${firstRow}-${lastRow} จาก ${shown.length} รายการ` : "ไม่พบรายการ"}</small>
+        <Pagination page={page} totalPages={totalPages} onChange={setPage} />
+      </div>
       {(editing || formOpen) && <section className="panel"><h3>{editing?"แก้ไขอุปกรณ์":"เพิ่มอุปกรณ์"}</h3><form onSubmit={save} className="form-grid">
         <label className="field"><span>ชื่ออุปกรณ์ *</span><input required value={form.name} onChange={e=>setForm({...form,name:e.target.value})}/></label>
         <label className="field"><span>หมายเลขอุปกรณ์</span><input value={form.equipment_number || ""} placeholder={!editing ? (suggestedEquipmentNumber || "ไม่มีหมายเลขถัดไป") : ""} onChange={e=>setForm({...form,equipment_number:e.target.value.toUpperCase()})} maxLength={10} /></label>
@@ -169,11 +180,11 @@ export default function Tooling() {
         <div className="field"><span>&nbsp;</span><div><button className="btn primary" disabled={busy}>{busy?"กำลังบันทึก...":"บันทึก"}</button> <button type="button" className="btn ghost" onClick={()=>{setEditing(null);setForm(empty);setImageFile(null);setFormOpen(false)}}>ยกเลิก</button></div></div>
       </form></section>}
       <section className="panel tooling-items-panel"><div className="table-wrap tooling-items-table-wrap"><table><thead><tr><th>รูปภาพ</th><th>หมายเลขอุปกรณ์</th><th>ชื่ออุปกรณ์</th><th>Model</th><th>Location</th><th>Maker</th><th>คงเหลือ</th><th>Min</th><th>จำนวนที่ต้องสั่ง</th><th>หน่วย</th><th>QR / จัดการ</th></tr></thead><tbody>
-        {shown.map(x=><tr key={x.id}><td style={{width:76}}>{x.image_url ? <button type="button" aria-label={`ขยายรูปภาพ ${x.name}`} title="คลิกเพื่อขยายรูปภาพ" onClick={()=>setPreviewImage({url:x.image_url,name:x.name})} style={{display:"block",padding:0,border:0,background:"transparent",cursor:"zoom-in"}}><img src={x.image_url} alt={x.name} loading="lazy" style={{display:"block",width:56,height:44,objectFit:"contain",borderRadius:6,background:"#fff"}} /></button> : <span aria-label="ไม่มีรูปภาพ" title="ไม่มีรูปภาพ" style={{display:"grid",placeItems:"center",width:56,height:44,border:"1px solid var(--border,#e2e8f0)",borderRadius:6,background:"#f8fafc",color:"#94a3b8"}}><svg width="25" height="25" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="m3 7 9-4 9 4-9 4-9-4Z"/><path d="M3 7v10l9 4 9-4V7"/><path d="M12 11v10"/><path d="m7.5 5 9 4"/></svg></span>}</td><td>{x.equipment_number||"-"}</td><td><b>{x.name}</b></td><td>{x.detail||"-"}</td><td>{x.location||"-"}</td><td>{x.maker||"-"}</td><td className={x.low_stock?"text-danger":""}><b>{x.quantity}</b></td><td>{x.min_quantity}</td><td>{x.order_quantity ?? 0}</td><td>{x.unit||"-"}</td><td><div className="toolbar"><button className="btn ghost" onClick={()=>showQr(x)}>QR</button>{auth.can("can_withdraw_tooling")&&<button className="btn primary" onClick={()=>{setWithdrawItem(x);setWithdraw({quantity:1,requester_id:auth.employee?.id||"",reason:"LOST",vehicle_number:"",remark:""})}}>เบิก</button>}{auth.can("can_edit_tooling")&&<button className="btn ghost" onClick={()=>{setEditing(x);setForm({...x});setImageFile(null);setFormOpen(true);}}>แก้ไข</button>}{auth.can("can_delete_tooling")&&<button className="btn ghost" onClick={()=>remove(x)}>ปิดใช้งาน</button>}</div></td></tr>)}
+        {pageShown.map(x=><tr key={x.id}><td style={{width:76}}>{x.image_url ? <button type="button" aria-label={`ขยายรูปภาพ ${x.name}`} title="คลิกเพื่อขยายรูปภาพ" onClick={()=>setPreviewImage({url:x.image_url,name:x.name})} style={{display:"block",padding:0,border:0,background:"transparent",cursor:"zoom-in"}}><img src={x.image_url} alt={x.name} loading="lazy" style={{display:"block",width:56,height:44,objectFit:"contain",borderRadius:6,background:"#fff"}} /></button> : <span aria-label="ไม่มีรูปภาพ" title="ไม่มีรูปภาพ" style={{display:"grid",placeItems:"center",width:56,height:44,border:"1px solid var(--border,#e2e8f0)",borderRadius:6,background:"#f8fafc",color:"#94a3b8"}}><svg width="25" height="25" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="m3 7 9-4 9 4-9 4-9-4Z"/><path d="M3 7v10l9 4 9-4V7"/><path d="M12 11v10"/><path d="m7.5 5 9 4"/></svg></span>}</td><td>{x.equipment_number||"-"}</td><td><b>{x.name}</b></td><td>{x.detail||"-"}</td><td>{x.location||"-"}</td><td>{x.maker||"-"}</td><td className={x.low_stock?"text-danger":""}><b>{x.quantity}</b></td><td>{x.min_quantity}</td><td>{x.order_quantity ?? 0}</td><td>{x.unit||"-"}</td><td><div className="toolbar"><button className="btn ghost" onClick={()=>showQr(x)}>QR</button>{auth.can("can_withdraw_tooling")&&<button className="btn primary" onClick={()=>{setWithdrawItem(x);setWithdraw({quantity:1,requester_id:auth.employee?.id||"",reason:"LOST",vehicle_number:"",remark:""})}}>เบิก</button>}{auth.can("can_edit_tooling")&&<button className="btn ghost" onClick={()=>{setEditing(x);setForm({...x});setImageFile(null);setFormOpen(true);}}>แก้ไข</button>}{auth.can("can_delete_tooling")&&<button className="btn ghost" onClick={()=>remove(x)}>ปิดใช้งาน</button>}</div></td></tr>)}
         {!shown.length&&<tr><td colSpan="11">ไม่พบรายการ Tooling</td></tr>}
       </tbody></table></div>
       <div className="tooling-mobile-cards">
-        {shown.map(x => <article className="tooling-mobile-card" key={x.id}>
+        {pageShown.map(x => <article className="tooling-mobile-card" key={x.id}>
           <div className="tooling-mobile-card-head">
             {x.image_url
               ? <button type="button" className="tooling-mobile-image-button" aria-label={`ขยายรูปภาพ ${x.name}`} onClick={()=>setPreviewImage({url:x.image_url,name:x.name})}><img src={x.image_url} alt={x.name} loading="lazy" /></button>
