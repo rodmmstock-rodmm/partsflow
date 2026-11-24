@@ -1,0 +1,151 @@
+.tooling-mobile-cards {
+  display: none;
+}
+
+@media (max-width: 767px) {
+  .tooling-page,
+  .tooling-page .tooling-items-panel {
+    min-width: 0;
+    max-width: 100%;
+  }
+
+  .tooling-page .tooling-items-panel {
+    padding: 12px;
+    overflow: hidden;
+  }
+
+  .tooling-page .tooling-items-table-wrap {
+    display: none;
+  }
+
+  .tooling-page .tooling-mobile-cards {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 12px;
+    width: 100%;
+    min-width: 0;
+  }
+
+  .tooling-mobile-card {
+    box-sizing: border-box;
+    width: 100%;
+    min-width: 0;
+    padding: 12px;
+    border: 1px solid var(--border, #e2e8f0);
+    border-radius: 12px;
+    background: #fff;
+    overflow: hidden;
+  }
+
+  .tooling-mobile-card-head {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    min-width: 0;
+  }
+
+  .tooling-mobile-image-button,
+  .tooling-mobile-image-placeholder {
+    flex: 0 0 76px;
+    width: 76px;
+    height: 76px;
+    box-sizing: border-box;
+    display: grid;
+    place-items: center;
+    padding: 0;
+    border: 1px solid var(--border, #e2e8f0);
+    border-radius: 9px;
+    background: #f8fafc;
+    color: #94a3b8;
+    overflow: hidden;
+  }
+
+  .tooling-mobile-image-button {
+    cursor: zoom-in;
+  }
+
+  .tooling-mobile-image-button img {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    background: #fff;
+  }
+
+  .tooling-mobile-card-title {
+    display: flex;
+    flex: 1 1 auto;
+    flex-direction: column;
+    gap: 4px;
+    min-width: 0;
+  }
+
+  .tooling-mobile-card-title strong {
+    color: var(--text, #172033);
+    font-size: 15px;
+    line-height: 1.4;
+    overflow-wrap: anywhere;
+  }
+
+  .tooling-mobile-equipment-number {
+    color: #476b9b;
+    font-size: 12px;
+    font-weight: 700;
+  }
+
+  .tooling-mobile-model {
+    color: var(--muted, #64748b);
+    font-size: 12px;
+    line-height: 1.4;
+    overflow-wrap: anywhere;
+  }
+
+  .tooling-mobile-card-details {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px 12px;
+    margin-top: 13px;
+    padding-top: 11px;
+    border-top: 1px solid #edf0f4;
+  }
+
+  .tooling-mobile-card-details > div {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    min-width: 0;
+  }
+
+  .tooling-mobile-card-details span {
+    color: var(--muted, #64748b);
+    font-size: 11px;
+  }
+
+  .tooling-mobile-card-details b {
+    color: var(--text, #172033);
+    font-size: 13px;
+    line-height: 1.35;
+    overflow-wrap: anywhere;
+  }
+
+  .tooling-mobile-card-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 7px;
+    margin-top: 13px;
+    padding-top: 10px;
+    border-top: 1px solid #edf0f4;
+  }
+
+  .tooling-mobile-card-actions .btn {
+    min-height: 36px;
+    padding: 7px 11px;
+    font-size: 12px;
+  }
+
+  .tooling-mobile-empty {
+    padding: 24px 12px;
+    color: var(--muted, #64748b);
+    text-align: center;
+  }
+}
