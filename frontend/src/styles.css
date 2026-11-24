@@ -816,19 +816,51 @@ html body input[type="radio"]:focus-visible{outline:2px solid var(--brand, #3978
 .modal-backdrop>.modal .field input,.modal-backdrop>.modal .field select,.modal-backdrop>.modal .field textarea{width:100%;min-width:0;background:#fff}
 @media(max-width:640px){.modal-backdrop>.modal{max-width:100%;max-height:calc(100dvh - 20px);padding:16px;border-radius:16px}.modal-backdrop>.modal .form-grid{grid-template-columns:minmax(0,1fr);gap:12px}.modal-backdrop>.modal .span2{grid-column:span 1}.modal-backdrop>.modal .field.span2{grid-column:span 1}}
 
-/* Tooling: compact list density on mobile without hiding columns or actions. */
+/* Tooling: keep the desktop table and use readable full-width cards on mobile. */
+.tooling-mobile-cards { display: none; }
 @media (max-width: 767px) {
-  .tooling-page .table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
-  .tooling-page .table-wrap table { min-width: 650px; font-size: 11px; }
-  .tooling-page .table-wrap th,
-  .tooling-page .table-wrap td { padding: 7px 8px !important; line-height: 1.25; }
-  .tooling-page .table-wrap td b { font-size: 11px; }
-  .tooling-page .table-wrap .toolbar { gap: 4px; flex-wrap: nowrap; }
-  .tooling-page .table-wrap .btn { min-height: 28px; padding: 5px 7px; font-size: 10px; border-radius: 7px; }
   .tooling-page .panel { padding: 10px; }
+  .tooling-page .tooling-items-table-wrap { display: none; }
+  .tooling-page .tooling-mobile-cards { display: grid; gap: 10px; }
+  .tooling-mobile-card {
+    min-width: 0;
+    padding: 12px;
+    border: 1px solid var(--border, #e2e8f0);
+    border-radius: 12px;
+    background: #fff;
+    box-shadow: 0 1px 3px rgba(15, 23, 42, .04);
+  }
+  .tooling-mobile-card-head { display: flex; align-items: center; gap: 11px; min-width: 0; }
+  .tooling-mobile-image-button, .tooling-mobile-image-empty {
+    flex: 0 0 68px;
+    width: 68px;
+    height: 68px;
+    display: grid;
+    place-items: center;
+    overflow: hidden;
+    padding: 0;
+    border: 1px solid var(--border, #e2e8f0);
+    border-radius: 9px;
+    background: #f8fafc;
+    color: #94a3b8;
+  }
+  .tooling-mobile-image-button { cursor: zoom-in; }
+  .tooling-mobile-image-button img { display: block; width: 100%; height: 100%; object-fit: contain; background: #fff; }
+  .tooling-mobile-card-title { display: flex; flex: 1; flex-direction: column; gap: 4px; min-width: 0; }
+  .tooling-mobile-card-title strong { color: var(--text, #24364b); font-size: 13px; line-height: 1.4; overflow-wrap: anywhere; }
+  .tooling-mobile-equipment-number { color: var(--brand, #3978b8); font-size: 10px; font-weight: 700; }
+  .tooling-mobile-card-details { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 9px 12px; margin-top: 12px; padding-top: 10px; border-top: 1px solid var(--border-soft, #edf1f5); }
+  .tooling-mobile-card-details > div, .tooling-mobile-stock-grid > div { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+  .tooling-mobile-card-details span, .tooling-mobile-stock-grid span { color: var(--muted, #718096); font-size: 9px; }
+  .tooling-mobile-card-details strong { color: var(--text, #334155); font-size: 11px; font-weight: 600; overflow-wrap: anywhere; }
+  .tooling-mobile-stock-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; margin-top: 12px; padding: 10px; border-radius: 9px; background: #f7f9fc; }
+  .tooling-mobile-stock-grid strong { color: var(--text, #334155); font-size: 12px; font-weight: 700; overflow-wrap: anywhere; }
+  .tooling-mobile-stock-grid .is-low strong { color: #be344b; }
+  .tooling-mobile-card-actions { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 11px; }
+  .tooling-mobile-card-actions .btn { min-height: 34px; padding: 6px 10px; font-size: 11px; border-radius: 8px; }
+  .tooling-mobile-card-actions .tooling-mobile-disable { color: #be344b; }
+  .tooling-mobile-empty { padding: 22px 12px; border: 1px dashed var(--border, #cbd5e1); border-radius: 10px; color: var(--muted, #718096); text-align: center; font-size: 12px; }
 }
-
-
 /* Gauge Control: show the package placeholder whenever an equipment photo is absent. */
 .tool-empty-image {
   width: 56px;
