@@ -289,6 +289,7 @@ export function SearchableSelect({
   required = false,
   emptyText = "ไม่พบข้อมูล",
   className = "",
+  portalMenu = false,
 }) {
   const remote = typeof onSearch === "function";
   const [remoteOptions, setRemoteOptions] = useState([]);
@@ -304,6 +305,8 @@ export function SearchableSelect({
   const [activeIndex, setActiveIndex] = useState(0);
   const closeTimer = useRef(null);
   const searchTimer = useRef(null);
+  const inputRef = useRef(null);
+  const [menuStyle, setMenuStyle] = useState(null);
 
   useEffect(() => {
     if (!open) {
@@ -316,6 +319,21 @@ export function SearchableSelect({
 
   useEffect(() => () => window.clearTimeout(closeTimer.current), []);
   useEffect(() => () => window.clearTimeout(searchTimer.current), []);
+
+  useEffect(() => {
+    if (!portalMenu || !open) { setMenuStyle(null); return undefined; }
+    const updatePosition = () => {
+      const rect = inputRef.current?.getBoundingClientRect();
+      if (!rect) return;
+      const spaceBelow = window.innerHeight - rect.bottom;
+      const placeAbove = spaceBelow < 190 && rect.top > spaceBelow;
+      setMenuStyle({ position: "fixed", left: rect.left, width: rect.width, ...(placeAbove ? { bottom: window.innerHeight - rect.top + 4 } : { top: rect.bottom + 4 }), maxHeight: Math.max(110, Math.min(260, (placeAbove ? rect.top : spaceBelow) - 12)), zIndex: 10000 });
+    };
+    updatePosition();
+    window.addEventListener("resize", updatePosition);
+    window.addEventListener("scroll", updatePosition, true);
+    return () => { window.removeEventListener("resize", updatePosition); window.removeEventListener("scroll", updatePosition, true); };
+  }, [portalMenu, open]);
 
   // Remote mode: debounce the typed text and ask the backend for matches,
   // instead of requiring the entire list (e.g. every Part in the system)
@@ -387,6 +405,7 @@ export function SearchableSelect({
   return (
     <div className={`searchable-select ${className}`}>
       <input
+        ref={inputRef}
         value={query}
         disabled={disabled}
         required={required}
@@ -418,26 +437,19 @@ export function SearchableSelect({
           ×
         </button>
       )}
-      {open && !disabled && (
+      {open && !disabled && (portalMenu ? createPortal(
+        <div className="searchable-menu searchable-menu-portal" style={menuStyle || { visibility: "hidden" }} role="listbox">
+          {searching ? <span className="searchable-empty">กำลังค้นหา...</span> : filtered.length ? filtered.map((option, index) => (
+            <button type="button" role="option" aria-selected={String(option.id) === String(value)} className={index === activeIndex ? "active" : ""} key={option.id} onMouseDown={(event) => event.preventDefault()} onMouseEnter={() => setActiveIndex(index)} onClick={() => choose(option)}>{getLabel(option)}</button>
+          )) : <span className="searchable-empty">{remote && !needle ? "พิมพ์เพื่อค้นหา..." : emptyText}</span>}
+        </div>, document.body
+      ) : (
         <div className="searchable-menu" role="listbox">
-          {searching ? (
-            <span className="searchable-empty">กำลังค้นหา...</span>
-          ) : filtered.length ? filtered.map((option, index) => (
-            <button
-              type="button"
-              role="option"
-              aria-selected={String(option.id) === String(value)}
-              className={index === activeIndex ? "active" : ""}
-              key={option.id}
-              onMouseDown={(event) => event.preventDefault()}
-              onMouseEnter={() => setActiveIndex(index)}
-              onClick={() => choose(option)}
-            >
-              {getLabel(option)}
-            </button>
+          {searching ? <span className="searchable-empty">กำลังค้นหา...</span> : filtered.length ? filtered.map((option, index) => (
+            <button type="button" role="option" aria-selected={String(option.id) === String(value)} className={index === activeIndex ? "active" : ""} key={option.id} onMouseDown={(event) => event.preventDefault()} onMouseEnter={() => setActiveIndex(index)} onClick={() => choose(option)}>{getLabel(option)}</button>
           )) : <span className="searchable-empty">{remote && !needle ? "พิมพ์เพื่อค้นหา..." : emptyText}</span>}
         </div>
-      )}
+      ))}
     </div>
   );
 }
