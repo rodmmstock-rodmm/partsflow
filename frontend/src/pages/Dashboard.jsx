@@ -645,7 +645,7 @@ export default function Dashboard() {
             className="search-input"
             value={q}
             onChange={(e) => setQ(e.target.value)}
-            placeholder="ค้นหา Location / Part ID / Part Name / Detail / Maker..."
+            placeholder="ค้นหา Location / Part ID / Part Name / Detail / Maker / Remark..."
           />
           <button
             type="button"
