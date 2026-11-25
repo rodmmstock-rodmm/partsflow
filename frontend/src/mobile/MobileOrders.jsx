@@ -7,6 +7,7 @@ import MultiMachineOrderInfoModal from "../components/MultiMachineOrderInfoModal
 import NormalPurchaseModal from "../components/NormalPurchaseModal";
 import BulkOrderQuotationModal from "../components/BulkOrderQuotationModal";
 import OrderRFQComposeModal from "../components/OrderRFQComposeModal";
+import OrderJobCCSettingsModal from "../components/OrderJobCCSettingsModal";
 import { openOrderDetailByNumber } from "../orderDetailEnhancer";
 import { MobileEmpty, MobileLoading, MobilePage, MobileSearch } from "./MobileCommon";
 
@@ -69,6 +70,7 @@ export default function MobileOrders() {
   const [selected, setSelected] = useState(() => new Set());
   const [quotationMode, setQuotationMode] = useState(null);
   const [rfqModal, setRfqModal] = useState(false);
+  const [jobCCSettings, setJobCCSettings] = useState(false);
   const [emailType, setEmailType] = useState("RFQ");
   const range = useMemo(() => monthRange(year, month), [year, month]);
   const admin = isAdmin(auth.employee);
@@ -258,7 +260,12 @@ export default function MobileOrders() {
       actions={(
         <div className="m-page-actions">
           {auth.can("can_add_order") && tab === "normal" && (
-            <button className="m-icon-action" onClick={() => setEditor({ order: null })}>＋</button>
+            <>
+              <button className="m-icon-action" onClick={() => setEditor({ order: null })}>＋</button>
+              {auth.can("can_edit_purchase_info") && auth.can("can_view_po_balance") && (
+                <button className="m-icon-action" onClick={() => setJobCCSettings(true)} title="ตั้งค่า CC">CC</button>
+              )}
+            </>
           )}
           <button className="m-icon-action" onClick={() => load(true)}>↻</button>
         </div>
@@ -497,6 +504,12 @@ export default function MobileOrders() {
           options={options}
           emailType={emailType}
           onClose={() => setRfqModal(false)}
+        />
+      )}
+      {jobCCSettings && (
+        <OrderJobCCSettingsModal
+          jobs={options.jobs || []}
+          onClose={() => setJobCCSettings(false)}
         />
       )}
       {quotationMode && (
