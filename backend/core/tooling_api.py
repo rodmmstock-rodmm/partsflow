@@ -12,6 +12,7 @@ from rest_framework.response import Response
 
 from .auth_api import require_permission
 from .audit_utils import audit
+from .drive_image_backup import backup_web_upload
 from .models import Employee, OrderRecord, ToolingItem, ToolingTransaction
 from .image_optimizer import optimize_part_image
 from .supabase_storage import (
@@ -228,12 +229,28 @@ def item_image(request, pk):
         return Response({"detail": str(exc)}, status=400)
     except SupabaseStorageRequestError as exc:
         return Response({"detail": str(exc)}, status=502)
+    backup_result = {"status": "pending", "verified": False}
+    try:
+        backup_result = backup_web_upload(
+            sku_folder=f"Tooling_{safe_number}",
+            filename=f"{digest[:24]}{extension}",
+            payload=payload,
+            content_type=content_type,
+        )
+    except Exception as exc:
+        # Keep the existing Supabase image available if Google Drive is not
+        # configured or temporarily unavailable. Never overwrite source data.
+        backup_result = {"status": "pending", "verified": False, "detail": str(exc)[:240]}
+
     item.image_path = logical_path
     item.save(update_fields=["image_path", "updated_at"])
     audit(actor, "UPDATE", "ToolingItem", item.id, {
         "image_upload": {"size": len(payload), "sha256": digest},
+        "image_backup": backup_result,
     })
-    return Response(item_json(item))
+    result = item_json(item)
+    result["image_backup"] = backup_result
+    return Response(result)
 
 
 @csrf_exempt
