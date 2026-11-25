@@ -15,6 +15,7 @@ from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 
 from .auth_api import permissions_for, require_permission
+from .drive_images import download_drive_file, resolve_drive_file
 from .models import Part, ToolEquipment, ToolingItem
 from .supabase_storage import public_url_for_object, storage_object_path
 
@@ -66,25 +67,53 @@ def image_backup(request):
             archive_name = f"{category}/{safe_id}{extension}"
             status = "skipped"
             detail = ""
+            source = ""
             try:
-                if not object_path:
-                    raise ValueError("ไม่มี Storage object path")
-                url = public_url_for_object(object_path, with_version=False)
-                response = requests.get(url, timeout=30)
-                if response.status_code != 200:
-                    raise ValueError(f"Storage HTTP {response.status_code}")
-                if not response.content:
+                # Prefer the verified Google Drive copy so routine ZIP exports
+                # do not re-download every image from Supabase Storage.
+                drive_candidates = [image_path]
+                drive_folder = {
+                    "Stock": str(identifier),
+                    "Tooling": f"Tooling_{identifier}",
+                    "Gauge-Control": f"GaugeControl_{identifier}",
+                }.get(category)
+                if drive_folder:
+                    drive_candidates.append(
+                        f"DATA1_Images/WebUploads/{drive_folder}/{PurePosixPath(image_path).name}"
+                    )
+                image_bytes = None
+                drive_errors = []
+                for drive_path in drive_candidates:
+                    try:
+                        file_id, _mime_type, _name = resolve_drive_file(drive_path)
+                        image_bytes = download_drive_file(file_id)
+                        if image_bytes:
+                            source = "Google Drive"
+                            break
+                        drive_errors.append("Google Drive ส่งไฟล์ว่าง")
+                    except Exception as exc:
+                        drive_errors.append(str(exc)[:120])
+                if image_bytes is None:
+                    if not object_path:
+                        raise ValueError("ไม่มี Storage object path")
+                    url = public_url_for_object(object_path, with_version=False)
+                    response = requests.get(url, timeout=30)
+                    if response.status_code != 200:
+                        raise ValueError(f"Storage HTTP {response.status_code}")
+                    image_bytes = response.content
+                    source = "Supabase Storage"
+                if not image_bytes:
                     raise ValueError("ไฟล์ว่างเปล่า")
-                archive.writestr(archive_name, response.content)
+                archive.writestr(archive_name, image_bytes)
                 status = "downloaded"
                 downloaded += 1
             except Exception as exc:
                 detail = str(exc)[:240]
-            manifest.append([category, identifier, image_path, archive_name if status == "downloaded" else "", status, detail])
+            manifest.append([category, identifier, image_path, archive_name if status == "downloaded" else "", status, source, detail])
 
         csv_buffer = io.StringIO()
         writer = csv.writer(csv_buffer)
-        writer.writerow(["Category", "Part ID / Equipment Code", "Image Path", "Backup File", "Status", "Detail"])
+        writer.writerow(["Category", "Part ID / Equipment Code", "Image Path", "Backup File", "Status", "Source", "Detail"])
         writer.writerows(manifest)
         archive.writestr("backup_manifest.csv", csv_buffer.getvalue().encode("utf-8-sig"))
         summary = (
