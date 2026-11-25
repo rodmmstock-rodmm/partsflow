@@ -423,6 +423,7 @@ def parts_list(request):
                 | Q(description__icontains=q)
                 | Q(maker__name__icontains=q)
                 | Q(location__code__icontains=q)
+                | Q(remark__icontains=q)
             )
             qs = qs.filter(search_filter)
             count_qs = count_qs.filter(search_filter)
