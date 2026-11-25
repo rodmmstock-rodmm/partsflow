@@ -33,7 +33,10 @@ class ImageBackupTests(TestCase):
             content = b"image-bytes"
 
         get.return_value = ImageResponse()
-        response = image_backup(self.factory.get("/api/backup/images.zip/"))
+        # Existing test fixtures do not include Google Drive copies; verify
+        # that the endpoint safely falls back to Supabase Storage.
+        with patch("core.image_backup_api.resolve_drive_file", side_effect=Exception("Drive unavailable")):
+            response = image_backup(self.factory.get("/api/backup/images.zip/"))
 
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response["Content-Type"], "application/zip")
